@@ -902,6 +902,7 @@ static inline int nfp_net_tx_full(struct nfp_net_tx_ring *tx_ring, int dcnt)
 /**
  * nfp_net_tx_csum() - Set TX CSUM offload flags in TX descriptor
  * @nn:  NFP Net device
+ * @r_vec: per-ring structure
  * @txd: Pointer to TX descriptor
  * @skb: Pointer to SKB
  *
@@ -909,7 +910,7 @@ static inline int nfp_net_tx_full(struct nfp_net_tx_ring *tx_ring, int dcnt)
  * on the configuration and the protocol of the packet to be
  * transmitted.
  */
-static void nfp_net_tx_csum(struct nfp_net *nn,
+static void nfp_net_tx_csum(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 			    struct nfp_net_tx_desc *txd, struct sk_buff *skb)
 {
 	u8 l4_hdr = 0;
@@ -952,7 +953,9 @@ static void nfp_net_tx_csum(struct nfp_net *nn,
 	}
 
 	txd->flags |= PCIE_DESC_TX_CSUM;
-	nn->hw_csum_tx++;
+	u64_stats_update_begin(&r_vec->tx_sync);
+	r_vec->hw_csum_tx++;
+	u64_stats_update_end(&r_vec->tx_sync);
 }
 
 /**
@@ -966,6 +969,7 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
 	const struct skb_frag_struct *frag;
+	struct nfp_net_r_vector *r_vec;
 	struct nfp_net_tx_desc *txd, txdg;
 	struct nfp_net_tx_ring *tx_ring;
 	struct netdev_queue *nd_q;
@@ -978,6 +982,7 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 
 	qidx = skb_get_queue_mapping(skb);
 	tx_ring = &nn->tx_rings[qidx];
+	r_vec = tx_ring->r_vec;
 	nd_q = netdev_get_tx_queue(nn->netdev, qidx);
 
 	nn_assert((tx_ring->wr_p - tx_ring->rd_p) <= tx_ring->cnt,
@@ -991,7 +996,9 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 			nn_dbg(nn, "TX ring %d busy. wrp=%u rdp=%u\n",
 			       qidx, tx_ring->wr_p, tx_ring->rd_p);
 		netif_tx_stop_queue(nd_q);
-		tx_ring->r_vec->tx_busy++;
+		u64_stats_update_begin(&r_vec->tx_sync);
+		r_vec->tx_busy++;
+		u64_stats_update_end(&r_vec->tx_sync);
 		return NETDEV_TX_BUSY;
 	}
 
@@ -1000,7 +1007,9 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 				  DMA_TO_DEVICE);
 	if (dma_mapping_error(&nn->pdev->dev, dma_addr)) {
 		dev_kfree_skb_any(skb);
-		nn->stats.tx_errors++;
+		u64_stats_update_begin(&r_vec->tx_sync);
+		r_vec->tx_errors++;
+		u64_stats_update_end(&r_vec->tx_sync);
 		nn_warn(nn, "Failed to map DMA TX buffer\n");
 		return NETDEV_TX_OK;
 	}
@@ -1019,7 +1028,7 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 	nfp_desc_set_dma_addr(txd, dma_addr);
 	txd->data_len = cpu_to_le16(skb->len);
 
-	nfp_net_tx_csum(nn, txd, skb);
+	nfp_net_tx_csum(nn, r_vec, txd, skb);
 
 	if (skb_vlan_tag_present(skb) && nn->ctrl & NFP_NET_CFG_CTRL_TXVLAN) {
 		txd->flags |= PCIE_DESC_TX_VLAN;
@@ -1038,7 +1047,9 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 			dma_addr = skb_frag_dma_map(&nn->pdev->dev, frag, 0,
 						    fsize, DMA_TO_DEVICE);
 			if (dma_mapping_error(&nn->pdev->dev, dma_addr)) {
-				nn->stats.tx_errors++;
+				u64_stats_update_begin(&r_vec->tx_sync);
+				r_vec->tx_errors++;
+				u64_stats_update_end(&r_vec->tx_sync);
 				nn_warn(nn,
 					"Failed to map DMA TX gather buffer\n");
 				goto err_map;
@@ -1057,7 +1068,9 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 				(f == nr_frags - 1) ? PCIE_DESC_TX_EOP : 0;
 		}
 
-		nn->tx_gather++;
+		u64_stats_update_begin(&r_vec->tx_sync);
+		r_vec->tx_gather++;
+		u64_stats_update_end(&r_vec->tx_sync);
 	}
 
 	/* Increment write pointers. Force memory write before we let HW know */
@@ -1154,9 +1167,10 @@ static int nfp_net_tx_complete(struct nfp_net_tx_ring *tx_ring)
 
 			/* check for last gather fragment */
 			if (fidx == nr_frags - 1) {
-				nn->stats.tx_packets++;
-				nn->stats.tx_bytes += skb->len;
+				u64_stats_update_begin(&r_vec->tx_sync);
+				r_vec->tx_bytes += skb->len;
 				r_vec->tx_pkts++;
+				u64_stats_update_end(&r_vec->tx_sync);
 				dev_kfree_skb_any(skb);
 			}
 
@@ -1330,10 +1344,11 @@ static inline int nfp_net_rx_space(struct nfp_net_rx_ring *rx_ring)
 /**
  * nfp_net_rx_csum() - set SKB checksum field based on RX descriptor flags
  * @nn:  NFP Net device
+ * @r_vec: per-ring structure
  * @rxd: Pointer to RX descriptor
  * @skb: Pointer to SKB
  */
-static void nfp_net_rx_csum(struct nfp_net *nn,
+static void nfp_net_rx_csum(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 			    struct nfp_net_rx_desc *rxd, struct sk_buff *skb)
 {
 	skb->ip_summed = CHECKSUM_NONE;
@@ -1361,13 +1376,17 @@ static void nfp_net_rx_csum(struct nfp_net *nn,
 
 	skb->ip_summed = CHECKSUM_UNNECESSARY;
 
-	nn->hw_csum_rx_ok++;
+	u64_stats_update_begin(&r_vec->rx_sync);
+	r_vec->hw_csum_rx_ok++;
+	u64_stats_update_end(&r_vec->rx_sync);
 	skb->ip_summed = CHECKSUM_UNNECESSARY;
 	return;
 
 err_csum:
 	skb->ip_summed = CHECKSUM_NONE;
-	nn->hw_csum_rx_error++;
+	u64_stats_update_begin(&r_vec->rx_sync);
+	r_vec->hw_csum_rx_error++;
+	u64_stats_update_end(&r_vec->rx_sync);
 }
 
 /**
@@ -1518,14 +1537,15 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 		}
 
 		/* Stats update */
-		nn->stats.rx_packets++;
-		nn->stats.rx_bytes += skb->len;
+		u64_stats_update_begin(&r_vec->rx_sync);
 		r_vec->rx_pkts++;
+		r_vec->rx_bytes += skb->len;
+		u64_stats_update_end(&r_vec->rx_sync);
 
 		skb_record_rx_queue(skb, rx_ring->idx);
 		skb->protocol = eth_type_trans(skb, nn->netdev);
 
-		nfp_net_rx_csum(nn, rxd, skb);
+		nfp_net_rx_csum(nn, r_vec, rxd, skb);
 
 		if (rxd->rxd.flags & PCIE_DESC_RX_VLAN)
 			__vlan_hwaccel_put_tag(skb, htons(ETH_P_8021Q),
@@ -1985,8 +2005,12 @@ static int nfp_net_alloc_resources(struct nfp_net *nn)
 				goto err_alloc;
 		}
 
+		u64_stats_update_begin(&r_vec->tx_sync);
 		r_vec->tx_pkts = 0;
+		u64_stats_update_end(&r_vec->tx_sync);
+		u64_stats_update_begin(&r_vec->rx_sync);
 		r_vec->rx_pkts = 0;
+		u64_stats_update_end(&r_vec->rx_sync);
 	}
 
 	return 0;
@@ -2399,11 +2423,37 @@ static int nfp_net_change_mtu(struct net_device *netdev, int new_mtu)
 	return 0;
 }
 
-static struct net_device_stats *nfp_net_stats(struct net_device *netdev)
+static struct rtnl_link_stats64 *nfp_net_stat64(struct net_device *netdev,
+						struct rtnl_link_stats64 *stats)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
+	int i;
 
-	return &nn->stats;
+	for (i = 0; i < nn->num_r_vecs; i++) {
+		struct nfp_net_r_vector *r_vec = &nn->r_vecs[i];
+		u64 data[3];
+		unsigned int start;
+
+		do {
+			start = u64_stats_fetch_begin(&r_vec->rx_sync);
+			data[0] = r_vec->rx_pkts;
+			data[1] = r_vec->rx_bytes;
+		} while (u64_stats_fetch_retry(&r_vec->rx_sync, start));
+		stats->rx_packets += data[0];
+		stats->rx_bytes += data[1];
+
+		do {
+			start = u64_stats_fetch_begin(&r_vec->tx_sync);
+			data[0] = r_vec->tx_pkts;
+			data[1] = r_vec->tx_bytes;
+			data[2] = r_vec->tx_errors;
+		} while (u64_stats_fetch_retry(&r_vec->tx_sync, start));
+		stats->tx_packets += data[0];
+		stats->tx_bytes += data[1];
+		stats->tx_errors += data[2];
+	}
+
+	return stats;
 }
 
 static int nfp_net_set_features(struct net_device *netdev,
@@ -2490,7 +2540,7 @@ static struct net_device_ops nfp_net_netdev_ops = {
 	.ndo_open		= nfp_net_netdev_open,
 	.ndo_stop		= nfp_net_netdev_close,
 	.ndo_start_xmit		= nfp_net_tx,
-	.ndo_get_stats		= nfp_net_stats,
+	.ndo_get_stats64	= nfp_net_stat64,
 	.ndo_tx_timeout		= nfp_net_tx_timeout,
 	.ndo_set_rx_mode	= nfp_net_set_rx_mode,
 	.ndo_change_mtu		= nfp_net_change_mtu,

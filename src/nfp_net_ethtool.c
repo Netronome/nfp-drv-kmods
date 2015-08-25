@@ -334,9 +334,6 @@ struct _nfp_net_et_stats {
 #define NN_ET_NETDEV_STAT(m) NETDEV_ET_STATS,			\
 		FIELD_SIZEOF(struct net_device_stats, m),	\
 		offsetof(struct net_device_stats, m)
-#define NN_ET_DRV_STAT(m) NFP_NET_DRV_ET_STATS,			\
-		sizeof(u64),					\
-		offsetof(struct nfp_net, m)
 /* For stats in the control BAR (other than Q stats) */
 #define NN_ET_DEV_STAT(m) NFP_NET_DEV_ET_STATS,			\
 		sizeof(u64),					\
@@ -361,11 +358,6 @@ static const struct _nfp_net_et_stats nfp_net_et_stats[] = {
 	{"tx_aborted_errors", NN_ET_NETDEV_STAT(tx_aborted_errors)},
 	{"tx_carrier_errors", NN_ET_NETDEV_STAT(tx_carrier_errors)},
 	{"tx_fifo_errors", NN_ET_NETDEV_STAT(tx_fifo_errors)},
-	/* Other stats from the driver */
-	{"hw_rx_csum_ok", NN_ET_DRV_STAT(hw_csum_rx_ok)},
-	{"hw_rx_csum_err", NN_ET_DRV_STAT(hw_csum_rx_error)},
-	{"hw_tx_csum", NN_ET_DRV_STAT(hw_csum_tx)},
-	{"tx_gather", NN_ET_DRV_STAT(tx_gather)},
 	/* Stats from the device */
 	{"dev_rx_discards", NN_ET_DEV_STAT(NFP_NET_CFG_STATS_RX_DISCARDS)},
 	{"dev_rx_errors", NN_ET_DEV_STAT(NFP_NET_CFG_STATS_RX_ERRORS)},
@@ -390,8 +382,9 @@ static const struct _nfp_net_et_stats nfp_net_et_stats[] = {
 
 #define NN_ET_GLOBAL_STATS_LEN ARRAY_SIZE(nfp_net_et_stats)
 #define NN_ET_RVEC_STATS_LEN (nn->num_r_vecs * 3)
+#define NN_ET_RVEC_GATHER_STATS 4
 #define NN_ET_QUEUE_STATS_LEN ((nn->num_tx_rings + nn->num_rx_rings) * 2)
-#define NN_ET_STATS_LEN (NN_ET_GLOBAL_STATS_LEN + \
+#define NN_ET_STATS_LEN (NN_ET_GLOBAL_STATS_LEN + NN_ET_RVEC_GATHER_STATS + \
 			 NN_ET_RVEC_STATS_LEN + NN_ET_QUEUE_STATS_LEN)
 
 static void nfp_net_get_drvinfo(struct net_device *netdev,
@@ -476,13 +469,21 @@ static void nfp_net_get_strings(struct net_device *netdev,
 			p += ETH_GSTRING_LEN;
 		}
 		for (i = 0; i < nn->num_r_vecs; i++) {
-			sprintf(p, "rvec_%u_tx_pkts", i);
-			p += ETH_GSTRING_LEN;
 			sprintf(p, "rvec_%u_rx_pkts", i);
+			p += ETH_GSTRING_LEN;
+			sprintf(p, "rvec_%u_tx_pkts", i);
 			p += ETH_GSTRING_LEN;
 			sprintf(p, "rvec_%u_tx_busy", i);
 			p += ETH_GSTRING_LEN;
 		}
+		strncpy(p, "hw_rx_csum_ok", ETH_GSTRING_LEN);
+		p += ETH_GSTRING_LEN;
+		strncpy(p, "hw_rx_csum_err", ETH_GSTRING_LEN);
+		p += ETH_GSTRING_LEN;
+		strncpy(p, "hw_tx_csum", ETH_GSTRING_LEN);
+		p += ETH_GSTRING_LEN;
+		strncpy(p, "tx_gather", ETH_GSTRING_LEN);
+		p += ETH_GSTRING_LEN;
 		for (i = 0; i < nn->num_tx_rings; i++) {
 			sprintf(p, "txq_%u_pkts", i);
 			p += ETH_GSTRING_LEN;
@@ -509,7 +510,9 @@ static void nfp_net_get_stats(struct net_device *netdev,
 	struct rtnl_link_stats64 *netdev_stats;
 	struct rtnl_link_stats64 temp;
 #endif
-	int i, j;
+	u64 tmp[NN_ET_RVEC_GATHER_STATS];
+	u64 gathered_stats[NN_ET_RVEC_GATHER_STATS] = {};
+	int i, j, k;
 	u8 __iomem *io_p;
 	u8 *p;
 
@@ -521,16 +524,11 @@ static void nfp_net_get_stats(struct net_device *netdev,
 	for (i = 0; i < NN_ET_GLOBAL_STATS_LEN; i++) {
 		switch (nfp_net_et_stats[i].type) {
 		case NETDEV_ET_STATS:
-			p = (char *)netdev_stats +
-				nfp_net_et_stats[i].off;
-			data[i] = (nfp_net_et_stats[i].sz ==
-				   sizeof(u64)) ? *(u64 *)p : *(u32 *)p;
+			p = (char *)netdev_stats + nfp_net_et_stats[i].off;
+			data[i] = nfp_net_et_stats[i].sz == sizeof(u64) ?
+				*(u64 *)p : *(u32 *)p;
 			break;
 
-		case NFP_NET_DRV_ET_STATS:
-			p = (char *)nn + nfp_net_et_stats[i].off;
-			data[i] = *(u64 *)p;
-			break;
 		case NFP_NET_DEV_ET_STATS:
 			io_p = nn->ctrl_bar + nfp_net_et_stats[i].off;
 			data[i] = le64_to_cpu(readq(io_p));
@@ -538,24 +536,39 @@ static void nfp_net_get_stats(struct net_device *netdev,
 		}
 	}
 	for (j = 0; j < nn->num_r_vecs; j++) {
-		data[i]     = nn->r_vecs[j].tx_pkts;
-		data[i + 1] = nn->r_vecs[j].rx_pkts;
-		data[i + 2] = nn->r_vecs[j].tx_busy;
-		i += 3;
+		unsigned int start;
+
+		do {
+			start = u64_stats_fetch_begin(&nn->r_vecs[j].rx_sync);
+			data[i++] = nn->r_vecs[j].rx_pkts;
+			tmp[0] = nn->r_vecs[j].hw_csum_rx_ok;
+			tmp[1] = nn->r_vecs[j].hw_csum_rx_error;
+		} while (u64_stats_fetch_retry(&nn->r_vecs[j].rx_sync, start));
+
+		do {
+			start = u64_stats_fetch_begin(&nn->r_vecs[j].tx_sync);
+			data[i++] = nn->r_vecs[j].tx_pkts;
+			data[i++] = nn->r_vecs[j].tx_busy;
+			tmp[2] = nn->r_vecs[j].hw_csum_tx;
+			tmp[3] = nn->r_vecs[j].tx_gather;
+		} while (u64_stats_fetch_retry(&nn->r_vecs[j].tx_sync, start));
+
+		for (k = 0; k < NN_ET_RVEC_GATHER_STATS; k++)
+			gathered_stats[k] += tmp[k];
 	}
+	for (j = 0; j < NN_ET_RVEC_GATHER_STATS; j++)
+		data[i++] = gathered_stats[j];
 	for (j = 0; j < nn->num_tx_rings; j++) {
 		io_p = nn->ctrl_bar + NFP_NET_CFG_TXR_STATS(j);
-		data[i] = le64_to_cpu(readq(io_p));
+		data[i++] = le64_to_cpu(readq(io_p));
 		io_p = nn->ctrl_bar + NFP_NET_CFG_TXR_STATS(j) + 8;
-		data[i + 1] = readq(io_p);
-		i += 2;
+		data[i++] = readq(io_p);
 	}
 	for (j = 0; j < nn->num_rx_rings; j++) {
 		io_p = nn->ctrl_bar + NFP_NET_CFG_RXR_STATS(j);
-		data[i] = le64_to_cpu(readq(io_p));
+		data[i++] = le64_to_cpu(readq(io_p));
 		io_p = nn->ctrl_bar + NFP_NET_CFG_RXR_STATS(j) + 8;
-		data[i + 1] = readq(io_p);
-		i += 2;
+		data[i++] = readq(io_p);
 	}
 }
 

@@ -599,8 +599,18 @@ struct nfp_net_r_vector {
 
 	cpumask_t affinity_mask;
 
-	u64 tx_pkts;
+	struct u64_stats_sync rx_sync;
 	u64 rx_pkts;
+	u64 rx_bytes;
+	u64 hw_csum_rx_ok;
+	u64 hw_csum_rx_error;
+
+	struct u64_stats_sync tx_sync;
+	u64 tx_pkts;
+	u64 tx_bytes;
+	u64 hw_csum_tx;
+	u64 tx_gather;
+	u64 tx_errors;
 	u64 tx_busy;
 };
 
@@ -687,12 +697,6 @@ struct nfp_net {
 	struct nfp_cpp_area *ctrl_area;
 	struct nfp_cpp_area *tx_area;
 	struct nfp_cpp_area *rx_area;
-
-	struct net_device_stats stats;
-	u64 hw_csum_rx_ok;
-	u64 hw_csum_rx_error;
-	u64 hw_csum_tx;
-	u64 tx_gather;
 
 	u32 et_dump_flag;
 
