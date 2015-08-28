@@ -1,0 +1,9 @@
+Module.symvers
+modules.order
+*.o.cmd
+*.ko.cmd
+*.o
+nfp_build_info.h
+*.ko
+*.mod.c
+.tmp_versions/
