@@ -1016,8 +1016,7 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 	txd = &tx_ring->txds[wr_idx];
 	txd->offset_eop |= (nr_frags == 0) ? PCIE_DESC_TX_EOP : 0;
 	txd->dma_len = cpu_to_le16(skb_headlen(skb));
-	txd->dma_addr_hi = ((uint64_t)dma_addr >> 32) & 0xff;
-	txd->dma_addr_lo = cpu_to_le32(dma_addr & 0xffffffff);
+	nfp_desc_set_dma_addr(txd, dma_addr);
 	txd->data_len = cpu_to_le16(skb->len);
 
 	nfp_net_tx_csum(nn, txd, skb);
@@ -1053,8 +1052,7 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 			txd = &tx_ring->txds[wr_idx];
 			*txd = txdg;
 			txd->dma_len = cpu_to_le16(fsize);
-			txd->dma_addr_hi = ((uint64_t)dma_addr >> 32) & 0xff;
-			txd->dma_addr_lo = cpu_to_le32(dma_addr & 0xffffffff);
+			nfp_desc_set_dma_addr(txd, dma_addr);
 			txd->offset_eop |=
 				(f == nr_frags - 1) ? PCIE_DESC_TX_EOP : 0;
 		}
@@ -1598,10 +1596,7 @@ static int nfp_net_rx_fill_freelist(struct nfp_net_rx_ring *rx_ring)
 			/* Fill freelist descriptor */
 			rxd = &rx_ring->rxds[wr_idx];
 			rxd->fld.meta_len_dd = 0;
-			rxd->fld.dma_addr_hi = ((uint64_t)dma_addr >> 32)
-					       & 0xff;
-			rxd->fld.dma_addr_lo =
-				cpu_to_le32(dma_addr & 0xffffffff);
+			nfp_desc_set_dma_addr(&rxd->fld, dma_addr);
 			rx_ring->wr_p++;
 		}
 

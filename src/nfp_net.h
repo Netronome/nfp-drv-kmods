@@ -388,6 +388,16 @@ struct nfp_net;
 /* Forward declaration */
 struct nfp_net_r_vector;
 
+/* Convenience macro for writing dma address into RX/TX descriptors */
+#define nfp_desc_set_dma_addr(desc, dma_addr)				\
+	do {								\
+		__typeof(desc) __d = (desc);				\
+		dma_addr_t __addr = (dma_addr);				\
+									\
+		__d->dma_addr_lo = cpu_to_le32(lower_32_bits(__addr));	\
+		__d->dma_addr_hi = upper_32_bits(__addr) & 0xff;	\
+	} while (0)
+
 /* TX descriptor format */
 
 #define PCIE_DESC_TX_EOP		BIT(7)
