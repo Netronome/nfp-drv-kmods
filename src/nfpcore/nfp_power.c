@@ -512,7 +512,7 @@ static int nfp3200_reset_get(struct nfp_cpp *cpp, unsigned int subdevice,
 	uint32_t r_mask, e_mask, csr;
 	int err;
 
-	if (subdevice > ARRAY_SIZE(target_to_mask))
+	if (subdevice >= ARRAY_SIZE(target_to_mask))
 		return -EINVAL;
 
 	r_mask = target_to_mask[subdevice].reset_mask;
@@ -558,7 +558,7 @@ int nfp3200_reset_set(struct nfp_cpp *cpp, unsigned int subdevice, int reset,
 	uint16_t interface;
 	int err;
 
-	if (subdevice > ARRAY_SIZE(target_to_mask))
+	if (subdevice >= ARRAY_SIZE(target_to_mask))
 		return -EINVAL;
 
 	/* Disallow changes to the PCIE core if that
