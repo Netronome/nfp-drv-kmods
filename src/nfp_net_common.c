@@ -1471,7 +1471,7 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 		 */
 		rmb();
 		rxd = &rx_ring->rxds[idx];
-		if (!rxd->rxd.dd) {
+		if (!(rxd->rxd.meta_len_dd & PCIE_DESC_RX_DD)) {
 			if (nn->is_nfp3200)
 				nn_dbg(nn, "RX descriptor not valid (DD)%d:%u rxd[0]=%#x rxd[1]=%#x\n",
 				       rx_ring->idx, idx,
@@ -1479,9 +1479,9 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 			break;
 		}
 
-		if (rxd->rxd.data_len > nn->fl_bufsz) {
+		if (le16_to_cpu(rxd->rxd.data_len) > nn->fl_bufsz) {
 			nn_err(nn, "RX data larger than freelist buffer (%u > %u) on %d:%u rxd[0]=%#x rxd[1]=%#x\n",
-			       rxd->rxd.data_len, nn->fl_bufsz,
+			       le16_to_cpu(rxd->rxd.data_len), nn->fl_bufsz,
 			       rx_ring->idx, idx, rxd->vals[0], rxd->vals[1]);
 			/* Halt here. The device may have DMAed beyond the end
 			 * of the freelist buffer and all bets are off.
@@ -1494,8 +1494,8 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 				 rx_ring->rxbufs[idx].dma_addr,
 				 nn->fl_bufsz, DMA_FROM_DEVICE);
 
-		meta_len = rxd->rxd.meta_len;
-		data_len = rxd->rxd.data_len;
+		meta_len = rxd->rxd.meta_len_dd & PCIE_DESC_RX_META_LEN_MASK;
+		data_len = le16_to_cpu(rxd->rxd.data_len);
 
 		if (nn->rx_prepend == NFP_NET_CFG_RX_OFFSET_DYNAMIC) {
 			/* The packet data starts after the metadata */
@@ -1597,10 +1597,11 @@ static int nfp_net_rx_fill_freelist(struct nfp_net_rx_ring *rx_ring)
 
 			/* Fill freelist descriptor */
 			rxd = &rx_ring->rxds[wr_idx];
-			rxd->fld.dd = 0;
+			rxd->fld.meta_len_dd = 0;
 			rxd->fld.dma_addr_hi = ((uint64_t)dma_addr >> 32)
 					       & 0xff;
-			rxd->fld.dma_addr_lo = dma_addr & 0xffffffff;
+			rxd->fld.dma_addr_lo =
+				cpu_to_le32(dma_addr & 0xffffffff);
 			rx_ring->wr_p++;
 		}
 

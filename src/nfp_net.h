@@ -463,64 +463,49 @@ struct nfp_net_tx_ring {
 	unsigned int size;
 } ____cacheline_aligned;
 
-/* RX and freelist descriptor format
- */
+/* RX and freelist descriptor format */
+
+#define PCIE_DESC_RX_DD			BIT(7)
+#define PCIE_DESC_RX_META_LEN_MASK	GENMASK(6, 0)
 
 /* Flags in the RX descriptor */
-#define PCIE_DESC_RX_RSS		(1 << 15)
-#define PCIE_DESC_RX_I_IP4_CSUM		(1 << 14)
-#define PCIE_DESC_RX_I_IP4_CSUM_OK	(1 << 13)
-#define PCIE_DESC_RX_I_TCP_CSUM		(1 << 12)
-#define PCIE_DESC_RX_I_TCP_CSUM_OK	(1 << 11)
-#define PCIE_DESC_RX_I_UDP_CSUM		(1 << 10)
-#define PCIE_DESC_RX_I_UDP_CSUM_OK	(1 <<  9)
-#define PCIE_DESC_RX_SPARE		(1 <<  8)
-#define PCIE_DESC_RX_EOP		(1 <<  7)
-#define PCIE_DESC_RX_IP4_CSUM		(1 <<  6)
-#define PCIE_DESC_RX_IP4_CSUM_OK	(1 <<  5)
-#define PCIE_DESC_RX_TCP_CSUM		(1 <<  4)
-#define PCIE_DESC_RX_TCP_CSUM_OK	(1 <<  3)
-#define PCIE_DESC_RX_UDP_CSUM		(1 <<  2)
-#define PCIE_DESC_RX_UDP_CSUM_OK	(1 <<  1)
-#define PCIE_DESC_RX_VLAN		(1 <<  0)
+#define PCIE_DESC_RX_RSS		cpu_to_le16(BIT(15))
+#define PCIE_DESC_RX_I_IP4_CSUM		cpu_to_le16(BIT(14))
+#define PCIE_DESC_RX_I_IP4_CSUM_OK	cpu_to_le16(BIT(13))
+#define PCIE_DESC_RX_I_TCP_CSUM		cpu_to_le16(BIT(12))
+#define PCIE_DESC_RX_I_TCP_CSUM_OK	cpu_to_le16(BIT(11))
+#define PCIE_DESC_RX_I_UDP_CSUM		cpu_to_le16(BIT(10))
+#define PCIE_DESC_RX_I_UDP_CSUM_OK	cpu_to_le16(BIT(9))
+#define PCIE_DESC_RX_SPARE		cpu_to_le16(BIT(8))
+#define PCIE_DESC_RX_EOP		cpu_to_le16(BIT(7))
+#define PCIE_DESC_RX_IP4_CSUM		cpu_to_le16(BIT(6))
+#define PCIE_DESC_RX_IP4_CSUM_OK	cpu_to_le16(BIT(5))
+#define PCIE_DESC_RX_TCP_CSUM		cpu_to_le16(BIT(4))
+#define PCIE_DESC_RX_TCP_CSUM_OK	cpu_to_le16(BIT(3))
+#define PCIE_DESC_RX_UDP_CSUM		cpu_to_le16(BIT(2))
+#define PCIE_DESC_RX_UDP_CSUM_OK	cpu_to_le16(BIT(1))
+#define PCIE_DESC_RX_VLAN		cpu_to_le16(BIT(0))
 
 struct nfp_net_rx_desc {
 	union {
 		struct {
-#if defined(__LITTLE_ENDIAN)
-			u32 dma_addr_hi:8;  /* High bits of the buf address */
-			u32 spare:23;
-			u32 dd:1;	    /* Must be zero */
+			u8 dma_addr_hi;	/* High bits of the buf address */
+			__le16 padding;
+			u8 meta_len_dd; /* Must be zero */
 
-			u32 dma_addr_lo;    /* Low bits of the buffer address */
-#else
-			u32 dd:1;
-			u32 spare:23;
-			u32 dma_addr_hi:8;
-
-			u32 dma_addr_lo;
-#endif /* Endian */
-		} fld;
+			__le32 dma_addr_lo; /* Low bits of the buffer address */
+		} __packed fld;
 
 		struct {
-#if defined(__LITTLE_ENDIAN)
-			u32 data_len:16; /* Length of the frame + meta data */
-			u32 reserved:8;
-			u32 meta_len:7;  /* Length of meta data prepended */
-			u32 dd:1;	 /* Must be set to 1 */
+			__le16 data_len; /* Length of the frame + meta data */
+			u8 reserved;
+			u8 meta_len_dd;	/* Length of meta data prepended +
+					 * descriptor done flag.
+					 */
 
-			u32 flags:16;	 /* RX flags. See @PCIE_DESC_RX_* */
-			u32 vlan:16;	 /* VLAN if stripped */
-#else
-			u32 dd:1;
-			u32 meta_len:7;
-			u32 reserved:8;
-			u32 data_len:16;
-
-			u32 vlan:16;
-			u32 flags:16;
-#endif /* Endian */
-		} rxd;
+			__le16 flags;	/* RX flags. See @PCIE_DESC_RX_* */
+			__le16 vlan;	/* VLAN if stripped */
+		} __packed rxd;
 
 		__le32 vals[2];
 	};
