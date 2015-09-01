@@ -543,14 +543,14 @@ struct nfp_net_rx_desc {
 /**
  * struct nfp_net_rx_ring - RX ring structure
  * @r_vec:      Back pointer to ring vector structure
+ * @cnt:        Size of the queue in number of descriptors
+ * @wr_p:       FL/RX ring write pointer (free running)
+ * @rd_p:       FL/RX ring read pointer (free running)
  * @idx:        Ring index from Linux's perspective
  * @fl_qcidx:   Queue Controller Peripheral (QCP) queue index for the freelist
  * @rx_qcidx:   Queue Controller Peripheral (QCP) queue index for the RX queue
  * @qcp_fl:     Pointer to base of the QCP freelist queue
  * @qcp_rx:     Pointer to base of the QCP RX queue
- * @cnt:        Size of the queue in number of descriptors
- * @wr_p:       FL/RX ring write pointer (free running)
- * @rd_p:       FL/RX ring read pointer (free running)
  * @rxbufs:     Array of transmitted FL/RX buffers
  * @rxds:       Virtual address of FL/RX ring in host memory
  * @dma:        DMA address of the FL/RX ring
@@ -559,15 +559,15 @@ struct nfp_net_rx_desc {
 struct nfp_net_rx_ring {
 	struct nfp_net_r_vector *r_vec;
 
+	int cnt;
+	u32 wr_p;
+	u32 rd_p;
+
 	int idx;
 	int fl_qcidx;
 	int rx_qcidx;
 	u8 __iomem *qcp_fl;
 	u8 __iomem *qcp_rx;
-
-	int cnt;
-	u32 wr_p;
-	u32 rd_p;
 
 	struct {
 		struct sk_buff *skb;
