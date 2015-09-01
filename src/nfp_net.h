@@ -388,53 +388,39 @@ struct nfp_net;
 /* Forward declaration */
 struct nfp_net_r_vector;
 
-/* TX descriptor format
- */
+/* TX descriptor format */
+
+#define PCIE_DESC_TX_EOP		BIT(7)
+#define PCIE_DESC_TX_OFFSET_MASK	GENMASK(6, 0)
 
 /* Flags in the host TX descriptor */
-#define PCIE_DESC_TX_CSUM		(1 << 7)
-#define PCIE_DESC_TX_IP4_CSUM		(1 << 6)
-#define PCIE_DESC_TX_TCP_CSUM		(1 << 5)
-#define PCIE_DESC_TX_UDP_CSUM		(1 << 4)
-#define PCIE_DESC_TX_VLAN		(1 << 3)
-#define PCIE_DESC_TX_LSO		(1 << 2)
-#define PCIE_DESC_TX_ENCAP_NONE		(0)
-#define PCIE_DESC_TX_ENCAP_VXLAN	(1 << 1)
-#define PCIE_DESC_TX_ENCAP_GRE		(1 << 0)
+#define PCIE_DESC_TX_CSUM		BIT(7)
+#define PCIE_DESC_TX_IP4_CSUM		BIT(6)
+#define PCIE_DESC_TX_TCP_CSUM		BIT(5)
+#define PCIE_DESC_TX_UDP_CSUM		BIT(4)
+#define PCIE_DESC_TX_VLAN		BIT(3)
+#define PCIE_DESC_TX_LSO		BIT(2)
+#define PCIE_DESC_TX_ENCAP_VXLAN	BIT(1)
+#define PCIE_DESC_TX_ENCAP_GRE		BIT(0)
+#define PCIE_DESC_TX_ENCAP_NONE		0
 
 struct nfp_net_tx_desc {
 	union {
 		struct {
-#if defined(__LITTLE_ENDIAN)
-			u32 dma_addr_hi:8; /* High bits of host buf address */
-			u32 dma_len:16;    /* Length to DMA for this desc */
-			u32 offset:7;      /* Offset in buf where pkt starts */
-			u32 eop:1;
+			u8 dma_addr_hi; /* High bits of host buf address */
+			__le16 dma_len;	/* Length to DMA for this desc */
+			u8 offset_eop;	/* Offset in buf where pkt starts +
+					 * highest bit is eop flag.
+					 */
+			__le32 dma_addr_lo; /* Low 32bit of host buf addr */
 
-			u32 dma_addr_lo;   /* Low 32bit of host buf addr */
+			__le16 lso;	/* MSS to be used for LSO */
+			u8 l4_offset;	/* LSO, where the L4 data starts */
+			u8 flags;	/* TX Flags, see @PCIE_DESC_TX_* */
 
-			u32 lso:16;        /* MSS to be used for LSO */
-			u32 l4_offset:8;   /* LSO, where the L4 data starts */
-			u32 flags:8;       /* TX Flags, see @PCIE_DESC_TX_* */
-
-			u32 vlan:16;       /* VLAN tag to add if indicated */
-			u32 data_len:16;   /* Length of frame + meta data */
-#else /* Endian */
-			u32 eop:1;
-			u32 offset:7;
-			u32 dma_len:16;
-			u32 dma_addr_hi:8;
-
-			u32 dma_addr_lo;
-
-			u32 flags:8;
-			u32 l4_offset:8;
-			u32 lso:16;
-
-			u32 data_len:16;
-			u32 vlan:16;
-#endif
-		};
+			__le16 vlan;	/* VLAN tag to add if indicated */
+			__le16 data_len; /* Length of frame + meta data */
+		} __packed;
 		__le32 vals[4];
 	};
 };

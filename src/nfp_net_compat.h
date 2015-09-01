@@ -326,6 +326,11 @@
 #include <linux/pci.h>
 #include <linux/skbuff.h>
 
+#ifndef GENMASK
+#define GENMASK(h, l) \
+	((~0UL << (l)) & (~0UL >> (BITS_PER_LONG - (h) - 1)))
+#endif
+
 #ifndef PCI_MSIX_TABLE_BIR
 #define  PCI_MSIX_TABLE_BIR     0x00000007 /* BAR index */
 #endif

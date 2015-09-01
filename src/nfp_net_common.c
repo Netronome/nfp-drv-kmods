@@ -1014,17 +1014,17 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 
 	/* Build TX descriptor (assume it was zeroed before) */
 	txd = &tx_ring->txds[wr_idx];
-	txd->eop = (nr_frags == 0);
-	txd->dma_len = skb_headlen(skb);
+	txd->offset_eop |= (nr_frags == 0) ? PCIE_DESC_TX_EOP : 0;
+	txd->dma_len = cpu_to_le16(skb_headlen(skb));
 	txd->dma_addr_hi = ((uint64_t)dma_addr >> 32) & 0xff;
-	txd->dma_addr_lo = dma_addr & 0xffffffff;
-	txd->data_len = skb->len;
+	txd->dma_addr_lo = cpu_to_le32(dma_addr & 0xffffffff);
+	txd->data_len = cpu_to_le16(skb->len);
 
 	nfp_net_tx_csum(nn, txd, skb);
 
 	if (skb_vlan_tag_present(skb) && nn->ctrl & NFP_NET_CFG_CTRL_TXVLAN) {
 		txd->flags |= PCIE_DESC_TX_VLAN;
-		txd->vlan = skb_vlan_tag_get(skb);
+		txd->vlan = cpu_to_le16(skb_vlan_tag_get(skb));
 	}
 
 	/* Gather DMA */
@@ -1052,10 +1052,11 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 
 			txd = &tx_ring->txds[wr_idx];
 			*txd = txdg;
-			txd->dma_len = fsize;
+			txd->dma_len = cpu_to_le16(fsize);
 			txd->dma_addr_hi = ((uint64_t)dma_addr >> 32) & 0xff;
-			txd->dma_addr_lo = dma_addr & 0xffffffff;
-			txd->eop = (f == nr_frags - 1);
+			txd->dma_addr_lo = cpu_to_le32(dma_addr & 0xffffffff);
+			txd->offset_eop |=
+				(f == nr_frags - 1) ? PCIE_DESC_TX_EOP : 0;
 		}
 
 		nn->tx_gather++;
