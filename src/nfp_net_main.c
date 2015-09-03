@@ -633,6 +633,8 @@ static void nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_device *nfp_dev)
 				 "Can't parse MAC address (%s). Generate.",
 				 mac_str);
 			random_ether_addr(mac_addr);
+		} else {
+			ether_addr_copy(nn->netdev->perm_addr, mac_addr);
 		}
 	} else {
 		dev_warn(&nn->pdev->dev,
