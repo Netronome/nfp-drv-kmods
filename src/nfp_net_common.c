@@ -363,14 +363,14 @@ int nfp_net_reconfig(struct nfp_net *nn, u32 update)
 	int cnt;
 	u32 new;
 
-	nn_writel(nn->ctrl_bar, NFP_NET_CFG_UPDATE, update);
+	nn_writel(nn, NFP_NET_CFG_UPDATE, update);
 	/* memory barrier to ensure update is written before pinging HW. */
 	wmb();
 	nfp_qcp_wr_ptr_add(nn->qcp_cfg, 1);
 
 	/* Poll update field, waiting for NFP to ack the config */
 	for (cnt = 0; ; cnt++) {
-		new = nn_readl(nn->ctrl_bar, NFP_NET_CFG_UPDATE);
+		new = nn_readl(nn, NFP_NET_CFG_UPDATE);
 		if (new == 0)
 			break;
 		if (new & NFP_NET_CFG_UPDATE_ERR) {
@@ -444,11 +444,11 @@ static void nfp_net_irq_unmask(struct nfp_net *nn, unsigned int entry_nr)
 			PCI_MSIX_ENTRY_VECTOR_CTRL;
 		/* Make sure all updates are written before un-masking */
 		wmb();
-		nn_writel(nn->msix_table, off, 0);
+		writel(0, nn->msix_table + off);
 	} else {
 		/* Make sure all updates are written before un-masking */
 		wmb();
-		nn_writeb(nn->ctrl_bar,
+		nn_writeb(nn,
 			  NFP_NET_CFG_ICR(entry_nr), NFP_NET_CFG_ICR_UNMASKED);
 	}
 }
@@ -611,7 +611,7 @@ static irqreturn_t nfp_net_irq_lsc(int irq, void *data)
 	bool link_up;
 	u32 sts;
 
-	sts = nn_readl(nn->ctrl_bar, NFP_NET_CFG_STS);
+	sts = nn_readl(nn, NFP_NET_CFG_STS);
 	link_up = !!(sts & NFP_NET_CFG_STS_LINK);
 
 	if (nn->link_up == link_up)
@@ -801,8 +801,8 @@ static void nfp_net_irqs_request(struct net_device *netdev)
 			return;
 		}
 
-		nn_writeb(nn->ctrl_bar, NFP_NET_CFG_LSC, 0);
-		nn_writeb(nn->ctrl_bar, NFP_NET_CFG_EXN, 0);
+		nn_writeb(nn, NFP_NET_CFG_LSC, 0);
+		nn_writeb(nn, NFP_NET_CFG_EXN, 0);
 		return;
 	}
 
@@ -816,7 +816,7 @@ static void nfp_net_irqs_request(struct net_device *netdev)
 		       lsc_entry->vector, err);
 		goto err_lsc;
 	}
-	nn_writeb(nn->ctrl_bar, NFP_NET_CFG_LSC, NFP_NET_IRQ_LSC_IDX);
+	nn_writeb(nn, NFP_NET_CFG_LSC, NFP_NET_IRQ_LSC_IDX);
 
 	exn_entry = &nn->irq_entries[NFP_NET_IRQ_EXN_IDX];
 
@@ -829,13 +829,13 @@ static void nfp_net_irqs_request(struct net_device *netdev)
 		goto err_exn;
 	}
 
-	nn_writeb(nn->ctrl_bar, NFP_NET_CFG_EXN, NFP_NET_IRQ_EXN_IDX);
+	nn_writeb(nn, NFP_NET_CFG_EXN, NFP_NET_IRQ_EXN_IDX);
 
 	return;
 
 err_exn:
 	free_irq(lsc_entry->vector, netdev);
-	nn_writeb(nn->ctrl_bar, NFP_NET_CFG_LSC, 0xff);
+	nn_writeb(nn, NFP_NET_CFG_LSC, 0xff);
 err_lsc:
 	return;
 }
@@ -856,18 +856,18 @@ static void nfp_net_irqs_free(struct net_device *netdev)
 	if (nn->num_vecs == 1) {
 		synchronize_irq(nn->irq_entries[0].vector);
 		free_irq(nn->irq_entries[0].vector, netdev);
-		nn_writeb(nn->ctrl_bar, NFP_NET_CFG_EXN, 0xff);
-		nn_writeb(nn->ctrl_bar, NFP_NET_CFG_LSC, 0xff);
+		nn_writeb(nn, NFP_NET_CFG_EXN, 0xff);
+		nn_writeb(nn, NFP_NET_CFG_LSC, 0xff);
 		return;
 	}
 
 	synchronize_irq(nn->irq_entries[NFP_NET_IRQ_EXN_IDX].vector);
 	free_irq(nn->irq_entries[NFP_NET_IRQ_EXN_IDX].vector, netdev);
-	nn_writeb(nn->ctrl_bar, NFP_NET_CFG_EXN, 0xff);
+	nn_writeb(nn, NFP_NET_CFG_EXN, 0xff);
 
 	synchronize_irq(nn->irq_entries[NFP_NET_IRQ_LSC_IDX].vector);
 	free_irq(nn->irq_entries[NFP_NET_IRQ_LSC_IDX].vector, netdev);
-	nn_writeb(nn->ctrl_bar, NFP_NET_CFG_LSC, 0xff);
+	nn_writeb(nn, NFP_NET_CFG_LSC, 0xff);
 }
 
 /* Transmit
@@ -1794,9 +1794,9 @@ static void nfp_net_tx_ring_free(struct nfp_net_tx_ring *tx_ring)
 	struct nfp_net *nn = r_vec->nfp_net;
 	struct pci_dev *pdev = nn->pdev;
 
-	nn_writeq(nn->ctrl_bar, NFP_NET_CFG_TXR_ADDR(tx_ring->idx), 0);
-	nn_writeb(nn->ctrl_bar, NFP_NET_CFG_TXR_SZ(tx_ring->idx), 0);
-	nn_writeb(nn->ctrl_bar, NFP_NET_CFG_TXR_VEC(tx_ring->idx), 0);
+	nn_writeq(nn, NFP_NET_CFG_TXR_ADDR(tx_ring->idx), 0);
+	nn_writeb(nn, NFP_NET_CFG_TXR_SZ(tx_ring->idx), 0);
+	nn_writeb(nn, NFP_NET_CFG_TXR_VEC(tx_ring->idx), 0);
 
 	kfree(tx_ring->txbufs);
 
@@ -1846,12 +1846,9 @@ static int nfp_net_tx_ring_alloc(struct nfp_net_tx_ring *tx_ring)
 	}
 
 	/* Write the DMA address, size and MSI-X info to the device */
-	nn_writeq(nn->ctrl_bar,
-		  NFP_NET_CFG_TXR_ADDR(tx_ring->idx), tx_ring->dma);
-	nn_writeb(nn->ctrl_bar,
-		  NFP_NET_CFG_TXR_SZ(tx_ring->idx), ilog2(tx_ring->cnt));
-	nn_writeb(nn->ctrl_bar,
-		  NFP_NET_CFG_TXR_VEC(tx_ring->idx), r_vec->irq_idx);
+	nn_writeq(nn, NFP_NET_CFG_TXR_ADDR(tx_ring->idx), tx_ring->dma);
+	nn_writeb(nn, NFP_NET_CFG_TXR_SZ(tx_ring->idx), ilog2(tx_ring->cnt));
+	nn_writeb(nn, NFP_NET_CFG_TXR_VEC(tx_ring->idx), r_vec->irq_idx);
 
 	netif_set_xps_queue(nn->netdev, &r_vec->affinity_mask, tx_ring->idx);
 
@@ -1876,9 +1873,9 @@ static void nfp_net_rx_ring_free(struct nfp_net_rx_ring *rx_ring)
 	struct nfp_net *nn = r_vec->nfp_net;
 	struct pci_dev *pdev = nn->pdev;
 
-	nn_writeq(nn->ctrl_bar, NFP_NET_CFG_RXR_ADDR(rx_ring->idx), 0);
-	nn_writeb(nn->ctrl_bar, NFP_NET_CFG_RXR_SZ(rx_ring->idx), 0);
-	nn_writeb(nn->ctrl_bar, NFP_NET_CFG_RXR_VEC(rx_ring->idx), 0);
+	nn_writeq(nn, NFP_NET_CFG_RXR_ADDR(rx_ring->idx), 0);
+	nn_writeb(nn, NFP_NET_CFG_RXR_SZ(rx_ring->idx), 0);
+	nn_writeb(nn, NFP_NET_CFG_RXR_VEC(rx_ring->idx), 0);
 
 	kfree(rx_ring->rxbufs);
 
@@ -1927,12 +1924,9 @@ static int nfp_net_rx_ring_alloc(struct nfp_net_rx_ring *rx_ring)
 	}
 
 	/* Write the DMA address, size and MSI-X info to the device */
-	nn_writeq(nn->ctrl_bar,
-		  NFP_NET_CFG_RXR_ADDR(rx_ring->idx), rx_ring->dma);
-	nn_writeb(nn->ctrl_bar,
-		  NFP_NET_CFG_RXR_SZ(rx_ring->idx), ilog2(rx_ring->cnt));
-	nn_writeb(nn->ctrl_bar,
-		  NFP_NET_CFG_RXR_VEC(rx_ring->idx), r_vec->irq_idx);
+	nn_writeq(nn, NFP_NET_CFG_RXR_ADDR(rx_ring->idx), rx_ring->dma);
+	nn_writeb(nn, NFP_NET_CFG_RXR_SZ(rx_ring->idx), ilog2(rx_ring->cnt));
+	nn_writeb(nn, NFP_NET_CFG_RXR_VEC(rx_ring->idx), r_vec->irq_idx);
 
 	nn_dbg(nn, "RxQ%02d: FlQCidx=%02d RxQCidx=%02d cnt=%d dma=%#llx host=%p\n",
 	       rx_ring->idx, rx_ring->fl_qcidx, rx_ring->rx_qcidx,
@@ -2072,7 +2066,7 @@ void nfp_net_rss_write_itbl(struct nfp_net *nn)
 		val |= nn->rss_itbl[j++] << 16;
 		val |= nn->rss_itbl[j++] << 24;
 
-		nn_writel(nn->ctrl_bar, NFP_NET_CFG_RSS_ITBL + i, val);
+		nn_writel(nn, NFP_NET_CFG_RSS_ITBL + i, val);
 	}
 }
 
@@ -2096,13 +2090,13 @@ void nfp_net_coalesce_write_cfg(struct nfp_net *nn)
 	value = (nn->rx_coalesce_max_frames << 16) |
 		(factor * nn->rx_coalesce_usecs);
 	for (i = 0; i < nn->num_r_vecs; i++)
-		nn_writel(nn->ctrl_bar, NFP_NET_CFG_RXR_IRQ_MOD(i), value);
+		nn_writel(nn, NFP_NET_CFG_RXR_IRQ_MOD(i), value);
 
 	/* copy TX interrupt coalesce parameters */
 	value = (nn->tx_coalesce_max_frames << 16) |
 		(factor * nn->tx_coalesce_usecs);
 	for (i = 0; i < nn->num_r_vecs; i++)
-		nn_writel(nn->ctrl_bar, NFP_NET_CFG_TXR_IRQ_MOD(i), value);
+		nn_writel(nn, NFP_NET_CFG_TXR_IRQ_MOD(i), value);
 }
 
 /**
@@ -2196,18 +2190,16 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 	 * - Set the Freelist buffer size
 	 * - Enable the FW
 	 */
-	nn_writeq(nn->ctrl_bar, NFP_NET_CFG_TXRS_ENABLE,
-		  nn->num_tx_rings == 64 ? 0xffffffffffffffffULL
-		  : ((u64)1 << nn->num_tx_rings) - 1);
+	nn_writeq(nn, NFP_NET_CFG_TXRS_ENABLE, nn->num_tx_rings == 64 ?
+		  0xffffffffffffffffULL : ((u64)1 << nn->num_tx_rings) - 1);
 
-	nn_writeq(nn->ctrl_bar, NFP_NET_CFG_RXRS_ENABLE,
-		  nn->num_rx_rings == 64 ? 0xffffffffffffffffULL
-		  : ((u64)1 << nn->num_rx_rings) - 1);
+	nn_writeq(nn, NFP_NET_CFG_RXRS_ENABLE, nn->num_rx_rings == 64 ?
+		  0xffffffffffffffffULL : ((u64)1 << nn->num_rx_rings) - 1);
 
 	nfp_net_write_mac_addr(nn, netdev->dev_addr);
 
-	nn_writel(nn->ctrl_bar, NFP_NET_CFG_MTU, netdev->mtu);
-	nn_writel(nn->ctrl_bar, NFP_NET_CFG_FLBUFSZ, nn->fl_bufsz);
+	nn_writel(nn, NFP_NET_CFG_MTU, netdev->mtu);
+	nn_writel(nn, NFP_NET_CFG_FLBUFSZ, nn->fl_bufsz);
 
 	/* Enable device */
 	new_ctrl |= NFP_NET_CFG_CTRL_ENABLE;
@@ -2222,7 +2214,7 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 	if (nn->rss_cfg)
 		update |= NFP_NET_CFG_UPDATE_RSS;
 
-	nn_writel(nn->ctrl_bar, NFP_NET_CFG_CTRL, new_ctrl);
+	nn_writel(nn, NFP_NET_CFG_CTRL, new_ctrl);
 	err = nfp_net_reconfig(nn, update);
 	if (err)
 		goto err_reconfig;
@@ -2247,7 +2239,7 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 
 	netif_tx_wake_all_queues(netdev);
 
-	sts = nn_readl(nn->ctrl_bar, NFP_NET_CFG_STS);
+	sts = nn_readl(nn, NFP_NET_CFG_STS);
 	nn->link_up = !!(sts & NFP_NET_CFG_STS_LINK);
 	if (nn->link_up) {
 		nfp_net_print_link(nn, true);
@@ -2328,12 +2320,12 @@ static int nfp_net_netdev_close(struct net_device *netdev)
 	if (nn->cap & NFP_NET_CFG_CTRL_RINGCFG)
 		new_ctrl &= ~NFP_NET_CFG_CTRL_RINGCFG;
 
-	nn_writeq(nn->ctrl_bar, NFP_NET_CFG_TXRS_ENABLE, 0);
-	nn_writeq(nn->ctrl_bar, NFP_NET_CFG_RXRS_ENABLE, 0);
+	nn_writeq(nn, NFP_NET_CFG_TXRS_ENABLE, 0);
+	nn_writeq(nn, NFP_NET_CFG_RXRS_ENABLE, 0);
 
 	/* Step 3: Notify NFP
 	 */
-	nn_writel(nn->ctrl_bar, NFP_NET_CFG_CTRL, new_ctrl);
+	nn_writel(nn, NFP_NET_CFG_CTRL, new_ctrl);
 	err = nfp_net_reconfig(nn, update);
 	if (err)
 		return err;
@@ -2388,7 +2380,7 @@ static void nfp_net_set_rx_mode(struct net_device *netdev)
 
 	if (new_ctrl != nn->ctrl) {
 		update = NFP_NET_CFG_UPDATE_GEN;
-		nn_writel(nn->ctrl_bar, NFP_NET_CFG_CTRL, new_ctrl);
+		nn_writel(nn, NFP_NET_CFG_CTRL, new_ctrl);
 		nfp_net_reconfig(nn, update);
 		nn->ctrl = new_ctrl;
 	}
@@ -2524,7 +2516,7 @@ static int nfp_net_set_features(struct net_device *netdev,
 	if (new_ctrl != nn->ctrl) {
 		nn_dbg(nn, "NIC ctrl: 0x%x -> 0x%x", nn->ctrl, new_ctrl);
 		update = NFP_NET_CFG_UPDATE_GEN;
-		nn_writel(nn->ctrl_bar, NFP_NET_CFG_CTRL, new_ctrl);
+		nn_writel(nn, NFP_NET_CFG_CTRL, new_ctrl);
 		err = nfp_net_reconfig(nn, update);
 		if (err)
 			return err;
@@ -2645,9 +2637,9 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	int i, err;
 
 	/* Get some of the read-only fields from the BAR */
-	nn->ver = nn_readl(nn->ctrl_bar, NFP_NET_CFG_VERSION);
-	nn->cap = nn_readl(nn->ctrl_bar, NFP_NET_CFG_CAP);
-	nn->max_mtu = nn_readl(nn->ctrl_bar, NFP_NET_CFG_MAX_MTU);
+	nn->ver = nn_readl(nn, NFP_NET_CFG_VERSION);
+	nn->cap = nn_readl(nn, NFP_NET_CFG_CAP);
+	nn->max_mtu = nn_readl(nn, NFP_NET_CFG_MAX_MTU);
 
 	nfp_net_write_mac_addr(nn, nn->netdev->dev_addr);
 
@@ -2723,7 +2715,7 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	 */
 	if ((nn->ver & NFP_NET_CFG_VERSION_MAJOR_MASK) >=
 	    NFP_NET_CFG_VERSION_MAJOR(2)) {
-		nn->rx_prepend = nn_readl(nn->ctrl_bar, NFP_NET_CFG_RX_OFFSET);
+		nn->rx_prepend = nn_readl(nn, NFP_NET_CFG_RX_OFFSET);
 	} else {
 		nn->rx_prepend = NFP_NET_RX_OFFSET;
 	}
@@ -2732,7 +2724,7 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	if (nn->cap & NFP_NET_CFG_CTRL_RSS) {
 		get_random_bytes(nn->rss_key, NFP_NET_CFG_RSS_KEY_SZ);
 		for (i = 0; i < NFP_NET_CFG_RSS_KEY_SZ; i += 4)
-			nn_writel(nn->ctrl_bar, NFP_NET_CFG_RSS_KEY + i,
+			nn_writel(nn, NFP_NET_CFG_RSS_KEY + i,
 				  nn->rss_key[i / sizeof(u32)]);
 	}
 
@@ -2740,9 +2732,9 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	nn->qcp_cfg = nn->tx_bar + NFP_QCP_QUEUE_ADDR_SZ;
 
 	/* Make sure the FW knows the netdev is supposed to be disabled here */
-	nn_writel(nn->ctrl_bar, NFP_NET_CFG_CTRL, 0);
-	nn_writeq(nn->ctrl_bar, NFP_NET_CFG_TXRS_ENABLE, 0);
-	nn_writeq(nn->ctrl_bar, NFP_NET_CFG_RXRS_ENABLE, 0);
+	nn_writel(nn, NFP_NET_CFG_CTRL, 0);
+	nn_writeq(nn, NFP_NET_CFG_TXRS_ENABLE, 0);
+	nn_writeq(nn, NFP_NET_CFG_RXRS_ENABLE, 0);
 	err = nfp_net_reconfig(
 		nn, NFP_NET_CFG_UPDATE_RING | NFP_NET_CFG_UPDATE_GEN);
 	if (err)
@@ -2772,7 +2764,7 @@ int nfp_net_netdev_init(struct net_device *netdev)
 						   &nn->spare_dma, GFP_KERNEL);
 		if (!nn->spare_va)
 			return -ENOMEM;
-		nn_writel(nn->ctrl_bar, NFP_NET_CFG_SPARE_ADDR, nn->spare_dma);
+		nn_writel(nn, NFP_NET_CFG_SPARE_ADDR, nn->spare_dma);
 		nn_info(nn, "Enabled NFP-3200 workaround.");
 	}
 	return 0;

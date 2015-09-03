@@ -771,29 +771,29 @@ struct nfp_net {
 /* Functions to read/write from/to a BAR
  * Performs any endian conversion necessary.
  */
-static inline void nn_writeb(u8 __iomem *base, int off, u8 val)
+static inline void nn_writeb(struct nfp_net *nn, int off, u8 val)
 {
-	writeb(val, base + off);
+	writeb(val, nn->ctrl_bar + off);
 }
 
-static inline u32 nn_readl(u8 __iomem *base, int off)
+static inline u32 nn_readl(struct nfp_net *nn, int off)
 {
-	return readl(base + off);
+	return readl(nn->ctrl_bar + off);
 }
 
-static inline void nn_writel(u8 __iomem *base, int off, u32 val)
+static inline void nn_writel(struct nfp_net *nn, int off, u32 val)
 {
-	writel(val, base + off);
+	writel(val, nn->ctrl_bar + off);
 }
 
-static inline u64 nn_readq(u8 __iomem *base, int off)
+static inline u64 nn_readq(struct nfp_net *nn, int off)
 {
-	return readq(base + off);
+	return readq(nn->ctrl_bar + off);
 }
 
-static inline void nn_writeq(u8 __iomem *base, int off, u64 val)
+static inline void nn_writeq(struct nfp_net *nn, int off, u64 val)
 {
-	writeq(val, base + off);
+	writeq(val, nn->ctrl_bar + off);
 }
 
 /* Queue Controller Peripheral access functions and definitions.
@@ -844,7 +844,7 @@ static inline void _nfp_qcp_ptr_add(u8 __iomem *q,
 		val -= NFP_QCP_MAX_ADD;
 	}
 
-	nn_writel(q, off, val);
+	writel(val, q + off);
 }
 
 /**
@@ -883,7 +883,7 @@ static inline u32 _nfp_qcp_read(u8 __iomem *q, enum nfp_qcp_ptr ptr)
 	else
 		off = NFP_QCP_QUEUE_STS_HI;
 
-	val = nn_readl(q, off);
+	val = readl(q + off);
 
 	if (ptr == NFP_QCP_READ_PTR)
 		return val & NFP_QCP_QUEUE_STS_LO_READPTR_mask;

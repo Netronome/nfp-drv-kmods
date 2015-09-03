@@ -976,7 +976,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	}
 
 	/* Determine stride */
-	version = nn_readl(ctrl_bar, NFP_NET_CFG_VERSION);
+	version = readl(ctrl_bar + NFP_NET_CFG_VERSION);
 	if ((NFP_NET_CFG_VERSION_CLASS_MASK & version) !=
 	    NFP_NET_CFG_VERSION_CLASS(NFP_NET_CFG_VERSION_CLASS_GENERIC)) {
 		/* We only support the Generic Class */
@@ -1015,8 +1015,8 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	}
 
 	/* Find how many rings are supported */
-	max_tx_rings = nn_readl(ctrl_bar, NFP_NET_CFG_MAX_TXRINGS);
-	max_rx_rings = nn_readl(ctrl_bar, NFP_NET_CFG_MAX_RXRINGS);
+	max_tx_rings = readl(ctrl_bar + NFP_NET_CFG_MAX_TXRINGS);
+	max_rx_rings = readl(ctrl_bar + NFP_NET_CFG_MAX_RXRINGS);
 
 	tx_area_sz = NFP_QCP_QUEUE_ADDR_SZ * max_tx_rings * stride;
 	rx_area_sz = NFP_QCP_QUEUE_ADDR_SZ * max_rx_rings * stride;
@@ -1040,7 +1040,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	nn->stride_tx = stride;
 
 	/* Map TX queues */
-	start_q = nn_readl(ctrl_bar, NFP_NET_CFG_START_TXQ);
+	start_q = readl(ctrl_bar + NFP_NET_CFG_START_TXQ);
 	nn->tx_bar = nfp_net_map_area(cpp, "net.tx", 0, 0,
 				      NFP_PCIE_QUEUE(start_q),
 				      tx_area_sz, &nn->tx_area);
@@ -1051,7 +1051,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	}
 
 	/* Map RX queues */
-	start_q = nn_readl(ctrl_bar, NFP_NET_CFG_START_RXQ);
+	start_q = readl(ctrl_bar + NFP_NET_CFG_START_RXQ);
 	nn->rx_bar = nfp_net_map_area(cpp, "net.rx", 0, 0,
 				      NFP_PCIE_QUEUE(start_q),
 				      rx_area_sz, &nn->rx_area);

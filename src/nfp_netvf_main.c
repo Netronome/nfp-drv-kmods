@@ -394,7 +394,7 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 	}
 
 	/* Determine stride */
-	version = nn_readl(ctrl_bar, NFP_NET_CFG_VERSION);
+	version = readl(ctrl_bar + NFP_NET_CFG_VERSION);
 
 	if ((NFP_NET_CFG_VERSION_CLASS_MASK & version) !=
 	    NFP_NET_CFG_VERSION_CLASS(NFP_NET_CFG_VERSION_CLASS_GENERIC)) {
@@ -442,8 +442,8 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 
 	/* Find out how many rings are supported.
 	 */
-	max_tx_rings = nn_readl(ctrl_bar, NFP_NET_CFG_MAX_TXRINGS);
-	max_rx_rings = nn_readl(ctrl_bar, NFP_NET_CFG_MAX_RXRINGS);
+	max_tx_rings = readl(ctrl_bar + NFP_NET_CFG_MAX_TXRINGS);
+	max_rx_rings = readl(ctrl_bar + NFP_NET_CFG_MAX_RXRINGS);
 
 	tx_bar_sz = NFP_QCP_QUEUE_ADDR_SZ * max_tx_rings * stride;
 	rx_bar_sz = NFP_QCP_QUEUE_ADDR_SZ * max_rx_rings * stride;
@@ -467,9 +467,9 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 	 */
 	switch (pdev->device) {
 	case PCI_DEVICE_NFP6000VF:
-		startq = nn_readl(ctrl_bar, NFP_NET_CFG_START_TXQ);
+		startq = readl(ctrl_bar + NFP_NET_CFG_START_TXQ);
 		tx_bar_off = NFP_PCIE_QUEUE(startq);
-		startq = nn_readl(ctrl_bar, NFP_NET_CFG_START_RXQ);
+		startq = readl(ctrl_bar + NFP_NET_CFG_START_RXQ);
 		rx_bar_off = NFP_PCIE_QUEUE(startq);
 		break;
 	default:
