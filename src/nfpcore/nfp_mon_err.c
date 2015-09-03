@@ -354,7 +354,7 @@ struct nfp_err_cdev_handle {
 	u32 prev_count;
 };
 
-char nfp_err_driver_name[] = "nfp_err";
+static const char nfp_err_driver_name[] = "nfp_err";
 
 static int nfp_err_major;
 static struct class *nfp_err_class;

@@ -551,8 +551,8 @@ static int nfp3200_reset_get(struct nfp_cpp *cpp, unsigned int subdevice,
 	return 0;
 }
 
-int nfp3200_reset_set(struct nfp_cpp *cpp, unsigned int subdevice, int reset,
-		      int enable)
+static int nfp3200_reset_set(struct nfp_cpp *cpp, unsigned int subdevice,
+			     int reset, int enable)
 {
 	uint32_t csr, r_mask, e_mask;
 	uint16_t interface;
@@ -646,8 +646,8 @@ static int nfp6000_reset_get(struct nfp_cpp *cpp, unsigned int subdevice,
 	return 0;
 }
 
-int nfp6000_reset_set(struct nfp_cpp *cpp, unsigned int subdevice, int reset,
-		      int enable)
+static int nfp6000_reset_set(struct nfp_cpp *cpp, unsigned int subdevice,
+			     int reset, int enable)
 {
 	uint32_t csr, mem;
 	int island, mask, err;

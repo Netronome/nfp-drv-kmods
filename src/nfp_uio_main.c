@@ -370,9 +370,9 @@ struct nfp_uio_pci_dev {
 
 #define RTE_PCI_DEV_ID_DECL_NETRO(vend, dev) {PCI_DEVICE(vend, dev)},
 
-int pf_support = 1;
-struct platform_device *dev_cpp = NULL;
-struct nfp_cpp *cpp;
+static int pf_support = 1;
+static struct platform_device *dev_cpp;
+static struct nfp_cpp *cpp;
 
 /* PCI device id table */
 static struct pci_device_id nfp_uio_pci_ids[] = {

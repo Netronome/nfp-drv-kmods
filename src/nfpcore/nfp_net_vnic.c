@@ -631,7 +631,7 @@ static void nfp_net_vnic_timer(unsigned long data)
 	nfp_net_vnic_schedule(vnic);
 }
 
-struct net_device_stats *nfp_net_vnic_stats(struct net_device *netdev)
+static struct net_device_stats *nfp_net_vnic_stats(struct net_device *netdev)
 {
 	struct nfp_net_vnic *vnic = netdev_priv(netdev);
 

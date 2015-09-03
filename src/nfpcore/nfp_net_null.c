@@ -388,7 +388,7 @@ static void nfp_net_null_eto_get_drvinfo(struct net_device *dev,
 	di->fw_version[0] = 0;
 }
 
-static const char const *string_priv_flags[] = {
+static const char *string_priv_flags[] = {
 	"tx_link",	/* ETO_PRIV_FLAG_TX_LINK */
 	"rx_link",	/* ETO_PRIV_FLAG_RX_LINK */
 	"fail_to_wire",	/* ETO_PRIV_FLAG_FAIL_TO_WIRE */
@@ -650,9 +650,9 @@ static int nfp_net_null_update_stats(struct net_device *dev)
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 1, 0))
-struct rtnl_link_stats64 *nfp_net_null_ndo_get_stats64(struct net_device *dev,
-						       struct rtnl_link_stats64
-						       *st)
+static struct rtnl_link_stats64 *
+nfp_net_null_ndo_get_stats64(struct net_device *dev,
+			     struct rtnl_link_stats64 *st)
 {
 	struct nfp_net_null_dev *nm = netdev_priv(dev);
 	struct nfp_nbi_mac_portstats *ps = &nm->stats.cache;

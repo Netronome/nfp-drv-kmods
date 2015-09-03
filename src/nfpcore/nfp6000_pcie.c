@@ -412,7 +412,7 @@
 #define NFP_PCIE_CPP_BAR_PCIETOCPPEXPANSIONBAR(bar, slot) \
 	(0x30000 + ((bar) * 8 + (slot)) * 4)
 
-char const nfp6000_pcie_driver_name[] = "nfp6000_pcie";
+static const char nfp6000_pcie_driver_name[] = "nfp6000_pcie";
 
 /* The number of explicit BARs to reserve.
  * Minimum is 0, maximum is 4.

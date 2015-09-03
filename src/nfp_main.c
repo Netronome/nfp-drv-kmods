@@ -343,7 +343,7 @@ MODULE_PARM_DESC(nfp_net_null, "Null net devices (default = disabled)");
 bool nfp_net_vnic = 0;
 module_param(nfp_net_vnic, bool, 0444);
 MODULE_PARM_DESC(nfp_net_vnic, "vNIC net devices (default = disabled)");
-bool nfp_mon_event = 1;
+static bool nfp_mon_event = 1;
 module_param(nfp_mon_event, bool, 0444);
 MODULE_PARM_DESC(nfp_mon_event, "Event monitor support (default = enabled)");
 static bool nfp_reset;
@@ -373,7 +373,7 @@ struct nfp_pci {
 #endif
 };
 
-const char nfp_driver_name[] = "nfp";
+static const char nfp_driver_name[] = "nfp";
 
 static const struct pci_device_id nfp_pci_device_ids[] = {
 	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_NFP4000,
@@ -823,7 +823,7 @@ static void nfp_pci_remove(struct pci_dev *pdev)
 	pci_disable_device(pdev);
 }
 
-struct pci_driver nfp_pcie_driver = {
+static struct pci_driver nfp_pcie_driver = {
 	.name        = (char *)nfp_driver_name,
 	.id_table    = nfp_pci_device_ids,
 	.probe       = nfp_pci_probe,

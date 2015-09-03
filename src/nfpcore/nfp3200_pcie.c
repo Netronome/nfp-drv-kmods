@@ -343,7 +343,7 @@
 #define CONFIG_NFP_PCI32
 #endif
 
-char nfp3200_pcie_driver_name[] = "nfp3200_pcie";
+static const char nfp3200_pcie_driver_name[] = "nfp3200_pcie";
 
 /* The 64-bit BAR mapping containing the PCIe target registers. */
 #define NFP_PCIETGT_BAR_INDEX	1
