@@ -328,8 +328,6 @@
 #include <linux/sched.h>
 #include <linux/pci.h>
 
-#include <asm/cacheflush.h>
-
 #include "nfp_cpp.h"
 #include "nfp_target.h"
 
