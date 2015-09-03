@@ -779,7 +779,7 @@ int nfp_nbi_mac_eth_write_mac_addr(struct nfp_nbi_dev *nbi, int core,
 		return -EINVAL;
 
 	r = NFP_MAC_ETH_MACETHSEG_ETHMACADDR0(port);
-	m = NFP_MAC_ETH_MACETHSEG_ETHMACADDR0_ETHMACADDR0(0xffffffffffff);
+	m = NFP_MAC_ETH_MACETHSEG_ETHMACADDR0_ETHMACADDR0(0xffffffffffffULL);
 	d = NFP_MAC_ETH_MACETHSEG_ETHMACADDR0_ETHMACADDR0(hwaddr);
 
 	ret = nfp_nbi_mac_regw(nbi, NFP_MAC_ETH(core), r, m, d);

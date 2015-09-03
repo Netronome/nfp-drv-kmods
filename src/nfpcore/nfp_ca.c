@@ -918,7 +918,7 @@ exit:
  */
 int nfp_ca_replay(struct nfp_cpp *cpp, const void *ca_buffer, size_t ca_size)
 {
-	struct ca_cpp ca_cpp = { 0 };
+	struct ca_cpp ca_cpp = { NULL };
 	int err;
 
 	ca_cpp.cpp = cpp;

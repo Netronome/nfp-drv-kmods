@@ -2170,11 +2170,11 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 	 * - Enable the FW
 	 */
 	nn_writeq(nn->ctrl_bar, NFP_NET_CFG_TXRS_ENABLE,
-		  nn->num_tx_rings == 64 ? 0xffffffffffffffff
+		  nn->num_tx_rings == 64 ? 0xffffffffffffffffULL
 		  : ((u64)1 << nn->num_tx_rings) - 1);
 
 	nn_writeq(nn->ctrl_bar, NFP_NET_CFG_RXRS_ENABLE,
-		  nn->num_rx_rings == 64 ? 0xffffffffffffffff
+		  nn->num_rx_rings == 64 ? 0xffffffffffffffffULL
 		  : ((u64)1 << nn->num_rx_rings) - 1);
 
 	nn_writel(nn->ctrl_bar, NFP_NET_CFG_MACADDR,
