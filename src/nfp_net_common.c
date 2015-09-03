@@ -1021,13 +1021,17 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 	tx_ring->txbufs[wr_idx].dma_addr = dma_addr;
 	tx_ring->txbufs[wr_idx].fidx = -1;
 
-	/* Build TX descriptor (assume it was zeroed before) */
+	/* Build TX descriptor */
 	txd = &tx_ring->txds[wr_idx];
-	txd->offset_eop |= (nr_frags == 0) ? PCIE_DESC_TX_EOP : 0;
+	txd->offset_eop = (nr_frags == 0) ? PCIE_DESC_TX_EOP : 0;
 	txd->dma_len = cpu_to_le16(skb_headlen(skb));
 	nfp_desc_set_dma_addr(txd, dma_addr);
 	txd->data_len = cpu_to_le16(skb->len);
 
+	txd->lso = 0;
+	txd->l4_offset = 0;
+
+	txd->flags = 0;
 	nfp_net_tx_csum(nn, r_vec, txd, skb);
 
 	if (skb_vlan_tag_present(skb) && nn->ctrl & NFP_NET_CFG_CTRL_TXVLAN) {
@@ -1064,7 +1068,7 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 			*txd = txdg;
 			txd->dma_len = cpu_to_le16(fsize);
 			nfp_desc_set_dma_addr(txd, dma_addr);
-			txd->offset_eop |=
+			txd->offset_eop =
 				(f == nr_frags - 1) ? PCIE_DESC_TX_EOP : 0;
 		}
 
@@ -1178,9 +1182,6 @@ static int nfp_net_tx_complete(struct nfp_net_tx_ring *tx_ring)
 			tx_ring->txbufs[idx].skb = NULL;
 			tx_ring->txbufs[idx].fidx = -2;
 		}
-
-		/* Zero the TX descriptor to be on the safe side */
-		memset(&tx_ring->txds[idx], 0, sizeof(tx_ring->txds[idx]));
 
 		tx_ring->rd_p++;
 		completed++;
