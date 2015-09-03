@@ -521,6 +521,11 @@ struct nfp_net_rx_desc {
 	};
 };
 
+struct nfp_net_rx_hash {
+	__be32 hash_type;
+	__be32 hash;
+};
+
 /**
  * struct nfp_net_rx_ring - RX ring structure
  * @r_vec:      Back pointer to ring vector structure

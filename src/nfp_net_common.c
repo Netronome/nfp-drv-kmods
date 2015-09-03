@@ -1399,24 +1399,23 @@ err_csum:
  */
 static void nfp_net_set_hash(struct sk_buff *skb, struct nfp_net_rx_desc *rxd)
 {
-	u32 hash, hash_type;
+	struct nfp_net_rx_hash *rx_hash;
 
 	if (!(rxd->rxd.flags & PCIE_DESC_RX_RSS)) {
 		skb_set_hash(skb, 0, PKT_HASH_TYPE_NONE);
 		return;
 	}
 
-	hash = be32_to_cpu(*(u32 *)((u8 *)skb->data - 4));
-	hash_type = be32_to_cpu(*(u32 *)((u8 *)skb->data - 8));
+	rx_hash = (struct nfp_net_rx_hash *)(skb->data - sizeof(*rx_hash));
 
-	switch (hash_type) {
+	switch (be32_to_cpu(rx_hash->hash_type)) {
 	case NFP_NET_RSS_IPV4:
 	case NFP_NET_RSS_IPV6:
 	case NFP_NET_RSS_IPV6_EX:
-		skb_set_hash(skb, hash, PKT_HASH_TYPE_L3);
+		skb_set_hash(skb, be32_to_cpu(rx_hash->hash), PKT_HASH_TYPE_L3);
 		break;
 	default:
-		skb_set_hash(skb, hash, PKT_HASH_TYPE_L4);
+		skb_set_hash(skb, be32_to_cpu(rx_hash->hash), PKT_HASH_TYPE_L4);
 	}
 }
 
