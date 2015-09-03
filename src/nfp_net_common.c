@@ -2107,6 +2107,18 @@ void nfp_net_coalesce_write_cfg(struct nfp_net *nn)
 }
 
 /**
+ * nfp_net_write_mac_addr - Write mac address to device registers
+ * We do a bit of byte swapping dance because firmware is LE.
+ */
+static void nfp_net_write_mac_addr(struct nfp_net *nn, const u8 *mac)
+{
+	writel(get_unaligned_be32(nn->netdev->dev_addr),
+	       nn->ctrl_bar + NFP_NET_CFG_MACADDR);
+	writew(get_unaligned_be16(nn->netdev->dev_addr + 4),
+	       nn->ctrl_bar + NFP_NET_CFG_MACADDR + 6);
+}
+
+/**
  * nfp_net_netdev_open - Called when the device is upped
  */
 static int nfp_net_netdev_open(struct net_device *netdev)
@@ -2193,10 +2205,7 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 		  nn->num_rx_rings == 64 ? 0xffffffffffffffffULL
 		  : ((u64)1 << nn->num_rx_rings) - 1);
 
-	nn_writel(nn->ctrl_bar, NFP_NET_CFG_MACADDR,
-		  cpu_to_be32(*(u32 *)nn->netdev->dev_addr));
-	nn_writel(nn->ctrl_bar, NFP_NET_CFG_MACADDR + 4,
-		  cpu_to_be32(*(u32 *)(nn->netdev->dev_addr + 4)));
+	nfp_net_write_mac_addr(nn, netdev->dev_addr);
 
 	nn_writel(nn->ctrl_bar, NFP_NET_CFG_MTU, netdev->mtu);
 	nn_writel(nn->ctrl_bar, NFP_NET_CFG_FLBUFSZ, nn->fl_bufsz);
@@ -2641,11 +2650,7 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	nn->cap = nn_readl(nn->ctrl_bar, NFP_NET_CFG_CAP);
 	nn->max_mtu = nn_readl(nn->ctrl_bar, NFP_NET_CFG_MAX_MTU);
 
-	/* Write the MAC address */
-	nn_writel(nn->ctrl_bar, NFP_NET_CFG_MACADDR,
-		  cpu_to_be32(*(u32 *)nn->netdev->dev_addr));
-	nn_writel(nn->ctrl_bar, NFP_NET_CFG_MACADDR + 4,
-		  cpu_to_be32(*(u32 *)(nn->netdev->dev_addr + 4)));
+	nfp_net_write_mac_addr(nn, nn->netdev->dev_addr);
 
 	/* Set default MTU and Freelist buffer size */
 	if (nn->max_mtu < NFP_NET_DEFAULT_MTU)
