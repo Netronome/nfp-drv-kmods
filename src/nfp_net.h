@@ -773,22 +773,22 @@ static inline void nn_writeb(u8 __iomem *base, int off, u8 val)
 
 static inline u32 nn_readl(u8 __iomem *base, int off)
 {
-	return le32_to_cpu(readl(base + off));
+	return readl(base + off);
 }
 
 static inline void nn_writel(u8 __iomem *base, int off, u32 val)
 {
-	writel(cpu_to_le32(val), base + off);
+	writel(val, base + off);
 }
 
 static inline u64 nn_readq(u8 __iomem *base, int off)
 {
-	return le64_to_cpu(readq(base + off));
+	return readq(base + off);
 }
 
 static inline void nn_writeq(u8 __iomem *base, int off, u64 val)
 {
-	writeq(cpu_to_le64(val), base + off);
+	writeq(val, base + off);
 }
 
 /* Queue Controller Peripheral access functions and definitions.
@@ -835,7 +835,7 @@ static inline void _nfp_qcp_ptr_add(u8 __iomem *q,
 		off = NFP_QCP_QUEUE_ADD_WPTR;
 
 	while (val > NFP_QCP_MAX_ADD) {
-		writel(cpu_to_le32(NFP_QCP_MAX_ADD), q + off);
+		writel(NFP_QCP_MAX_ADD, q + off);
 		val -= NFP_QCP_MAX_ADD;
 	}
 

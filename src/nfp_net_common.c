@@ -2160,8 +2160,7 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 			NFP_NET_CFG_RSS_IPV6_TCP |
 			NFP_NET_CFG_RSS_TOEPLITZ |
 			NFP_NET_CFG_RSS_MASK;
-		writel(cpu_to_le32(rss_cfg),
-		       nn->ctrl_bar + NFP_NET_CFG_RSS_CTRL);
+		writel(rss_cfg, nn->ctrl_bar + NFP_NET_CFG_RSS_CTRL);
 		update |= NFP_NET_CFG_UPDATE_RSS;
 	}
 
