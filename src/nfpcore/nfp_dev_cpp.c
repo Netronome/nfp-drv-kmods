@@ -1117,6 +1117,7 @@ static int nfp_dev_cpp_ioctl(struct inode *inode, struct file *filp,
 	struct nfp_cpp_event_request event_req;
 	struct nfp_cpp_explicit_request explicit_req;
 	struct nfp_cpp_identification ident;
+	void __user *data = (void __user *)arg;
 	int err;
 	const struct firmware *fw;
 
@@ -1127,19 +1128,18 @@ static int nfp_dev_cpp_ioctl(struct inode *inode, struct file *filp,
 			err = sizeof(ident);
 			break;
 		}
-		err = copy_from_user(&ident.size, (void *)arg,
-				     sizeof(ident.size));
+		err = copy_from_user(&ident.size, data, sizeof(ident.size));
 		if (err >= 0)
 			err = do_cpp_identification(chan, &ident);
 		if (err >= 0) {
 			/* Write back the data */
-			err = copy_to_user((void *)arg, &ident, ident.size);
+			err = copy_to_user(data, &ident, ident.size);
 			if (err >= 0)
 				err = sizeof(ident);
 		}
 		break;
 	case NFP_IOCTL_FIRMWARE_LOAD:
-		err = copy_from_user(cdev->firmware, (void *)arg,
+		err = copy_from_user(cdev->firmware, data,
 				     sizeof(cdev->firmware));
 		if (err < 0)
 			break;
@@ -1151,29 +1151,27 @@ static int nfp_dev_cpp_ioctl(struct inode *inode, struct file *filp,
 		release_firmware(fw);
 		break;
 	case NFP_IOCTL_FIRMWARE_LAST:
-		err = copy_to_user((void *)arg, cdev->firmware,
+		err = copy_to_user(data, cdev->firmware,
 				   sizeof(cdev->firmware));
 		break;
 	case NFP_IOCTL_CPP_AREA_REQUEST:
-		err = copy_from_user(&area_req, (void *)arg, sizeof(area_req));
+		err = copy_from_user(&area_req, data, sizeof(area_req));
 		if (err >= 0)
 			err = do_cpp_area_request(chan->cdev, chan->interface,
 						  &area_req);
 
 		if (err >= 0)
 			/* Write back the found slot */
-			err = copy_to_user((void *)arg, &area_req,
-					   sizeof(area_req));
+			err = copy_to_user(data, &area_req, sizeof(area_req));
 		break;
 
 	case NFP_IOCTL_CPP_AREA_RELEASE:
 	case NFP_IOCTL_CPP_AREA_RELEASE_OBSOLETE:
 		if (cmd == NFP_IOCTL_CPP_AREA_RELEASE) {
-			err = copy_from_user(&area_req, (void *)arg,
-					     sizeof(area_req));
+			err = copy_from_user(&area_req, data, sizeof(area_req));
 		} else {
 			/* OBSOLETE version */
-			err = copy_from_user(&area_req.offset, (void *)arg,
+			err = copy_from_user(&area_req.offset, data,
 					     sizeof(area_req.offset));
 		}
 		if (err < 0)
@@ -1183,26 +1181,23 @@ static int nfp_dev_cpp_ioctl(struct inode *inode, struct file *filp,
 
 		break;
 	case NFP_IOCTL_CPP_EXPL_REQUEST:
-		err = copy_from_user(&explicit_req, (void *)arg,
-				     sizeof(explicit_req));
+		err = copy_from_user(&explicit_req, data, sizeof(explicit_req));
 		if (err >= 0) {
 			err = do_cpp_expl_request(chan, &explicit_req);
 			if (err >= 0)
-				err = copy_to_user((void *)arg, &explicit_req,
+				err = copy_to_user(data, &explicit_req,
 						   sizeof(explicit_req));
 		}
 
 		break;
 	case NFP_IOCTL_CPP_EVENT_ACQUIRE:
-		err = copy_from_user(&event_req, (void *)arg,
-				     sizeof(event_req));
+		err = copy_from_user(&event_req, data, sizeof(event_req));
 		if (err >= 0)
 			err = do_cpp_event_acquire(chan->cdev, chan->interface,
 						   &event_req);
 		break;
 	case NFP_IOCTL_CPP_EVENT_RELEASE:
-		err = copy_from_user(&event_req, (void *)arg,
-				     sizeof(event_req));
+		err = copy_from_user(&event_req, data, sizeof(event_req));
 		if (err >= 0)
 			err = do_cpp_event_release(chan->cdev, chan->interface,
 						   &event_req);

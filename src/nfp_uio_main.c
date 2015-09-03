@@ -586,7 +586,7 @@ static int nfp_uio_pci_setup_iomem(struct pci_dev *dev, struct uio_info *info,
 				   int n, int pci_bar, const char *name)
 {
 	unsigned long addr, len;
-	void *internal_addr;
+	void __iomem *internal_addr;
 
 	if (ARRAY_SIZE(info->mem) <= n)
 		return -EINVAL;

@@ -510,7 +510,8 @@ static void nfp_net_get_stats(struct net_device *netdev,
 	struct rtnl_link_stats64 temp;
 #endif
 	int i, j;
-	u8 __iomem *p = NULL;
+	u8 __iomem *io_p;
+	u8 *p;
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 36)
 	netdev_stats = dev_get_stats(netdev);
@@ -531,8 +532,8 @@ static void nfp_net_get_stats(struct net_device *netdev,
 			data[i] = *(u64 *)p;
 			break;
 		case NFP_NET_DEV_ET_STATS:
-			p = nn->ctrl_bar + nfp_net_et_stats[i].off;
-			data[i] = le64_to_cpu(readq(p));
+			io_p = nn->ctrl_bar + nfp_net_et_stats[i].off;
+			data[i] = le64_to_cpu(readq(io_p));
 			break;
 		}
 	}
@@ -543,17 +544,17 @@ static void nfp_net_get_stats(struct net_device *netdev,
 		i += 3;
 	}
 	for (j = 0; j < nn->num_tx_rings; j++) {
-		p = nn->ctrl_bar + NFP_NET_CFG_TXR_STATS(j);
-		data[i] = le64_to_cpu(readq(p));
-		p = nn->ctrl_bar + NFP_NET_CFG_TXR_STATS(j) + 8;
-		data[i + 1] = readq(p);
+		io_p = nn->ctrl_bar + NFP_NET_CFG_TXR_STATS(j);
+		data[i] = le64_to_cpu(readq(io_p));
+		io_p = nn->ctrl_bar + NFP_NET_CFG_TXR_STATS(j) + 8;
+		data[i + 1] = readq(io_p);
 		i += 2;
 	}
 	for (j = 0; j < nn->num_rx_rings; j++) {
-		p = nn->ctrl_bar + NFP_NET_CFG_RXR_STATS(j);
-		data[i] = le64_to_cpu(readq(p));
-		p = nn->ctrl_bar + NFP_NET_CFG_RXR_STATS(j) + 8;
-		data[i + 1] = readq(p);
+		io_p = nn->ctrl_bar + NFP_NET_CFG_RXR_STATS(j);
+		data[i] = le64_to_cpu(readq(io_p));
+		io_p = nn->ctrl_bar + NFP_NET_CFG_RXR_STATS(j) + 8;
+		data[i + 1] = readq(io_p);
 		i += 2;
 	}
 }

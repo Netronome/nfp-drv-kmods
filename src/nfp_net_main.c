@@ -608,7 +608,7 @@ err_map:
 err_acquire:
 	nfp_cpp_area_free(*area);
 err_area:
-	return ERR_PTR(err);
+	return (u8 __iomem *)ERR_PTR(err);
 }
 
 /**
