@@ -2004,13 +2004,6 @@ static int nfp_net_alloc_resources(struct nfp_net *nn)
 			if (err)
 				goto err_alloc;
 		}
-
-		u64_stats_update_begin(&r_vec->tx_sync);
-		r_vec->tx_pkts = 0;
-		u64_stats_update_end(&r_vec->tx_sync);
-		u64_stats_update_begin(&r_vec->rx_sync);
-		r_vec->rx_pkts = 0;
-		u64_stats_update_end(&r_vec->rx_sync);
 	}
 
 	return 0;
