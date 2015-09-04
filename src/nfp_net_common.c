@@ -442,12 +442,8 @@ static void nfp_net_irq_unmask(struct nfp_net *nn, unsigned int entry_nr)
 		/* If MSI-X auto-masking is used, clear the entry */
 		off = (PCI_MSIX_ENTRY_SIZE * entry_nr) +
 			PCI_MSIX_ENTRY_VECTOR_CTRL;
-		/* Make sure all updates are written before un-masking */
-		wmb();
 		writel(0, nn->msix_table + off);
 	} else {
-		/* Make sure all updates are written before un-masking */
-		wmb();
 		nn_writeb(nn,
 			  NFP_NET_CFG_ICR(entry_nr), NFP_NET_CFG_ICR_UNMASKED);
 	}
