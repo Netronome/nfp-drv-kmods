@@ -795,7 +795,7 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 	int nr_frags;
 	int wr_idx;
 	u16 qidx;
-	int err, f = 0;
+	int err, f;
 
 	qidx = skb_get_queue_mapping(skb);
 	tx_ring = &nn->tx_rings[qidx];
@@ -822,14 +822,8 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 	/* Start with the head skbuf */
 	dma_addr = dma_map_single(&nn->pdev->dev, skb->data, skb_headlen(skb),
 				  DMA_TO_DEVICE);
-	if (dma_mapping_error(&nn->pdev->dev, dma_addr)) {
-		dev_kfree_skb_any(skb);
-		u64_stats_update_begin(&r_vec->tx_sync);
-		r_vec->tx_errors++;
-		u64_stats_update_end(&r_vec->tx_sync);
-		nn_warn(nn, "Failed to map DMA TX buffer\n");
-		return NETDEV_TX_OK;
-	}
+	if (dma_mapping_error(&nn->pdev->dev, dma_addr))
+		goto err_free;
 
 	wr_idx = tx_ring->wr_p % tx_ring->cnt;
 
@@ -852,7 +846,7 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 	txd->l4_offset = 0;
 	err = nfp_net_tx_tso(nn, r_vec, txbuf, txd, skb);
 	if (err)
-		goto err_map;
+		goto err_unmap_head;
 
 	txd->flags = 0;
 	nfp_net_tx_csum(nn, r_vec, txbuf, txd, skb);
@@ -873,14 +867,8 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 
 			dma_addr = skb_frag_dma_map(&nn->pdev->dev, frag, 0,
 						    fsize, DMA_TO_DEVICE);
-			if (dma_mapping_error(&nn->pdev->dev, dma_addr)) {
-				u64_stats_update_begin(&r_vec->tx_sync);
-				r_vec->tx_errors++;
-				u64_stats_update_end(&r_vec->tx_sync);
-				nn_warn(nn,
-					"Failed to map DMA TX gather buffer\n");
-				goto err_map;
-			}
+			if (dma_mapping_error(&nn->pdev->dev, dma_addr))
+				goto err_unmap_frags;
 
 			wr_idx = (wr_idx + 1) % tx_ring->cnt;
 			tx_ring->txbufs[wr_idx].skb = skb;
@@ -913,7 +901,7 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 
 	return NETDEV_TX_OK;
 
-err_map:
+err_unmap_frags:
 	--f;
 	while (f >= 0) {
 		frag = &skb_shinfo(skb)->frags[f];
@@ -927,13 +915,18 @@ err_map:
 		if (wr_idx < 0)
 			wr_idx += tx_ring->cnt;
 	}
-	/* unmap the first skbuff */
+err_unmap_head:
 	dma_unmap_single(&nn->pdev->dev, tx_ring->txbufs[wr_idx].dma_addr,
 			 skb_headlen(skb), DMA_TO_DEVICE);
-	dev_kfree_skb_any(skb);
 	tx_ring->txbufs[wr_idx].skb = NULL;
 	tx_ring->txbufs[wr_idx].dma_addr = 0;
 	tx_ring->txbufs[wr_idx].fidx = -2;
+err_free:
+	nn_warn_ratelimit(nn, "Failed to map DMA TX buffer\n");
+	u64_stats_update_begin(&r_vec->tx_sync);
+	r_vec->tx_errors++;
+	u64_stats_update_end(&r_vec->tx_sync);
+	dev_kfree_skb_any(skb);
 	return NETDEV_TX_OK;
 }
 
