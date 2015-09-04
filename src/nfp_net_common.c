@@ -1522,10 +1522,6 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 			break;
 		}
 
-		/* Memory barrier to ensure that we won't do other reads
-		 * before the DD bit.
-		 */
-		rmb();
 		rxd = &rx_ring->rxds[idx];
 		if (!(rxd->rxd.meta_len_dd & PCIE_DESC_RX_DD)) {
 			if (nn->is_nfp3200)
@@ -1534,6 +1530,10 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 				       rxd->vals[0], rxd->vals[1]);
 			break;
 		}
+		/* Memory barrier to ensure that we won't do other reads
+		 * before the DD bit.
+		 */
+		dma_rmb();
 
 		if (le16_to_cpu(rxd->rxd.data_len) > nn->fl_bufsz) {
 			nn_err(nn, "RX data larger than freelist buffer (%u > %u) on %d:%u rxd[0]=%#x rxd[1]=%#x\n",
