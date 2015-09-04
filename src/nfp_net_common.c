@@ -636,6 +636,37 @@ static inline int nfp_net_tx_full(struct nfp_net_tx_ring *tx_ring, int dcnt)
 	return (tx_ring->wr_p - tx_ring->rd_p) >= (tx_ring->cnt - dcnt);
 }
 
+/* Wrappers for deciding when to stop and restart TX queues */
+static int nfp_net_tx_ring_should_wake(struct nfp_net_tx_ring *tx_ring)
+{
+	return !nfp_net_tx_full(tx_ring, MAX_SKB_FRAGS * 4);
+}
+
+static int nfp_net_tx_ring_should_stop(struct nfp_net_tx_ring *tx_ring)
+{
+	return nfp_net_tx_full(tx_ring, MAX_SKB_FRAGS + 1);
+}
+
+/**
+ * nfp_net_tx_ring_stop() - stop tx ring
+ * @nd_q - netdev queue
+ * @tx_ring - driver tx queue structure
+ *
+ * Safely stop TX ring.  Remember that while we are running .start_xmit()
+ * someone else may be cleaning the TX ring completions so we need to be
+ * extra careful here.
+ */
+static void nfp_net_tx_ring_stop(struct netdev_queue *nd_q,
+				 struct nfp_net_tx_ring *tx_ring)
+{
+	netif_tx_stop_queue(nd_q);
+
+	/* We can race with the TX completion out of NAPI so recheck */
+	smp_mb();
+	if (unlikely(nfp_net_tx_ring_should_wake(tx_ring)))
+		netif_tx_start_queue(nd_q);
+}
+
 /**
  * nfp_net_tx_tso() - Set up Tx descriptor for LSO
  * @nn:  NFP Net device
@@ -888,8 +919,8 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 	}
 
 	tx_ring->wr_p += nr_frags + 1;
-	if (nfp_net_tx_full(tx_ring, MAX_SKB_FRAGS + 1))
-		netif_tx_stop_queue(nd_q);
+	if (nfp_net_tx_ring_should_stop(tx_ring))
+		nfp_net_tx_ring_stop(nd_q, tx_ring);
 
 	/* Increment write pointers. Force memory write before we let HW know */
 	wmb();
@@ -943,6 +974,7 @@ static int nfp_net_tx_complete(struct nfp_net_tx_ring *tx_ring)
 	struct nfp_net_r_vector *r_vec = tx_ring->r_vec;
 	struct nfp_net *nn = r_vec->nfp_net;
 	const struct skb_frag_struct *frag;
+	struct netdev_queue *nd_q;
 	int todo, completed = 0;
 	struct sk_buff *skb;
 	int nr_frags;
@@ -1008,6 +1040,15 @@ static int nfp_net_tx_complete(struct nfp_net_tx_ring *tx_ring)
 	}
 
 	tx_ring->qcp_rd_p = qcp_rd_p;
+
+	nd_q = netdev_get_tx_queue(nn->netdev, tx_ring->idx);
+	if (nfp_net_tx_ring_should_wake(tx_ring)) {
+		/* Make sure TX thread will see updated tx_ring->rd_p */
+		smp_mb();
+
+		if (unlikely(netif_tx_queue_stopped(nd_q)))
+			netif_tx_wake_queue(nd_q);
+	}
 
 	return completed;
 }
@@ -1576,10 +1617,6 @@ static int nfp_net_poll(struct napi_struct *napi, int budget)
 	pkts_completed = nfp_net_tx_complete(tx_ring);
 	if (pkts_completed)
 		complete = false;
-
-	if (unlikely(netif_tx_queue_stopped(txq)) &&
-	    !nfp_net_tx_full(tx_ring, MAX_SKB_FRAGS * 4))
-		netif_tx_wake_queue(txq);
 
 	/* Receive any packets */
 	pkts_polled = nfp_net_rx(rx_ring, budget);
