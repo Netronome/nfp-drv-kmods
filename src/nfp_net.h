@@ -817,6 +817,12 @@ static inline void nn_writeq(struct nfp_net *nn, int off, u64 val)
 	writeq(val, nn->ctrl_bar + off);
 }
 
+/* Flush posted PCI writes by reading something without side effects */
+static inline void nn_pci_flush(struct nfp_net *nn)
+{
+	nn_readl(nn, NFP_NET_CFG_VERSION);
+}
+
 /* Queue Controller Peripheral access functions and definitions.
  *
  * Some of the BARs of the NFP are mapped to portions of the Queue

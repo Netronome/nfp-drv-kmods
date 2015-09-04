@@ -364,8 +364,8 @@ int nfp_net_reconfig(struct nfp_net *nn, u32 update)
 	u32 new;
 
 	nn_writel(nn, NFP_NET_CFG_UPDATE, update);
-	/* memory barrier to ensure update is written before pinging HW. */
-	wmb();
+	/* ensure update is written before pinging HW */
+	nn_pci_flush(nn);
 	nfp_qcp_wr_ptr_add(nn->qcp_cfg, 1);
 
 	/* Poll update field, waiting for NFP to ack the config */
