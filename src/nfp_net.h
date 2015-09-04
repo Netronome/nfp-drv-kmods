@@ -200,6 +200,8 @@ struct nfp_net_tx_buf {
  * @wr_p:       TX ring write pointer (free running)
  * @rd_p:       TX ring read pointer (free running)
  * @qcp_rd_p:   Local copy of QCP TX queue read pointer
+ * @qcp_wr_add:	Accumulated number of buffers to add to QCP write pointer
+ *		(used for .xmit_more delayed kick)
  * @txbufs:     Array of transmitted TX buffers, to free on transmit
  * @txds:       Virtual address of TX ring in host memory
  * @dma:        DMA address of the TX ring
@@ -216,6 +218,8 @@ struct nfp_net_tx_ring {
 	u32 wr_p;
 	u32 rd_p;
 	u32 qcp_rd_p;
+
+	u32 wr_ptr_add;
 
 	struct nfp_net_tx_buf *txbufs;
 	struct nfp_net_tx_desc *txds;

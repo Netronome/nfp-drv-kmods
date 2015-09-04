@@ -120,6 +120,15 @@ static inline int netif_set_xps_queue(struct net_device *dev,
 }
 #endif
 
+static inline int skb_xmit_more(struct sk_buff *skb)
+{
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 18, 0)
+	return false;
+#else
+	return skb->xmit_more;
+#endif
+}
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0)
 static inline int skb_put_padto(struct sk_buff *skb, unsigned int len)
 {

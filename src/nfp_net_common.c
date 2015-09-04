@@ -924,9 +924,13 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 	if (nfp_net_tx_ring_should_stop(tx_ring))
 		nfp_net_tx_ring_stop(nd_q, tx_ring);
 
-	/* Increment write pointers. Force memory write before we let HW know */
-	wmb();
-	nfp_qcp_wr_ptr_add(tx_ring->qcp_q, nr_frags + 1);
+	tx_ring->wr_ptr_add += nr_frags + 1;
+	if (!skb_xmit_more(skb) || netif_xmit_stopped(nd_q)) {
+		/* force memory write before we let HW know */
+		wmb();
+		nfp_qcp_wr_ptr_add(tx_ring->qcp_q, tx_ring->wr_ptr_add);
+		tx_ring->wr_ptr_add = 0;
+	}
 
 	skb_tx_timestamp(skb);
 
