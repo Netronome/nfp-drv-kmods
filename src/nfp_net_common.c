@@ -1233,8 +1233,6 @@ static int nfp_net_tx_complete(struct nfp_net_tx_ring *tx_ring)
 
 	tx_ring->qcp_rd_p = qcp_rd_p;
 
-	/* Make sure the Read Pointer update gets written to the device */
-	wmb();
 	return completed;
 }
 
