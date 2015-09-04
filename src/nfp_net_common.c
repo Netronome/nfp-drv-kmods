@@ -809,9 +809,8 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 	nr_frags = skb_shinfo(skb)->nr_frags;
 
 	if (unlikely(nfp_net_tx_full(tx_ring, nr_frags + 1))) {
-		if (unlikely(net_ratelimit()))
-			nn_dbg(nn, "TX ring %d busy. wrp=%u rdp=%u\n",
-			       qidx, tx_ring->wr_p, tx_ring->rd_p);
+		nn_warn_ratelimit(nn, "TX ring %d busy. wrp=%u rdp=%u\n",
+				  qidx, tx_ring->wr_p, tx_ring->rd_p);
 		netif_tx_stop_queue(nd_q);
 		u64_stats_update_begin(&r_vec->tx_sync);
 		r_vec->tx_busy++;
@@ -888,9 +887,12 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 		u64_stats_update_end(&r_vec->tx_sync);
 	}
 
+	tx_ring->wr_p += nr_frags + 1;
+	if (nfp_net_tx_full(tx_ring, MAX_SKB_FRAGS + 1))
+		netif_tx_stop_queue(nd_q);
+
 	/* Increment write pointers. Force memory write before we let HW know */
 	wmb();
-	tx_ring->wr_p += nr_frags + 1;
 	nfp_qcp_wr_ptr_add(tx_ring->qcp_q, nr_frags + 1);
 
 	skb_tx_timestamp(skb);
@@ -1575,7 +1577,8 @@ static int nfp_net_poll(struct napi_struct *napi, int budget)
 	if (pkts_completed)
 		complete = false;
 
-	if (unlikely(netif_tx_queue_stopped(txq)) && pkts_completed)
+	if (unlikely(netif_tx_queue_stopped(txq)) &&
+	    !nfp_net_tx_full(tx_ring, MAX_SKB_FRAGS * 4))
 		netif_tx_wake_queue(txq);
 
 	/* Receive any packets */
