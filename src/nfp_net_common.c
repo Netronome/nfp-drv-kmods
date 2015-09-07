@@ -997,46 +997,43 @@ static int nfp_net_tx_complete(struct nfp_net_tx_ring *tx_ring)
 	else
 		todo = qcp_rd_p + tx_ring->cnt - tx_ring->qcp_rd_p;
 
-	while (todo > 0) {
+	while (todo > completed) {
 		idx = tx_ring->rd_p % tx_ring->cnt;
-		skb = tx_ring->txbufs[idx].skb;
-		if (skb) {
-			nr_frags = skb_shinfo(skb)->nr_frags;
-			fidx = tx_ring->txbufs[idx].fidx;
-
-			if (fidx == -1) {
-				/* unmap head */
-				dma_unmap_single(&nn->pdev->dev,
-						 tx_ring->txbufs[idx].dma_addr,
-						 skb_headlen(skb),
-						 DMA_TO_DEVICE);
-
-				u64_stats_update_begin(&r_vec->tx_sync);
-				r_vec->tx_bytes +=
-					tx_ring->txbufs[idx].real_len;
-				r_vec->tx_pkts += tx_ring->txbufs[idx].pkt_cnt;
-				u64_stats_update_end(&r_vec->tx_sync);
-			} else {
-				/* unmap fragment */
-				frag = &skb_shinfo(skb)->frags[fidx];
-				dma_unmap_page(&nn->pdev->dev,
-					       tx_ring->txbufs[idx].dma_addr,
-					       skb_frag_size(frag),
-					       DMA_TO_DEVICE);
-			}
-
-			/* check for last gather fragment */
-			if (fidx == nr_frags - 1)
-				dev_kfree_skb_any(skb);
-
-			tx_ring->txbufs[idx].dma_addr = 0;
-			tx_ring->txbufs[idx].skb = NULL;
-			tx_ring->txbufs[idx].fidx = -2;
-		}
-
 		tx_ring->rd_p++;
 		completed++;
-		todo--;
+
+		skb = tx_ring->txbufs[idx].skb;
+		if (!skb)
+			continue;
+
+		nr_frags = skb_shinfo(skb)->nr_frags;
+		fidx = tx_ring->txbufs[idx].fidx;
+
+		if (fidx == -1) {
+			/* unmap head */
+			dma_unmap_single(&nn->pdev->dev,
+					 tx_ring->txbufs[idx].dma_addr,
+					 skb_headlen(skb), DMA_TO_DEVICE);
+
+			u64_stats_update_begin(&r_vec->tx_sync);
+			r_vec->tx_bytes += tx_ring->txbufs[idx].real_len;
+			r_vec->tx_pkts += tx_ring->txbufs[idx].pkt_cnt;
+			u64_stats_update_end(&r_vec->tx_sync);
+		} else {
+			/* unmap fragment */
+			frag = &skb_shinfo(skb)->frags[fidx];
+			dma_unmap_page(&nn->pdev->dev,
+				       tx_ring->txbufs[idx].dma_addr,
+				       skb_frag_size(frag), DMA_TO_DEVICE);
+		}
+
+		/* check for last gather fragment */
+		if (fidx == nr_frags - 1)
+			dev_kfree_skb_any(skb);
+
+		tx_ring->txbufs[idx].dma_addr = 0;
+		tx_ring->txbufs[idx].skb = NULL;
+		tx_ring->txbufs[idx].fidx = -2;
 	}
 
 	tx_ring->qcp_rd_p = qcp_rd_p;
