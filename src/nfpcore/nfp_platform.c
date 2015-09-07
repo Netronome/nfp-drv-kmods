@@ -388,6 +388,5 @@ struct platform_device *nfp_platform_device_register(struct nfp_cpp *cpp,
  */
 void nfp_platform_device_unregister(struct platform_device *pdev)
 {
-	if (pdev)
-		platform_device_unregister(pdev);
+	platform_device_unregister(pdev);
 }
