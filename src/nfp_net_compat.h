@@ -383,6 +383,21 @@ static inline int netif_set_xps_queue(struct net_device *dev,
 }
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0)
+static inline int skb_put_padto(struct sk_buff *skb, unsigned int len)
+{
+	unsigned int size = skb->len;
+
+	if (unlikely(size < len)) {
+		len -= size;
+		if (skb_pad(skb, len))
+			return -ENOMEM;
+		__skb_put(skb, len);
+	}
+	return 0;
+}
+#endif
+
 /* FIXME: Ubuntu 14.04 has this in some of their 3.13 kernels
  *
  * FIXME: Centos 7 has this in their 3.10 kernel.

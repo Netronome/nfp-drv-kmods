@@ -1573,13 +1573,8 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 		nfp_net_set_hash(skb, rxd);
 
 		/* Pad small frames to minimum */
-		if (unlikely(skb->len < 60)) {
-			int pad_len = 60 - skb->len;
-
-			if (skb_pad(skb, pad_len))
-				break;
-			__skb_put(skb, pad_len);
-		}
+		if (skb_put_padto(skb, 60))
+			break;
 
 		/* Stats update */
 		u64_stats_update_begin(&r_vec->rx_sync);
