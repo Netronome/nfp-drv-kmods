@@ -918,6 +918,8 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 		u64_stats_update_end(&r_vec->tx_sync);
 	}
 
+	netdev_tx_sent_queue(nd_q, txbuf->real_len);
+
 	tx_ring->wr_p += nr_frags + 1;
 	if (nfp_net_tx_ring_should_stop(tx_ring))
 		nfp_net_tx_ring_stop(nd_q, tx_ring);
@@ -975,6 +977,7 @@ static int nfp_net_tx_complete(struct nfp_net_tx_ring *tx_ring)
 	struct nfp_net *nn = r_vec->nfp_net;
 	const struct skb_frag_struct *frag;
 	struct netdev_queue *nd_q;
+	u32 done_pkts = 0, done_bytes = 0;
 	int todo, completed = 0;
 	struct sk_buff *skb;
 	int nr_frags;
@@ -1015,10 +1018,8 @@ static int nfp_net_tx_complete(struct nfp_net_tx_ring *tx_ring)
 					 tx_ring->txbufs[idx].dma_addr,
 					 skb_headlen(skb), DMA_TO_DEVICE);
 
-			u64_stats_update_begin(&r_vec->tx_sync);
-			r_vec->tx_bytes += tx_ring->txbufs[idx].real_len;
-			r_vec->tx_pkts += tx_ring->txbufs[idx].pkt_cnt;
-			u64_stats_update_end(&r_vec->tx_sync);
+			done_pkts += tx_ring->txbufs[idx].pkt_cnt;
+			done_bytes += tx_ring->txbufs[idx].real_len;
 		} else {
 			/* unmap fragment */
 			frag = &skb_shinfo(skb)->frags[fidx];
@@ -1038,7 +1039,13 @@ static int nfp_net_tx_complete(struct nfp_net_tx_ring *tx_ring)
 
 	tx_ring->qcp_rd_p = qcp_rd_p;
 
+	u64_stats_update_begin(&r_vec->tx_sync);
+	r_vec->tx_bytes += done_bytes;
+	r_vec->tx_pkts += done_pkts;
+	u64_stats_update_end(&r_vec->tx_sync);
+
 	nd_q = netdev_get_tx_queue(nn->netdev, tx_ring->idx);
+	netdev_tx_completed_queue(nd_q, done_pkts, done_bytes);
 	if (nfp_net_tx_ring_should_wake(tx_ring)) {
 		/* Make sure TX thread will see updated tx_ring->rd_p */
 		smp_mb();
@@ -1062,6 +1069,7 @@ static void nfp_net_tx_flush(struct nfp_net_tx_ring *tx_ring)
 	struct nfp_net *nn = r_vec->nfp_net;
 	struct pci_dev *pdev = nn->pdev;
 	const struct skb_frag_struct *frag;
+	struct netdev_queue *nd_q;
 	struct sk_buff *skb;
 	int nr_frags;
 	int fidx;
@@ -1108,6 +1116,9 @@ static void nfp_net_tx_flush(struct nfp_net_tx_ring *tx_ring)
 		tx_ring->qcp_rd_p++;
 		tx_ring->rd_p++;
 	}
+
+	nd_q = netdev_get_tx_queue(nn->netdev, tx_ring->idx);
+	netdev_tx_reset_queue(nd_q);
 }
 
 static void nfp_net_tx_timeout(struct net_device *netdev)
