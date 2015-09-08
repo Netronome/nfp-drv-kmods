@@ -1444,7 +1444,7 @@ static int nfp_dev_cpp_probe(struct platform_device *pdev)
 	pdata = nfp_platform_device_data(pdev);
 	BUG_ON(!pdata);
 
-	cpp = pdata->cpp;
+	cpp = nfp_cpp_get(pdata->cpp);
 
 	BUG_ON(!cpp);
 
