@@ -398,6 +398,14 @@ static inline int skb_put_padto(struct sk_buff *skb, unsigned int len)
 }
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0)
+static inline void eth_hw_addr_random(struct net_device *dev)
+{
+	dev->addr_assign_type |= NET_ADDR_RANDOM;
+	random_ether_addr(dev->dev_addr);
+}
+#endif
+
 /* FIXME: Ubuntu 14.04 has this in some of their 3.13 kernels
  *
  * FIXME: Centos 7 has this in their 3.10 kernel.

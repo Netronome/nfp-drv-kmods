@@ -625,23 +625,24 @@ static void nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_device *nfp_dev)
 	const char *mac_str;
 
 	mac_str = nfp_hwinfo_lookup(nfp_dev, "eth0.mac");
-	if (mac_str) {
-		if (sscanf(mac_str, "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
-			   &mac_addr[0], &mac_addr[1], &mac_addr[2],
-			   &mac_addr[3], &mac_addr[4], &mac_addr[5]) != 6) {
-			dev_warn(&nn->pdev->dev,
-				 "Can't parse MAC address (%s). Generate.",
-				 mac_str);
-			random_ether_addr(mac_addr);
-		} else {
-			ether_addr_copy(nn->netdev->perm_addr, mac_addr);
-		}
-	} else {
+	if (!mac_str) {
 		dev_warn(&nn->pdev->dev,
 			 "Can't lookup MAC address. Generate\n");
-		random_ether_addr(mac_addr);
+		eth_hw_addr_random(nn->netdev);
+		return;
 	}
+
+	if (sscanf(mac_str, "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
+		   &mac_addr[0], &mac_addr[1], &mac_addr[2],
+		   &mac_addr[3], &mac_addr[4], &mac_addr[5]) != 6) {
+		dev_warn(&nn->pdev->dev,
+			 "Can't parse MAC address (%s). Generate.", mac_str);
+		eth_hw_addr_random(nn->netdev);
+		return;
+	}
+
 	ether_addr_copy(nn->netdev->dev_addr, mac_addr);
+	ether_addr_copy(nn->netdev->perm_addr, mac_addr);
 }
 
 /*
