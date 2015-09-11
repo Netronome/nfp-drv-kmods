@@ -337,6 +337,8 @@
 
 #define	NFP_PCIE_SRAM		(0x000000)
 #define	NFP_PCIE_Q(_x)		(0x080000 + ((_x) & 0xff) * 0x800)
+#define PCIEX_BASE		(0xa0000)
+#define NFP_PCIEX_IM		(PCIEX_BASE + 0x030000)
 
 #define NBIX_BASE		(0xa0000)
 #define NFP_NBIX_CSR				(NBIX_BASE + 0x2f0000)
@@ -1288,6 +1290,24 @@ static int nfp6000_island_pci_init(struct nfp_cpp *cpp, int island, int unit)
 	int i;
 
 	if (unit == NFP6000_DEVICE_PCI_PCI) {
+		int err;
+
+		/* Initialize the PCI Queue Controller */
+		err = nfp_xpb_writel(cpp, NFP_XPB_ISLAND(island) +
+				     NFP_PCIEX_IM + 0x50, 0x10a01);
+		if (err < 0)
+			return err;
+
+		err = nfp_xpb_writel(cpp, NFP_XPB_ISLAND(island) +
+				     NFP_PCIEX_IM + 0x54, 0x00001);
+		if (err < 0)
+			return err;
+
+		err = nfp_xpb_writel(cpp, NFP_XPB_ISLAND(island) +
+				     NFP_PCIEX_IM + 0x54, 0x10000);
+		if (err < 0)
+			return err;
+
 		/* Clear out the PCI Queue Controller */
 		for (i = 0; i < 256; i++) {
 			nfp_cpp_writel(cpp, pci_w, addr + NFP_PCIE_Q(i) +
