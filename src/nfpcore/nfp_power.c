@@ -1283,11 +1283,9 @@ static int nfp6000_island_nbi_init(struct nfp_cpp *cpp, int island, int unit)
 
 static int nfp6000_island_pci_init(struct nfp_cpp *cpp, int island, int unit)
 {
-#ifdef NFP_ECC_FULL_CLEAR
-	int i;
-	uint32_t pci_r = NFP_CPP_ID(NFP_CPP_TARGET_PCIE, 2, 0);
-	uint32_t pci_w = NFP_CPP_ID(NFP_CPP_TARGET_PCIE, 3, 0);
+	const uint32_t pci_w = NFP_CPP_ID(NFP_CPP_TARGET_PCIE, 3, 0);
 	uint64_t addr = ((uint64_t)(island - 4) << 38);
+	int i;
 
 	if (unit == NFP6000_DEVICE_PCI_PCI) {
 		/* Clear out the PCI Queue Controller */
@@ -1303,7 +1301,9 @@ static int nfp6000_island_pci_init(struct nfp_cpp *cpp, int island, int unit)
 		}
 	}
 
+#ifdef NFP_ECC_FULL_CLEAR
 	if (unit == NFP6000_DEVICE_PCI_PCI) {
+		const uint32_t pci_r = NFP_CPP_ID(NFP_CPP_TARGET_PCIE, 2, 0);
 		uint32_t tmp;
 
 		/* Clear out the PCI SRAM:
