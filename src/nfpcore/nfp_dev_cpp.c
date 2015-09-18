@@ -1444,11 +1444,11 @@ static int nfp_dev_cpp_probe(struct platform_device *pdev)
 	pdata = nfp_platform_device_data(pdev);
 	BUG_ON(!pdata);
 
-	cpp = nfp_cpp_get(pdata->cpp);
+	id = pdata->nfp;
+
+	cpp = nfp_cpp_from_device_id(id);
 
 	BUG_ON(!cpp);
-
-	id = nfp_cpp_device_id(cpp);
 
 	cdev = kzalloc(sizeof(*cdev), GFP_KERNEL);
 	if (!cdev) {

@@ -842,12 +842,12 @@ static int nfp_net_null_probe(struct platform_device *pdev)
 	pdata = nfp_platform_device_data(pdev);
 	BUG_ON(!pdata);
 
-	cpp = pdata->cpp;
-
-	BUG_ON(!cpp);
-	nfp = nfp_device_from_cpp(cpp);
+	nfp = nfp_device_open(pdata->nfp);
 	if (!nfp)
 		return -ENODEV;
+
+	cpp = nfp_device_cpp(nfp);
+	BUG_ON(!cpp);
 
 	model = nfp_cpp_model(cpp);
 	if (!NFP_CPP_MODEL_IS_6000(model)) {

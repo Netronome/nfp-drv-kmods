@@ -506,7 +506,7 @@ static void __nfp_cpp_release(struct kref *kref)
 #define CPP_GET(cpp)	kref_get(&(cpp)->kref)
 #define CPP_PUT(cpp)	kref_put(&(cpp)->kref, __nfp_cpp_release)
 
-struct nfp_cpp *nfp_cpp_get(struct nfp_cpp *cpp)
+static struct nfp_cpp *nfp_cpp_get(struct nfp_cpp *cpp)
 {
 	CPP_GET(cpp);
 

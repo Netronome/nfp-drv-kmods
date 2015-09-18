@@ -746,11 +746,8 @@ static int nfp_err_plat_probe(struct platform_device *pdev)
 	pdata = nfp_platform_device_data(pdev);
 	BUG_ON(!pdata);
 
-	cpp = pdata->cpp;
+	id = pdata->nfp;
 
-	BUG_ON(!cpp);
-
-	id = nfp_cpp_device_id(cpp);
 	if (id >= NFP_ERR_MAX) {
 		dev_err(&pdev->dev, "NFP Device %d: Exceeds limit of %d NFP Error Monitors\n",
 			id, NFP_ERR_MAX);
@@ -759,6 +756,10 @@ static int nfp_err_plat_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Invalid cpp_id: %d\n", id);
 		return -EINVAL;
 	}
+
+	cpp = nfp_cpp_from_device_id(id);
+
+	BUG_ON(!cpp);
 
 	cdev = kmalloc(sizeof(*cdev), GFP_KERNEL);
 	if (!cdev)

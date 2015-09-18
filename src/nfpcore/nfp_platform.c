@@ -334,13 +334,13 @@ struct platform_device *nfp_platform_device_register_unit(struct nfp_cpp *cpp,
 							  int unit, int units)
 {
 	struct device *dev = nfp_cpp_device(cpp);
-	struct platform_device *pdev;
-	int id;
-	int err;
 	const struct nfp_platform_data pdata = {
-		.cpp = cpp,
+		.nfp = nfp_cpp_device_id(cpp),
 		.unit = unit,
 	};
+	struct platform_device *pdev;
+	int err;
+	int id;
 
 	id = nfp_cpp_device_id(cpp) * units + unit;
 

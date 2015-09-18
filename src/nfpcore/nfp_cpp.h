@@ -567,7 +567,6 @@ static inline int NFP_CPP_STEPPING_decode(const char *_str_major_minor)
 #define NFP_CPP_INTERFACE_CHANNEL_of(interface)   (((interface) >>  0) & 0xff)
 
 /* Implemented in nfp_cppcore.c */
-struct nfp_cpp *nfp_cpp_get(struct nfp_cpp *cpp);
 struct nfp_cpp *nfp_cpp_from_device_id(int id);
 void nfp_cpp_free(struct nfp_cpp *cpp);
 int nfp_cpp_device_id(struct nfp_cpp *cpp);
@@ -862,11 +861,11 @@ int nfp_ca_replay(struct nfp_cpp *cpp, const void *ca_buffer, size_t ca_size);
 
 /**
  * struct nfp_platform_data - Per-device data
- * @cpp:	NFP CPP handle
+ * @nfp:	NFP unit number
  * @unit:	Device unit number
  */
 struct nfp_platform_data {
-	struct nfp_cpp *cpp;
+	int nfp;
 	int unit;
 };
 

@@ -892,13 +892,14 @@ static int nfp_net_vnic_probe(struct platform_device *pdev)
 	pdata = nfp_platform_device_data(pdev);
 	BUG_ON(!pdata);
 
-	cpp = pdata->cpp;
-	vnic_unit = pdata->unit;
-
-	BUG_ON(!cpp);
-	nfp = nfp_device_from_cpp(cpp);
+	nfp = nfp_device_open(pdata->nfp);
 	if (!nfp)
 		return -ENODEV;
+
+	vnic_unit = pdata->unit;
+
+	cpp = nfp_device_cpp(nfp);
+	BUG_ON(!cpp);
 
 	/* HACK:
 	 *
