@@ -328,6 +328,11 @@
 #define NFP_NET_RX_OFFSET               32
 
 /**
+ * Maximum header size supported for LSO frames
+ */
+#define NFP_NET_LSO_MAX_HDR_SZ		255
+
+/**
  * Hash type pre-pended when a RSS hash was computed
  */
 #define NFP_NET_RSS_NONE                0

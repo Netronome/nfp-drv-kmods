@@ -462,10 +462,12 @@ struct nfp_net_tx_ring {
 	u32 rd_p;
 	u32 qcp_rd_p;
 
-	struct {
+	struct nfp_net_tx_buf {
 		struct sk_buff *skb;
 		dma_addr_t dma_addr;
-		int fidx;
+		short int fidx;
+		u16 pkt_cnt;
+		u32 real_len;
 	} *txbufs;
 
 	struct nfp_net_tx_desc *txds;
