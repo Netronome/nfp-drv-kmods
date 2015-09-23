@@ -1018,7 +1018,7 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 	int nr_frags;
 	int wr_idx;
 	u16 qidx;
-	int f = 0;
+	int err, f = 0;
 
 	qidx = skb_get_queue_mapping(skb);
 	tx_ring = &nn->tx_rings[qidx];
@@ -1073,7 +1073,8 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 
 	txd->lso = 0;
 	txd->l4_offset = 0;
-	if (nfp_net_tx_tso(nn, txbuf, txd, skb) < 0)
+	err = nfp_net_tx_tso(nn, txbuf, txd, skb);
+	if (err)
 		goto err_map;
 
 	txd->flags = 0;

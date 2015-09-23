@@ -436,6 +436,25 @@ struct nfp_net_tx_desc {
 };
 
 /**
+ * struct nfp_net_tx_buf - software TX buffer descriptor
+ * @skb:	sk_buff associated with this buffer
+ * @dma_addr:	DMA mapping address of the buffer
+ * @fidx:	Fragment index (-1 for the head and [0..nr_frags-1] for frags)
+ * @pkt_cnt:	Number of packets to be produced out of the skb associated
+ *		with this buffer (valid only on the head's buffer).
+ *		Will be 1 for all non-TSO packets.
+ * @real_len:	Number of bytes which to be produced out of the skb (valid only
+ *		on the head's buffer). Equal to skb->len for non-TSO packets.
+ */
+struct nfp_net_tx_buf {
+	struct sk_buff *skb;
+	dma_addr_t dma_addr;
+	short int fidx;
+	u16 pkt_cnt;
+	u32 real_len;
+};
+
+/**
  * struct nfp_net_tx_ring - TX ring structure
  * @r_vec:      Back pointer to ring vector structure
  * @idx:        Ring index from Linux's perspective
@@ -462,15 +481,9 @@ struct nfp_net_tx_ring {
 	u32 rd_p;
 	u32 qcp_rd_p;
 
-	struct nfp_net_tx_buf {
-		struct sk_buff *skb;
-		dma_addr_t dma_addr;
-		short int fidx;
-		u16 pkt_cnt;
-		u32 real_len;
-	} *txbufs;
-
+	struct nfp_net_tx_buf *txbufs;
 	struct nfp_net_tx_desc *txds;
+
 	dma_addr_t dma;
 	unsigned int size;
 } ____cacheline_aligned;
