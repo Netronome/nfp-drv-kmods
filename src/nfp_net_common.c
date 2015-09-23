@@ -2152,10 +2152,10 @@ void nfp_net_coalesce_write_cfg(struct nfp_net *nn)
  */
 static void nfp_net_write_mac_addr(struct nfp_net *nn, const u8 *mac)
 {
-	writel(get_unaligned_be32(nn->netdev->dev_addr),
-	       nn->ctrl_bar + NFP_NET_CFG_MACADDR);
-	writew(get_unaligned_be16(nn->netdev->dev_addr + 4),
-	       nn->ctrl_bar + NFP_NET_CFG_MACADDR + 6);
+	nn_writel(nn, NFP_NET_CFG_MACADDR + 0,
+		  get_unaligned_be32(nn->netdev->dev_addr));
+	nn_writel(nn, NFP_NET_CFG_MACADDR + 4,
+		  get_unaligned_be16(nn->netdev->dev_addr + 4) << 16);
 }
 
 /**
