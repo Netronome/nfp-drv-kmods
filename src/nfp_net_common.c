@@ -1405,7 +1405,7 @@ static inline int nfp_net_rx_space(struct nfp_net_rx_ring *rx_ring)
 static void nfp_net_rx_csum(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 			    struct nfp_net_rx_desc *rxd, struct sk_buff *skb)
 {
-	skb->ip_summed = CHECKSUM_NONE;
+	skb_checksum_none_assert(skb);
 
 	if (!(nn->netdev->features & NETIF_F_RXCSUM))
 		return;
@@ -1433,11 +1433,9 @@ static void nfp_net_rx_csum(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 	u64_stats_update_begin(&r_vec->rx_sync);
 	r_vec->hw_csum_rx_ok++;
 	u64_stats_update_end(&r_vec->rx_sync);
-	skb->ip_summed = CHECKSUM_UNNECESSARY;
 	return;
 
 err_csum:
-	skb->ip_summed = CHECKSUM_NONE;
 	u64_stats_update_begin(&r_vec->rx_sync);
 	r_vec->hw_csum_rx_error++;
 	u64_stats_update_end(&r_vec->rx_sync);
