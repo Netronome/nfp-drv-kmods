@@ -926,8 +926,7 @@ static int nfp_net_tx_tso(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 			inner_tcp_hdrlen(skb);
 
 	if (unlikely(hdrlen > NFP_NET_LSO_MAX_HDR_SZ)) {
-		if (net_ratelimit())
-			nn_warn(nn, "Header size too large: %d\n", hdrlen);
+		nn_warn_ratelimit(nn, "Header size too large: %d\n", hdrlen);
 		return -E2BIG;
 	}
 
@@ -975,10 +974,8 @@ static void nfp_net_tx_csum(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 		l4_hdr = ipv6_hdr(skb)->nexthdr;
 		break;
 	default:
-		if (unlikely(net_ratelimit())) {
-			nn_warn(nn, "partial checksum but proto=%x!\n",
-				skb->protocol);
-		}
+		nn_warn_ratelimit(nn, "partial checksum but proto=%x!\n",
+				  skb->protocol);
 		return;
 	}
 
@@ -990,10 +987,8 @@ static void nfp_net_tx_csum(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 		txd->flags |= PCIE_DESC_TX_UDP_CSUM;
 		break;
 	default:
-		if (unlikely(net_ratelimit())) {
-			nn_warn(nn, "partial checksum but l4 proto=%x!\n",
-				l4_hdr);
-		}
+		nn_warn_ratelimit(nn, "partial checksum but l4 proto=%x!\n",
+				  l4_hdr);
 		return;
 	}
 

@@ -321,6 +321,11 @@
 #define nn_err(nn, fmt, args...)  netdev_err((nn)->netdev, fmt, ## args)
 #define nn_warn(nn, fmt, args...) netdev_warn((nn)->netdev, fmt, ## args)
 #define nn_info(nn, fmt, args...) netdev_info((nn)->netdev, fmt, ## args)
+#define nn_warn_ratelimit(nn, fmt, args...)				\
+	do {								\
+		if (unlikely(net_ratelimit()))				\
+			netdev_warn((nn)->netdev, fmt, ## args);	\
+	} while (0)
 #ifdef NFP_NET_DEBUG
 #define nn_dbg(nn, fmt, args...)  netdev_info((nn)->netdev, fmt, ## args)
 #define nn_assert(cond, fmt, args...) {					\
