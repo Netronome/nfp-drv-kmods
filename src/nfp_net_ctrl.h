@@ -311,7 +311,7 @@
  * Author: Jason McMullan <jason.mcmullan@netronome.com>
  */
 
- #ifndef _NFP_NET_CTRL_H_
+#ifndef _NFP_NET_CTRL_H_
 #define _NFP_NET_CTRL_H_
 
 /* IMPORTANT: This header file is shared with the FW,

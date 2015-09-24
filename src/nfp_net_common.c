@@ -348,7 +348,7 @@ module_param(num_rings, uint, 0);
 MODULE_PARM_DESC(num_rings, "Number of RX/TX rings to use");
 
 /**
- * nfp_net_reconfigure() - Reconfigure the firmware
+ * nfp_net_reconfig() - Reconfigure the firmware
  * @nn:      NFP Net device to reconfigure
  * @update:  The value for the update field in the BAR config
  *
@@ -951,13 +951,12 @@ static int nfp_net_tx_tso(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
  * @skb: Pointer to SKB
  *
  * This function sets the TX checksum flags in the TX descriptor based
- * on the configuration and the protocol of the packet to be
- * transmitted.
+ * on the configuration and the protocol of the packet to be transmitted.
  */
 static void nfp_net_tx_csum(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 			    struct nfp_net_tx_desc *txd, struct sk_buff *skb)
 {
-	u8 l4_hdr = 0;
+	u8 l4_hdr;
 
 	if (!(nn->ctrl & NFP_NET_CFG_CTRL_TXCSUM))
 		return;
@@ -2708,8 +2707,7 @@ int nfp_net_netdev_init(struct net_device *netdev)
 		nn->ctrl |= NFP_NET_CFG_CTRL_RXCSUM;
 	}
 	if (nn->cap & NFP_NET_CFG_CTRL_TXCSUM) {
-		netdev->hw_features |=
-			NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM;
+		netdev->hw_features |= NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM;
 		nn->ctrl |= NFP_NET_CFG_CTRL_TXCSUM;
 	}
 	if (nn->cap & NFP_NET_CFG_CTRL_SCATTER &&
