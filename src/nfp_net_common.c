@@ -2648,7 +2648,6 @@ struct nfp_net *nfp_net_netdev_alloc(struct pci_dev *pdev,
 
 	SET_NETDEV_DEV(netdev, &pdev->dev);
 	nn = netdev_priv(netdev);
-	memset(nn, 0, sizeof(*nn));
 
 	nn->netdev = netdev;
 	nn->pdev = pdev;
