@@ -1232,11 +1232,14 @@ static int __init nfp_net_init(void)
 {
 	int err;
 
+	mutex_lock(&module_mutex);
 	if (find_module("nfp")) {
 		pr_err("%s: Cannot be loaded while nfp is loaded\n",
 		       nfp_net_driver_name);
+		mutex_unlock(&module_mutex);
 		return -EBUSY;
 	}
+	mutex_unlock(&module_mutex);
 
 	pr_info("%s: NFP Network driver, Copyright (C) 2014-2015 Netronome Systems\n",
 		nfp_net_driver_name);

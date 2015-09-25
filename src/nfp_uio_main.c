@@ -871,6 +871,7 @@ static int __init nfp_uio_pci_init_module(void)
 {
 	int err;
 
+	mutex_lock(&module_mutex);
 	if (find_module("nfp")) {
 		pr_info("nfp_uio: nfp module detected. Just VF support\n");
 		pf_support = 0;
@@ -880,6 +881,7 @@ static int __init nfp_uio_pci_init_module(void)
 		pr_info("nfp_uio: nfp_net module detected. Just VF support\n");
 		pf_support = 0;
 	}
+	mutex_unlock(&module_mutex);
 
 	pr_info("nfp_uio: NFP UIO driver PF/VF, Copyright (C) 2014-2015 Netronome Systems\n");
 

@@ -837,15 +837,17 @@ static int __init nfp_main_init(void)
 {
 	int err;
 
+	mutex_lock(&module_mutex);
 	if (find_module("nfp_net")) {
 		pr_err("%s: Cannot be loaded while nfp_net is loaded\n",
 		       nfp_driver_name);
+		mutex_unlock(&module_mutex);
 		return -EBUSY;
 	}
+	mutex_unlock(&module_mutex);
 
-	pr_info(
-	       "%s: NFP PCIe Driver, Copyright (C) 2014-2015 Netronome Systems\n",
-	       nfp_driver_name);
+	pr_info("%s: NFP PCIe Driver, Copyright (C) 2014-2015 Netronome Systems\n",
+		nfp_driver_name);
 	pr_info(NFP_BUILD_DESCRIPTION(nfp));
 
 	err = nfp_cppcore_init();
