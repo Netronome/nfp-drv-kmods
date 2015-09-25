@@ -902,6 +902,7 @@ static inline int nfp_net_tx_full(struct nfp_net_tx_ring *tx_ring, int dcnt)
 /**
  * nfp_net_tx_tso() - Set up Tx descriptor for LSO
  * @nn:  NFP Net device
+ * @r_vec: per-ring structure
  * @txbuf: Pointer to driver soft TX descriptor
  * @txd: Pointer to HW TX descriptor
  * @skb: Pointer to SKB
@@ -909,7 +910,8 @@ static inline int nfp_net_tx_full(struct nfp_net_tx_ring *tx_ring, int dcnt)
  * Set up Tx descriptor for LSO, do nothing for non-LSO skbs.
  * Return error on packet header greater than maximum supported LSO header size.
  */
-static int nfp_net_tx_tso(struct nfp_net *nn, struct nfp_net_tx_buf *txbuf,
+static int nfp_net_tx_tso(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
+			  struct nfp_net_tx_buf *txbuf,
 			  struct nfp_net_tx_desc *txd, struct sk_buff *skb)
 {
 	u32 hdrlen;
@@ -934,6 +936,10 @@ static int nfp_net_tx_tso(struct nfp_net *nn, struct nfp_net_tx_buf *txbuf,
 
 	txd->l4_offset = hdrlen;
 	txd->lso = cpu_to_le16(skb_shinfo(skb)->gso_size);
+
+	u64_stats_update_begin(&r_vec->tx_sync);
+	r_vec->tx_lso++;
+	u64_stats_update_end(&r_vec->tx_sync);
 
 	return 0;
 }
@@ -1073,7 +1079,7 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 
 	txd->lso = 0;
 	txd->l4_offset = 0;
-	err = nfp_net_tx_tso(nn, txbuf, txd, skb);
+	err = nfp_net_tx_tso(nn, r_vec, txbuf, txd, skb);
 	if (err)
 		goto err_map;
 

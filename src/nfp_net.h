@@ -630,6 +630,7 @@ struct nfp_net_r_vector {
 	u64 tx_bytes;
 	u64 hw_csum_tx;
 	u64 tx_gather;
+	u64 tx_lso;
 	u64 tx_errors;
 	u64 tx_busy;
 };
