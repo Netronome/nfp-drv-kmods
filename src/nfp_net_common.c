@@ -1699,8 +1699,7 @@ static void nfp_net_rx_flush(struct nfp_net_rx_ring *rx_ring)
 		if (rx_ring->rxbufs[idx].skb) {
 			dma_unmap_single(&pdev->dev,
 					 rx_ring->rxbufs[idx].dma_addr,
-					 rx_ring->rxbufs[idx].skb->len,
-					 DMA_FROM_DEVICE);
+					 nn->fl_bufsz, DMA_FROM_DEVICE);
 			dev_kfree_skb_any(rx_ring->rxbufs[idx].skb);
 			rx_ring->rxbufs[idx].dma_addr = 0;
 			rx_ring->rxbufs[idx].skb = NULL;
