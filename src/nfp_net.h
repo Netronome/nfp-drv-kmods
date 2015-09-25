@@ -418,6 +418,7 @@ struct nfp_net_r_vector {
  * @shared_handler:     Handler for shared interrupts
  * @shared_name:        Name for shared interrupt
  * @me_freq_mhz:        ME clock_freq (MHz)
+ * @reconfig_lock:	Protects HW reconfiguration request regs/machinery
  * @rx_coalesce_usecs      RX interrupt moderation usecs delay parameter
  * @rx_coalesce_max_frames RX interrupt moderation frame count parameter
  * @tx_coalesce_usecs      TX interrupt moderation usecs delay parameter
@@ -500,6 +501,8 @@ struct nfp_net {
 	char shared_name[IFNAMSIZ + 8];
 
 	u32 me_freq_mhz;
+
+	spinlock_t reconfig_lock;
 
 	u32 rx_coalesce_usecs;
 	u32 rx_coalesce_max_frames;

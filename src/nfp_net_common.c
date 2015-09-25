@@ -90,8 +90,10 @@ MODULE_PARM_DESC(num_rings, "Number of RX/TX rings to use");
  */
 int nfp_net_reconfig(struct nfp_net *nn, u32 update)
 {
-	int cnt;
+	int cnt, ret = 0;
 	u32 new;
+
+	spin_lock_bh(&nn->reconfig_lock);
 
 	nn_writel(nn, NFP_NET_CFG_UPDATE, update);
 	/* ensure update is written before pinging HW */
@@ -105,15 +107,19 @@ int nfp_net_reconfig(struct nfp_net *nn, u32 update)
 			break;
 		if (new & NFP_NET_CFG_UPDATE_ERR) {
 			nn_err(nn, "Reconfig error: 0x%08x\n", new);
-			return -EIO;
+			ret = -EIO;
+			break;
 		} else if (cnt >= NFP_NET_POLL_TIMEOUT) {
 			nn_err(nn, "Reconfig timeout for 0x%08x after %dms\n",
 			       update, cnt);
-			return -EIO;
+			ret = -EIO;
+			break;
 		}
 		mdelay(1);
 	}
-	return 0;
+
+	spin_unlock_bh(&nn->reconfig_lock);
+	return ret;
 }
 
 /**
@@ -2408,6 +2414,8 @@ struct nfp_net *nfp_net_netdev_alloc(struct pci_dev *pdev,
 
 	nn->txd_cnt = NFP_NET_TX_DESCS_DEFAULT;
 	nn->rxd_cnt = NFP_NET_RX_DESCS_DEFAULT;
+
+	spin_lock_init(&nn->reconfig_lock);
 
 	return nn;
 }
