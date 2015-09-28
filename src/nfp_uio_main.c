@@ -414,7 +414,8 @@ static inline void pci_unlock(struct pci_dev *pdev)
 /*
  * It masks the msi on/off of generating MSI messages.
  */
-static int nfp_uio_msi_mask_irq(struct msi_desc *desc, int32_t state)
+static int
+nfp_uio_msi_mask_irq(struct pci_dev *pdev, struct msi_desc *desc, s32 state)
 {
 	u32 mask_bits = desc->masked;
 	u32 val;
@@ -425,9 +426,9 @@ static int nfp_uio_msi_mask_irq(struct msi_desc *desc, int32_t state)
 		mask_bits &= ~(1 << desc->msi_attrib.entry_nr);
 
 	if (mask_bits != desc->masked) {
-		pci_write_config_word(desc->dev, desc->mask_pos, mask_bits);
+		pci_write_config_word(pdev, desc->mask_pos, mask_bits);
 		/* Doing same thing as nfp_uio_msix_mask_irq. barrier? */
-		pci_read_config_dword(desc->dev, desc->mask_pos, &val);
+		pci_read_config_dword(pdev, desc->mask_pos, &val);
 		desc->masked = mask_bits;
 	}
 
@@ -437,7 +438,7 @@ static int nfp_uio_msi_mask_irq(struct msi_desc *desc, int32_t state)
 /*
  * It masks the msix on/off of generating MSI-X messages.
  */
-static int nfp_uio_msix_mask_irq(struct msi_desc *desc, int32_t state)
+static int nfp_uio_msix_mask_irq(struct msi_desc *desc, s32 state)
 {
 	u32 mask_bits = desc->masked;
 	unsigned offset = desc->msi_attrib.entry_nr * PCI_MSIX_ENTRY_SIZE +
@@ -468,8 +469,7 @@ static int nfp_uio_msix_mask_irq(struct msi_desc *desc, int32_t state)
  *   -On success, zero value.
  *   -On failure, a negative value.
  */
-static int nfp_uio_set_interrupt_mask(struct nfp_uio_pci_dev *udev,
-				      int32_t state)
+static int nfp_uio_set_interrupt_mask(struct nfp_uio_pci_dev *udev, s32 state)
 {
 	struct pci_dev *pdev = udev->pdev;
 
@@ -494,14 +494,14 @@ static int nfp_uio_set_interrupt_mask(struct nfp_uio_pci_dev *udev,
 	} else if (udev->mode == NFP_UIO_MSIX_INTR_MODE) {
 		struct msi_desc *desc;
 
-		list_for_each_entry(desc, &pdev->msi_list, list) {
+		compat_for_each_msi(desc, pdev) {
 			nfp_uio_msix_mask_irq(desc, state);
 		}
 	} else if (udev->mode == NFP_UIO_MSI_INTR_MODE) {
 		struct msi_desc *desc;
 
-		list_for_each_entry(desc, &pdev->msi_list, list) {
-			nfp_uio_msi_mask_irq(desc, state);
+		compat_for_each_msi(desc, pdev) {
+			nfp_uio_msi_mask_irq(pdev, desc, state);
 		}
 #endif
 	}

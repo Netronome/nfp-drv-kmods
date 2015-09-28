@@ -791,4 +791,16 @@ struct net_device *compat_alloc_netdev(int sizeof_priv,
 #define alloc_netdev(sz, nm, ty, setup) compat_alloc_netdev(sz, nm, ty, setup)
 #endif
 
+/* v4.3
+ * 4a7cc8316705 ("genirq/MSI: Move msi_list from struct pci_dev to
+ *		 struct device")
+ */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 3, 0)
+#define compat_for_each_msi(_desc, _dev)			\
+	list_for_each_entry((_desc), &(_dev)->msi_list, list)
+#else
+#define compat_for_each_msi(_desc, _dev)	\
+	list_for_each_entry((_desc), &(_dev)->dev.msi_list, list)
+#endif
+
 #endif /* __KERNEL__NFP_COMPAT_H__ */
