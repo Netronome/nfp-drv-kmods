@@ -1576,12 +1576,14 @@ static int nfp3200_plat_remove(struct platform_device *pdev)
 }
 
 static struct platform_driver nfp3200_plat_driver = {
-	.probe = (nfp3200_plat_probe),
+	.probe = nfp3200_plat_probe,
 	.remove	 = __exit_p(nfp3200_plat_remove),
 	.driver = {
 		.name = "nfp3200_plat",
 		.of_match_table = of_match_ptr(nfp3200_plat_match),
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 11, 0)
 		.owner = THIS_MODULE,
+#endif
 	},
 };
 
