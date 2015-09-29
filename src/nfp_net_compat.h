@@ -260,4 +260,11 @@ int compat_dma_set_mask_and_coherent(struct device *dev, u64 mask)
 #define skb_vlan_tag_get(skb)		vlan_tx_tag_get(skb)
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0)
+static inline void napi_complete_done(struct napi_struct *n, int work_done)
+{
+	napi_complete(n);
+}
+#endif
+
 #endif /* _NFP_NET_COMPAT_H_ */

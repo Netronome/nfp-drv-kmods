@@ -1538,11 +1538,11 @@ static int nfp_net_poll(struct napi_struct *napi, int budget)
 	 * descriptors to be cleaned, unmask the MSI-X vector and
 	 * switch NAPI back into interrupt mode.
 	 */
-	napi_complete(napi);
+	napi_complete_done(napi, pkts_polled);
 
 	nfp_net_irq_unmask(nn, r_vec->irq_idx);
 
-	return 0;
+	return pkts_polled;
 }
 
 /* Setup and Configuration
