@@ -54,6 +54,9 @@
 #include <linux/pci.h>
 #include <linux/skbuff.h>
 
+#define COMPAT__HAVE_NDO_FEATURES_CHECK \
+	(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0))
+
 #ifndef GENMASK
 #define GENMASK(h, l) \
 	((~0UL << (l)) & (~0UL >> (BITS_PER_LONG - (h) - 1)))
@@ -264,6 +267,14 @@ int compat_dma_set_mask_and_coherent(struct device *dev, u64 mask)
 static inline void napi_complete_done(struct napi_struct *n, int work_done)
 {
 	napi_complete(n);
+}
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0)
+static inline netdev_features_t vlan_features_check(const struct sk_buff *skb,
+						    netdev_features_t features)
+{
+	return features;
 }
 #endif
 

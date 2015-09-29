@@ -651,10 +651,12 @@ static int nfp_net_tx_tso(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 		hdrlen = skb_inner_transport_header(skb) - skb->data +
 			inner_tcp_hdrlen(skb);
 
+#if !COMPAT__HAVE_NDO_FEATURES_CHECK
 	if (unlikely(hdrlen > NFP_NET_LSO_MAX_HDR_SZ)) {
 		nn_warn_ratelimit(nn, "Header size too large: %d\n", hdrlen);
 		return -E2BIG;
 	}
+#endif
 
 	txbuf->pkt_cnt = skb_shinfo(skb)->gso_segs;
 	txbuf->real_len += hdrlen * (txbuf->pkt_cnt - 1);
@@ -2294,6 +2296,32 @@ static int nfp_net_set_features(struct net_device *netdev,
 	return 0;
 }
 
+#if COMPAT__HAVE_NDO_FEATURES_CHECK
+static netdev_features_t
+nfp_net_features_check(struct sk_buff *skb, struct net_device *dev,
+		       netdev_features_t features)
+{
+	/* We can't do TSO over double tagged packets (802.1AD) */
+	features &= vlan_features_check(skb, features);
+
+	if (!skb->encapsulation)
+		return features;
+
+	/* Ensure that inner L4 header offset fits into TX descriptor field */
+	if (skb_is_gso(skb)) {
+		u32 hdrlen;
+
+		hdrlen = skb_inner_transport_header(skb) - skb->data +
+			inner_tcp_hdrlen(skb);
+
+		if (unlikely(hdrlen > NFP_NET_LSO_MAX_HDR_SZ))
+			features &= ~NETIF_F_GSO_MASK;
+	}
+
+	return features;
+}
+#endif
+
 static struct net_device_ops nfp_net_netdev_ops = {
 	.ndo_open		= nfp_net_netdev_open,
 	.ndo_stop		= nfp_net_netdev_close,
@@ -2304,6 +2332,9 @@ static struct net_device_ops nfp_net_netdev_ops = {
 	.ndo_change_mtu		= nfp_net_change_mtu,
 	.ndo_set_mac_address	= eth_mac_addr,
 	.ndo_set_features	= nfp_net_set_features,
+#if COMPAT__HAVE_NDO_FEATURES_CHECK
+	.ndo_features_check	= nfp_net_features_check,
+#endif
 };
 
 /**
