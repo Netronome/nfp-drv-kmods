@@ -673,6 +673,7 @@ static int nfp_net_tx_tso(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
  * nfp_net_tx_csum() - Set TX CSUM offload flags in TX descriptor
  * @nn:  NFP Net device
  * @r_vec: per-ring structure
+ * @txbuf: Pointer to driver soft TX descriptor
  * @txd: Pointer to TX descriptor
  * @skb: Pointer to SKB
  *
@@ -680,6 +681,7 @@ static int nfp_net_tx_tso(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
  * on the configuration and the protocol of the packet to be transmitted.
  */
 static void nfp_net_tx_csum(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
+			    struct nfp_net_tx_buf *txbuf,
 			    struct nfp_net_tx_desc *txd, struct sk_buff *skb)
 {
 	u8 l4_hdr;
@@ -719,7 +721,7 @@ static void nfp_net_tx_csum(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 
 	txd->flags |= PCIE_DESC_TX_CSUM;
 	u64_stats_update_begin(&r_vec->tx_sync);
-	r_vec->hw_csum_tx++;
+	r_vec->hw_csum_tx += txbuf->pkt_cnt;
 	u64_stats_update_end(&r_vec->tx_sync);
 }
 
@@ -804,7 +806,7 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 		goto err_map;
 
 	txd->flags = 0;
-	nfp_net_tx_csum(nn, r_vec, txd, skb);
+	nfp_net_tx_csum(nn, r_vec, txbuf, txd, skb);
 
 	if (skb_vlan_tag_present(skb) && nn->ctrl & NFP_NET_CFG_CTRL_TXVLAN) {
 		txd->flags |= PCIE_DESC_TX_VLAN;
