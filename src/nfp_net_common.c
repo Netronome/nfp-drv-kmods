@@ -70,6 +70,11 @@
 #include <linux/ktime.h>
 
 #include "nfp_net_compat.h"
+
+#if COMPAT__HAVE_VXLAN_OFFLOAD
+#include <net/vxlan.h>
+#endif
+
 #include "nfp_net_ctrl.h"
 #include "nfp_net.h"
 
@@ -700,6 +705,8 @@ static void nfp_net_tx_csum(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 	if (skb->ip_summed != CHECKSUM_PARTIAL)
 		return;
 
+	txd->flags |= PCIE_DESC_TX_CSUM;
+
 	switch (vlan_get_protocol(skb)) {
 	case htons(ETH_P_IP):
 		txd->flags |= PCIE_DESC_TX_IP4_CSUM;
@@ -710,8 +717,22 @@ static void nfp_net_tx_csum(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 		break;
 	default:
 		nn_warn_ratelimit(nn, "partial checksum but proto=%x!\n",
-				  skb->protocol);
+				  vlan_get_protocol(skb));
 		return;
+	}
+
+	/* If skb is encapsulated the CHECKSUM_PARTIAL refers to the inner
+	 * frame. Firmware will figure out the outer and inner protocols.
+	 */
+	if (skb->encapsulation) {
+		txd->flags |= PCIE_DESC_TX_ENCAP;
+		u64_stats_update_begin(&r_vec->tx_sync);
+		r_vec->hw_csum_tx_inner += txbuf->pkt_cnt;
+		u64_stats_update_end(&r_vec->tx_sync);
+
+		/* Check if kernel wants us to do outer L4 checksum */
+		if (!compat__skb_wants_outer_csum(skb))
+			return;
 	}
 
 	switch (l4_hdr) {
@@ -727,7 +748,6 @@ static void nfp_net_tx_csum(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 		return;
 	}
 
-	txd->flags |= PCIE_DESC_TX_CSUM;
 	u64_stats_update_begin(&r_vec->tx_sync);
 	r_vec->hw_csum_tx += txbuf->pkt_cnt;
 	u64_stats_update_end(&r_vec->tx_sync);
@@ -2307,6 +2327,8 @@ static netdev_features_t
 nfp_net_features_check(struct sk_buff *skb, struct net_device *dev,
 		       netdev_features_t features)
 {
+	u8 l4_hdr;
+
 	/* We can't do TSO over double tagged packets (802.1AD) */
 	features &= vlan_features_check(skb, features);
 
@@ -2323,6 +2345,26 @@ nfp_net_features_check(struct sk_buff *skb, struct net_device *dev,
 		if (unlikely(hdrlen > NFP_NET_LSO_MAX_HDR_SZ))
 			features &= ~NETIF_F_GSO_MASK;
 	}
+
+	/* VXLAN/GRE check */
+	switch (vlan_get_protocol(skb)) {
+	case htons(ETH_P_IP):
+		l4_hdr = ip_hdr(skb)->protocol;
+		break;
+	case htons(ETH_P_IPV6):
+		l4_hdr = ipv6_hdr(skb)->nexthdr;
+		break;
+	default:
+		return features & ~(NETIF_F_ALL_CSUM | NETIF_F_GSO_MASK);
+	}
+
+	if (skb->inner_protocol_type != ENCAP_TYPE_ETHER ||
+	    skb->inner_protocol != htons(ETH_P_TEB) ||
+	    (l4_hdr != IPPROTO_UDP && l4_hdr != IPPROTO_GRE) ||
+	    (l4_hdr == IPPROTO_UDP &&
+	     (skb_inner_mac_header(skb) - skb_transport_header(skb) !=
+	      sizeof(struct udphdr) + sizeof(struct vxlanhdr))))
+		return features & ~(NETIF_F_ALL_CSUM | NETIF_F_GSO_MASK);
 
 	return features;
 }
@@ -2356,7 +2398,7 @@ void nfp_net_info(struct nfp_net *nn)
 		nn->num_rx_rings, nn->max_rx_rings);
 	nn_info(nn, "VER: %#x, Maximum supported MTU: %d\n",
 		nn->ver, nn->max_mtu);
-	nn_info(nn, "CAP: %#x %s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
+	nn_info(nn, "CAP: %#x %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
 		nn->cap,
 		nn->cap & NFP_NET_CFG_CTRL_PROMISC  ? "PROMISC "  : "",
 		nn->cap & NFP_NET_CFG_CTRL_L2BC     ? "L2BCFILT " : "",
@@ -2371,7 +2413,9 @@ void nfp_net_info(struct nfp_net *nn)
 		nn->cap & NFP_NET_CFG_CTRL_RSS      ? "RSS "      : "",
 		nn->cap & NFP_NET_CFG_CTRL_L2SWITCH ? "L2SWITCH " : "",
 		nn->cap & NFP_NET_CFG_CTRL_MSIXAUTO ? "AUTOMASK " : "",
-		nn->cap & NFP_NET_CFG_CTRL_IRQMOD   ? "IRQMOD"    : "");
+		nn->cap & NFP_NET_CFG_CTRL_IRQMOD   ? "IRQMOD "   : "",
+		nn->cap & NFP_NET_CFG_CTRL_VXLAN    ? "VXLAN "    : "",
+		nn->cap & NFP_NET_CFG_CTRL_NVGRE    ? "NVGRE "	  : "");
 }
 
 /**
@@ -2493,11 +2537,32 @@ int nfp_net_netdev_init(struct net_device *netdev)
 		netdev->hw_features |= NETIF_F_HW_VLAN_CTAG_TX;
 		nn->ctrl |= NFP_NET_CFG_CTRL_TXVLAN;
 	}
+
 	netdev->features = netdev->hw_features;
 
 	/* Advertise but disable TSO by default. */
 	if (nn->cap & NFP_NET_CFG_CTRL_LSO)
 		netdev->hw_features |= NETIF_F_TSO | NETIF_F_TSO6;
+
+	if (nn->cap & NFP_NET_CFG_CTRL_VXLAN &&
+	    nn->cap & NFP_NET_CFG_CTRL_NVGRE) {
+		if (nn->cap & NFP_NET_CFG_CTRL_LSO)
+			netdev->hw_features |= NETIF_F_GSO_GRE |
+					       NETIF_F_GSO_UDP_TUNNEL |
+					       COMPAT__GSO_UDP_TUNNEL_CSUM;
+
+		/* Advertise features we support on encapsulated packets */
+		netdev->hw_enc_features =
+			netdev->hw_features & (NETIF_F_IP_CSUM |
+					       NETIF_F_IPV6_CSUM |
+					       NETIF_F_TSO |
+					       NETIF_F_TSO6 |
+					       NETIF_F_GSO_GRE |
+					       NETIF_F_GSO_UDP_TUNNEL |
+					       COMPAT__GSO_UDP_TUNNEL_CSUM);
+
+		nn->ctrl |= NFP_NET_CFG_CTRL_VXLAN | NFP_NET_CFG_CTRL_NVGRE;
+	}
 
 	/* Allow L2 Broadcast through by default, if supported */
 	if (nn->cap & NFP_NET_CFG_CTRL_L2BC)

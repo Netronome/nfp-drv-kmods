@@ -54,6 +54,8 @@
 #include <linux/pci.h>
 #include <linux/skbuff.h>
 
+#define COMPAT__HAVE_VXLAN_OFFLOAD \
+	(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0))
 #define COMPAT__HAVE_NDO_FEATURES_CHECK \
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0))
 
@@ -234,6 +236,22 @@ static inline int compat_pci_enable_msi_range(struct pci_dev *dev,
 #define pci_enable_msi_range(dev, minv, maxv) \
 	compat_pci_enable_msi_range(dev, minv, maxv)
 #endif
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 16, 0)
+static inline bool compat__skb_wants_outer_csum(const struct sk_buff *skb)
+{
+	return false;
+}
+
+#define COMPAT__GSO_UDP_TUNNEL_CSUM	0
+#else
+static inline bool compat__skb_wants_outer_csum(const struct sk_buff *skb)
+{
+	return skb->encap_hdr_csum;
+}
+
+#define COMPAT__GSO_UDP_TUNNEL_CSUM	NETIF_F_GSO_UDP_TUNNEL_CSUM
 #endif
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 18, 0))
