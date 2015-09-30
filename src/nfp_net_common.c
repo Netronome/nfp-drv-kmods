@@ -697,6 +697,8 @@ static void nfp_net_tx_csum(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 			    struct nfp_net_tx_buf *txbuf,
 			    struct nfp_net_tx_desc *txd, struct sk_buff *skb)
 {
+	struct ipv6hdr *ipv6h;
+	struct iphdr *iph;
 	u8 l4_hdr;
 
 	if (!(nn->ctrl & NFP_NET_CFG_CTRL_TXCSUM))
@@ -707,32 +709,18 @@ static void nfp_net_tx_csum(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 
 	txd->flags |= PCIE_DESC_TX_CSUM;
 
-	switch (vlan_get_protocol(skb)) {
-	case htons(ETH_P_IP):
+	iph = skb->encapsulation ? inner_ip_hdr(skb) : ip_hdr(skb);
+	ipv6h = skb->encapsulation ? inner_ipv6_hdr(skb) : ipv6_hdr(skb);
+
+	if (iph->version == 4) {
 		txd->flags |= PCIE_DESC_TX_IP4_CSUM;
-		l4_hdr = ip_hdr(skb)->protocol;
-		break;
-	case htons(ETH_P_IPV6):
-		l4_hdr = ipv6_hdr(skb)->nexthdr;
-		break;
-	default:
-		nn_warn_ratelimit(nn, "partial checksum but proto=%x!\n",
-				  vlan_get_protocol(skb));
+		l4_hdr = iph->protocol;
+	} else if (ipv6h->version == 6) {
+		l4_hdr = ipv6h->nexthdr;
+	} else {
+		nn_warn_ratelimit(nn, "partial checksum but ipv=%x!\n",
+				  iph->version);
 		return;
-	}
-
-	/* If skb is encapsulated the CHECKSUM_PARTIAL refers to the inner
-	 * frame. Firmware will figure out the outer and inner protocols.
-	 */
-	if (skb->encapsulation) {
-		txd->flags |= PCIE_DESC_TX_ENCAP;
-		u64_stats_update_begin(&r_vec->tx_sync);
-		r_vec->hw_csum_tx_inner += txbuf->pkt_cnt;
-		u64_stats_update_end(&r_vec->tx_sync);
-
-		/* Check if kernel wants us to do outer L4 checksum */
-		if (!compat__skb_wants_outer_csum(skb))
-			return;
 	}
 
 	switch (l4_hdr) {
@@ -745,6 +733,39 @@ static void nfp_net_tx_csum(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 	default:
 		nn_warn_ratelimit(nn, "partial checksum but l4 proto=%x!\n",
 				  l4_hdr);
+		return;
+	}
+
+	if (skb->encapsulation) {
+		switch (vlan_get_protocol(skb)) {
+		case htons(ETH_P_IP):
+			l4_hdr = ip_hdr(skb)->protocol;
+			break;
+		case htons(ETH_P_IPV6):
+			l4_hdr = ipv6_hdr(skb)->nexthdr;
+			break;
+		default:
+			nn_warn_ratelimit(nn, "invalid proto for encap=%x!\n",
+					  vlan_get_protocol(skb));
+			return;
+		}
+
+		switch (l4_hdr) {
+		case IPPROTO_GRE:
+			txd->flags |= PCIE_DESC_TX_ENCAP_NVGRE;
+			break;
+		case IPPROTO_UDP:
+			txd->flags |= PCIE_DESC_TX_ENCAP_VXLAN;
+			break;
+		default:
+			nn_warn_ratelimit(nn, "invalid encap l4 proto=%x!\n",
+					  l4_hdr);
+			return;
+		}
+
+		u64_stats_update_begin(&r_vec->tx_sync);
+		r_vec->hw_csum_tx_inner += txbuf->pkt_cnt;
+		u64_stats_update_end(&r_vec->tx_sync);
 		return;
 	}
 
@@ -2617,8 +2638,7 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	    nn->cap & NFP_NET_CFG_CTRL_NVGRE) {
 		if (nn->cap & NFP_NET_CFG_CTRL_LSO)
 			netdev->hw_features |= NETIF_F_GSO_GRE |
-					       NETIF_F_GSO_UDP_TUNNEL |
-					       COMPAT__GSO_UDP_TUNNEL_CSUM;
+					       NETIF_F_GSO_UDP_TUNNEL;
 
 		/* Advertise features we support on encapsulated packets */
 		netdev->hw_enc_features =
@@ -2627,8 +2647,7 @@ int nfp_net_netdev_init(struct net_device *netdev)
 					       NETIF_F_TSO |
 					       NETIF_F_TSO6 |
 					       NETIF_F_GSO_GRE |
-					       NETIF_F_GSO_UDP_TUNNEL |
-					       COMPAT__GSO_UDP_TUNNEL_CSUM);
+					       NETIF_F_GSO_UDP_TUNNEL);
 
 		nn->ctrl |= NFP_NET_CFG_CTRL_VXLAN | NFP_NET_CFG_CTRL_NVGRE;
 	}

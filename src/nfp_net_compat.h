@@ -238,22 +238,6 @@ static inline int compat_pci_enable_msi_range(struct pci_dev *dev,
 #endif
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 16, 0)
-static inline bool compat__skb_wants_outer_csum(const struct sk_buff *skb)
-{
-	return false;
-}
-
-#define COMPAT__GSO_UDP_TUNNEL_CSUM	0
-#else
-static inline bool compat__skb_wants_outer_csum(const struct sk_buff *skb)
-{
-	return skb->encap_hdr_csum;
-}
-
-#define COMPAT__GSO_UDP_TUNNEL_CSUM	NETIF_F_GSO_UDP_TUNNEL_CSUM
-#endif
-
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 18, 0))
 static inline void pci_msi_unmask_irq(struct irq_data *data)
 {
