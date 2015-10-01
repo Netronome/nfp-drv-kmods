@@ -131,7 +131,7 @@ void nfp_unregister_roce_driver(struct nfp_roce_drv *drv)
 }
 
 /**
- * nfp_roce_attach() - attach a network device set to the RoCE subsystem
+ * nfp_roce_add() - attach a network device set to the RoCE subsystem
  * @nfp:		NFP Device handle
  * @netdev:		Array of net_devices to attach to
  * @netdevs:		Number of entries in the netdev array
@@ -301,7 +301,7 @@ void nfp_roce_remove(struct nfp_roce *roce)
 }
 
 /**
- * nfp_roce_state() - Alter the state of the RoCE device
+ * nfp_roce_port_set_state() - Alter the state of the RoCE device
  * @roce:		RoCE device handle
  * @port:		Netdev port to update
  * @state:		State update for the port

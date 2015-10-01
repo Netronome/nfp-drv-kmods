@@ -1724,7 +1724,7 @@ int nfp_cpp_explicit_do(struct nfp_cpp_explicit *expl, u64 address)
  * If this function is called before all three configuration
  * registers are set, it will return -1, with an errno of EINVAL.
  *
- * If this function is called before nfp_cpp_explicit_wait()
+ * If this function is called before nfp_cpp_explicit_do()
  * has completed, it will return -1, with an errno of EBUSY.
  *
  * Return: 0, or -ERRNO

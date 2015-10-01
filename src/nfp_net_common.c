@@ -280,7 +280,7 @@ void nfp_net_irqs_disable(struct nfp_net *nn)
 }
 
 /**
- * nfp_net_rxtx_irq() - Interrupt service routine for RX/TX rings.
+ * nfp_net_irq_rxtx() - Interrupt service routine for RX/TX rings.
  * @irq:      Interrupt
  * @data:     Opaque data structure
  *
@@ -324,7 +324,7 @@ static void nfp_net_print_link(struct nfp_net *nn, bool isup)
 }
 
 /**
- * nfp_net_lsc_irq() - Interrupt service routine for link state changes
+ * nfp_net_irq_lsc() - Interrupt service routine for link state changes
  * @irq:      Interrupt
  * @data:     Opaque data structure
  *
@@ -359,7 +359,7 @@ unmask_lsc_irq:
 }
 
 /**
- * nfp_net_exn_irq() - Interrupt service routine for exceptions
+ * nfp_net_irq_exn() - Interrupt service routine for exceptions
  * @irq:      Interrupt
  * @data:     Opaque data structure
  *
@@ -402,7 +402,7 @@ static irqreturn_t nfp_net_intr(int irq, void *data)
 }
 
 /**
- * nfp_net_tx_rings_init() - Fill in the boilerplate for a TX ring
+ * nfp_net_tx_ring_init() - Fill in the boilerplate for a TX ring
  * @tx_ring:  TX ring structure
  */
 static void nfp_net_tx_ring_init(struct nfp_net_tx_ring *tx_ring)
@@ -415,7 +415,7 @@ static void nfp_net_tx_ring_init(struct nfp_net_tx_ring *tx_ring)
 }
 
 /**
- * nfp_net_rx_rings_init() - Fill in the boilerplate for a RX ring
+ * nfp_net_rx_ring_init() - Fill in the boilerplate for a RX ring
  * @rx_ring:  RX ring structure
  */
 static void nfp_net_rx_ring_init(struct nfp_net_rx_ring *rx_ring)
@@ -500,7 +500,7 @@ static void nfp_net_irqs_assign(struct net_device *netdev)
 }
 
 /**
- * nfp_net_irq_request() - Request the common interrupts
+ * nfp_net_irqs_request() - Request the common interrupts
  * @netdev:   netdev structure
  *
  * Interrupts for LSC and EXN (ring vectors are requested elsewhere)
@@ -567,7 +567,7 @@ err_lsc:
 }
 
 /**
- * nfp_net_irq_free() - Free the requested common interrupts
+ * nfp_net_irqs_free() - Free the requested common interrupts
  * @netdev:   netdev structure
  *
  * This frees the general interrupt (not the ring interrupts). It
