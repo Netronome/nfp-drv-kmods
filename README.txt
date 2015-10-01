@@ -309,9 +309,6 @@ including the NFP3200 and NFP6000 model lines.
 
 This archive builds the following modules:
 
- * nfp_uio.ko: PCIe Physical Function DPDK driver
-   - Requires a version of DPDK with NFP support
-
  * nfp_net.ko: PCIe Physical Function NIC driver
    - Requires firmware - see the 'Acquiring Firmware' section below
 
@@ -394,24 +391,6 @@ The kernel modules are structured as follows:
 
 NOTE: 'modinfo <modulename>' is the authoratitive documentation,
 this is only presented here as a reference.
-
-## nfp_uio.ko
-
-This module supports DPDK applications, which directly allow the kernel
-driver to directly read and write packets from the application.
-
-Used by the Netronome Software Defined Networking (SDN) products.
-
-### Sources
-
-| Source              | Description                                           |
-| ------------------- | ----------------------------------------------------- |
-| nfp_uio_main.c      | NFP User-Space IO Driver                              |
-
-
-### Parameters
-
-No parameters are tunable.
 
 ## nfp_netvf.ko
 
@@ -521,7 +500,7 @@ that a NFP firmware be loaded.
 The NFP Core Library is used by the `nfp_net.ko` and `nfp.ko` kernel modules
 to load firmware, and provide other low-level accesses to the NFP.
 
-It is not used by the `nfp_netvf.ko` nor `nfp_uio.ko` drivers.
+It is not used by the `nfp_netvf.ko` driver.
 
 ### Sources
 
