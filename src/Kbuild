@@ -32,7 +32,6 @@ ifneq ($(CONFIG_NFP),n)
 endif
 endif
 
-override EXTRA_CFLAGS += -DCONFIG_NFP_A0_WORKAROUND -DCONFIG_NFP_A1_WORKAROUND
 override EXTRA_CFLAGS += -DDEBUG
 override EXTRA_CFLAGS += -Werror
 override EXTRA_CFLAGS += -I$(src)
