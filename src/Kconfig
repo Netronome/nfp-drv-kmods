@@ -1,0 +1,43 @@
+#
+# Netronome device configuration
+#
+
+config NET_VENDOR_NETRONOME
+	bool "Netronome(R) devices"
+	default y
+	---help---
+	  If you have a Netronome(R) network (Ethernet) card or device, say Y.
+
+	  Note that the answer to this question doesn't directly affect the
+	  kernel: saying N will just cause the configurator to skip all
+	  the questions about Netronome(R) cards. If you say Y, you will be
+	  asked for your specific card in the following questions.
+
+if NET_VENDOR_NETRONOME
+
+# TODO: move this to a Kconfig in a nfp/ subfolder
+
+config CONFIG_NFP
+	tristate "Netronome(R) NFP3200/NFP6000 core driver"
+	depends on PCI
+	---help---
+	  This driver supports basic communication and programming of
+	  the Netronome(R) NFP3200 and NFP6000 flow processors.
+
+config CONFIG_NFP_NET
+	tristate "Netronome(R) NFP3200/NFP6000 NIC driver"
+	depends on PCI && PCI_MSI
+	---help---
+	  This driver supports using Netronome(R) NFP3200/NFP6000 cards
+	  as a advanced Ethernet NIC.
+
+
+config CONFIG_NFP_NETVF
+	tristate "Netronome(R) NFP3200/NFP6000 VF NIC driver"
+	depends on PCI && PCI_MSI
+	---help---
+	  This driver supports SR-IOV virtual functions of
+	  the Netronome(R) NFP3200/NFP6000 cards working as
+	  a advanced Ethernet NIC.
+
+endif
