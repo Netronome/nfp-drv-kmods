@@ -327,45 +327,45 @@
 
 /* up to 32 IDs, and up to 7 words of control information */
 #define NFP_CA_(id)         ((id) << 3)
-#define NFP_CA(id, type)    (NFP_CA_(id) | (sizeof(type) / sizeof(uint32_t)))
+#define NFP_CA(id, type)    (NFP_CA_(id) | (sizeof(type) / sizeof(u32)))
 #define NFP_CA_LEN(ca)      ((ca) & 0x7)
 #define NFP_CA_SZ(ca)       (1 + NFP_CA_LEN(ca) * 4)
 
 struct nfp_ca_start {
-	uint32_t magic;
-	uint32_t bytes;
+	u32 magic;
+	u32 bytes;
 };
 
 #define NFP_CA_START_MAGIC  0x0066424e  /* "NBf\000" */
 #define NFP_CA_ZSTART_MAGIC 0x007a424e  /* "NBz\000" - zlib compressed */
 
 #define NFP_CA_START        NFP_CA(0, struct nfp_ca_start)
-#define NFP_CA_END          NFP_CA(0, uint32_t) /* u32 is CRC32 */
+#define NFP_CA_END          NFP_CA(0, u32) /* u32 is CRC32 */
 
-#define NFP_CA_CPP_ID       NFP_CA(1, uint32_t)
-#define NFP_CA_CPP_ADDR     NFP_CA(2, uint64_t)
-#define NFP_CA_READ_4       NFP_CA(3, uint32_t)
-#define NFP_CA_READ_8       NFP_CA(4, uint64_t)
-#define NFP_CA_WRITE_4      NFP_CA(5, uint32_t)
-#define NFP_CA_WRITE_8      NFP_CA(6, uint64_t)
-#define NFP_CA_INC_READ_4   NFP_CA(7, uint32_t)
-#define NFP_CA_INC_READ_8   NFP_CA(8, uint64_t)
-#define NFP_CA_INC_WRITE_4  NFP_CA(9, uint32_t)
-#define NFP_CA_INC_WRITE_8  NFP_CA(10, uint64_t)
+#define NFP_CA_CPP_ID       NFP_CA(1, u32)
+#define NFP_CA_CPP_ADDR     NFP_CA(2, u64)
+#define NFP_CA_READ_4       NFP_CA(3, u32)
+#define NFP_CA_READ_8       NFP_CA(4, u64)
+#define NFP_CA_WRITE_4      NFP_CA(5, u32)
+#define NFP_CA_WRITE_8      NFP_CA(6, u64)
+#define NFP_CA_INC_READ_4   NFP_CA(7, u32)
+#define NFP_CA_INC_READ_8   NFP_CA(8, u64)
+#define NFP_CA_INC_WRITE_4  NFP_CA(9, u32)
+#define NFP_CA_INC_WRITE_8  NFP_CA(10, u64)
 #define NFP_CA_ZERO_4       NFP_CA_(11)
 #define NFP_CA_ZERO_8       NFP_CA_(12)
 #define NFP_CA_INC_ZERO_4   NFP_CA_(13)
 #define NFP_CA_INC_ZERO_8   NFP_CA_(14)
-#define NFP_CA_READ_IGNV_4  NFP_CA(15, uint32_t) /* Ignore read value */
-#define NFP_CA_READ_IGNV_8  NFP_CA(16, uint64_t)
-#define NFP_CA_INC_READ_IGNV_4  NFP_CA(17, uint32_t)
-#define NFP_CA_INC_READ_IGNV_8  NFP_CA(18, uint64_t)
-#define NFP_CA_POLL_4           NFP_CA(19, uint32_t)
-#define NFP_CA_POLL_8           NFP_CA(20, uint64_t)
-#define NFP_CA_MASK_4           NFP_CA(21, uint32_t)
-#define NFP_CA_MASK_8           NFP_CA(22, uint64_t)
+#define NFP_CA_READ_IGNV_4  NFP_CA(15, u32) /* Ignore read value */
+#define NFP_CA_READ_IGNV_8  NFP_CA(16, u64)
+#define NFP_CA_INC_READ_IGNV_4  NFP_CA(17, u32)
+#define NFP_CA_INC_READ_IGNV_8  NFP_CA(18, u64)
+#define NFP_CA_POLL_4           NFP_CA(19, u32)
+#define NFP_CA_POLL_8           NFP_CA(20, u64)
+#define NFP_CA_MASK_4           NFP_CA(21, u32)
+#define NFP_CA_MASK_8           NFP_CA(22, u64)
 
-static inline void cpu_to_ca32(uint8_t *byte, uint32_t val)
+static inline void cpu_to_ca32(u8 *byte, u32 val)
 {
 	int i;
 
@@ -373,24 +373,24 @@ static inline void cpu_to_ca32(uint8_t *byte, uint32_t val)
 		byte[i] = (val >> (8 * i)) & 0xff;
 }
 
-static inline uint32_t ca32_to_cpu(const uint8_t *byte)
+static inline u32 ca32_to_cpu(const u8 *byte)
 {
 	int i;
-	uint32_t val = 0;
+	u32 val = 0;
 
 	for (i = 0; i < 4; i++)
-		val |= ((uint32_t)byte[i]) << (8 * i);
+		val |= ((u32)byte[i]) << (8 * i);
 
 	return val;
 }
 
-static inline uint64_t ca64_to_cpu(const uint8_t *byte)
+static inline u64 ca64_to_cpu(const u8 *byte)
 {
 	int i;
-	uint64_t val = 0;
+	u64 val = 0;
 
 	for (i = 0; i < 8; i++)
-		val |= ((uint64_t)byte[i]) << (8 * i);
+		val |= ((u64)byte[i]) << (8 * i);
 
 	return val;
 }
@@ -408,39 +408,39 @@ enum nfp_ca_action {
 };
 
 typedef int (*nfp_ca_callback)(void *priv, enum nfp_ca_action action,
-			       uint32_t cpp_id, uint64_t cpp_addr,
-			       uint64_t val, uint64_t mask);
+			       u32 cpp_id, u64 cpp_addr,
+			       u64 val, u64 mask);
 
 /*
  * nfp_ca_null() - Null callback used for CRC calculation
  */
 static int nfp_ca_null(void *priv, enum nfp_ca_action action,
-		       uint32_t cpp_id, uint64_t cpp_addr,
-		       uint64_t val, uint64_t mask)
+		       u32 cpp_id, u64 cpp_addr,
+		       u64 val, u64 mask)
 {
 	return 0;
 }
 
-#define CA_CPP_AREA_SIZE   ((uint64_t)(64*1024))
+#define CA_CPP_AREA_SIZE   ((u64)(64 * 1024))
 
 struct ca_cpp {
 	struct nfp_cpp *cpp;
 
-	uint8_t buff[128];
+	u8 buff[128];
 	size_t buff_size;
-	uint64_t buff_offset;
+	u64 buff_offset;
 
 #if DEBUG_CA_CPP_STATS
 	struct {
-		uint32_t actions;
+		u32 actions;
 	} stats;
 #endif
 };
 
-static int ca6000_cpp_write_ustore(struct ca_cpp *ca, uint32_t id,
-	uint64_t addr, void *ptr, size_t len);
+static int ca6000_cpp_write_ustore(struct ca_cpp *ca, u32 id,
+				   u64 addr, void *ptr, size_t len);
 
-static int ca_cpp_write(struct ca_cpp *ca, uint32_t id, uint64_t addr,
+static int ca_cpp_write(struct ca_cpp *ca, u32 id, u64 addr,
 			void *ptr, size_t len)
 {
 	if (NFP_CPP_MODEL_IS_6000(nfp_cpp_model(ca->cpp))) {
@@ -451,7 +451,7 @@ static int ca_cpp_write(struct ca_cpp *ca, uint32_t id, uint64_t addr,
 	return nfp_cpp_write(ca->cpp, id, addr, ptr, len);
 }
 
-static int ca_cpp_read(struct ca_cpp *ca, uint32_t id, uint64_t addr,
+static int ca_cpp_read(struct ca_cpp *ca, u32 id, u64 addr,
 		       void *ptr, size_t len)
 {
 	return nfp_cpp_read(ca->cpp, id, addr, ptr, len);
@@ -468,62 +468,62 @@ static int ca_cpp_read(struct ca_cpp *ca, uint32_t id, uint64_t addr,
  * addr<31:24> = me_num (0 based, within island)
  * addr<23:0> = byte codestore address
  */
-static int ca6000_cpp_write_ustore(struct ca_cpp *ca, uint32_t id,
-	uint64_t addr, void *ptr, size_t len)
+static int ca6000_cpp_write_ustore(struct ca_cpp *ca, u32 id,
+				   u64 addr, void *ptr, size_t len)
 {
 	int err = 0;
-	uint64_t uw = *((uint64_t *)ptr);
-	uint32_t uwlo = uw & 0xFFFFffff;
-	uint32_t uwhi = (uw >> 32) & 0xFFFFffff;
-	uint32_t iid = (addr >> 32) & 0x3F;
-	uint32_t menum = (addr >> 24) & 0xF;
-	uint32_t uaddr = ((addr >> 3) & 0xFFFF);
+	u64 uw = *((u64 *)ptr);
+	u32 uwlo = uw & 0xFFFFffff;
+	u32 uwhi = (uw >> 32) & 0xFFFFffff;
+	u32 iid = (addr >> 32) & 0x3F;
+	u32 menum = (addr >> 24) & 0xF;
+	u32 uaddr = ((addr >> 3) & 0xFFFF);
 	int enable_cs =  ((uw >> 61) & 6) == 6;
 	int disable_cs = ((uw >> 61) & 5) == 5;
-	uint32_t csr_base = (iid << 24) | (1 << 16) | ((menum + 4) << 10);
+	u32 csr_base = (iid << 24) | (1 << 16) | ((menum + 4) << 10);
 
 	/* Clear top control bits */
-	uw &= ~((uint64_t)7 << 61);
+	uw &= ~((u64)7 << 61);
 
 	if (enable_cs) {
 		/* Set UstorAddr */
 		uaddr |= (1 << 31);
 		err = ca_cpp_write(ca, NFP_CPP_ID(NFP_CPP_TARGET_CT_XPB, 3, 1),
-			(csr_base | 0x000), &uaddr, sizeof(uaddr));
+				   (csr_base | 0x000), &uaddr, sizeof(uaddr));
 		if (err != sizeof(uaddr))
 			return err;
 		err = ca_cpp_read(ca, NFP_CPP_ID(NFP_CPP_TARGET_CT_XPB, 2, 1),
-			(csr_base | 0x000), &uaddr, sizeof(uaddr));
+				  (csr_base | 0x000), &uaddr, sizeof(uaddr));
 		if (err != sizeof(uaddr))
 			return err;
 	}
 
 	err = ca_cpp_write(ca, NFP_CPP_ID(NFP_CPP_TARGET_CT_XPB, 3, 1),
-		(csr_base | 0x004), &uwlo, sizeof(uwlo));
+			   (csr_base | 0x004), &uwlo, sizeof(uwlo));
 	if (err != sizeof(uwlo))
 		return err;
 	err = ca_cpp_read(ca, NFP_CPP_ID(NFP_CPP_TARGET_CT_XPB, 2, 1),
-		(csr_base | 0x004), &uwlo, sizeof(uwlo));
+			  (csr_base | 0x004), &uwlo, sizeof(uwlo));
 	if (err != sizeof(uaddr))
 		return err;
 
 	err = ca_cpp_write(ca, NFP_CPP_ID(NFP_CPP_TARGET_CT_XPB, 3, 1),
-		(csr_base | 0x008), &uwhi, sizeof(uwhi));
+			   (csr_base | 0x008), &uwhi, sizeof(uwhi));
 	if (err != sizeof(uwhi))
 		return err;
 	err = ca_cpp_read(ca, NFP_CPP_ID(NFP_CPP_TARGET_CT_XPB, 2, 1),
-		(csr_base | 0x008), &uwhi, sizeof(uwhi));
+			  (csr_base | 0x008), &uwhi, sizeof(uwhi));
 	if (err != sizeof(uwhi))
 		return err;
 
 	if (disable_cs) {
 		uaddr &= ~(1 << 31);
 		err = ca_cpp_write(ca, NFP_CPP_ID(NFP_CPP_TARGET_CT_XPB, 3, 1),
-			(csr_base | 0x000), &uaddr, sizeof(uaddr));
+				   (csr_base | 0x000), &uaddr, sizeof(uaddr));
 		if (err != sizeof(uaddr))
 			return err;
 		err = ca_cpp_read(ca, NFP_CPP_ID(NFP_CPP_TARGET_CT_XPB, 2, 1),
-			(csr_base | 0x000), &uaddr, sizeof(uaddr));
+				  (csr_base | 0x000), &uaddr, sizeof(uaddr));
 		if (err != sizeof(uaddr))
 			return err;
 	}
@@ -532,13 +532,12 @@ static int ca6000_cpp_write_ustore(struct ca_cpp *ca, uint32_t id,
 }
 
 static int nfp_ca_cb_cpp(void *priv, enum nfp_ca_action action,
-				  uint32_t cpp_id, uint64_t cpp_addr,
-				  uint64_t val, uint64_t mask)
+			 u32 cpp_id, u64 cpp_addr, u64 val, u64 mask)
 {
 	struct ca_cpp *ca = priv;
 	struct nfp_cpp *cpp = ca->cpp;
-	uint32_t tmp32;
-	uint64_t tmp64;
+	u32 tmp32;
+	u64 tmp64;
 	static unsigned int cnt;
 	int timeout = 100; /* 100 ms */
 	int pcount = 0;
@@ -628,7 +627,7 @@ static int nfp_ca_cb_cpp(void *priv, enum nfp_ca_action action,
 				  &tmp64, sizeof(tmp64));
 		break;
 	case NFP_CA_ACTION_WRITE32:
-		if (~(uint32_t)mask) {
+		if (~(u32)mask) {
 			err = ca_cpp_read(ca, cpp_id, cpp_addr,
 					  &tmp32, sizeof(tmp32));
 			if (err < 0)
@@ -641,7 +640,7 @@ static int nfp_ca_cb_cpp(void *priv, enum nfp_ca_action action,
 				   &tmp32, sizeof(tmp32));
 		break;
 	case NFP_CA_ACTION_WRITE64:
-		if (~(uint64_t)mask) {
+		if (~(u64)mask) {
 			err = ca_cpp_read(ca, cpp_id, cpp_addr,
 					  &tmp64, sizeof(tmp64));
 			if (err < 0)
@@ -660,8 +659,7 @@ static int nfp_ca_cb_cpp(void *priv, enum nfp_ca_action action,
 	return err;
 }
 
-static int uncompress(uint8_t *out, size_t out_size,
-		      const uint8_t *in, size_t in_size)
+static int uncompress(u8 *out, size_t out_size, const u8 *in, size_t in_size)
 {
 	int err, ws_size;
 	z_stream zs = {};
@@ -706,15 +704,15 @@ exit:
 static int nfp_ca_parse(const void *buff, size_t bytes,
 			nfp_ca_callback cb, void *priv)
 {
-	const uint8_t *byte = buff;
-	uint8_t *zbuff = NULL;
-	uint32_t cpp_id = 0;
-	uint64_t cpp_addr = 0;
+	const u8 *byte = buff;
+	u8 *zbuff = NULL;
+	u32 cpp_id = 0;
+	u64 cpp_addr = 0;
 	size_t loc, usize;
-	uint8_t ca;
+	u8 ca;
 	int err = -EINVAL;
-	uint32_t mask32 = ~(uint32_t)0;
-	uint64_t mask64 = ~(uint64_t)0;
+	u32 mask32 = ~(u32)0;
+	u64 mask64 = ~(u64)0;
 
 	/* File too small? */
 	if (bytes < (NFP_CA_SZ(NFP_CA_START) + NFP_CA_SZ(NFP_CA_END)))
@@ -742,7 +740,7 @@ static int nfp_ca_parse(const void *buff, size_t bytes,
 			return -ENOMEM;
 
 		usize -= NFP_CA_SZ(NFP_CA_START);
-		err = uncompress((uint8_t *)zbuff + NFP_CA_SZ(NFP_CA_START),
+		err = uncompress((u8 *)zbuff + NFP_CA_SZ(NFP_CA_START),
 				 usize, &byte[NFP_CA_SZ(NFP_CA_START)],
 				 bytes - NFP_CA_SZ(NFP_CA_START));
 		if (err < 0) {
@@ -783,9 +781,9 @@ static int nfp_ca_parse(const void *buff, size_t bytes,
 	err = 0;
 	for (loc = NFP_CA_SZ(NFP_CA_START); loc < bytes;
 			loc += NFP_CA_SZ(byte[loc])) {
-		const uint8_t *vp = &byte[loc + 1];
-		uint32_t tmp32;
-		uint64_t tmp64;
+		const u8 *vp = &byte[loc + 1];
+		u32 tmp32;
+		u64 tmp64;
 
 		ca = byte[loc];
 		if (ca == NFP_CA_END) {
@@ -886,7 +884,7 @@ static int nfp_ca_parse(const void *buff, size_t bytes,
 
 	if (ca == NFP_CA_END && loc == bytes) {
 		if (cb == nfp_ca_null) {
-			uint32_t crc;
+			u32 crc;
 
 			loc -= NFP_CA_SZ(NFP_CA_END);
 			crc = crc32_posix(byte, loc);
