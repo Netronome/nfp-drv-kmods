@@ -350,8 +350,8 @@ struct nfp_net_null_dev {
 	struct nfp_phymod_eth *eth;
 	struct nfp_nbi_dev *nbi;
 	struct nfp6000_mac_dev_stats {
-		uint32_t cpp_id;
-		uint64_t cpp_addr;
+		u32 cpp_id;
+		u64 cpp_addr;
 		struct nfp_nbi_mac_portstats cache;
 	} stats;
 };
@@ -375,7 +375,7 @@ static void nfp_net_null_eto_get_drvinfo(struct net_device *dev,
 	strlcpy(di->bus_info, dev_name(dev->dev.parent), sizeof(di->bus_info));
 
 	di->n_priv_flags = 0;
-	di->n_stats = sizeof(nm->stats.cache) / sizeof(uint64_t);
+	di->n_stats = sizeof(nm->stats.cache) / sizeof(u64);
 	di->testinfo_len = 0;
 	di->eedump_len = 0;
 	di->regdump_len = 0;
@@ -505,8 +505,8 @@ static int nfp_net_null_eto_set_priv_flags(struct net_device *dev, u32 flags)
 
 static int phy_parse_qsfp(struct nfp_phymod *phy, struct ethtool_cmd *cmd)
 {
-	uint32_t supported = 0, advertise = 0, port = PORT_OTHER;
-	uint8_t tmp = 0;
+	u32 supported = 0, advertise = 0, port = PORT_OTHER;
+	u8 tmp = 0;
 	int i, err;
 
 	err = nfp_phymod_read8(phy, 131, &tmp);
@@ -716,7 +716,7 @@ static u32 nfp_net_null_eto_get_link(struct net_device *dev)
 {
 	int err;
 	struct nfp_net_null_dev *nm = netdev_priv(dev);
-	uint32_t state = 0;
+	u32 state = 0;
 	int port = nm->port;
 
 	err = nfp_nbi_mac_eth_read_linkstate(nm->nbi,
@@ -832,7 +832,7 @@ static void nfp_net_null_destroy(struct nfp_net_null *np, int port)
 static int nfp_net_null_probe(struct platform_device *pdev)
 {
 	struct nfp_device *nfp;
-	uint32_t model;
+	u32 model;
 	struct nfp_net_null *np;
 	void *tmp = NULL;
 	struct nfp_phymod_eth *eth;
