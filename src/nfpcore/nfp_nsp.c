@@ -334,7 +334,7 @@
 #define   NSP_STATUS_BUSY             BIT_ULL(0)
 
 #define NSP_COMMAND           0x08
-#define   NSP_COMMAND_OPTION(x)       ((uint64_t)((x) & 0xffffffff) << 32)
+#define   NSP_COMMAND_OPTION(x)       ((u64)((x) & 0xffffffff) << 32)
 #define   NSP_COMMAND_OPTION_of(x)    (((x) >> 32) & 0xffffffff)
 #define   NSP_COMMAND_CODE(x)         (((x) & 0xffff) << 16)
 #define   NSP_COMMAND_CODE_of(x)      (((x) >> 16) & 0xffff)
@@ -342,7 +342,7 @@
 
 /* CPP address to retrieve the data from */
 #define NSP_BUFFER            0x10
-#define   NSP_BUFFER_CPP(x)           ((uint64_t)(((x) >> 8) & 0xffffff) << 40)
+#define   NSP_BUFFER_CPP(x)           ((u64)(((x) >> 8) & 0xffffff) << 40)
 #define   NSP_BUFFER_CPP_of(x)        ((((x) >> 40) & 0xffffff) << 8)
 #define   NSP_BUFFER_ADDRESS(x)       (((x) & ((1ULL << 40) - 1)) << 0)
 #define   NSP_BUFFER_ADDRESS_of(x)    (((x) >> 0) & ((1ULL << 40) - 1))
@@ -403,18 +403,18 @@ static void *nfp_nsp_con(struct nfp_device *nfp)
  *
  *         -ETIMEDOUT if the NSP took longer than 30 seconds to complete
  */
-int nfp_nsp_command(struct nfp_device *nfp, uint16_t code, uint32_t option,
-		    uint32_t buff_cpp, uint64_t buff_addr)
+int nfp_nsp_command(struct nfp_device *nfp, uint16_t code, u32 option,
+		    u32 buff_cpp, u64 buff_addr)
 {
 	struct nfp_cpp *cpp = nfp_device_cpp(nfp);
 	struct nfp_nsp *nsp;
-	uint32_t nsp_cpp;
-	uint64_t nsp_base;
-	uint64_t nsp_status;
-	uint64_t nsp_command;
-	uint64_t nsp_buffer;
+	u32 nsp_cpp;
+	u64 nsp_base;
+	u64 nsp_status;
+	u64 nsp_command;
+	u64 nsp_buffer;
 	int err, ok;
-	uint64_t tmp;
+	u64 tmp;
 	int timeout = 30 * 10;	/* 30 seconds total */
 
 	nsp = nfp_device_private(nfp, nfp_nsp_con);
