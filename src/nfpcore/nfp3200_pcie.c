@@ -436,9 +436,9 @@ struct nfp3200_pcie {
 	/* Revision specific workarounds */
 #define NFP_A1_WORKAROUND	BIT(0)
 #define NFP_A_WORKAROUND	BIT(1)
-	uint32_t workaround;
+	u32 workaround;
 	struct {
-		uint32_t vnic_base;
+		u32 vnic_base;
 		struct nfp_cpp_area *internal_write_area;
 		void __iomem *pciewr;
 	} a1;
@@ -952,7 +952,7 @@ static void disable_bars(struct nfp3200_pcie *nfp);
 static int enable_bars(struct nfp3200_pcie *nfp)
 {
 	struct nfp_bar *bar = nfp->bars;
-	uint32_t barcfg;
+	u32 barcfg;
 	int n, retval = 0;
 
 	BUG_ON(!nfp->dev);
@@ -1085,8 +1085,8 @@ static int nfp_cpp_pcie_area_init(
 	 * API can handle unaligned access so we move the 4-byte alignment
 	 * check into the CPP Area implementation that requires it.
 	 */
-	if ((address % sizeof(uint32_t)) != 0 ||
-	    (size % sizeof(uint32_t)) != 0)
+	if ((address % sizeof(u32)) != 0 ||
+	    (size % sizeof(u32)) != 0)
 		return -EINVAL;
 
 	/* Special 'Target 0' case */
@@ -1592,8 +1592,8 @@ struct nfp3200_event_priv {
 	int filter;
 };
 
-static int nfp3200_event_acquire(struct nfp_cpp_event *event, uint32_t match,
-				 uint32_t mask, uint32_t type)
+static int nfp3200_event_acquire(struct nfp_cpp_event *event, u32 match,
+				 u32 mask, u32 type)
 {
 	struct nfp_cpp *cpp = nfp_cpp_event_cpp(event);
 	struct nfp3200_pcie *nfp = nfp_cpp_priv(cpp);
@@ -1621,7 +1621,7 @@ static void nfp3200_event_release(struct nfp_cpp_event *event)
 static int nfp_cpp_pcie_init(struct nfp_cpp *cpp)
 {
 	struct nfp3200_pcie *nfp = nfp_cpp_priv(cpp);
-	uint32_t tmp;
+	u32 tmp;
 	int err;
 
 	/* Determine if we need NFP workarounds */
@@ -1666,7 +1666,7 @@ static int nfp_cpp_pcie_init(struct nfp_cpp *cpp)
 	}
 
 	if (nfp->workaround & NFP_A_WORKAROUND) {
-		uint32_t tmp;
+		u32 tmp;
 		/* Workaround for YDS-152: Make RID override work */
 		err = nfp_xpb_readl(cpp, NFP_XPB_PCIE_CSR + NFP_PCIE_CSR_CFG0,
 				    &tmp);
