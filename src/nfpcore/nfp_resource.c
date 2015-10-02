@@ -329,9 +329,9 @@
 
 struct nfp_resource {
 	char name[NFP_RESOURCE_ENTRY_NAME_SZ + 1];
-	uint32_t cpp_id;
-	uint64_t addr;
-	uint64_t size;
+	u32 cpp_id;
+	u64 addr;
+	u64 size;
 	struct nfp_cpp_mutex *mutex;
 };
 
@@ -339,9 +339,9 @@ struct nfp_resource {
  * have any resources anyway.
  */
 static int __nfp_resource_location(struct nfp_cpp *cpp, int *target,
-				   uint64_t *base, size_t *sizep)
+				   u64 *base, size_t *sizep)
 {
-	uint32_t model = nfp_cpp_model(cpp);
+	u32 model = nfp_cpp_model(cpp);
 	size_t size;
 
 	*target = NFP_CPP_TARGET_MU;
@@ -362,16 +362,16 @@ static int __nfp_resource_location(struct nfp_cpp *cpp, int *target,
 
 static int __nfp_resource_entry_init(struct nfp_cpp *cpp, int entry,
 				     const struct nfp_resource_entry_region
-						*region,
+				     *region,
 				     struct nfp_cpp_mutex **resource_mutex)
 {
-	uint32_t cpp_id;
 	struct nfp_cpp_mutex *mutex;
-	uint32_t key;
-	int err;
 	int target, entries;
-	uint64_t base;
 	size_t size;
+	u32 cpp_id;
+	u32 key;
+	int err;
+	u64 base;
 
 	entries = __nfp_resource_location(cpp, &target, &base, &size);
 	if (entries < 0)
@@ -431,11 +431,11 @@ static int __nfp_resource_entry_init(struct nfp_cpp *cpp, int entry,
  */
 int nfp_cpp_resource_init(struct nfp_cpp *cpp, struct nfp_cpp_mutex **mutexp)
 {
-	uint32_t cpp_id;
+	u32 cpp_id;
 	struct nfp_cpp_mutex *mutex;
 	int err;
 	int target, i, entries;
-	uint64_t base;
+	u64 base;
 	size_t size;
 	struct nfp_resource_entry_region region = {
 		.name = { NFP_RESOURCE_TABLE_NAME },
@@ -490,21 +490,21 @@ int nfp_cpp_resource_init(struct nfp_cpp *cpp, struct nfp_cpp_mutex **mutexp)
  * Return: 0, or -ERRNO
  */
 int nfp_cpp_resource_add(struct nfp_cpp *cpp, const char *name,
-			 uint32_t cpp_id, uint64_t address, uint64_t size,
-		struct nfp_cpp_mutex **resource_mutex)
+			 u32 cpp_id, u64 address, u64 size,
+			 struct nfp_cpp_mutex **resource_mutex)
 {
 	int target, err, i, entries, minfree;
-	uint64_t base;
-	uint32_t key;
+	u64 base;
+	u32 key;
 	struct nfp_resource_entry_region region = {
 		.cpp_action = NFP_CPP_ID_ACTION_of(cpp_id),
 		.cpp_token  = NFP_CPP_ID_TOKEN_of(cpp_id),
 		.cpp_target = NFP_CPP_ID_TARGET_of(cpp_id),
-		.page_offset = (uint32_t)(address >> 8),
-		.page_size  = (uint32_t)(size >> 8),
+		.page_offset = (u32)(address >> 8),
+		.page_size  = (u32)(size >> 8),
 	};
 	struct nfp_cpp_mutex *mutex;
-	uint32_t tmp;
+	u32 tmp;
 
 	for (i = 0; i < sizeof(region.name); i++) {
 		if (*name != 0)
@@ -535,7 +535,7 @@ int nfp_cpp_resource_add(struct nfp_cpp *cpp, const char *name,
 	minfree = 0;
 	key = crc32_posix(name, 8);
 	for (i = 1; i < entries; i++) {
-		uint64_t addr = base + sizeof(struct nfp_resource_entry) * i;
+		u64 addr = base + sizeof(struct nfp_resource_entry) * i;
 
 		err = nfp_cpp_readl(cpp, cpp_id, addr +
 				offsetof(struct nfp_resource_entry, mutex.key),
@@ -570,20 +570,17 @@ int nfp_cpp_resource_add(struct nfp_cpp *cpp, const char *name,
 	return err;
 }
 
-static int nfp_cpp_resource_acquire(struct nfp_cpp *cpp,
-				    const char *name,
-				    uint32_t *r_cpp,
-				    uint64_t *r_addr,
-				    uint64_t *r_size,
+static int nfp_cpp_resource_acquire(struct nfp_cpp *cpp, const char *name,
+				    u32 *r_cpp, u64 *r_addr, u64 *r_size,
 				    struct nfp_cpp_mutex **resource_mutex)
 {
-	int target, err, i, entries;
-	uint64_t base;
-	uint32_t key;
 	struct nfp_resource_entry_region region;
 	struct nfp_resource_entry tmp;
 	struct nfp_cpp_mutex *mutex;
-	uint32_t cpp_id;
+	int target, err, i, entries;
+	u64 base;
+	u32 key;
+	u32 cpp_id;
 
 	for (i = 0; i < sizeof(region.name); i++) {
 		if (*name != 0)
@@ -615,7 +612,7 @@ static int nfp_cpp_resource_acquire(struct nfp_cpp *cpp,
 		   NFP_RESOURCE_TABLE_NAME "\0\0\0\0\0\0\0\0", 8) != 0)
 		key = crc32_posix(&region.name[0], sizeof(region.name));
 	for (i = 0; i < entries; i++) {
-		uint64_t addr = base + sizeof(struct nfp_resource_entry) * i;
+		u64 addr = base + sizeof(struct nfp_resource_entry) * i;
 
 		err = nfp_cpp_read(cpp, cpp_id, addr, &tmp, sizeof(tmp));
 		if (err < 0) {
@@ -638,10 +635,10 @@ static int nfp_cpp_resource_acquire(struct nfp_cpp *cpp,
 						tmp.region.cpp_token);
 
 			if (r_addr)
-				*r_addr = (uint64_t)tmp.region.page_offset << 8;
+				*r_addr = (u64)tmp.region.page_offset << 8;
 
 			if (r_size)
-				*r_size = (uint64_t)tmp.region.page_size << 8;
+				*r_size = (u64)tmp.region.page_size << 8;
 
 			nfp_cpp_mutex_unlock(mutex);
 			nfp_cpp_mutex_free(mutex);
@@ -668,12 +665,12 @@ static int nfp_cpp_resource_acquire(struct nfp_cpp *cpp,
 struct nfp_resource *nfp_resource_acquire(struct nfp_device *nfp,
 					  const char *name)
 {
-	struct nfp_resource *res;
-	struct nfp_cpp_mutex *mutex;
 	struct nfp_cpp *cpp = nfp_device_cpp(nfp);
+	struct nfp_cpp_mutex *mutex;
+	struct nfp_resource *res;
+	u64 addr, size;
+	u32 cpp_id;
 	int err;
-	uint32_t cpp_id;
-	uint64_t addr, size;
 
 	err = nfp_cpp_resource_acquire(cpp, name, &cpp_id, &addr,
 				       &size, &mutex);
@@ -720,7 +717,7 @@ void nfp_resource_release(struct nfp_resource *res)
  *
  * Return: NFP CPP ID
  */
-uint32_t nfp_resource_cpp_id(struct nfp_resource *res)
+u32 nfp_resource_cpp_id(struct nfp_resource *res)
 {
 	return res->cpp_id;
 }
@@ -742,7 +739,7 @@ const char *nfp_resource_name(struct nfp_resource *res)
  *
  * Return: Address of the resource
  */
-uint64_t nfp_resource_address(struct nfp_resource *res)
+u64 nfp_resource_address(struct nfp_resource *res)
 {
 	return res->addr;
 }
@@ -753,7 +750,7 @@ uint64_t nfp_resource_address(struct nfp_resource *res)
  *
  * Return: Size of the resource in bytes
  */
-uint64_t nfp_resource_size(struct nfp_resource *res)
+u64 nfp_resource_size(struct nfp_resource *res)
 {
 	return res->size;
 }
