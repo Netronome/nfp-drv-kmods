@@ -323,8 +323,8 @@ struct nfp_nbi_dev {
 	struct nfp_device *nfp;
 	struct nfp_cpp *cpp;
 	struct {
-		uint32_t cpp_id;
-		uint64_t cpp_addr;
+		u32 cpp_id;
+		u64 cpp_addr;
 	} stats;
 	int nbi;
 };
@@ -337,13 +337,13 @@ struct nfp_nbi_dev {
  */
 struct nfp_nbi_mac_stats_spec {
 	/* One bit for each port to be monitored.  */
-	uint64_t ports;
+	u64 ports;
 	/* One bit for each channel [0-63] to be monitored. */
-	uint64_t chans63_0;
+	u64 chans63_0;
 	/* One bit for each channel [64-127] to be monitored. */
-	uint64_t chans127_64;
+	u64 chans127_64;
 	/* Interlaken channels - one for each ilk core to be monitored. */
-	uint32_t ilk[2];
+	u32 ilk[2];
 };
 
 /*
@@ -367,21 +367,21 @@ struct nfp_nbi_mac_stats_spec {
  */
 struct nfp_nbi_mac_stats_state {
 	/* Scan period of the statistics daemon (mS) */
-	uint32_t period;
+	u32 period;
 	/* Flag indicating that the daemon is initialized */
-	uint32_t ready;
+	u32 ready;
 	/* Counter incremented every cycle after the daemon completes a scan */
-	uint64_t updated;
+	u64 updated;
 	/* Specification of the ports and channels to be monitored. */
 	struct nfp_nbi_mac_stats_spec active;
 	/* Specification of the port and channel counters to be cleared. */
 	struct nfp_nbi_mac_stats_spec clear;
 	/* Count of Ethernet port counter clears. */
-	uint64_t portclr_count[24];
+	u64 portclr_count[24];
 	/* Count of channel counter clears. */
-	uint64_t chanclr_count[128];
+	u64 chanclr_count[128];
 	/* Count of Interlaken counter clears. */
-	uint64_t ilkclr_count[2];
+	u64 ilkclr_count[2];
 };
 
 /*
@@ -401,7 +401,7 @@ struct nfp_nbi_mac_stats {
 #define NFP_NBI_MAC_STATS_MAGIC 0xae6d730000000000ULL /* 0xae,'m','s', 0, .. */
 
 struct nfp_nbi_mac_allstats {
-	uint64_t magic;             /* NFP_NBI_MAC_STATS_MAGIC */
+	u64 magic;             /* NFP_NBI_MAC_STATS_MAGIC */
 	struct nfp_nbi_mac_stats mac[2];
 };
 
@@ -472,7 +472,7 @@ int nfp_nbi_index(struct nfp_nbi_dev *nbi)
 int nfp_nbi_mac_stats_read_port(struct nfp_nbi_dev *nbi, int port,
 				struct nfp_nbi_mac_portstats *stats)
 {
-	uint64_t magic = 0;
+	u64 magic = 0;
 
 	if (port < 0 || port >= 24)
 		return -EINVAL;
@@ -499,7 +499,7 @@ int nfp_nbi_mac_stats_read_port(struct nfp_nbi_dev *nbi, int port,
 int nfp_nbi_mac_stats_read_chan(struct nfp_nbi_dev *nbi, int chan,
 				struct nfp_nbi_mac_chanstats *stats)
 {
-	uint64_t magic = 0;
+	u64 magic = 0;
 
 	if (chan < 0 || chan >= 128)
 		return -EINVAL;
@@ -526,7 +526,7 @@ int nfp_nbi_mac_stats_read_chan(struct nfp_nbi_dev *nbi, int chan,
 int nfp_nbi_mac_stats_read_ilks(struct nfp_nbi_dev *nbi, int ilk,
 				struct nfp_nbi_mac_ilkstats *stats)
 {
-	uint64_t magic = 0;
+	u64 magic = 0;
 
 	if (ilk < 0 || ilk >= 2)
 		return -EINVAL;
@@ -554,10 +554,9 @@ int nfp_nbi_mac_stats_read_ilks(struct nfp_nbi_dev *nbi, int ilk,
  *
  * Return: 0, or -ERRNO
  */
-int nfp_nbi_mac_regr(struct nfp_nbi_dev *nbi, uint32_t base, uint32_t reg,
-		     uint32_t *data)
+int nfp_nbi_mac_regr(struct nfp_nbi_dev *nbi, u32 base, u32 reg, u32 *data)
 {
-	uint32_t r = NFP_XPB_ISLAND(nbi->nbi + 8) + base + reg;
+	u32 r = NFP_XPB_ISLAND(nbi->nbi + 8) + base + reg;
 
 	return nfp_xpb_readl(nbi->cpp, r, data);
 }
@@ -581,10 +580,10 @@ int nfp_nbi_mac_regr(struct nfp_nbi_dev *nbi, uint32_t base, uint32_t reg,
  *
  * Return: 0, or -ERRNO
  */
-int nfp_nbi_mac_regw(struct nfp_nbi_dev *nbi, uint32_t base, uint32_t reg,
-		     uint32_t mask, uint32_t data)
+int nfp_nbi_mac_regw(struct nfp_nbi_dev *nbi, u32 base, u32 reg,
+		     u32 mask, u32 data)
 {
-	uint32_t r = NFP_XPB_ISLAND(nbi->nbi + 8) + base + reg;
+	u32 r = NFP_XPB_ISLAND(nbi->nbi + 8) + base + reg;
 
 	return nfp_xpb_writelm(nbi->cpp, r, mask, data);
 }
