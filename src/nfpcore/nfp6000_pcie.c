@@ -444,10 +444,10 @@ struct nfp6000_area_priv;
  */
 struct nfp_bar {
 	struct nfp6000_pcie *nfp;
-	uint32_t barcfg;
-	uint64_t base;          /* CPP address base */
-	uint64_t mask;          /* Bit mask of the bar */
-	uint32_t bitsize;       /* Bit size of the bar */
+	u32 barcfg;
+	u64 base;          /* CPP address base */
+	u64 mask;          /* Bit mask of the bar */
+	u32 bitsize;       /* Bit size of the bar */
 	int index;
 	atomic_t refcnt;
 
@@ -478,8 +478,8 @@ struct nfp6000_pcie {
 	/* Explicit IO access */
 	struct {
 		struct mutex mutex; /* Lock access to this explicit group */
-		uint8_t master_id;
-		uint8_t signal_ref;
+		u8 master_id;
+		u8 signal_ref;
 		void __iomem *data;
 		struct {
 			void __iomem *addr;
@@ -492,7 +492,7 @@ struct nfp6000_pcie {
 	struct nfp_em_manager *event;
 };
 
-static inline uint32_t nfp_bar_maptype(struct nfp_bar *bar)
+static inline u32 nfp_bar_maptype(struct nfp_bar *bar)
 {
 	return NFP_PCIE_BAR_PCIE2CPP_MapType_of(bar->barcfg);
 }
@@ -513,11 +513,11 @@ static resource_size_t nfp_bar_resource_start(struct nfp_bar *bar)
 
 static int compute_bar(struct nfp6000_pcie *nfp,
 		       struct nfp_bar *bar,
-		       uint32_t *bar_config, uint64_t *bar_base,
+		       u32 *bar_config, u64 *bar_base,
 		       int tgt, int act, int tok,
-		       uint64_t offset, size_t size, int width)
+		       u64 offset, size_t size, int width)
 {
-	uint32_t newcfg;
+	u32 newcfg;
 	int bitsize;
 
 	if (tgt >= NFP_CPP_NUM_TARGETS)
@@ -542,7 +542,7 @@ static int compute_bar(struct nfp6000_pcie *nfp,
 
 	if (act != NFP_CPP_ACTION_RW && act != 0) {
 		/* Fixed CPP mapping with specific action */
-		uint64_t mask = ~(NFP_PCIE_P2C_FIXED_SIZE(bar) - 1);
+		u64 mask = ~(NFP_PCIE_P2C_FIXED_SIZE(bar) - 1);
 
 		newcfg |= NFP_PCIE_BAR_PCIE2CPP_MapType(
 			  NFP_PCIE_BAR_PCIE2CPP_MapType_FIXED);
@@ -572,7 +572,7 @@ static int compute_bar(struct nfp6000_pcie *nfp,
 #ifdef ENABLE_GENERAL_MAPPING
 	} else if (offset < NFP_PCIE_P2C_GENERAL_SIZE(bar) &&
 		   (offset + size - 1) < NFP_PCIE_P2C_GENERAL_SIZE(bar)) {
-		uint64_t mask = ~(NFP_PCIE_P2C_GENERAL_SIZE(bar) - 1);
+		u64 mask = ~(NFP_PCIE_P2C_GENERAL_SIZE(bar) - 1);
 		/* General CPP mapping */
 		newcfg |= NFP_PCIE_BAR_PCIE2CPP_MapType(
 			  NFP_PCIE_BAR_PCIE2CPP_MapType_GENERAL);
@@ -593,7 +593,7 @@ static int compute_bar(struct nfp6000_pcie *nfp,
 		bitsize = 40 - 27;
 #endif
 	} else {
-		uint64_t mask = ~(NFP_PCIE_P2C_BULK_SIZE(bar) - 1);
+		u64 mask = ~(NFP_PCIE_P2C_BULK_SIZE(bar) - 1);
 		/* Bulk mapping */
 		newcfg |= NFP_PCIE_BAR_PCIE2CPP_MapType(
 			NFP_PCIE_BAR_PCIE2CPP_MapType_BULK);
@@ -642,7 +642,7 @@ static int compute_bar(struct nfp6000_pcie *nfp,
 }
 
 static int nfp6000_bar_write(struct nfp6000_pcie *nfp, struct nfp_bar *bar,
-			     uint32_t newcfg)
+			     u32 newcfg)
 {
 	int base, slot;
 	int xbar;
@@ -671,11 +671,11 @@ static int nfp6000_bar_write(struct nfp6000_pcie *nfp, struct nfp_bar *bar,
 }
 
 static int reconfigure_bar(struct nfp6000_pcie *nfp, struct nfp_bar *bar,
-			   int tgt, int act, int tok, uint64_t offset,
+			   int tgt, int act, int tok, u64 offset,
 			   size_t size, int width)
 {
-	uint32_t newcfg;
-	uint64_t newbase;
+	u32 newcfg;
+	u64 newbase;
 	int err;
 
 	err = compute_bar(nfp, bar, &newcfg, &newbase,
@@ -691,12 +691,11 @@ static int reconfigure_bar(struct nfp6000_pcie *nfp, struct nfp_bar *bar,
 /*
  * Check if BAR can be used with the given parameters.
  */
-static int matching_bar(struct nfp_bar *bar,
-			uint32_t tgt, uint32_t act, uint32_t tok,
-		uint64_t offset, size_t size, int width)
+static int matching_bar(struct nfp_bar *bar, u32 tgt, u32 act, u32 tok,
+			u64 offset, size_t size, int width)
 {
 	struct nfp6000_pcie *nfp = bar->nfp;
-	uint32_t maptype;
+	u32 maptype;
 	int bartgt, baract, bartok;
 	int barwidth;
 
@@ -813,8 +812,8 @@ static int matching_bar(struct nfp_bar *bar,
 }
 
 static int find_matching_bar(struct nfp6000_pcie *nfp,
-			      uint32_t tgt, uint32_t act, uint32_t tok,
-			      uint64_t offset, size_t size, int width)
+			     u32 tgt, u32 act, u32 tok,
+			     u64 offset, size_t size, int width)
 {
 	int n;
 
@@ -838,7 +837,7 @@ static int find_matching_bar(struct nfp6000_pcie *nfp,
  */
 static int find_unused_bar_noblock(struct nfp6000_pcie *nfp,
 				   int tgt, int act, int tok,
-				   uint64_t offset, size_t size, int width)
+				   u64 offset, size_t size, int width)
 {
 	int n, invalid = 0;
 
@@ -871,7 +870,7 @@ static int find_unused_bar_noblock(struct nfp6000_pcie *nfp,
  */
 static int find_unused_bar_and_lock(struct nfp6000_pcie *nfp,
 				    int tgt, int act, int tok,
-				    uint64_t offset, size_t size, int width)
+				    u64 offset, size_t size, int width)
 {
 	int n;
 	unsigned long flags;
@@ -897,8 +896,8 @@ static inline void nfp_bar_put(struct nfp6000_pcie *nfp, struct nfp_bar *bar)
 }
 
 static int nfp_alloc_bar(struct nfp6000_pcie *nfp,
-			 uint32_t tgt, uint32_t act, uint32_t tok,
-		 uint64_t offset, size_t size, int width, int nonblocking)
+			 u32 tgt, u32 act, u32 tok,
+			 u64 offset, size_t size, int width, int nonblocking)
 {
 	int barnum, retval;
 	unsigned long irqflags;
@@ -965,7 +964,7 @@ static ssize_t show_barcfg(struct device *dev, struct device_attribute *attr,
 	struct nfp6000_pcie *nfp = nfp_cpp_priv(dev_get_drvdata(dev));
 	int n, maptype, tgtact, tgttok, length, action;
 	ssize_t off = 0;
-	uint64_t base;
+	u64 base;
 
 	BUG_ON(!nfp);
 	for (n = 0; n < nfp->bars; n++) {
@@ -1002,23 +1001,23 @@ static ssize_t show_barcfg(struct device *dev, struct device_attribute *attr,
 			off += scnprintf(buf + off, PAGE_SIZE - off,
 					 "target: %#x, token: %#x, ",
 					 tgtact, tgttok);
-			base |= (uint64_t)action << 16;
+			base |= (u64)action << 16;
 			base <<= (40 - 21);
 			break;
 		case NFP_PCIE_BAR_PCIE2CPP_MapType_TARGET:
 			off += scnprintf(buf + off, PAGE_SIZE - off,
 					 "target: %#x, ",
 					 tgtact);
-			base |= (uint64_t)tgttok << 21;
-			base |= (uint64_t)action << 16;
+			base |= (u64)tgttok << 21;
+			base |= (u64)action << 16;
 			base <<= (40 - 23);
 			break;
 		case NFP_PCIE_BAR_PCIE2CPP_MapType_GENERAL:
 			off += scnprintf(buf + off, PAGE_SIZE - off,
 					 "action: %#x, ", tgtact);
-			base |= (uint64_t)tgtact << 23;
-			base |= (uint64_t)tgttok << 21;
-			base |= (uint64_t)action << 16;
+			base |= (u64)tgtact << 23;
+			base |= (u64)tgttok << 21;
+			base |= (u64)action << 16;
 			base <<= (40 - 27);
 			break;
 		default:
@@ -1075,17 +1074,17 @@ static inline int bar_cmp(const void *aptr, const void *bptr)
  */
 static int enable_bars(struct nfp6000_pcie *nfp)
 {
-	const uint32_t barcfg_msix_general =
+	const u32 barcfg_msix_general =
 		NFP_PCIE_BAR_PCIE2CPP_MapType(
 		NFP_PCIE_BAR_PCIE2CPP_MapType_GENERAL) |
 		NFP_PCIE_BAR_PCIE2CPP_LengthSelect_32BIT;
-	const uint32_t barcfg_msix_xpb =
+	const u32 barcfg_msix_xpb =
 		NFP_PCIE_BAR_PCIE2CPP_MapType(
 			NFP_PCIE_BAR_PCIE2CPP_MapType_BULK) |
 			NFP_PCIE_BAR_PCIE2CPP_LengthSelect_32BIT |
 			NFP_PCIE_BAR_PCIE2CPP_Target_BaseAddress(
 					NFP_CPP_TARGET_ISLAND_XPB);
-	const uint32_t barcfg_explicit[4] = {
+	const u32 barcfg_explicit[4] = {
 		NFP_PCIE_BAR_PCIE2CPP_MapType(
 			NFP_PCIE_BAR_PCIE2CPP_MapType_EXPLICIT0),
 		NFP_PCIE_BAR_PCIE2CPP_MapType(
@@ -1225,12 +1224,12 @@ struct nfp6000_area_priv {
 	atomic_t refcnt;
 
 	struct nfp_bar *bar;
-	uint32_t bar_offset;
+	u32 bar_offset;
 
-	uint32_t target;
-	uint32_t action;
-	uint32_t token;
-	uint64_t offset;
+	u32 target;
+	u32 action;
+	u32 token;
+	u64 offset;
 	struct {
 		int read;
 		int write;
@@ -1243,14 +1242,13 @@ struct nfp6000_area_priv {
 	struct resource resource;
 };
 
-static int nfp6000_area_init(
-	struct nfp_cpp_area *area, uint32_t dest,
-	unsigned long long address, unsigned long size)
+static int nfp6000_area_init(struct nfp_cpp_area *area, u32 dest,
+			     unsigned long long address, unsigned long size)
 {
 	struct nfp6000_area_priv *priv = nfp_cpp_area_priv(area);
-	uint32_t target = NFP_CPP_ID_TARGET_of(dest);
-	uint32_t action = NFP_CPP_ID_ACTION_of(dest);
-	uint32_t token = NFP_CPP_ID_TOKEN_of(dest);
+	u32 target = NFP_CPP_ID_TARGET_of(dest);
+	u32 action = NFP_CPP_ID_ACTION_of(dest);
+	u32 token = NFP_CPP_ID_TOKEN_of(dest);
 	int pp;
 
 	pp = nfp6000_target_pushpull(NFP_CPP_ID(target, action, token),
@@ -1430,10 +1428,10 @@ static int nfp6000_area_read(struct nfp_cpp_area *area, void *kernel_vaddr,
 			     unsigned long offset, unsigned int length)
 {
 	struct nfp6000_area_priv *priv = nfp_cpp_area_priv(area);
-	const uint32_t __iomem *rdptr32 = priv->iomem + offset;
-	const uint64_t __iomem __maybe_unused *rdptr64 = priv->iomem + offset;
-	uint32_t *wrptr32 = kernel_vaddr;
-	uint64_t __maybe_unused *wrptr64 = kernel_vaddr;
+	const u32 __iomem *rdptr32 = priv->iomem + offset;
+	const u64 __iomem __maybe_unused *rdptr64 = priv->iomem + offset;
+	u32 *wrptr32 = kernel_vaddr;
+	u64 __maybe_unused *wrptr64 = kernel_vaddr;
 	int is_64;
 	int n, width;
 
@@ -1462,12 +1460,12 @@ static int nfp6000_area_read(struct nfp_cpp_area *area, void *kernel_vaddr,
 		is_64 = 0;
 
 	if (is_64) {
-		if (((offset % sizeof(uint64_t)) != 0) ||
-		    ((length % sizeof(uint64_t)) != 0))
+		if (((offset % sizeof(u64)) != 0) ||
+		    ((length % sizeof(u64)) != 0))
 			return -EINVAL;
 	} else {
-		if (((offset % sizeof(uint32_t)) != 0) ||
-		    ((length % sizeof(uint32_t)) != 0))
+		if (((offset % sizeof(u32)) != 0) ||
+		    ((length % sizeof(u32)) != 0))
 			return -EINVAL;
 	}
 
@@ -1477,11 +1475,11 @@ static int nfp6000_area_read(struct nfp_cpp_area *area, void *kernel_vaddr,
 #ifdef CONFIG_NFP_PCI32
 		return -EINVAL;
 #else
-		for (n = 0; n < length; n += sizeof(uint64_t))
+		for (n = 0; n < length; n += sizeof(u64))
 			*wrptr64++ = __raw_readq(rdptr64++);
 #endif
 	else
-		for (n = 0; n < length; n += sizeof(uint32_t))
+		for (n = 0; n < length; n += sizeof(u32))
 			*wrptr32++ = __raw_readl(rdptr32++);
 
 	return n;
@@ -1489,13 +1487,13 @@ static int nfp6000_area_read(struct nfp_cpp_area *area, void *kernel_vaddr,
 
 static int nfp6000_area_write(struct nfp_cpp_area *area,
 			      const void *kernel_vaddr,
-				   unsigned long offset, unsigned int length)
+			      unsigned long offset, unsigned int length)
 {
 	struct nfp6000_area_priv *priv = nfp_cpp_area_priv(area);
-	const uint32_t *rdptr32 = kernel_vaddr;
-	const uint64_t __maybe_unused *rdptr64 = kernel_vaddr;
-	uint32_t __iomem *wrptr32 = priv->iomem + offset;
-	uint64_t __iomem __maybe_unused *wrptr64 = priv->iomem + offset;
+	const u32 *rdptr32 = kernel_vaddr;
+	const u64 __maybe_unused *rdptr64 = kernel_vaddr;
+	u32 __iomem *wrptr32 = priv->iomem + offset;
+	u64 __iomem __maybe_unused *wrptr64 = priv->iomem + offset;
 	int is_64;
 	int n, width;
 
@@ -1524,12 +1522,12 @@ static int nfp6000_area_write(struct nfp_cpp_area *area,
 		is_64 = 0;
 
 	if (is_64) {
-		if (((offset % sizeof(uint64_t)) != 0) ||
-		    ((length % sizeof(uint64_t)) != 0))
+		if (((offset % sizeof(u64)) != 0) ||
+		    ((length % sizeof(u64)) != 0))
 			return -EINVAL;
 	} else {
-		if (((offset % sizeof(uint32_t)) != 0) ||
-		    ((length % sizeof(uint32_t)) != 0))
+		if (((offset % sizeof(u32)) != 0) ||
+		    ((length % sizeof(u32)) != 0))
 			return -EINVAL;
 	}
 	BUG_ON(!priv->bar);
@@ -1538,14 +1536,14 @@ static int nfp6000_area_write(struct nfp_cpp_area *area,
 #ifdef CONFIG_NFP_PCI32
 		return -EINVAL;
 #else
-		for (n = 0; n < length; n += sizeof(uint64_t)) {
+		for (n = 0; n < length; n += sizeof(u64)) {
 			__raw_writeq(*rdptr64++, wrptr64++);
 			/* Flush each write */
 			wmb();
 		}
 #endif
 	} else {
-		for (n = 0; n < length; n += sizeof(uint32_t)) {
+		for (n = 0; n < length; n += sizeof(u32)) {
 			__raw_writel(*rdptr32++, wrptr32++);
 			/* Flush each write */
 			wmb();
@@ -1578,7 +1576,7 @@ static int nfp6000_explicit_acquire(struct nfp_cpp_explicit *expl)
 			continue;
 		for (j = 0; j < ARRAY_SIZE(nfp->expl.group[i].free); j++) {
 			if (nfp->expl.group[i].free[j]) {
-				uint16_t data_offset;
+				u16 data_offset;
 
 				priv->nfp = nfp;
 				priv->bar.group = i;
@@ -1614,10 +1612,10 @@ static int nfp6000_explicit_put(struct nfp_cpp_explicit *expl,
 				const void *buff, size_t len)
 {
 	struct nfp6000_explicit_priv *priv = nfp_cpp_explicit_priv(expl);
-	const uint32_t *src = buff;
+	const u32 *src = buff;
 	size_t i;
 
-	for (i = 0; i < len; i += sizeof(uint32_t))
+	for (i = 0; i < len; i += sizeof(u32))
 		writel(*(src++), priv->data + i);
 
 	return i;
@@ -1625,14 +1623,14 @@ static int nfp6000_explicit_put(struct nfp_cpp_explicit *expl,
 
 static int nfp6000_explicit_do(struct nfp_cpp_explicit *expl,
 			       const struct nfp_cpp_explicit_command *cmd,
-			       uint64_t address)
+			       u64 address)
 {
 	struct nfp6000_explicit_priv *priv = nfp_cpp_explicit_priv(expl);
 	struct nfp6000_pcie *nfp = priv->nfp;
 	int sigmask = 0;
-	uint32_t csr[3];
-	uint8_t signal_master, signal_ref, data_master;
-	uint16_t data_ref;
+	u32 csr[3];
+	u8 signal_master, signal_ref, data_master;
+	u16 data_ref;
 
 	if (cmd->siga_mode)
 		sigmask |= (1 << cmd->siga);
@@ -1656,7 +1654,7 @@ static int nfp6000_explicit_do(struct nfp_cpp_explicit *expl,
 
 	if (data_master == nfp->expl.master_id) {
 		/* Data defaults */
-		uint32_t data_offset = (priv->bar.group << 9) +
+		u32 data_offset = (priv->bar.group << 9) +
 					(priv->bar.area << 7);
 		data_ref = 0x1000 + data_offset;
 	} else {
@@ -1752,10 +1750,10 @@ static int nfp6000_explicit_get(struct nfp_cpp_explicit *expl,
 				void *buff, size_t len)
 {
 	struct nfp6000_explicit_priv *priv = nfp_cpp_explicit_priv(expl);
-	uint32_t *dst = buff;
+	u32 *dst = buff;
 	size_t i;
 
-	for (i = 0; i < len; i += sizeof(uint32_t))
+	for (i = 0; i < len; i += sizeof(u32))
 		*(dst++) = readl(priv->data + i);
 
 	return i;
@@ -1777,8 +1775,8 @@ struct nfp6000_event_priv {
 	int filter;
 };
 
-static int nfp6000_event_acquire(struct nfp_cpp_event *event, uint32_t match,
-				 uint32_t mask, uint32_t type)
+static int nfp6000_event_acquire(struct nfp_cpp_event *event, u32 match,
+				 u32 mask, u32 type)
 {
 	struct nfp_cpp *cpp = nfp_cpp_event_cpp(event);
 	struct nfp6000_pcie *nfp = nfp_cpp_priv(cpp);
@@ -1848,7 +1846,7 @@ struct nfp_cpp *nfp_cpp_from_nfp6000_pcie(struct pci_dev *pdev, int event_irq)
 
 	pos = pci_find_ext_capability(pdev, PCI_EXT_CAP_ID_DSN);
 	if (pos) {
-		uint32_t serial[2];
+		u32 serial[2];
 
 		pci_read_config_dword(pdev, pos + 4, &serial[0]);
 		pci_read_config_dword(pdev, pos + 8, &serial[1]);
