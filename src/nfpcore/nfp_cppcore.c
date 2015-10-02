@@ -342,16 +342,16 @@
 struct nfp_cpp_resource {
 	struct list_head list;
 	const char *name;
-	uint32_t cpp_id;
-	uint64_t start;
-	uint64_t end;
+	u32 cpp_id;
+	u64 start;
+	u64 end;
 };
 
 struct nfp_cpp {
 	int id;
 	struct device dev;
 	struct kref kref;
-	uint32_t model;
+	u32 model;
 	const struct nfp_cpp_operations *op;
 	struct list_head resource_list;	/** NFP CPP resource list */
 	rwlock_t resource_lock;
@@ -361,9 +361,9 @@ struct nfp_cpp {
 	struct platform_device *feature[32];
 
 	/* NFP6000 CPP Mapping Table */
-	uint32_t imb_cat_table[16];
+	u32 imb_cat_table[16];
 	/* NFP6000 Island Mask */
-	uint64_t island_mask;
+	u64 island_mask;
 
 	/* Cached areas for cpp/xpb readl/writel speedups */
 	struct mutex area_cache_mutex;  /* Lock for the area cache */
@@ -373,9 +373,9 @@ struct nfp_cpp {
 /* Element of the area_cache_list */
 struct nfp_cpp_area_cache {
 	struct list_head entry;
-	uint32_t id;
-	uint64_t addr;
-	uint32_t size;
+	u32 id;
+	u64 addr;
+	u32 size;
 	struct nfp_cpp_area *area;
 };
 
@@ -566,7 +566,7 @@ int nfp_cpp_device_id(struct nfp_cpp *cpp)
  *
  * Return: NFP CPP Model ID
  */
-uint32_t nfp_cpp_model(struct nfp_cpp *cpp)
+u32 nfp_cpp_model(struct nfp_cpp *cpp)
 {
 	/* Check the cached model */
 	return cpp->model;
@@ -590,7 +590,7 @@ uint16_t nfp_cpp_interface(struct nfp_cpp *cpp)
  *
  * Return:  Length of NFP serial number
  */
-int nfp_cpp_serial(struct nfp_cpp *cpp, const uint8_t **serial)
+int nfp_cpp_serial(struct nfp_cpp *cpp, const u8 **serial)
 {
 	*serial = &cpp->op->serial[0];
 	return sizeof(cpp->op->serial);
@@ -664,12 +664,12 @@ static struct nfp_cpp_area *nfp_cpp_area_get(struct nfp_cpp_area *area)
  * Return: NFP CPP area handle, or NULL
  */
 struct nfp_cpp_area *nfp_cpp_area_alloc_with_name(
-	struct nfp_cpp *cpp, uint32_t dest,
+	struct nfp_cpp *cpp, u32 dest,
 	const char *name,
 	unsigned long long address, unsigned long size)
 {
 	struct nfp_cpp_area *area;
-	uint64_t tmp64 = (uint64_t)address;
+	u64 tmp64 = (u64)address;
 	int err, name_len;
 
 	BUG_ON(!cpp);
@@ -743,7 +743,7 @@ struct nfp_cpp_area *nfp_cpp_area_alloc_with_name(
  * Return: NFP CPP Area handle, or NULL
  */
 struct nfp_cpp_area *nfp_cpp_area_alloc(
-	struct nfp_cpp *cpp, uint32_t dest,
+	struct nfp_cpp *cpp, u32 dest,
 	unsigned long long address, unsigned long size)
 {
 	return nfp_cpp_area_alloc_with_name(cpp, dest, NULL, address, size);
@@ -766,7 +766,7 @@ struct nfp_cpp_area *nfp_cpp_area_alloc(
  * Return: NFP CPP Area handle, or NULL
  */
 struct nfp_cpp_area *nfp_cpp_area_alloc_acquire(
-		  struct nfp_cpp *cpp, uint32_t dest,
+		  struct nfp_cpp *cpp, u32 dest,
 		  unsigned long long address,
 		  unsigned long size)
 {
@@ -1049,7 +1049,7 @@ void __iomem *nfp_cpp_area_iomem(struct nfp_cpp_area *area)
 }
 
 /**
- * nfp_cpp_area_readl() - Read a uint32_t word from an area
+ * nfp_cpp_area_readl() - Read a u32 word from an area
  * @area:       CPP Area handle
  * @offset:     Offset into area
  * @value:      Pointer to read buffer
@@ -1057,10 +1057,10 @@ void __iomem *nfp_cpp_area_iomem(struct nfp_cpp_area *area)
  * Return: length of the io, or -ERRNO
  */
 int nfp_cpp_area_readl(struct nfp_cpp_area *area,
-		       unsigned long offset, uint32_t *value)
+		       unsigned long offset, u32 *value)
 {
 	int err;
-	uint32_t tmp;
+	u32 tmp;
 
 	err = nfp_cpp_area_read(area, offset, &tmp, sizeof(tmp));
 	*value = le32_to_cpu(tmp);
@@ -1069,7 +1069,7 @@ int nfp_cpp_area_readl(struct nfp_cpp_area *area,
 }
 
 /**
- * nfp_cpp_area_writel() - Write a uint32_t word to an area
+ * nfp_cpp_area_writel() - Write a u32 word to an area
  * @area:       CPP Area handle
  * @offset:     Offset into area
  * @value:      Value to write
@@ -1077,14 +1077,14 @@ int nfp_cpp_area_readl(struct nfp_cpp_area *area,
  * Return: length of the io, or -ERRNO
  */
 int nfp_cpp_area_writel(struct nfp_cpp_area *area,
-			unsigned long offset, uint32_t value)
+			unsigned long offset, u32 value)
 {
 	value = cpu_to_le32(value);
 	return nfp_cpp_area_write(area, offset, &value, sizeof(value));
 }
 
 /**
- * nfp_cpp_area_readq() - Read a uint64_t word from an area
+ * nfp_cpp_area_readq() - Read a u64 word from an area
  * @area:       CPP Area handle
  * @offset:     Offset into area
  * @value:      Pointer to read buffer
@@ -1092,10 +1092,10 @@ int nfp_cpp_area_writel(struct nfp_cpp_area *area,
  * Return: length of the io, or -ERRNO
  */
 int nfp_cpp_area_readq(struct nfp_cpp_area *area,
-		       unsigned long offset, uint64_t *value)
+		       unsigned long offset, u64 *value)
 {
 	int err;
-	uint64_t tmp;
+	u64 tmp;
 
 	err = nfp_cpp_area_read(area, offset, &tmp, sizeof(tmp));
 	*value = le64_to_cpu(tmp);
@@ -1104,7 +1104,7 @@ int nfp_cpp_area_readq(struct nfp_cpp_area *area,
 }
 
 /**
- * nfp_cpp_area_writeq() - Write a uint64_t word to an area
+ * nfp_cpp_area_writeq() - Write a u64 word to an area
  * @area:       CPP Area handle
  * @offset:     Offset into area
  * @value:      Value to write
@@ -1112,7 +1112,7 @@ int nfp_cpp_area_readq(struct nfp_cpp_area *area,
  * Return: length of the io, or -ERRNO
  */
 int nfp_cpp_area_writeq(struct nfp_cpp_area *area,
-			unsigned long offset, uint64_t value)
+			unsigned long offset, u64 value)
 {
 	value = cpu_to_le64(value);
 	return nfp_cpp_area_write(area, offset, &value, sizeof(value));
@@ -1130,15 +1130,14 @@ int nfp_cpp_area_writeq(struct nfp_cpp_area *area,
  * Return: length of io, or -ERRNO
  */
 int nfp_cpp_area_fill(struct nfp_cpp_area *area,
-		      unsigned long offset, uint32_t value,
-		      size_t length)
+		      unsigned long offset, u32 value, size_t length)
 {
 	size_t i, k;
 
 	value = cpu_to_le32(value);
 
-	if ((offset % sizeof(uint32_t)) != 0 ||
-	    (length % sizeof(uint32_t)) != 0)
+	if ((offset % sizeof(u32)) != 0 ||
+	    (length % sizeof(u32)) != 0)
 		return -EINVAL;
 
 	for (i = 0; i < length; i += sizeof(value)) {
@@ -1172,7 +1171,8 @@ int nfp_cpp_area_cache_add(struct nfp_cpp *cpp, size_t size)
 	if (!cache)
 		return -ENOMEM;
 
-	cache->id = cache->addr = 0;
+	cache->id = 0;
+	cache->addr = 0;
 	cache->size = size;
 	cache->area = area;
 	mutex_lock(&cpp->area_cache_mutex);
@@ -1183,7 +1183,7 @@ int nfp_cpp_area_cache_add(struct nfp_cpp *cpp, size_t size)
 }
 
 static struct nfp_cpp_area_cache *area_cache_get(struct nfp_cpp *cpp,
-						 uint32_t id, uint64_t addr,
+						 u32 id, u64 addr,
 						 unsigned long *offset,
 						 size_t length)
 {
@@ -1223,7 +1223,7 @@ static struct nfp_cpp_area_cache *area_cache_get(struct nfp_cpp *cpp,
 
 	/* Adjust the start address to be cache size aligned */
 	cache->id = id;
-	cache->addr = addr & ~(uint64_t)(cache->size - 1);
+	cache->addr = addr & ~(u64)(cache->size - 1);
 
 	/* Re-init to the new ID and address */
 	if (cpp->op->area_init) {
@@ -1251,7 +1251,7 @@ exit:
 static void area_cache_put(struct nfp_cpp *cpp,
 			   struct nfp_cpp_area_cache *cache)
 {
-	if (cache == NULL)
+	if (!cache)
 		return;
 
 	/* Move to front of LRU */
@@ -1271,7 +1271,7 @@ static void area_cache_put(struct nfp_cpp *cpp,
  *
  * Return: length of io, or -ERRNO
  */
-int nfp_cpp_read(struct nfp_cpp *cpp, uint32_t destination,
+int nfp_cpp_read(struct nfp_cpp *cpp, u32 destination,
 		 unsigned long long address,
 		 void *kernel_vaddr, size_t length)
 {
@@ -1313,7 +1313,7 @@ out:
  *
  * Return: length of io, or -ERRNO
  */
-int nfp_cpp_write(struct nfp_cpp *cpp, uint32_t destination,
+int nfp_cpp_write(struct nfp_cpp *cpp, u32 destination,
 		  unsigned long long address,
 		  const void *kernel_vaddr, size_t length)
 {
@@ -1349,9 +1349,9 @@ out:
 /* Return the correct CPP address, and fixup xpb_addr as needed,
  * based upon NFP model.
  */
-static uint32_t nfp_xpb_to_cpp(struct nfp_cpp *cpp, uint32_t *xpb_addr)
+static u32 nfp_xpb_to_cpp(struct nfp_cpp *cpp, u32 *xpb_addr)
 {
-	uint32_t xpb;
+	u32 xpb;
 	int island;
 	int is_arm = NFP_CPP_INTERFACE_TYPE_of(nfp_cpp_interface(cpp))
 		       == NFP_CPP_INTERFACE_TYPE_ARM;
@@ -1392,31 +1392,31 @@ static uint32_t nfp_xpb_to_cpp(struct nfp_cpp *cpp, uint32_t *xpb_addr)
 }
 
 /**
- * nfp_xpb_readl() - Read a uint32_t word from a XPB location
+ * nfp_xpb_readl() - Read a u32 word from a XPB location
  * @cpp:        CPP device handle
  * @xpb_addr:   Address for operation
  * @value:      Pointer to read buffer
  *
  * Return: length of the io, or -ERRNO
  */
-int nfp_xpb_readl(struct nfp_cpp *cpp, uint32_t xpb_addr, uint32_t *value)
+int nfp_xpb_readl(struct nfp_cpp *cpp, u32 xpb_addr, u32 *value)
 {
-	uint32_t cpp_dest = nfp_xpb_to_cpp(cpp, &xpb_addr);
+	u32 cpp_dest = nfp_xpb_to_cpp(cpp, &xpb_addr);
 
 	return nfp_cpp_readl(cpp, cpp_dest, xpb_addr, value);
 }
 
 /**
- * nfp_xpb_writel() - Write a uint32_t word to a XPB location
+ * nfp_xpb_writel() - Write a u32 word to a XPB location
  * @cpp:        CPP device handle
  * @xpb_addr:   Address for operation
  * @value:      Value to write
  *
  * Return: length of the io, or -ERRNO
  */
-int nfp_xpb_writel(struct nfp_cpp *cpp, uint32_t xpb_addr, uint32_t value)
+int nfp_xpb_writel(struct nfp_cpp *cpp, u32 xpb_addr, u32 value)
 {
-	uint32_t cpp_dest = nfp_xpb_to_cpp(cpp, &xpb_addr);
+	u32 cpp_dest = nfp_xpb_to_cpp(cpp, &xpb_addr);
 
 	return nfp_cpp_writel(cpp, cpp_dest, xpb_addr, value);
 }
@@ -1432,11 +1432,11 @@ int nfp_xpb_writel(struct nfp_cpp *cpp, uint32_t xpb_addr, uint32_t value)
  *
  * Return: length of the io, or -ERRNO
  */
-int nfp_xpb_writelm(struct nfp_cpp *cpp, uint32_t xpb_tgt,
-		    uint32_t mask, uint32_t value)
+int nfp_xpb_writelm(struct nfp_cpp *cpp, u32 xpb_tgt,
+		    u32 mask, u32 value)
 {
 	int err;
-	uint32_t tmp;
+	u32 tmp;
 
 	err = nfp_xpb_readl(cpp, xpb_tgt, &tmp);
 	if (err < 0)
@@ -1479,7 +1479,7 @@ struct nfp_cpp *nfp_cpp_event_cpp(struct nfp_cpp_event *cpp_event)
  * Return: NFP CPP event handle, or ERR_PTR()
  */
 struct nfp_cpp_event *nfp_cpp_event_alloc(
-	struct nfp_cpp *cpp, uint32_t match, uint32_t mask, int type)
+	struct nfp_cpp *cpp, u32 match, u32 mask, int type)
 {
 	struct nfp_cpp_event *event;
 	int err;
@@ -1667,10 +1667,10 @@ struct nfp_cpp *nfp_cpp_from_operations(const struct nfp_cpp_operations *ops)
 	}
 
 	if (NFP_CPP_MODEL_IS_6000(cpp->model)) {
-		uint32_t mask[2];
-		const uint32_t arm = NFP_CPP_ID(NFP_CPP_TARGET_ARM,
+		u32 mask[2];
+		const u32 arm = NFP_CPP_ID(NFP_CPP_TARGET_ARM,
 						NFP_CPP_ACTION_RW, 0);
-		uint32_t xpbaddr;
+		u32 xpbaddr;
 		size_t tgt;
 
 		for (tgt = 0; tgt < ARRAY_SIZE(cpp->imb_cat_table); tgt++) {
@@ -1690,7 +1690,7 @@ struct nfp_cpp *nfp_cpp_from_operations(const struct nfp_cpp_operations *ops)
 		nfp_cpp_readl(cpp, arm, NFP_ARM_GCSR + NFP_ARM_GCSR_SOFTMODEL3,
 			      &mask[1]);
 
-		cpp->island_mask = (((uint64_t)mask[1] << 32) | mask[0]);
+		cpp->island_mask = (((u64)mask[1] << 32) | mask[0]);
 	}
 
 	/* After initialization, do any model specific fixups */
@@ -1749,7 +1749,7 @@ struct device *nfp_cpp_device(struct nfp_cpp *cpp)
  *
  * Return: 64-bit island mask
  */
-uint64_t nfp_cpp_island_mask(struct nfp_cpp *cpp)
+u64 nfp_cpp_island_mask(struct nfp_cpp *cpp)
 {
 	return cpp->island_mask;
 }
@@ -1814,7 +1814,7 @@ struct nfp_cpp_explicit *nfp_cpp_explicit_acquire(struct nfp_cpp *cpp)
  * Return: 0, or -ERRNO
  */
 int nfp_cpp_explicit_set_target(struct nfp_cpp_explicit *expl,
-				uint32_t cpp_id, uint8_t len, uint8_t mask)
+				u32 cpp_id, u8 len, u8 mask)
 {
 	expl->cmd.cpp_id = cpp_id;
 	expl->cmd.len = len;
@@ -1832,7 +1832,7 @@ int nfp_cpp_explicit_set_target(struct nfp_cpp_explicit *expl,
  * Return: 0, or -ERRNO
  */
 int nfp_cpp_explicit_set_data(struct nfp_cpp_explicit *expl,
-			      uint8_t data_master, uint16_t data_ref)
+			      u8 data_master, uint16_t data_ref)
 {
 	expl->cmd.data_master = data_master;
 	expl->cmd.data_ref = data_ref;
@@ -1849,7 +1849,7 @@ int nfp_cpp_explicit_set_data(struct nfp_cpp_explicit *expl,
  * Return: 0, or -ERRNO
  */
 int nfp_cpp_explicit_set_signal(struct nfp_cpp_explicit *expl,
-				uint8_t signal_master, uint8_t signal_ref)
+				u8 signal_master, u8 signal_ref)
 {
 	expl->cmd.signal_master = signal_master;
 	expl->cmd.signal_ref = signal_ref;
@@ -1869,9 +1869,9 @@ int nfp_cpp_explicit_set_signal(struct nfp_cpp_explicit *expl,
  * Return: 0, or -ERRNO
  */
 int nfp_cpp_explicit_set_posted(struct nfp_cpp_explicit *expl, int posted,
-				uint8_t siga,
+				u8 siga,
 				enum nfp_cpp_explicit_signal_mode siga_mode,
-				uint8_t sigb,
+				u8 sigb,
 				enum nfp_cpp_explicit_signal_mode sigb_mode)
 {
 	expl->cmd.posted = posted;
@@ -1884,7 +1884,7 @@ int nfp_cpp_explicit_set_posted(struct nfp_cpp_explicit *expl, int posted,
 }
 
 /**
- * nfp_cpp_explicit_put() - Set up the write (pull) data for a NFP CPP explicit access
+ * nfp_cpp_explicit_put() - Set up the write (pull) data for a explicit access
  * @expl:       NFP CPP Explicit handle
  * @buff:       Data to have the target pull in the transaction
  * @len:        Length of data, in bytes
@@ -1916,7 +1916,7 @@ int nfp_cpp_explicit_put(struct nfp_cpp_explicit *expl,
  *
  * Return: 0, or -ERRNO
  */
-int nfp_cpp_explicit_do(struct nfp_cpp_explicit *expl, uint64_t address)
+int nfp_cpp_explicit_do(struct nfp_cpp_explicit *expl, u64 address)
 {
 	int err = -EINVAL;
 
@@ -1926,7 +1926,7 @@ int nfp_cpp_explicit_do(struct nfp_cpp_explicit *expl, uint64_t address)
 }
 
 /**
- * nfp_cpp_explicit_get() - Get the 'push' (read) data from a NFP CPP explicit access
+ * nfp_cpp_explicit_get() - Get the 'push' (read) data from a explicit access
  * @expl:       NFP CPP Explicit handle
  * @buff:       Data that the target pushed in the transaction
  * @len:        Length of data, in bytes
