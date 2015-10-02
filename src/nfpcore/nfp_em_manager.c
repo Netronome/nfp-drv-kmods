@@ -397,8 +397,8 @@ struct nfp_em_manager {
 	int irq;
 	void __iomem *em;
 	struct {
-		uint32_t match;
-		uint32_t mask;
+		u32 match;
+		u32 mask;
 		int type;
 		struct nfp_cpp_event *event;
 	} filter[32];
@@ -408,7 +408,7 @@ static irqreturn_t nfp_em_manager_irq(int irq, void *priv)
 {
 	struct nfp_em_manager *evm = priv;
 	int i;
-	uint32_t tmp;
+	u32 tmp;
 
 	tmp = readl(evm->em + NFP_EM_ALL_STATUS);
 
@@ -478,7 +478,7 @@ void nfp_em_manager_destroy(struct nfp_em_manager *evm)
  */
 int nfp_em_manager_acquire(struct nfp_em_manager *evm,
 			   struct nfp_cpp_event *event,
-			   uint32_t match, uint32_t mask, uint32_t type)
+			   u32 match, u32 mask, u32 type)
 {
 	unsigned long flags;
 	int i;
