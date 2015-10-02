@@ -337,55 +337,55 @@ enum nfp_mip_entry_type {
 };
 
 struct nfp_mip {
-	uint32_t signature;
-	uint32_t mip_version;
-	uint32_t mip_size;
-	uint32_t first_entry;
+	u32 signature;
+	u32 mip_version;
+	u32 mip_size;
+	u32 first_entry;
 
-	uint32_t version;
-	uint32_t buildnum;
-	uint32_t buildtime;
-	uint32_t loadtime;
+	u32 version;
+	u32 buildnum;
+	u32 buildtime;
+	u32 loadtime;
 
-	uint32_t symtab_addr;
-	uint32_t symtab_size;
-	uint32_t strtab_addr;
-	uint32_t strtab_size;
+	u32 symtab_addr;
+	u32 symtab_size;
+	u32 strtab_addr;
+	u32 strtab_size;
 
 	char name[16];
 	char toolchain[32];
 };
 
 struct nfp_mip_entry {
-	uint32_t type;
-	uint32_t version;
-	uint32_t offset_next;
+	u32 type;
+	u32 version;
+	u32 offset_next;
 };
 
 struct nfp_mip_qc {
-	uint32_t type;
-	uint32_t version;
-	uint32_t offset_next;
-	uint32_t type_config;
-	uint32_t type_config_size;
-	uint32_t host_config;
-	uint32_t host_config_size;
-	uint32_t config_signal;
-	uint32_t nfp_queue_size;
-	uint32_t queue_base;
-	uint32_t sequence_base;
-	uint32_t sequence_type;
-	uint32_t status_base;
-	uint32_t status_version;
-	uint32_t error_base;
+	u32 type;
+	u32 version;
+	u32 offset_next;
+	u32 type_config;
+	u32 type_config_size;
+	u32 host_config;
+	u32 host_config_size;
+	u32 config_signal;
+	u32 nfp_queue_size;
+	u32 queue_base;
+	u32 sequence_base;
+	u32 sequence_type;
+	u32 status_base;
+	u32 status_version;
+	u32 error_base;
 };
 
 struct nfp_mip_vpci {
-	uint32_t type;
-	uint32_t version;
-	uint32_t offset_next;
-	uint32_t vpci_epconfig;
-	uint32_t vpci_epconfig_size;
+	u32 type;
+	u32 version;
+	u32 offset_next;
+	u32 vpci_epconfig;
+	u32 vpci_epconfig_size;
 };
 
 static void __mip_update_byteorder(struct nfp_mip *mip)
@@ -529,7 +529,7 @@ const struct nfp_mip *nfp_mip(struct nfp_device *dev)
 static int nfp_mip_nfp6000_mu_locality_lsb(struct nfp_device *dev)
 {
 	struct nfp_cpp *cpp = nfp_device_cpp(dev);
-	uint32_t xpbaddr, imbcppat;
+	u32 xpbaddr, imbcppat;
 	int err;
 
 	if (!cpp)
@@ -548,15 +548,15 @@ static int nfp_mip_nfp6000_mu_locality_lsb(struct nfp_device *dev)
 }
 
 static int __nfp_mip_location(struct nfp_device *dev,
-			      uint32_t *cppid, uint64_t *addr,
+			      u32 *cppid, u64 *addr,
 			      unsigned long *size, unsigned long *load_time)
 {
 	int retval;
-	uint32_t mip_cppid = 0;
-	uint64_t mip_off = 0;
+	u32 mip_cppid = 0;
+	u64 mip_off = 0;
 	struct nfp_cpp *cpp = nfp_device_cpp(dev);
 	struct nfp_mip mip;
-	uint32_t model = nfp_cpp_model(nfp_device_cpp(dev));
+	u32 model = nfp_cpp_model(nfp_device_cpp(dev));
 
 	/* First see if we can get it from the nfp.nffw resource */
 	if (nfp_nffw_info_acquire(dev) == 0) {
@@ -573,10 +573,10 @@ static int __nfp_mip_location(struct nfp_device *dev,
 			(NFP_CPP_ID_TARGET_of(mip_cppid) ==
 						NFP_CPP_TARGET_MU)) {
 			if ((mip_off >> 63) & 1) {
-				mip_off &= ~((uint64_t)1) << 63;
-				mip_off &= ~((uint64_t)0x3) << mu_lsb;
+				mip_off &= ~((u64)1) << 63;
+				mip_off &= ~((u64)0x3) << mu_lsb;
 				/* Direct Access */
-				mip_off |= ((uint64_t)2) << mu_lsb;
+				mip_off |= ((u64)2) << mu_lsb;
 			}
 		}
 		nfp_nffw_info_release(dev);
@@ -596,7 +596,7 @@ static int __nfp_mip_location(struct nfp_device *dev,
 		for (mip_off = 0;
 		     mip_off < NFP_MIP_MAX_OFFSET;
 		     mip_off += 4096) {
-			uint32_t cpp_id = NFP_CPP_ID(NFP_CPP_TARGET_MU,
+			u32 cpp_id = NFP_CPP_ID(NFP_CPP_TARGET_MU,
 						     NFP_CPP_ACTION_RW, 0);
 			if (NFP_CPP_MODEL_IS_6000(model))
 				cpp_id |= 24;
@@ -646,8 +646,8 @@ int nfp_mip_probe(struct nfp_device *dev)
 {
 	struct nfp_mip_priv *priv = nfp_device_private(dev, __nfp_mip_con);
 	unsigned long size, time;
-	uint32_t cpp_id;
-	uint64_t addr;
+	u32 cpp_id;
+	u64 addr;
 	struct nfp_mip *mip;
 	int retval;
 
@@ -704,7 +704,7 @@ int nfp_mip_probe(struct nfp_device *dev)
  *
  * Return: 0, or -ERRNO
  */
-int nfp_mip_symtab(const struct nfp_mip *mip, uint32_t *addr, uint32_t *size)
+int nfp_mip_symtab(const struct nfp_mip *mip, u32 *addr, u32 *size)
 {
 	if (!mip)
 		return -EINVAL;
@@ -725,7 +725,7 @@ int nfp_mip_symtab(const struct nfp_mip *mip, uint32_t *addr, uint32_t *size)
  *
  * Return: 0, or -ERRNO
  */
-int nfp_mip_strtab(const struct nfp_mip *mip, uint32_t *addr, uint32_t *size)
+int nfp_mip_strtab(const struct nfp_mip *mip, u32 *addr, u32 *size)
 {
 	if (!mip)
 		return -EINVAL;
