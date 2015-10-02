@@ -419,9 +419,9 @@
  */
 int nfp_nbi_mac_eth_ifdown(struct nfp_nbi_dev *nbi, int core, int port)
 {
-	uint64_t r;
-	uint32_t d = 0;
-	uint32_t m = 0;
+	u64 r;
+	u32 d = 0;
+	u32 m = 0;
 	int mode = 0;
 
 	if (!nbi)
@@ -471,9 +471,9 @@ int nfp_nbi_mac_eth_ifdown(struct nfp_nbi_dev *nbi, int core, int port)
 int nfp_nbi_mac_eth_ifup(struct nfp_nbi_dev *nbi, int core, int port)
 {
 	int ret;
-	uint64_t r;
-	uint32_t d = 0;
-	uint32_t m = 0;
+	u64 r;
+	u32 d = 0;
+	u32 m = 0;
 	int mode = 0;
 
 	if (!nbi)
@@ -539,12 +539,12 @@ int nfp_nbi_mac_eth_ifup(struct nfp_nbi_dev *nbi, int core, int port)
  * Return: 0 - link down, 1 - link up, or -ERRNO.
  */
 int nfp_nbi_mac_eth_read_linkstate(struct nfp_nbi_dev *nbi, int core, int port,
-				   uint32_t *linkstate)
+				   u32 *linkstate)
 {
-	uint64_t r;
-	uint32_t d = 0;
-	uint32_t m = 0;
-	uint32_t status = 0;
+	u64 r;
+	u32 d = 0;
+	u32 m = 0;
+	u32 status = 0;
 	int ret;
 
 	if (!nbi)
@@ -642,10 +642,10 @@ int nfp_nbi_mac_eth_read_linkstate(struct nfp_nbi_dev *nbi, int core, int port,
 int nfp_nbi_mac_eth_read_mode(struct nfp_nbi_dev *nbi, int core, int port)
 {
 	int ret;
-	uint64_t r;
-	uint32_t d = 0;
-	uint32_t m = 0;
-	uint32_t mux = 0;
+	u64 r;
+	u32 d = 0;
+	u32 m = 0;
+	u32 mux = 0;
 	int mode;
 	int s;
 
@@ -759,12 +759,12 @@ int nfp_nbi_mac_eth_read_mode(struct nfp_nbi_dev *nbi, int core, int port)
  * Return: 0, or -ERRNO
  */
 int nfp_nbi_mac_eth_write_mac_addr(struct nfp_nbi_dev *nbi, int core,
-				   int port, uint64_t hwaddr)
+				   int port, u64 hwaddr)
 {
 	int ret;
-	uint64_t r;
-	uint32_t d = 0;
-	uint32_t m = 0;
+	u64 r;
+	u32 d = 0;
+	u32 m = 0;
 
 	if (!nbi)
 		return -ENODEV;
@@ -803,12 +803,12 @@ int nfp_nbi_mac_eth_write_mac_addr(struct nfp_nbi_dev *nbi, int core,
  * Return: 0, or -ERRNO
  */
 int nfp_nbi_mac_eth_read_mac_addr(struct nfp_nbi_dev *nbi, int core,
-				  int port, uint64_t *hwaddr)
+				  int port, u64 *hwaddr)
 {
 	int ret;
-	uint64_t r;
-	uint32_t d = 0;
-	uint32_t m = 0;
+	u64 r;
+	u32 d = 0;
+	u32 m = 0;
 
 	if (!nbi)
 		return -ENODEV;
