@@ -327,26 +327,26 @@
 #define _SYM_TGT_EMU_CACHE  0x17
 
 struct _rtsym {
-	uint8_t  type;
-	uint8_t  target;
+	u8  type;
+	u8  target;
 	union {
-		uint8_t  val;
+		u8  val;
 		/* N/A, island or linear menum, depends on 'target' */
-		uint8_t  nfp3200_domain;
+		u8  nfp3200_domain;
 		/* 0xff if N/A */
-		uint8_t  nfp6000_island;
+		u8  nfp6000_island;
 	} domain1;
-	uint8_t  addr_hi;
-	uint32_t addr_lo;
-	uint16_t name;
+	u8  addr_hi;
+	u32 addr_lo;
+	u16 name;
 	union {
-		uint8_t  val;
-		uint8_t  nfp3200___rsvd;
+		u8  val;
+		u8  nfp3200___rsvd;
 		/* 0xff if N/A */
-		uint8_t  nfp6000_menum;
+		u8  nfp6000_menum;
 	} domain2;
-	uint8_t  size_hi;
-	uint32_t size_lo;
+	u8  size_hi;
+	u32 size_lo;
 };
 
 struct nfp_rtsym_priv {
@@ -391,13 +391,13 @@ static int __nfp_rtsymtab_probe(struct nfp_device *dev,
 {
 	struct nfp_cpp *cpp = nfp_device_cpp(dev);
 	struct _rtsym *rtsymtab;
-	uint32_t *wptr;
+	u32 *wptr;
 	int err, n;
-	uint32_t model = nfp_cpp_model(cpp);
-	const uint32_t dram = NFP_CPP_ID(NFP_CPP_TARGET_MU,
+	u32 model = nfp_cpp_model(cpp);
+	const u32 dram = NFP_CPP_ID(NFP_CPP_TARGET_MU,
 					 NFP_CPP_ACTION_RW, 0);
-	uint32_t strtab_addr, symtab_addr;
-	uint32_t strtab_size, symtab_size;
+	u32 strtab_addr, symtab_addr;
+	u32 strtab_size, symtab_size;
 
 	if (!priv->mip) {
 		priv->mip = nfp_mip(dev);
@@ -452,7 +452,7 @@ static int __nfp_rtsymtab_probe(struct nfp_device *dev,
 			goto err_read_strtab;
 		priv->rtstrtab[strtab_size] = '\0';
 
-		for (wptr = (uint32_t *)rtsymtab, n = 0;
+		for (wptr = (u32 *)rtsymtab, n = 0;
 		     n < priv->numrtsyms; n++)
 			wptr[n] = le32_to_cpu(wptr[n]);
 
@@ -498,7 +498,7 @@ static int __nfp_rtsymtab_probe(struct nfp_device *dev,
 			goto err_read_strtab;
 		priv->rtstrtab[strtab_size] = '\0';
 
-		for (wptr = (uint32_t *)rtsymtab, n = 0;
+		for (wptr = (u32 *)rtsymtab, n = 0;
 		     n < priv->numrtsyms; n++)
 			wptr[n] = le32_to_cpu(wptr[n]);
 
