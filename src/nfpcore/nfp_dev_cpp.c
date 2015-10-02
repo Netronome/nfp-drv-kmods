@@ -373,7 +373,7 @@ struct nfp_dev_cpp {
 
 struct nfp_dev_cpp_channel {
 	struct nfp_dev_cpp *cdev;
-	uint16_t interface;
+	u16 interface;
 };
 
 /* Attached VMAs */
@@ -387,7 +387,7 @@ struct nfp_dev_cpp_vma {
 /* Acquired areas */
 struct nfp_dev_cpp_area {
 	struct nfp_dev_cpp *cdev;
-	uint16_t interface;
+	u16 interface;
 	struct nfp_cpp_area_request req;
 	struct list_head req_list; /* protected by cdev->req.lock */
 	struct nfp_cpp_area *area;
@@ -399,7 +399,7 @@ struct nfp_dev_cpp_area {
 
 /* Allocated events */
 struct nfp_dev_cpp_event {
-	uint16_t interface;
+	u16 interface;
 	struct nfp_cpp_event_request req;
 	struct nfp_cpp_event *cpp_event;
 	struct task_struct *task;
@@ -437,7 +437,7 @@ static void nfp_dev_cpp_event_cb(void *opaque)
 	send_sig_info(ev->signal, &info, ev->task);
 }
 
-static int nfp_dev_cpp_area_alloc(struct nfp_dev_cpp *cdev, uint16_t interface,
+static int nfp_dev_cpp_area_alloc(struct nfp_dev_cpp *cdev, u16 interface,
 				  struct nfp_cpp_area_request *area_req)
 {
 	struct nfp_dev_cpp_area *area;
@@ -585,8 +585,8 @@ static int nfp_dev_cpp_open(struct inode *inode, struct file *file)
 	struct nfp_dev_cpp *cdev = container_of(
 		inode->i_cdev, struct nfp_dev_cpp, cdev);
 	struct nfp_dev_cpp_channel *chan;
+	u16 interface;
 	int channel;
-	uint16_t interface;
 
 	interface = nfp_cpp_interface(cdev->cpp);
 
@@ -638,7 +638,7 @@ static int nfp_dev_cpp_release(struct inode *inode, struct file *file)
 {
 	struct nfp_dev_cpp_channel *chan = file->private_data;
 	struct nfp_dev_cpp *cdev = chan->cdev;
-	uint16_t interface = chan->interface;
+	u16 interface = chan->interface;
 	struct nfp_dev_cpp_area *req, *rtmp;
 	struct nfp_dev_cpp_event *ev, *etmp;
 
@@ -672,16 +672,16 @@ static int nfp_dev_cpp_release(struct inode *inode, struct file *file)
 }
 
 static ssize_t nfp_dev_cpp_op(struct file *file,
-			      uint32_t cpp_id, char __user *buff,
-			   size_t count, loff_t *offp, int write)
+			      u32 cpp_id, char __user *buff,
+			      size_t count, loff_t *offp, int write)
 {
 	struct nfp_dev_cpp_channel *chan = file->private_data;
 	struct nfp_dev_cpp *cdev = chan->cdev;
 	struct nfp_cpp *cpp = cdev->cpp;
-	uint32_t tmpbuf[16];
 	struct nfp_cpp_area *area;
-	uint32_t __user *udata;
-	uint32_t pos, len;
+	u32 __user *udata;
+	u32 tmpbuf[16];
+	u32 pos, len;
 	int err = 0;
 	size_t curlen = count, totlen = 0;
 
@@ -715,7 +715,7 @@ static ssize_t nfp_dev_cpp_op(struct file *file,
 			len = curlen - pos;
 			if (len > sizeof(tmpbuf))
 				len = sizeof(tmpbuf);
-			udata = (uint32_t __user *)(buff + pos);
+			udata = (u32 __user *)(buff + pos);
 
 			if (write) {
 				if (copy_from_user(tmpbuf, udata, len)) {
@@ -757,7 +757,7 @@ static ssize_t nfp_dev_cpp_op(struct file *file,
 static ssize_t nfp_dev_cpp_read(struct file *file, char __user *buff,
 				size_t count, loff_t *offp)
 {
-	uint32_t cpp_id = (*offp >> 40) << 8;
+	u32 cpp_id = (*offp >> 40) << 8;
 	loff_t offset = *offp & ((1ull << 40) - 1);
 	int r;
 
@@ -769,7 +769,7 @@ static ssize_t nfp_dev_cpp_read(struct file *file, char __user *buff,
 static ssize_t nfp_dev_cpp_write(struct file *file, const char __user *buff,
 				 size_t count, loff_t *offp)
 {
-	uint32_t cpp_id = (*offp >> 40) << 8;
+	u32 cpp_id = (*offp >> 40) << 8;
 	loff_t offset = *offp & ((1ull << 40) - 1);
 	int r;
 
@@ -801,12 +801,12 @@ static int nfp_dev_cpp_range_check(struct list_head *req_list,
 static int explicit_csr_to_cmd(struct nfp_cpp_explicit *expl,
 			       const unsigned long *csr)
 {
-	uint32_t expl1, expl2, post;
-	uint32_t cpp_id;
 	enum nfp_cpp_explicit_signal_mode siga_mode, sigb_mode;
-	int err;
-	int data_master, data_ref;
 	int signal_master, signal_ref;
+	int data_master, data_ref;
+	u32 expl1, expl2, post;
+	u32 cpp_id;
+	int err;
 
 	post = csr[NFP_IOCTL_CPP_EXPL_POST];
 	expl1 = csr[NFP_IOCTL_CPP_EXPL1_BAR];
@@ -889,11 +889,11 @@ static int explicit_csr_to_cmd(struct nfp_cpp_explicit *expl,
 	return 0;
 }
 
-static int do_cpp_event_acquire(struct nfp_dev_cpp *cdev, uint16_t interface,
+static int do_cpp_event_acquire(struct nfp_dev_cpp *cdev, u16 interface,
 				struct nfp_cpp_event_request *event_req)
 {
-	int err;
 	struct nfp_dev_cpp_event *event;
+	int err;
 
 	if (event_req->signal <= 0 || event_req->signal >= _NSIG)
 		return -EINVAL;
@@ -929,7 +929,7 @@ static int do_cpp_event_acquire(struct nfp_dev_cpp *cdev, uint16_t interface,
 	return 0;
 }
 
-static int do_cpp_event_release(struct nfp_dev_cpp *cdev, uint16_t interface,
+static int do_cpp_event_release(struct nfp_dev_cpp *cdev, u16 interface,
 				struct nfp_cpp_event_request *event_req)
 {
 	struct nfp_dev_cpp_event *event, *etmp;
@@ -1014,7 +1014,7 @@ static int do_cpp_identification(struct nfp_dev_cpp_channel *chan,
 	}
 	if (ident->size >= offsetof(struct nfp_cpp_identification, serial_hi)
 			+ sizeof(ident->serial_hi)) {
-		const uint8_t *serial;
+		const u8 *serial;
 
 		nfp_cpp_serial(chan->cdev->cpp, &serial);
 		ident->serial_hi = (serial[0] <<  8) |
@@ -1033,7 +1033,7 @@ static int do_cpp_identification(struct nfp_dev_cpp_channel *chan,
 	return 0;
 }
 
-static int do_cpp_area_request(struct nfp_dev_cpp *cdev, uint16_t interface,
+static int do_cpp_area_request(struct nfp_dev_cpp *cdev, u16 interface,
 			       struct nfp_cpp_area_request *area_req)
 {
 	int err = 0;
@@ -1076,11 +1076,11 @@ static int do_cpp_area_request(struct nfp_dev_cpp *cdev, uint16_t interface,
 	return err;
 }
 
-static int do_cpp_area_release(struct nfp_dev_cpp *cdev, uint16_t interface,
+static int do_cpp_area_release(struct nfp_dev_cpp *cdev, u16 interface,
 			       struct nfp_cpp_area_request *area_req)
 {
-	int err = -ENOENT;
 	struct nfp_dev_cpp_area *area, *atmp;
+	int err = -ENOENT;
 
 	mutex_lock(&cdev->req.lock);
 
@@ -1213,10 +1213,10 @@ static int nfp_dev_cpp_ioctl(struct inode *inode, struct file *filp,
 
 static int nfp_cpp_mmap_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 {
-	off_t offset;
 	struct nfp_dev_cpp_vma *cvma = vma->vm_private_data;
 	struct nfp_dev_cpp_area *area;
 	struct nfp_dev_cpp *cdev;
+	off_t offset;
 	int err;
 
 	if (!cvma)
@@ -1333,8 +1333,8 @@ static int nfp_dev_cpp_mmap(struct file *filp, struct vm_area_struct *vma)
 	struct nfp_dev_cpp *cdev = chan->cdev;
 	struct nfp_dev_cpp_vma *cvma;
 	struct nfp_dev_cpp_area *area;
-	unsigned long size;
 	unsigned long offset;
+	unsigned long size;
 	int err;
 
 	offset = vma->vm_pgoff << PAGE_SHIFT;
@@ -1406,9 +1406,9 @@ static ssize_t store_firmware(struct device *dev, struct device_attribute *attr,
 			      const char *buf, size_t count)
 {
 	struct nfp_dev_cpp *cdev = dev_get_drvdata(dev);
-	int err;
-	const char *cp;
 	const struct firmware *fw;
+	const char *cp;
+	int err;
 
 	cp = strnchr(buf, count, '\n');
 	if (!cp)
@@ -1435,10 +1435,10 @@ static DEVICE_ATTR(firmware, S_IRUGO | S_IWUSR, show_firmware, store_firmware);
  */
 static int nfp_dev_cpp_probe(struct platform_device *pdev)
 {
-	int err = -EINVAL;
+	struct nfp_platform_data *pdata;
 	struct nfp_dev_cpp *cdev;
 	struct nfp_cpp *cpp;
-	struct nfp_platform_data *pdata;
+	int err = -EINVAL;
 	int id;
 
 	pdata = nfp_platform_device_data(pdev);
