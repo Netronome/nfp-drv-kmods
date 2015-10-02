@@ -355,23 +355,23 @@
  *
  * HWInfo v1 Table (fixed size)
  *
- * 0x0000: uint32_t version	Hardware Info Table version (1.0)
- * 0x0004: uint32_t size	Total size of the table, including
- *				the CRC32 (IEEE 802.3)
- * 0x0008: uint32_t jumptab	Offset of key/value table
- * 0x000c: uint32_t keys	Total number of keys in the key/value table
- * NNNNNN:			Key/value jump table and string data
- * (size - 4): uint32_t crc32	CRC32 (same as IEEE 802.3, POSIX cksum, etc)
+ * 0x0000: u32 version	        Hardware Info Table version (1.0)
+ * 0x0004: u32 size	        Total size of the table, including
+ *			        the CRC32 (IEEE 802.3)
+ * 0x0008: u32 jumptab	        Offset of key/value table
+ * 0x000c: u32 keys	        Total number of keys in the key/value table
+ * NNNNNN:		        Key/value jump table and string data
+ * (size - 4): u32 crc32	CRC32 (same as IEEE 802.3, POSIX cksum, etc)
  *				CRC32("",0) = ~0, CRC32("a",1) = 0x48C279FE
  *
  * HWInfo v2 Table (variable size)
  *
- * 0x0000: uint32_t version	Hardware Info Table version (2.0)
- * 0x0004: uint32_t size	Current size of the data area, excluding CRC32
- * 0x0008: uint32_t limit	Maximum size of the table
- * 0x000c: uint32_t reserved	Unused, set to zero
+ * 0x0000: u32 version	        Hardware Info Table version (2.0)
+ * 0x0004: u32 size	        Current size of the data area, excluding CRC32
+ * 0x0008: u32 limit	        Maximum size of the table
+ * 0x000c: u32 reserved	        Unused, set to zero
  * NNNNNN:			Key/value data
- * (size - 4): uint32_t crc32	CRC32 (same as IEEE 802.3, POSIX cksum, etc)
+ * (size - 4): u32 crc32	CRC32 (same as IEEE 802.3, POSIX cksum, etc)
  *				CRC32("",0) = ~0, CRC32("a",1) = 0x48C279FE
  *
  * If the HWInfo table is in the process of being updated, the low bit
@@ -385,10 +385,10 @@
  *
  *  All keys are guaranteed to be unique.
  *
- * N+0:	uint32_t key_1		Offset to the first key
- * N+4:	uint32_t val_1		Offset to the first value
- * N+8: uint32_t key_2		Offset to the second key
- * N+c: uint32_t val_2		Offset to the second value
+ * N+0:	u32 key_1		Offset to the first key
+ * N+4:	u32 val_1		Offset to the first value
+ * N+8: u32 key_2		Offset to the second key
+ * N+c: u32 val_2		Offset to the second value
  * ...
  *
  * HWInfo v1 Key/Value Table
@@ -407,50 +407,49 @@
 	(('H' << 24) | ('I' << 16) | (2 << 8) | (0 << 1) | 0)
 #define NFP_HWINFO_VERSION_UPDATING(ver)   ((ver) & 1)
 
-#define NFP_HWINFO_VERSION_IN(base) __le32_to_cpu(((uint32_t *)(base))[0])
+#define NFP_HWINFO_VERSION_IN(base) __le32_to_cpu(((u32 *)(base))[0])
 #define NFP_HWINFO_VERSION_SET(base, val) \
-	(((uint32_t *)(base))[0] = __cpu_to_le32(val))
+	(((u32 *)(base))[0] = __cpu_to_le32(val))
 
 /***************** HWInfo v1 ****************/
 
 /* Hardware Info Table Version 1.x */
-#define NFP_HWINFO_SIZE_IN(base)      __le32_to_cpu(((uint32_t *)(base))[1])
-#define NFP_HWINFO_V1_TABLE_IN(base)  __le32_to_cpu(((uint32_t *)(base))[2])
-#define NFP_HWINFO_V1_KEYS_IN(base)   __le32_to_cpu(((uint32_t *)(base))[3])
-#define NFP_HWINFO_V2_LIMIT_IN(base)  __le32_to_cpu(((uint32_t *)(base))[2])
+#define NFP_HWINFO_SIZE_IN(base)      __le32_to_cpu(((u32 *)(base))[1])
+#define NFP_HWINFO_V1_TABLE_IN(base)  __le32_to_cpu(((u32 *)(base))[2])
+#define NFP_HWINFO_V1_KEYS_IN(base)   __le32_to_cpu(((u32 *)(base))[3])
+#define NFP_HWINFO_V2_LIMIT_IN(base)  __le32_to_cpu(((u32 *)(base))[2])
 #define NFP_HWINFO_CRC32_IN(base) \
-	__le32_to_cpu(((uint32_t *)NFP_HWINFO_DATA_END(base))[0])
+	__le32_to_cpu(((u32 *)NFP_HWINFO_DATA_END(base))[0])
 
 #define NFP_HWINFO_SIZE_SET(base, val) \
-		(((uint32_t *)(base))[1] = __cpu_to_le32(val))
+		(((u32 *)(base))[1] = __cpu_to_le32(val))
 
 #define NFP_HWINFO_V1_TABLE_SET(base, val) \
-	(((uint32_t *)(base))[2] = __cpu_to_le32(val))
+	(((u32 *)(base))[2] = __cpu_to_le32(val))
 #define NFP_HWINFO_V1_KEYS_SET(base, val) \
-	(((uint32_t *)(base))[3] = __cpu_to_le32(val))
+	(((u32 *)(base))[3] = __cpu_to_le32(val))
 
 #define NFP_HWINFO_V2_LIMIT_SET(base, val) \
-	(((uint32_t *)(base))[2] = __cpu_to_le32(val))
+	(((u32 *)(base))[2] = __cpu_to_le32(val))
 #define NFP_HWINFO_V2_RESERVED_SET(base, val) \
-	(((uint32_t *)(base))[3] = __cpu_to_le32(val))
+	(((u32 *)(base))[3] = __cpu_to_le32(val))
 
 #define NFP_HWINFO_CRC32_SET(base, val) \
-	(((uint32_t *)NFP_HWINFO_DATA_END(base))[0] = __cpu_to_le32(val))
+	(((u32 *)NFP_HWINFO_DATA_END(base))[0] = __cpu_to_le32(val))
 
-#define NFP_HWINFO_DATA_START(base) ((void *)&(((uint32_t *)base)[4]))
+#define NFP_HWINFO_DATA_START(base) ((void *)&(((u32 *)base)[4]))
 #define NFP_HWINFO_DATA_END(base) \
-	((void *)(((char *)(base)) + \
-		NFP_HWINFO_SIZE_IN(base) - sizeof(uint32_t)))
+	((void *)(((char *)(base)) + NFP_HWINFO_SIZE_IN(base) - sizeof(u32)))
 
 /* Key/Value Table Version 1.x */
 #define NFP_HWINFO_V1_KEY_IN(base, key_id) \
 	((const char *)((char *)(base) + \
-		__le32_to_cpu(((uint32_t *)((base) + \
+		__le32_to_cpu(((u32 *)((base) + \
 			      NFP_HWINFO_V1_TABLE_IN(base)))[(key_id) * 2 + \
 							     0])))
 #define NFP_HWINFO_V1_VAL_IN(base, key_id) \
 	((const char *)((char *)(base) + \
-		__le32_to_cpu(((uint32_t *)((base) + \
+		__le32_to_cpu(((u32 *)((base) + \
 			      NFP_HWINFO_V1_TABLE_IN(base)))[(key_id) * 2 + \
 							     1])))
 
@@ -489,14 +488,14 @@ static void hwinfo_db_parse(struct nfp_device *nfp, void *hwinfo)
 
 static u32 hwinfo_crc(void *db)
 {
-	u32 crc;
 	u32 len = NFP_HWINFO_SIZE_IN(db) - sizeof(u32);
+	u32 crc;
 
 	crc = crc32_be(0, db, len);
 
 	/* Extend with the length of the string (but not the length word). */
 	while (len != 0) {
-		uint8_t byte = len & 0xff;
+		u8 byte = len & 0xff;
 
 		crc = crc32_be(crc, (void *)&byte, 1);
 		len >>= 8;
@@ -536,16 +535,16 @@ static int hwinfo_db_validate(struct nfp_device *nfp, void *db, u32 len)
 static int hwinfo_fetch_nowait(struct nfp_device *nfp,
 			       void **hwdb, size_t *hwdb_size)
 {
-	struct nfp_cpp_area *area;
-	int r = 0;
-	uint32_t cpp_id;
-	uint64_t cpp_addr;
-	size_t   cpp_size;
-	struct nfp_resource *res;
-	uint32_t ver;
-	uint8_t header[16];
-	void *tmpdb;
 	struct nfp_cpp *cpp = nfp_device_cpp(nfp);
+	struct nfp_cpp_area *area;
+	struct nfp_resource *res;
+	size_t   cpp_size;
+	u8 header[16];
+	u64 cpp_addr;
+	void *tmpdb;
+	u32 cpp_id;
+	int r = 0;
+	u32 ver;
 
 	res = nfp_resource_acquire(nfp, NFP_RESOURCE_NFP_HWINFO);
 	if (res) {
@@ -558,7 +557,7 @@ static int hwinfo_fetch_nowait(struct nfp_device *nfp,
 		if (cpp_size < HWINFO_SIZE_MIN)
 			return -ENOENT;
 	} else {
-		uint32_t model = nfp_cpp_model(cpp);
+		u32 model = nfp_cpp_model(cpp);
 
 		/* Try getting the HWInfo table from the 'classic' location
 		 */
@@ -672,12 +671,12 @@ static void hwinfo_des(void *ptr)
 
 static void *hwinfo_con(struct nfp_device *nfp)
 {
-	struct hwinfo_priv *priv = NULL;
-	void *hwdb = NULL;
-	size_t hwdb_size = 0;
-	int r = 0;
 	struct nfp_cpp *cpp = nfp_device_cpp(nfp);
-	uint32_t model;
+	struct hwinfo_priv *priv = NULL;
+	size_t hwdb_size = 0;
+	void *hwdb = NULL;
+	int r = 0;
+	u32 model;
 
 	model = nfp_cpp_model(cpp);
 
@@ -744,9 +743,9 @@ err:
  */
 const char *nfp_hwinfo_lookup(struct nfp_device *nfp, const char *lookup)
 {
+	struct hwinfo_priv *priv = nfp_device_private(nfp, hwinfo_con);
 	const char *val = NULL;
 	const char *key;
-	struct hwinfo_priv *priv = nfp_device_private(nfp, hwinfo_con);
 
 	if (!priv || !lookup)
 		return NULL;
