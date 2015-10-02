@@ -317,8 +317,8 @@
 
 int nfp_nffw_info_acquire(struct nfp_device *dev);
 int nfp_nffw_info_release(struct nfp_device *dev);
-int nfp_nffw_info_fw_mip(struct nfp_device *dev, uint8_t fwid,
-			 uint32_t *cpp_id, uint64_t *off);
+int nfp_nffw_info_fw_mip(struct nfp_device *dev, u8 fwid,
+			 u32 *cpp_id, u64 *off);
 uint8_t nfp_nffw_info_fwid_first(struct nfp_device *dev);
 
 /* Implemented in nfp_mip.c */
@@ -328,8 +328,8 @@ struct nfp_mip;
 const struct nfp_mip *nfp_mip(struct nfp_device *dev);
 int nfp_mip_probe(struct nfp_device *dev);
 
-int nfp_mip_symtab(const struct nfp_mip *mip, uint32_t *addr, uint32_t *size);
-int nfp_mip_strtab(const struct nfp_mip *mip, uint32_t *addr, uint32_t *size);
+int nfp_mip_symtab(const struct nfp_mip *mip, u32 *addr, u32 *size);
+int nfp_mip_strtab(const struct nfp_mip *mip, u32 *addr, u32 *size);
 
 /* Implemented in nfp_rtsym.c */
 
@@ -354,8 +354,8 @@ int nfp_mip_strtab(const struct nfp_mip *mip, uint32_t *addr, uint32_t *size);
  */
 struct nfp_rtsym {
 	const char *name;
-	uint64_t addr;
-	uint64_t size;
+	u64 addr;
+	u64 size;
 	int type;
 	int target;
 	int domain;
