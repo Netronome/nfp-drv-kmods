@@ -401,14 +401,12 @@ struct nfp_spi {
 
 #define BITS_TO_BYTES(x)    (((x) + 7) / 8)
 
-static int nfp6000_spi_csr_readl(struct nfp_spi *spi, uint32_t csr,
-				 uint32_t *val)
+static int nfp6000_spi_csr_readl(struct nfp_spi *spi, u32 csr, u32 *val)
 {
 	return nfp_cpp_area_readl(spi->csr, csr, val);
 }
 
-static int nfp6000_spi_csr_writel(struct nfp_spi *spi, uint32_t csr,
-				  uint32_t val)
+static int nfp6000_spi_csr_writel(struct nfp_spi *spi, u32 csr, u32 val)
 {
 	return nfp_cpp_area_writel(spi->csr, csr, val);
 }
@@ -419,9 +417,9 @@ static int nfp6000_spi_csr_writel(struct nfp_spi *spi, uint32_t csr,
 
 /******************************************************************************/
 
-static int nfp6000_spi_run_clock(struct nfp_spi *spi, uint32_t control)
+static int nfp6000_spi_run_clock(struct nfp_spi *spi, u32 control)
 {
-	uint32_t tmp;
+	u32 tmp;
 	int err;
 	struct timespec ts, timeout = {
 		.tv_sec = NFP_SPI_TIMEOUT_MS / 1000,
@@ -464,19 +462,19 @@ static int nfp_spi_set_pin_association(struct nfp_spi *spi, int port, int pin)
 	return nfp6000_spi_csr_writel(spi, NFP_SPI_SPIIOCONFIG, val);
 }
 
-static int do_first_bit_cpha0_hack(struct nfp_spi *spi, uint32_t ctrl,
-				   uint32_t mdo)
+static int do_first_bit_cpha0_hack(struct nfp_spi *spi, u32 ctrl,
+				   u32 mdo)
 {
-	uint32_t control = ctrl | NFP_SPI_PORTMC_CLOCKDISABLE;
+	u32 control = ctrl | NFP_SPI_PORTMC_CLOCKDISABLE;
 
 	SET_EDGE_COUNT(control, 1);
 
 	return nfp6000_spi_run_clock(spi, control);
 }
 
-static int nfp6000_spi_cs_control(struct nfp_spi *spi, int cs, uint32_t enable)
+static int nfp6000_spi_cs_control(struct nfp_spi *spi, int cs, u32 enable)
 {
-	uint32_t ctrl = NFP6_SPI_DEFAULT_CTRL(4, spi) |
+	u32 ctrl = NFP6_SPI_DEFAULT_CTRL(4, spi) |
 	    NFP_SPI_PORTMC_CLOCKDISABLE;
 
 	ctrl |= (enable) ? CS_BITS(cs) : CS_OFF;
@@ -486,7 +484,7 @@ static int nfp6000_spi_cs_control(struct nfp_spi *spi, int cs, uint32_t enable)
 
 static int nfp6000_spi_set_manual_mode(struct nfp_spi *spi)
 {
-	uint32_t tmp;
+	u32 tmp;
 	int err;
 
 	err = nfp6000_spi_csr_readl(spi, NFP_SPI_PORTCFG(spi->bus), &tmp);
@@ -530,15 +528,15 @@ static int nfp6000_spi_set_clk_pol(struct nfp_spi *spi)
  * Return: 0 or -ERRNO
  */
 int nfp6000_spi_transact(struct nfp_spi *spi, int cs, int cs_action,
-			 const void *tx, uint32_t tx_bit_cnt,
-			 void *rx, uint32_t rx_bit_cnt,
+			 const void *tx, u32 tx_bit_cnt,
+			 void *rx, u32 rx_bit_cnt,
 			 int mdio_data_drive_disable)
 {
 	int err = 0;
 	int first_tx_bit = 1;
-	uint32_t i, tmp, ctrl, clk_bit_cnt;
-	uint8_t *_tx, *_rx;
-	uint32_t txbits, rxbits;
+	u32 i, tmp, ctrl, clk_bit_cnt;
+	u8 *_tx, *_rx;
+	u32 txbits, rxbits;
 
 	ctrl = SPIMODEBITS(spi);
 	ctrl |=
@@ -559,14 +557,14 @@ int nfp6000_spi_transact(struct nfp_spi *spi, int cs, int cs_action,
 			return err;
 	}
 
-	_tx = (uint8_t *)tx;
-	_rx = (uint8_t *)rx;
+	_tx = (u8 *)tx;
+	_rx = (u8 *)rx;
 	while ((tx_bit_cnt > 0) || (rx_bit_cnt > 0)) {
 		txbits =
-		    min_t(uint32_t, SPI_MAX_BITS_PER_CTRL_WRITE, tx_bit_cnt);
+		    min_t(u32, SPI_MAX_BITS_PER_CTRL_WRITE, tx_bit_cnt);
 		rxbits =
-		    min_t(uint32_t, SPI_MAX_BITS_PER_CTRL_WRITE, rx_bit_cnt);
-		clk_bit_cnt = max_t(uint32_t, rxbits, txbits);
+		    min_t(u32, SPI_MAX_BITS_PER_CTRL_WRITE, rx_bit_cnt);
+		clk_bit_cnt = max_t(u32, rxbits, txbits);
 		if (clk_bit_cnt < SPI_MAX_BITS_PER_CTRL_WRITE)
 			clk_bit_cnt = (clk_bit_cnt + 7) & ~7;
 
@@ -702,7 +700,7 @@ struct nfp_spi *nfp_spi_acquire(struct nfp_device *nfp, int bus, int width)
 	struct nfp_spi *spi;
 	struct nfp_cpp *cpp;
 	int err, key;
-	uint32_t val;
+	u32 val;
 	int timeout = 5 * 1000;	/* 5s */
 
 	if (width != 0 && width != 1 && width != 2 && width != 4)
