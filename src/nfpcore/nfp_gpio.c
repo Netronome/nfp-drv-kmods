@@ -325,35 +325,35 @@
 
 struct gpio {
 	int pins;
-	int (*read)(struct nfp_cpp *cpp, int csr_offset, uint32_t *val);
-	int (*write)(struct nfp_cpp *cpp, int csr_offset, uint32_t val);
+	int (*read)(struct nfp_cpp *cpp, int csr_offset, u32 *val);
+	int (*write)(struct nfp_cpp *cpp, int csr_offset, u32 val);
 };
 
-static int nfp3200_csr_readl(struct nfp_cpp *cpp, int csr_offset, uint32_t *val)
+static int nfp3200_csr_readl(struct nfp_cpp *cpp, int csr_offset, u32 *val)
 {
 	return nfp_xpb_readl(cpp, NFP_XPB_GPIO + csr_offset, val);
 }
 
-static int nfp3200_csr_writel(struct nfp_cpp *cpp, int csr_offset, uint32_t val)
+static int nfp3200_csr_writel(struct nfp_cpp *cpp, int csr_offset, u32 val)
 {
 	return nfp_xpb_writel(cpp, NFP_XPB_GPIO + csr_offset, val);
 }
 
 #define NFP_ARM_ID  NFP_CPP_ID(NFP_CPP_TARGET_ARM, NFP_CPP_ACTION_RW, 0)
 
-static int nfp6000_csr_readl(struct nfp_cpp *cpp, int csr_offset, uint32_t *val)
+static int nfp6000_csr_readl(struct nfp_cpp *cpp, int csr_offset, u32 *val)
 {
 	return nfp_cpp_readl(cpp, NFP_ARM_ID, NFP_ARM_GPIO + csr_offset, val);
 }
 
-static int nfp6000_csr_writel(struct nfp_cpp *cpp, int csr_offset, uint32_t val)
+static int nfp6000_csr_writel(struct nfp_cpp *cpp, int csr_offset, u32 val)
 {
 	return nfp_cpp_writel(cpp, NFP_ARM_ID, NFP_ARM_GPIO + csr_offset, val);
 }
 
 static void *gpio_new(struct nfp_device *nfp)
 {
-	uint32_t model;
+	u32 model;
 	struct gpio *gpio;
 
 	gpio = nfp_device_private_alloc(nfp, sizeof(*gpio), NULL);
@@ -388,7 +388,7 @@ static void *gpio_new(struct nfp_device *nfp)
 int nfp_gpio_pins(struct nfp_device *dev)
 {
 	struct nfp_cpp *cpp = nfp_device_cpp(dev);
-	uint32_t model;
+	u32 model;
 	int max_pin;
 
 	if (!cpp)
@@ -417,7 +417,7 @@ int nfp_gpio_direction(struct nfp_device *dev, int gpio_pin, int is_output)
 {
 	struct gpio *gpio = nfp_device_private(dev, gpio_new);
 	struct nfp_cpp *cpp = nfp_device_cpp(dev);
-	uint32_t mask;
+	u32 mask;
 	int err;
 
 	if (gpio_pin < 0 || gpio_pin >= gpio->pins)
@@ -445,7 +445,7 @@ int nfp_gpio_get_direction(struct nfp_device *dev, int gpio_pin, int *is_output)
 {
 	struct gpio *gpio = nfp_device_private(dev, gpio_new);
 	struct nfp_cpp *cpp = nfp_device_cpp(dev);
-	uint32_t val;
+	u32 val;
 	int err;
 
 	if (gpio_pin < 0 || gpio_pin >= gpio->pins)
@@ -470,7 +470,7 @@ int nfp_gpio_get(struct nfp_device *dev, int gpio_pin)
 {
 	struct gpio *gpio = nfp_device_private(dev, gpio_new);
 	struct nfp_cpp *cpp = nfp_device_cpp(dev);
-	uint32_t mask, value;
+	u32 mask, value;
 	int err;
 
 	if (gpio_pin < 0 || gpio_pin >= gpio->pins)
@@ -497,7 +497,7 @@ int nfp_gpio_set(struct nfp_device *dev, int gpio_pin, int value)
 {
 	struct gpio *gpio = nfp_device_private(dev, gpio_new);
 	struct nfp_cpp *cpp = nfp_device_cpp(dev);
-	uint32_t mask;
+	u32 mask;
 	int err;
 
 	if (gpio_pin < 0 || gpio_pin >= gpio->pins)
