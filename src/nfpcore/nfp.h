@@ -476,7 +476,6 @@ const char *nfp_hwinfo_lookup(struct nfp_device *nfp, const char *lookup);
 #define     NFP6000_DEVICE_ILA_MEG1  3
 
 int nfp_power_get(struct nfp_device *dev, unsigned int subdevice, int *state);
-
 int nfp_power_set(struct nfp_device *dev, unsigned int subdevice, int state);
 
 /* Implemented in nfp_reset.c */
@@ -492,8 +491,8 @@ int nfp_reset_soft(struct nfp_device *nfp);
 #define SPCODE_MAC_INIT         4       /* Initialize the MAC */
 #define SPCODE_PHY_RXADAPT      5       /* Re-run PHY RX Adaptation */
 
-int nfp_nsp_command(struct nfp_device *nfp, uint16_t spcode, uint32_t option,
-		    uint32_t buff_cpp, uint64_t buff_addr);
+int nfp_nsp_command(struct nfp_device *nfp, uint16_t spcode, u32 option,
+		    u32 buff_cpp, u64 buff_addr);
 
 /* Implemented in nfp_resource.c */
 
@@ -503,20 +502,20 @@ int nfp_nsp_command(struct nfp_device *nfp, uint16_t spcode, uint32_t option,
  */
 struct nfp_resource_entry {
 	struct nfp_resource_entry_mutex {
-		uint32_t owner;       /* NFP CPP Lock, interface owner */
-		uint32_t key;         /* NFP CPP Lock, posix_crc32(name, 8) */
+		u32 owner;       /* NFP CPP Lock, interface owner */
+		u32 key;         /* NFP CPP Lock, posix_crc32(name, 8) */
 	} mutex;
 	struct nfp_resource_entry_region {
 		/* ASCII, zero padded name */
-		uint8_t  name[NFP_RESOURCE_ENTRY_NAME_SZ];
-		uint32_t reserved_0x10;     /* -- reserved -- */
-		uint8_t  reserved_0x11;     /* -- reserved -- */
-		uint8_t  cpp_action;        /* CPP Action */
-		uint8_t  cpp_token;         /* CPP Token */
-		uint8_t  cpp_target;        /* CPP Target ID */
-		uint32_t page_offset;       /* 256-byte page offset into
+		u8  name[NFP_RESOURCE_ENTRY_NAME_SZ];
+		u32 reserved_0x10;     /* -- reserved -- */
+		u8  reserved_0x11;     /* -- reserved -- */
+		u8  cpp_action;        /* CPP Action */
+		u8  cpp_token;         /* CPP Token */
+		u8  cpp_target;        /* CPP Target ID */
+		u32 page_offset;       /* 256-byte page offset into
 					     * target's CPP address */
-		uint32_t page_size;         /* size, in 256-byte pages */
+		u32 page_size;         /* size, in 256-byte pages */
 	} region;
 } __attribute__((__packed__));
 
@@ -575,15 +574,15 @@ struct nfp_resource *nfp_resource_acquire(struct nfp_device *nfp,
 void nfp_resource_release(struct nfp_resource *res);
 
 int nfp_cpp_resource_add(struct nfp_cpp *cpp, const char *name,
-			 uint32_t cpp_id, uint64_t address, uint64_t size,
-		struct nfp_cpp_mutex **resource_mutex);
+			 u32 cpp_id, u64 address, u64 size,
+			 struct nfp_cpp_mutex **resource_mutex);
 
-uint32_t nfp_resource_cpp_id(struct nfp_resource *res);
+u32 nfp_resource_cpp_id(struct nfp_resource *res);
 
 const char *nfp_resource_name(struct nfp_resource *res);
 
-uint64_t nfp_resource_address(struct nfp_resource *res);
+u64 nfp_resource_address(struct nfp_resource *res);
 
-uint64_t nfp_resource_size(struct nfp_resource *res);
+u64 nfp_resource_size(struct nfp_resource *res);
 
 #endif /* !__NFP_H__ */
