@@ -876,11 +876,11 @@ static int nfp_net_vnic_probe(struct platform_device *pdev)
 	struct nfp_net_vnic *vnic;
 	int err;
 	struct nfp_device *nfp;
-	uint16_t interface;
+	u16 interface;
 	const char *res_name;
 	struct nfp_resource *res;
-	uint64_t cpp_addr;
-	uint32_t cpp_id;
+	u64 cpp_addr;
+	u32 cpp_id;
 	unsigned long barsz;
 	struct nfp_cpp_area *area;
 	int vnic_unit;
