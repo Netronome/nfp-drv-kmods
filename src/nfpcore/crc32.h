@@ -312,9 +312,9 @@
 #ifndef CRC32_H
 #define CRC32_H
 
-uint32_t crc32_posix_add(uint32_t crc, const void *buff, size_t len);
-uint32_t crc32_posix_end(uint32_t crc, size_t total_len);
-static inline uint32_t crc32_posix(const void *buff, size_t len)
+u32 crc32_posix_add(u32 crc, const void *buff, size_t len);
+u32 crc32_posix_end(u32 crc, size_t total_len);
+static inline u32 crc32_posix(const void *buff, size_t len)
 {
 	return crc32_posix_end(crc32_posix_add(0, buff, len), len);
 }
