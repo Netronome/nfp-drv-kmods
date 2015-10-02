@@ -333,18 +333,18 @@ struct sff_ops {
 	int (*reset)(struct nfp_phymod *phy, int in_reset);
 	int (*power)(struct nfp_phymod *phy, int is_full_power);
 
-	int (*read8)(struct nfp_phymod *phy, uint32_t reg, uint8_t *val);
-	int (*write8)(struct nfp_phymod *phy, uint32_t reg, uint8_t val);
+	int (*read8)(struct nfp_phymod *phy, u32 reg, u8 *val);
+	int (*write8)(struct nfp_phymod *phy, u32 reg, u8 val);
 
-	int (*status_los)(struct nfp_phymod *phy, uint32_t *tx, uint32_t *rx);
-	int (*status_fault)(struct nfp_phymod *phy, uint32_t *tx, uint32_t *rx);
-	int (*status_power)(struct nfp_phymod *phy, uint32_t *tx, uint32_t *rx);
-	int (*status_bias)(struct nfp_phymod *phy, uint32_t *tx, uint32_t *rx);
-	int (*status_volt)(struct nfp_phymod *phy, uint32_t *tx, uint32_t *rx);
-	int (*status_temp)(struct nfp_phymod *phy, uint32_t *tx, uint32_t *rx);
+	int (*status_los)(struct nfp_phymod *phy, u32 *tx, u32 *rx);
+	int (*status_fault)(struct nfp_phymod *phy, u32 *tx, u32 *rx);
+	int (*status_power)(struct nfp_phymod *phy, u32 *tx, u32 *rx);
+	int (*status_bias)(struct nfp_phymod *phy, u32 *tx, u32 *rx);
+	int (*status_volt)(struct nfp_phymod *phy, u32 *tx, u32 *rx);
+	int (*status_temp)(struct nfp_phymod *phy, u32 *tx, u32 *rx);
 
-	int (*get_lane_dis)(struct nfp_phymod *phy, uint32_t *tx, uint32_t *rx);
-	int (*set_lane_dis)(struct nfp_phymod *phy, uint32_t tx, uint32_t rx);
+	int (*get_lane_dis)(struct nfp_phymod *phy, u32 *tx, u32 *rx);
+	int (*set_lane_dis)(struct nfp_phymod *phy, u32 tx, u32 rx);
 };
 
 struct pin {
@@ -358,7 +358,7 @@ struct pin {
 			int bit;
 			int bus;
 			int cs;
-			uint16_t addr;
+			u16 addr;
 			struct {
 				int read;
 				int write;
@@ -399,7 +399,7 @@ struct nfp_phymod_priv {
 		int index;
 		char key[16];
 		char *label;
-		uint8_t mac[6];
+		u8 mac[6];
 		int lane;
 		int lanes;
 		struct nfp_phymod *phymod;
@@ -545,7 +545,7 @@ static int _eth_get_attr_int(struct nfp_phymod_eth *eth,
 }
 
 static int _eth_get_attr_mac(struct nfp_phymod_eth *eth,
-			     const char *attr, uint8_t *mac)
+			     const char *attr, u8 *mac)
 {
 	const char *ptr;
 
@@ -598,8 +598,8 @@ struct sff_bus_ops {
 	int (*open)(struct sff_bus *bus, const char *storage);
 	void (*close)(struct sff_bus *bus);
 	int (*select)(struct sff_bus *bus, int is_selected);
-	int (*read8)(struct sff_bus *bus, uint32_t reg, uint8_t *val);
-	int (*write8)(struct sff_bus *bus, uint32_t reg, uint8_t val);
+	int (*read8)(struct sff_bus *bus, u32 reg, u8 *val);
+	int (*write8)(struct sff_bus *bus, u32 reg, u8 val);
 };
 
 struct sff_bus {
@@ -613,7 +613,7 @@ struct bus_i2c {
 	struct nfp_i2c *i2c;
 	int cs;
 	int scl, sda;
-	uint8_t addr;
+	u8 addr;
 };
 
 static int bus_i2c_open(struct sff_bus *bus, const char *storage)
@@ -690,11 +690,11 @@ static int bus_i2c_select(struct sff_bus *bus, int is_selected)
 			nfp_i2c_set_speed(priv->i2c, 0);
 			/* If cs >= 0, select the CS */
 			if (priv->cs >= 0) {
-				uint32_t csmask = 1 << priv->cs;
+				u32 csmask = 1 << priv->cs;
 				int i;
 
 				for (i = 0; i < 3; i++) {
-					uint8_t cmd = (csmask >> (4 * i)) & 0xf;
+					u8 cmd = (csmask >> (4 * i)) & 0xf;
 
 					nfp_i2c_write(priv->i2c, 0x71 + i,
 						      cmd, 1, NULL, 0);
@@ -710,7 +710,7 @@ static int bus_i2c_select(struct sff_bus *bus, int is_selected)
 	return 0;
 }
 
-static int bus_i2c_read8(struct sff_bus *bus, uint32_t reg, uint8_t *val)
+static int bus_i2c_read8(struct sff_bus *bus, u32 reg, u8 *val)
 {
 	struct bus_i2c *priv = bus->priv;
 
@@ -720,7 +720,7 @@ static int bus_i2c_read8(struct sff_bus *bus, uint32_t reg, uint8_t *val)
 	return nfp_i2c_read(priv->i2c, priv->addr, reg, 1, val, 1);
 }
 
-static int bus_i2c_write8(struct sff_bus *bus, uint32_t reg, uint8_t val)
+static int bus_i2c_write8(struct sff_bus *bus, u32 reg, u8 val)
 {
 	struct bus_i2c *priv = bus->priv;
 
@@ -777,11 +777,11 @@ static int _phymod_get_attr_bus(struct nfp_phymod *phy, const char *attr,
 	return -ENOENT;
 }
 
-static int cpld_read(struct nfp_spi *spi, int cs, uint8_t addr, uint32_t *val)
+static int cpld_read(struct nfp_spi *spi, int cs, u8 addr, u32 *val)
 {
-	uint8_t data[5];
+	u8 data[5];
 	int i, err;
-	uint32_t res = 0;
+	u32 res = 0;
 
 	addr |= 0x80;
 	err = nfp_spi_read(spi, cs, 1, &addr, 5, data);
@@ -798,9 +798,9 @@ static int cpld_read(struct nfp_spi *spi, int cs, uint8_t addr, uint32_t *val)
 	return 0;
 }
 
-static int cpld_write(struct nfp_spi *spi, int cs, uint8_t addr, uint32_t val)
+static int cpld_write(struct nfp_spi *spi, int cs, u8 addr, u32 val)
 {
-	uint8_t data[5] = { 0, 0, 0, 0, 0 };
+	u8 data[5] = { 0, 0, 0, 0, 0 };
 	int i;
 
 	/* Workaround for Starfighter1 CPLDs */
@@ -835,7 +835,7 @@ static int pin_set(struct nfp_device *nfp, struct pin *pin, int out)
 	if (pin->type == PIN_GPIO) {
 		err = nfp_gpio_set(nfp, pin->gpio.pin, out);
 	} else if (pin->type == PIN_CPLD) {
-		uint32_t tmp;
+		u32 tmp;
 		struct nfp_spi *spi;
 
 		spi = nfp_spi_acquire(nfp, pin->cpld.bus, 0);
@@ -872,7 +872,7 @@ static int pin_get(struct nfp_device *nfp, struct pin *pin)
 	if (pin->type == PIN_GPIO) {
 		err = nfp_gpio_get(nfp, pin->gpio.pin);
 	} else if (pin->type == PIN_CPLD) {
-		uint32_t tmp;
+		u32 tmp;
 		struct nfp_spi *spi;
 
 		spi = nfp_spi_acquire(nfp, pin->cpld.bus, 0);
@@ -974,11 +974,10 @@ static void *_phymod_private(struct nfp_device *nfp)
 		}
 
 		/* (optional) link indicator pin */
-		_phymod_get_attr_pin(phy, "pin.link",
-					  &phy->indicator.link);
+		_phymod_get_attr_pin(phy, "pin.link", &phy->indicator.link);
 		/* (optional) activity indicator pin */
 		_phymod_get_attr_pin(phy, "pin.activity",
-					  &phy->indicator.activity);
+				     &phy->indicator.activity);
 
 		priv->phymods++;
 	}
@@ -1172,7 +1171,6 @@ int nfp_phymod_indicate_activity(struct nfp_phymod *phymod, int is_on)
 	return pin_set(phymod->priv->nfp, &phymod->indicator.activity, is_on);
 }
 
-
 /**
  * nfp_phymod_get_port() - Get the base port and/or size
  * @phymod:		PHY module handle
@@ -1234,14 +1232,14 @@ int nfp_phymod_get_type(struct nfp_phymod *phymod, int *type)
  *
  * Return: 0, or -ERRNO
  */
-int nfp_phymod_read_status(struct nfp_phymod *phymod, uint32_t *txstatus,
-			   uint32_t *rxstatus)
+int nfp_phymod_read_status(struct nfp_phymod *phymod,
+			   u32 *txstatus, u32 *rxstatus)
 {
-	uint32_t txs = 0, rxs = 0;
+	u32 txs = 0, rxs = 0;
 	int i, err;
 	struct {
-		uint32_t flag;
-		int (*func)(struct nfp_phymod *p, uint32_t *txs, uint32_t *rxs);
+		u32 flag;
+		int (*func)(struct nfp_phymod *p, u32 *txs, u32 *rxs);
 	} status[] = {
 		{ NFP_PHYMOD_SUMSTAT_LOS, nfp_phymod_read_status_los },
 		{ NFP_PHYMOD_SUMSTAT_FAULT, nfp_phymod_read_status_fault },
@@ -1252,7 +1250,7 @@ int nfp_phymod_read_status(struct nfp_phymod *phymod, uint32_t *txstatus,
 	};
 
 	for (i = 0; i < ARRAY_SIZE(status); i++) {
-		uint32_t tx, rx;
+		u32 tx, rx;
 
 		err = status[i].func(phymod, &tx, &rx);
 		if (err >= 0) {
@@ -1288,8 +1286,8 @@ int nfp_phymod_read_status(struct nfp_phymod *phymod, uint32_t *txstatus,
  *
  * Return: 0, or -ERRNO
  */
-int nfp_phymod_read_status_los(struct nfp_phymod *phymod, uint32_t *txstatus,
-			       uint32_t *rxstatus)
+int nfp_phymod_read_status_los(struct nfp_phymod *phymod,
+			       u32 *txstatus, u32 *rxstatus)
 {
 	_phymod_select(phymod);
 
@@ -1316,8 +1314,8 @@ int nfp_phymod_read_status_los(struct nfp_phymod *phymod, uint32_t *txstatus,
  *
  * Return: 0, or -ERRNO
  */
-int nfp_phymod_read_status_fault(struct nfp_phymod *phymod, uint32_t *txstatus,
-				 uint32_t *rxstatus)
+int nfp_phymod_read_status_fault(struct nfp_phymod *phymod,
+				 u32 *txstatus, u32 *rxstatus)
 {
 	_phymod_select(phymod);
 
@@ -1349,8 +1347,7 @@ int nfp_phymod_read_status_fault(struct nfp_phymod *phymod, uint32_t *txstatus,
  * Return: 0, or -ERRNO
  */
 int nfp_phymod_read_status_optpower(struct nfp_phymod *phymod,
-				    uint32_t *txstatus,
-				    uint32_t *rxstatus)
+				    u32 *txstatus, u32 *rxstatus)
 {
 	_phymod_select(phymod);
 
@@ -1376,7 +1373,7 @@ int nfp_phymod_read_status_optpower(struct nfp_phymod *phymod,
  * Return: 0, or -ERRNO
  */
 int nfp_phymod_read_status_optbias(struct nfp_phymod *phymod,
-				   uint32_t *txstatus, uint32_t *rxstatus)
+				   u32 *txstatus, u32 *rxstatus)
 {
 	_phymod_select(phymod);
 
@@ -1416,8 +1413,7 @@ int nfp_phymod_read_status_optbias(struct nfp_phymod *phymod,
  * Return: 0, or -ERRNO
  */
 int nfp_phymod_read_status_voltage(struct nfp_phymod *phymod,
-				   uint32_t *txstatus,
-				   uint32_t *rxstatus)
+				   u32 *txstatus, u32 *rxstatus)
 {
 	_phymod_select(phymod);
 
@@ -1450,8 +1446,8 @@ int nfp_phymod_read_status_voltage(struct nfp_phymod *phymod,
  *
  * Return: 0, or -ERRNO
  */
-int nfp_phymod_read_status_temp(struct nfp_phymod *phymod, uint32_t *txstatus,
-				uint32_t *rxstatus)
+int nfp_phymod_read_status_temp(struct nfp_phymod *phymod,
+				u32 *txstatus, u32 *rxstatus)
 {
 	_phymod_select(phymod);
 
@@ -1487,8 +1483,8 @@ int nfp_phymod_read_status_temp(struct nfp_phymod *phymod, uint32_t *txstatus,
  *
  * Return: 0, or -ERRNO
  */
-int nfp_phymod_read_lanedisable(struct nfp_phymod *phymod, uint32_t *txstatus,
-				uint32_t *rxstatus)
+int nfp_phymod_read_lanedisable(struct nfp_phymod *phymod,
+				u32 *txstatus, u32 *rxstatus)
 {
 	_phymod_select(phymod);
 
@@ -1523,8 +1519,8 @@ int nfp_phymod_read_lanedisable(struct nfp_phymod *phymod, uint32_t *txstatus,
  *
  * Return: 0, or -ERRNO
  */
-int nfp_phymod_write_lanedisable(struct nfp_phymod *phymod, uint32_t txstate,
-				 uint32_t rxstate)
+int nfp_phymod_write_lanedisable(struct nfp_phymod *phymod,
+				 u32 txstate, u32 rxstate)
 {
 	_phymod_select(phymod);
 
@@ -1542,8 +1538,7 @@ int nfp_phymod_write_lanedisable(struct nfp_phymod *phymod, uint32_t txstate,
  *
  * Return: 0, or -ERRNO
  */
-int nfp_phymod_read8(struct nfp_phymod *phymod, uint32_t addr,
-		     uint8_t *data)
+int nfp_phymod_read8(struct nfp_phymod *phymod, u32 addr, u8 *data)
 {
 	_phymod_select(phymod);
 
@@ -1562,8 +1557,7 @@ int nfp_phymod_read8(struct nfp_phymod *phymod, uint32_t addr,
  * Return: 0, or -ERRNO
  *
  */
-int nfp_phymod_write8(struct nfp_phymod *phymod, uint32_t addr,
-		      uint8_t data)
+int nfp_phymod_write8(struct nfp_phymod *phymod, u32 addr, u8 data)
 {
 	_phymod_select(phymod);
 
@@ -1667,11 +1661,11 @@ int nfp_phymod_eth_get_phymod(struct nfp_phymod_eth *eth,
 /**
  * nfp_phymod_eth_get_mac() - Get the MAC address of an ethernet port
  * @eth:		PHY module ethernet interface
- * @mac:		Pointer to a const uint8_t * for the 6-byte MAC
+ * @mac:		Pointer to a const u8 * for the 6-byte MAC
  *
  * Return: 0, or -ERRNO
  */
-int nfp_phymod_eth_get_mac(struct nfp_phymod_eth *eth, const uint8_t **mac)
+int nfp_phymod_eth_get_mac(struct nfp_phymod_eth *eth, const u8 **mac)
 {
 	if (mac)
 		*mac = &eth->mac[0];
@@ -1817,8 +1811,8 @@ int nfp_phymod_eth_set_fail_to_wire(struct nfp_phymod_eth *eth, int force)
  *
  * Return: 0, or -ERRNO
  */
-int nfp_phymod_eth_read_disable(struct nfp_phymod_eth *eth, uint32_t *txstatus,
-				uint32_t *rxstatus)
+int nfp_phymod_eth_read_disable(struct nfp_phymod_eth *eth,
+				u32 *txstatus, u32 *rxstatus)
 {
 	int err;
 	u32 tx, rx;
@@ -1850,8 +1844,8 @@ int nfp_phymod_eth_read_disable(struct nfp_phymod_eth *eth, uint32_t *txstatus,
  *
  * Return: 0, or -ERRNO
  */
-int nfp_phymod_eth_write_disable(struct nfp_phymod_eth *eth, uint32_t txstate,
-				 uint32_t rxstate)
+int nfp_phymod_eth_write_disable(struct nfp_phymod_eth *eth,
+				 u32 txstate, u32 rxstate)
 {
 	int err;
 	u32 tx, rx;
