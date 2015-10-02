@@ -399,7 +399,7 @@ struct resource;
  *
  * Return:      NFP CPP target
  */
-static inline uint8_t NFP_CPP_ID_TARGET_of(uint32_t id)
+static inline u8 NFP_CPP_ID_TARGET_of(u32 id)
 {
 	return (id >> 24) & NFP_CPP_TARGET_ID_MASK;
 }
@@ -409,7 +409,7 @@ static inline uint8_t NFP_CPP_ID_TARGET_of(uint32_t id)
  * @id:         NFP CPP ID
  * Return:      NFP CPP token
  */
-static inline uint8_t NFP_CPP_ID_TOKEN_of(uint32_t id)
+static inline u8 NFP_CPP_ID_TOKEN_of(u32 id)
 {
 	return (id >> 16) & 0xff;
 }
@@ -420,7 +420,7 @@ static inline uint8_t NFP_CPP_ID_TOKEN_of(uint32_t id)
  *
  * Return:      NFP CPP action
  */
-static inline uint8_t NFP_CPP_ID_ACTION_of(uint32_t id)
+static inline u8 NFP_CPP_ID_ACTION_of(u32 id)
 {
 	return (id >> 8) & 0xff;
 }
@@ -431,7 +431,7 @@ static inline uint8_t NFP_CPP_ID_ACTION_of(uint32_t id)
  *
  * Return:      NFP CPP island
  */
-static inline uint8_t NFP_CPP_ID_ISLAND_of(uint32_t id)
+static inline u8 NFP_CPP_ID_ISLAND_of(u32 id)
 {
 	return (id >> 0) & 0xff;
 }
@@ -570,20 +570,20 @@ static inline int NFP_CPP_STEPPING_decode(const char *_str_major_minor)
 struct nfp_cpp *nfp_cpp_from_device_id(int id);
 void nfp_cpp_free(struct nfp_cpp *cpp);
 int nfp_cpp_device_id(struct nfp_cpp *cpp);
-uint32_t nfp_cpp_model(struct nfp_cpp *cpp);
-uint16_t nfp_cpp_interface(struct nfp_cpp *cpp);
-int nfp_cpp_serial(struct nfp_cpp *cpp, const uint8_t **serial);
+u32 nfp_cpp_model(struct nfp_cpp *cpp);
+u16 nfp_cpp_interface(struct nfp_cpp *cpp);
+int nfp_cpp_serial(struct nfp_cpp *cpp, const u8 **serial);
 
 struct nfp_cpp_area *nfp_cpp_area_alloc_with_name(struct nfp_cpp *cpp,
-						  uint32_t cpp_id,
+						  u32 cpp_id,
 						  const char *name,
 						  unsigned long long address,
 						  unsigned long size);
-struct nfp_cpp_area *nfp_cpp_area_alloc(struct nfp_cpp *cpp, uint32_t cpp_id,
+struct nfp_cpp_area *nfp_cpp_area_alloc(struct nfp_cpp *cpp, u32 cpp_id,
 					unsigned long long address,
 					unsigned long size);
 struct nfp_cpp_area *nfp_cpp_area_alloc_acquire(struct nfp_cpp *cpp,
-						uint32_t cpp_id,
+						u32 cpp_id,
 						unsigned long long address,
 						unsigned long size);
 void nfp_cpp_area_free(struct nfp_cpp_area *area);
@@ -605,43 +605,42 @@ phys_addr_t nfp_cpp_area_phys(struct nfp_cpp_area *area);
 void __iomem *nfp_cpp_area_iomem(struct nfp_cpp_area *area);
 
 int nfp_cpp_area_readl(struct nfp_cpp_area *area, unsigned long offset,
-		       uint32_t *value);
+		       u32 *value);
 int nfp_cpp_area_writel(struct nfp_cpp_area *area, unsigned long offset,
-			uint32_t value);
+			u32 value);
 int nfp_cpp_area_readq(struct nfp_cpp_area *area, unsigned long offset,
-		       uint64_t *value);
+		       u64 *value);
 int nfp_cpp_area_writeq(struct nfp_cpp_area *area, unsigned long offset,
-			uint64_t value);
+			u64 value);
 int nfp_cpp_area_fill(struct nfp_cpp_area *area, unsigned long offset,
-		      uint32_t value, size_t length);
+		      u32 value, size_t length);
 
-int nfp_xpb_readl(struct nfp_cpp *cpp, uint32_t xpb_tgt, uint32_t *value);
-int nfp_xpb_writel(struct nfp_cpp *cpp, uint32_t xpb_tgt, uint32_t value);
-int nfp_xpb_writelm(struct nfp_cpp *cpp, uint32_t xpb_tgt, uint32_t mask,
-		    uint32_t value);
+int nfp_xpb_readl(struct nfp_cpp *cpp, u32 xpb_tgt, u32 *value);
+int nfp_xpb_writel(struct nfp_cpp *cpp, u32 xpb_tgt, u32 value);
+int nfp_xpb_writelm(struct nfp_cpp *cpp, u32 xpb_tgt, u32 mask, u32 value);
 
 /* Implemented in nfp_cpplib.c */
-int nfp_cpp_read(struct nfp_cpp *cpp, uint32_t cpp_id,
+int nfp_cpp_read(struct nfp_cpp *cpp, u32 cpp_id,
 		 unsigned long long address, void *kernel_vaddr, size_t length);
-int nfp_cpp_write(struct nfp_cpp *cpp, uint32_t cpp_id,
+int nfp_cpp_write(struct nfp_cpp *cpp, u32 cpp_id,
 		  unsigned long long address, const void *kernel_vaddr,
 		  size_t length);
-int nfp_cpp_readl(struct nfp_cpp *cpp, uint32_t cpp_id,
-		  unsigned long long address, uint32_t *value);
-int nfp_cpp_writel(struct nfp_cpp *cpp, uint32_t cpp_id,
-		   unsigned long long address, uint32_t value);
-int nfp_cpp_readq(struct nfp_cpp *cpp, uint32_t cpp_id,
-		  unsigned long long address, uint64_t *value);
-int nfp_cpp_writeq(struct nfp_cpp *cpp, uint32_t cpp_id,
-		   unsigned long long address, uint64_t value);
+int nfp_cpp_readl(struct nfp_cpp *cpp, u32 cpp_id,
+		  unsigned long long address, u32 *value);
+int nfp_cpp_writel(struct nfp_cpp *cpp, u32 cpp_id,
+		   unsigned long long address, u32 value);
+int nfp_cpp_readq(struct nfp_cpp *cpp, u32 cpp_id,
+		  unsigned long long address, u64 *value);
+int nfp_cpp_writeq(struct nfp_cpp *cpp, u32 cpp_id,
+		   unsigned long long address, u64 value);
 
 struct nfp_cpp_mutex;
 
 int nfp_cpp_mutex_init(struct nfp_cpp *cpp, int target,
-		       unsigned long long address, uint32_t key_id);
+		       unsigned long long address, u32 key_id);
 struct nfp_cpp_mutex *nfp_cpp_mutex_alloc(struct nfp_cpp *cpp, int target,
 					  unsigned long long address,
-					  uint32_t key_id);
+					  u32 key_id);
 void nfp_cpp_mutex_free(struct nfp_cpp_mutex *mutex);
 int nfp_cpp_mutex_lock(struct nfp_cpp_mutex *mutex);
 int nfp_cpp_mutex_unlock(struct nfp_cpp_mutex *mutex);
@@ -651,8 +650,8 @@ struct nfp_cpp_event;
 struct sigaction;
 
 struct nfp_cpp_event *nfp_cpp_event_alloc(struct nfp_cpp *cpp,
-					  uint32_t event_match,
-					  uint32_t event_mask, int type);
+					  u32 event_match,
+					  u32 event_mask, int type);
 struct nfp_cpp *nfp_cpp_event_cpp(struct nfp_cpp_event *cpp_event);
 int nfp_cpp_event_as_signal(struct nfp_cpp_event *event, int signum,
 			    const struct sigaction *act);
@@ -661,18 +660,18 @@ void nfp_cpp_event_free(struct nfp_cpp_event *event);
 struct nfp_cpp_explicit;
 
 struct nfp_cpp_explicit_command {
-	uint32_t cpp_id;
-	uint16_t data_ref;
-	uint8_t  data_master;
-	uint8_t  len;
-	uint8_t  byte_mask;
-	uint8_t  signal_master;
-	uint8_t  signal_ref;
-	uint8_t  posted;
-	uint8_t  siga;
-	uint8_t  sigb;
-	int8_t   siga_mode;
-	int8_t   sigb_mode;
+	u32 cpp_id;
+	u16 data_ref;
+	u8  data_master;
+	u8  len;
+	u8  byte_mask;
+	u8  signal_master;
+	u8  signal_ref;
+	u8  posted;
+	u8  siga;
+	u8  sigb;
+	s8   siga_mode;
+	s8   sigb_mode;
 };
 
 /**
@@ -706,9 +705,9 @@ struct nfp_cpp_explicit_command {
  * @explicit_do:        Perform the transaction
  */
 struct nfp_cpp_operations {
-	uint32_t model;
-	uint16_t interface;
-	uint8_t serial[6];
+	u32 model;
+	u16 interface;
+	u8 serial[6];
 
 	size_t area_priv_size;
 	size_t event_priv_size;
@@ -720,7 +719,7 @@ struct nfp_cpp_operations {
 	void (*free)(struct nfp_cpp *cpp);
 
 	int (*area_init)(struct nfp_cpp_area *area,
-			 uint32_t dest, unsigned long long address,
+			 u32 dest, unsigned long long address,
 			 unsigned long size);
 	void (*area_cleanup)(struct nfp_cpp_area *area);
 	int (*area_acquire)(struct nfp_cpp_area *area);
@@ -736,8 +735,8 @@ struct nfp_cpp_operations {
 	/* IRQ and event management */
 
 	/* Event management */
-	int (*event_acquire)(struct nfp_cpp_event *event, uint32_t match,
-			     uint32_t mask, uint32_t type);
+	int (*event_acquire)(struct nfp_cpp_event *event, u32 match,
+			     u32 mask, u32 type);
 	void (*event_release)(struct nfp_cpp_event *event);
 
 	size_t explicit_priv_size;
@@ -749,7 +748,7 @@ struct nfp_cpp_operations {
 			    void *buff, size_t len);
 	int (*explicit_do)(struct nfp_cpp_explicit *expl,
 			   const struct nfp_cpp_explicit_command *cmd,
-			   uint64_t address);
+			   u64 address);
 };
 
 struct nfp_cpp *nfp_cpp_from_operations(
@@ -775,7 +774,7 @@ int nfp_cpp_event_as_callback(struct nfp_cpp_event *event,
 			      void (*callback)(void *), void *priv);
 void *nfp_cpp_event_priv(struct nfp_cpp_event *cpp_event);
 
-uint64_t nfp_cpp_island_mask(struct nfp_cpp *cpp);
+u64 nfp_cpp_island_mask(struct nfp_cpp *cpp);
 
 /*
  * Return code masks for nfp_cpp_explicit_do()
@@ -792,20 +791,20 @@ enum nfp_cpp_explicit_signal_mode {
 };
 
 struct nfp_cpp_explicit *nfp_cpp_explicit_acquire(struct nfp_cpp *cpp);
-int nfp_cpp_explicit_set_target(struct nfp_cpp_explicit *expl, uint32_t cpp_id,
-				uint8_t len, uint8_t mask);
+int nfp_cpp_explicit_set_target(struct nfp_cpp_explicit *expl, u32 cpp_id,
+				u8 len, u8 mask);
 int nfp_cpp_explicit_set_data(struct nfp_cpp_explicit *expl,
-			      uint8_t data_master, uint16_t data_ref);
+			      u8 data_master, u16 data_ref);
 int nfp_cpp_explicit_set_signal(struct nfp_cpp_explicit *expl,
-				uint8_t signal_master, uint8_t signal_ref);
+				u8 signal_master, u8 signal_ref);
 int nfp_cpp_explicit_set_posted(struct nfp_cpp_explicit *expl, int posted,
-				uint8_t siga,
+				u8 siga,
 				enum nfp_cpp_explicit_signal_mode siga_mode,
-				uint8_t sigb,
+				u8 sigb,
 				enum nfp_cpp_explicit_signal_mode sigb_mode);
 int nfp_cpp_explicit_put(struct nfp_cpp_explicit *expl,
 			 const void *buff, size_t len);
-int nfp_cpp_explicit_do(struct nfp_cpp_explicit *expl, uint64_t address);
+int nfp_cpp_explicit_do(struct nfp_cpp_explicit *expl, u64 address);
 int nfp_cpp_explicit_get(struct nfp_cpp_explicit *expl, void *buff, size_t len);
 void nfp_cpp_explicit_release(struct nfp_cpp_explicit *expl);
 struct nfp_cpp *nfp_cpp_explicit_cpp(struct nfp_cpp_explicit *expl);
@@ -820,7 +819,7 @@ void nfp_em_manager_destroy(struct nfp_em_manager *evm);
 
 int nfp_em_manager_acquire(struct nfp_em_manager *evm,
 			   struct nfp_cpp_event *event,
-			   uint32_t match, uint32_t mask, uint32_t type);
+			   u32 match, u32 mask, u32 type);
 void nfp_em_manager_release(struct nfp_em_manager *evm, int filter);
 
 /* Implemented in nfp_cpplib.c */
@@ -828,25 +827,25 @@ void nfp_em_manager_release(struct nfp_em_manager *evm, int filter);
 #include "nfp3200/nfp3200.h"
 #include "nfp6000/nfp6000.h"
 
-int __nfp_cpp_model_autodetect(struct nfp_cpp *cpp, uint32_t *model);
+int __nfp_cpp_model_autodetect(struct nfp_cpp *cpp, u32 *model);
 int __nfp_cpp_model_fixup(struct nfp_cpp *cpp);
 
 /* Helpers for the nfpXXXX_pcie.c interfaces */
 
-static inline int __nfp_cpp_id_is_prefetchable(uint32_t cpp_id)
+static inline int __nfp_cpp_id_is_prefetchable(u32 cpp_id)
 {
 	return (NFP_CPP_ID_TARGET_of(cpp_id) == NFP_CPP_TARGET_MU &&
 		(NFP_CPP_ID_ACTION_of(cpp_id) == NFP_CPP_ACTION_RW ||
 		 NFP_CPP_ID_ACTION_of(cpp_id) == 0));
 }
 
-int __nfp_cpp_explicit_read(struct nfp_cpp *cpp, uint32_t cpp_id,
-			    uint64_t addr, void *buff, size_t len,
+int __nfp_cpp_explicit_read(struct nfp_cpp *cpp, u32 cpp_id,
+			    u64 addr, void *buff, size_t len,
 			    int width_read);
 
-int __nfp_cpp_explicit_write(struct nfp_cpp *cpp, uint32_t cpp_id,
-			     uint64_t addr, const void *buff, size_t len,
-			    int width_write);
+int __nfp_cpp_explicit_write(struct nfp_cpp *cpp, u32 cpp_id,
+			     u64 addr, const void *buff, size_t len,
+			     int width_write);
 
 /* nfp_cppcore.c */
 
