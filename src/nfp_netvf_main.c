@@ -340,14 +340,14 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 			       const struct pci_device_id *pci_id)
 {
 	int max_tx_rings, max_rx_rings;
-	uint32_t tx_bar_off, rx_bar_off;
-	uint32_t tx_bar_sz, rx_bar_sz;
+	u32 tx_bar_off, rx_bar_off;
+	u32 tx_bar_sz, rx_bar_sz;
 	int tx_bar_no, rx_bar_no;
 	u8 __iomem *ctrl_bar;
 	struct nfp_net *nn;
-	uint32_t version;
-	uint32_t startq;
 	int is_nfp3200;
+	u32 version;
+	u32 startq;
 	int stride;
 	int err;
 
@@ -400,10 +400,8 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 	    NFP_NET_CFG_VERSION_CLASS(NFP_NET_CFG_VERSION_CLASS_GENERIC)) {
 		/* We only support the Generic Class */
 		dev_err(&pdev->dev, "Unknown Firmware ABI %d.%d.%d.%d\n",
-				(version >> 24) & 0xff,
-				(version >> 16) & 0xff,
-				(version >>  8) & 0xff,
-				(version >>  0) & 0xff);
+			(version >> 24) & 0xff, (version >> 16) & 0xff,
+			(version >>  8) & 0xff, (version >>  0) & 0xff);
 		err = -EINVAL;
 		goto err_nn_init;
 	}
@@ -431,10 +429,8 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 			break;
 		default:
 			dev_err(&pdev->dev, "Unsupported Firmware ABI %d.%d.%d.%d\n",
-					(version >> 24) & 0xff,
-					(version >> 16) & 0xff,
-					(version >>  8) & 0xff,
-					(version >>  0) & 0xff);
+				(version >> 24) & 0xff, (version >> 16) & 0xff,
+				(version >>  8) & 0xff,	(version >>  0) & 0xff);
 			err = -EINVAL;
 			goto err_nn_init;
 		}
@@ -492,7 +488,7 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 	nn->stride_rx = stride;
 
 	if (rx_bar_no == tx_bar_no) {
-		uint32_t bar_off, bar_sz;
+		u32 bar_off, bar_sz;
 
 		/* Make a single overlapping BAR mapping */
 		if (tx_bar_off < rx_bar_off)
