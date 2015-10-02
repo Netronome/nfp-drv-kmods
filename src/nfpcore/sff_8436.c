@@ -467,7 +467,7 @@ static int sff_8436_power(struct nfp_phymod *phy, int is_full_power)
 	return pin_set(priv->nfp, &sff->out.lp_mode, is_full_power ? 0 : 1);
 }
 
-static int sff_8436_read8(struct nfp_phymod *phy, uint32_t reg, uint8_t *val)
+static int sff_8436_read8(struct nfp_phymod *phy, u32 reg, u8 *val)
 {
 	struct sff_8436 *sff = phy->sff.priv;
 	int page = (reg >> 8);
@@ -486,7 +486,7 @@ static int sff_8436_read8(struct nfp_phymod *phy, uint32_t reg, uint8_t *val)
 	return sff->bus.op->read8(&sff->bus, reg, val);
 }
 
-static int sff_8436_write8(struct nfp_phymod *phy, uint32_t reg, uint8_t val)
+static int sff_8436_write8(struct nfp_phymod *phy, u32 reg, u8 val)
 {
 	struct sff_8436 *sff = phy->sff.priv;
 	int page = (reg >> 8);
@@ -517,11 +517,11 @@ static int sff_8436_write8(struct nfp_phymod *phy, uint32_t reg, uint8_t val)
 #define SFF_8436_DISABLE_TX	86
 
 static int sff_8436_status_los(struct nfp_phymod *phy,
-			       uint32_t *tx_status, uint32_t *rx_status)
+			       u32 *tx_status, u32 *rx_status)
 {
-	uint8_t tmp;
+	u8 tmp;
 	int err;
-	uint32_t rxs = 0, txs = 0;
+	u32 rxs = 0, txs = 0;
 
 	err = nfp_phymod_read8(phy, SFF_8436_LOS, &tmp);
 	if (err < 0)
@@ -544,11 +544,11 @@ static int sff_8436_status_los(struct nfp_phymod *phy,
 }
 
 static int sff_8436_status_fault(struct nfp_phymod *phy,
-				 uint32_t *tx_status, uint32_t *rx_status)
+				 u32 *tx_status, u32 *rx_status)
 {
-	uint8_t tmp;
+	u8 tmp;
 	int err;
-	uint32_t rxs = 0, txs = 0;
+	u32 rxs = 0, txs = 0;
 
 	err = nfp_phymod_read8(phy, SFF_8436_FAULT_TX, &tmp);
 	if (err < 0)
@@ -567,11 +567,11 @@ static int sff_8436_status_fault(struct nfp_phymod *phy,
 }
 
 static int sff_8436_status_power(struct nfp_phymod *phy,
-				 uint32_t *tx_status, uint32_t *rx_status)
+				 u32 *tx_status, u32 *rx_status)
 {
-	uint8_t tmp;
+	u8 tmp;
 	int err;
-	uint32_t rxs = 0, txs = 0;
+	u32 rxs = 0, txs = 0;
 
 	err = nfp_phymod_read8(phy, SFF_8436_POWER_RX_12, &tmp);
 	if (err < 0)
@@ -585,7 +585,7 @@ static int sff_8436_status_power(struct nfp_phymod *phy,
 		return err;
 
 	if (tmp)
-		rxs |= (uint32_t)tmp << 8;
+		rxs |= (u32)tmp << 8;
 
 	if (tx_status)
 		*tx_status = txs;
@@ -597,11 +597,11 @@ static int sff_8436_status_power(struct nfp_phymod *phy,
 }
 
 static int sff_8436_status_bias(struct nfp_phymod *phy,
-				uint32_t *tx_status, uint32_t *rx_status)
+				u32 *tx_status, u32 *rx_status)
 {
-	uint8_t tmp;
+	u8 tmp;
 	int err;
-	uint32_t rxs = 0, txs = 0;
+	u32 rxs = 0, txs = 0;
 
 	err = nfp_phymod_read8(phy, SFF_8436_BIAS_TX_12, &tmp);
 	if (err < 0)
@@ -615,7 +615,7 @@ static int sff_8436_status_bias(struct nfp_phymod *phy,
 		return err;
 
 	if (tmp)
-		txs |= (uint32_t)tmp << 8;
+		txs |= (u32)tmp << 8;
 
 	if (tx_status)
 		*tx_status = txs;
@@ -627,11 +627,11 @@ static int sff_8436_status_bias(struct nfp_phymod *phy,
 }
 
 static int sff_8436_status_volt(struct nfp_phymod *phy,
-				uint32_t *tx_status, uint32_t *rx_status)
+				u32 *tx_status, u32 *rx_status)
 {
-	uint8_t tmp;
+	u8 tmp;
 	int err;
-	uint32_t rxs = 0, txs = 0;
+	u32 rxs = 0, txs = 0;
 
 	err = nfp_phymod_read8(phy, SFF_8436_VCC, &tmp);
 	if (err < 0)
@@ -652,11 +652,11 @@ static int sff_8436_status_volt(struct nfp_phymod *phy,
 }
 
 static int sff_8436_status_temp(struct nfp_phymod *phy,
-				uint32_t *tx_status, uint32_t *rx_status)
+				u32 *tx_status, u32 *rx_status)
 {
-	uint8_t tmp;
+	u8 tmp;
 	int err;
-	uint32_t rxs = 0, txs = 0;
+	u32 rxs = 0, txs = 0;
 
 	err = nfp_phymod_read8(phy, SFF_8436_TEMP, &tmp);
 	if (err < 0)
@@ -677,11 +677,11 @@ static int sff_8436_status_temp(struct nfp_phymod *phy,
 }
 
 static int sff_8436_get_lane_dis(struct nfp_phymod *phy,
-				 uint32_t *tx_status, uint32_t *rx_status)
+				 u32 *tx_status, u32 *rx_status)
 {
-	uint8_t tmp;
+	u8 tmp;
 	int err;
-	uint32_t rxs = 0, txs = 0;
+	u32 rxs = 0, txs = 0;
 
 	err = nfp_phymod_read8(phy, SFF_8436_DISABLE_TX, &tmp);
 	if (err < 0)
@@ -699,7 +699,7 @@ static int sff_8436_get_lane_dis(struct nfp_phymod *phy,
 }
 
 static int sff_8436_set_lane_dis(struct nfp_phymod *phy,
-				 uint32_t tx_status, uint32_t rx_status)
+				 u32 tx_status, u32 rx_status)
 {
 	return nfp_phymod_write8(phy, SFF_8436_DISABLE_TX, tx_status & 0xf);
 }
