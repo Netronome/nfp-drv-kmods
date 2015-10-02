@@ -361,8 +361,8 @@ struct nfp_cpp_area_request {
 struct nfp_cpp_explicit_request {
 	unsigned long   csr[3];		/* CSR values */
 	int		in, out;	/* in and out data length (# u32) */
-	uint32_t	data[32];	/* Data in/out */
-	uint64_t	address;	/* CPP address */
+	u32		data[32];	/* Data in/out */
+	u64		address;	/* CPP address */
 };
 
 /*
@@ -374,15 +374,15 @@ struct nfp_cpp_explicit_request {
 #define NFP_IOCTL_CPP_EXPL_REQUEST \
 	_IOW(NFP_IOCTL, 0x82, struct nfp_cpp_explicit_request)
 
-/* This struct should only use uint32_t types where possible,
+/* This struct should only use u32 types where possible,
  * to reduce problems with packing differences on compilers.
  */
 struct nfp_cpp_identification {
-	uint32_t	size;		/* Size of this structure, in bytes */
-	uint32_t	model;		/* NFP CPP model ID */
-	uint32_t	interface;	/* NFP CPP interface ID */
-	uint32_t	serial_lo;	/* Lower 32 of 48 bit serial number */
-	uint32_t	serial_hi;	/* Upper 16 of 48 bit serial number */
+	u32	size;		/* Size of this structure, in bytes */
+	u32	model;		/* NFP CPP model ID */
+	u32	interface;	/* NFP CPP interface ID */
+	u32	serial_lo;	/* Lower 32 of 48 bit serial number */
+	u32	serial_hi;	/* Upper 16 of 48 bit serial number */
 };
 
 /**
@@ -432,6 +432,6 @@ struct nfp_cpp_event_request {
  * Returns the total length supported on success, and an error on failure.
  */
 #define NFP_IOCTL_CPP_IDENTIFICATION \
-	_IOW(NFP_IOCTL, 0x8f, uint32_t)
+	_IOW(NFP_IOCTL, 0x8f, u32)
 
 #endif /* NFP_IOCTL_H */
