@@ -353,7 +353,7 @@
 struct nfp_plat_bar {
 	unsigned flags;
 	atomic_t usage;
-	uint32_t csr;
+	u32 csr;
 };
 
 #define NFP3200_EM_FILTER_BASE	8
@@ -368,7 +368,7 @@ struct nfp3200_plat {
 	struct platform_device *nfp_net_vnic[4];
 	struct nfp_cpp *cpp;
 	struct nfp_cpp_operations op;
-	int (*target_pushpull)(uint32_t cpp_id, uint64_t address);
+	int (*target_pushpull)(u32 cpp_id, u64 address);
 	spinlock_t lock;			/* Lock for the BAR cache */
 	struct nfp_plat_bar bulk_bar[7];	/* Last BULK is for user use */
 	struct nfp_plat_bar expa_bar[15];	/* Last EXPA is for user use */
@@ -387,8 +387,8 @@ struct nfp3200_plat {
 
 struct nfp_plat_area_priv {
 	/* Always Valid */
-	uint32_t dest;
-	uint64_t addr;
+	u32 dest;
+	u64 addr;
 	unsigned long size;
 	struct {
 		int read;
@@ -408,15 +408,15 @@ struct nfp_plat_area_priv {
 	} type;
 	int bars;			/* Number of bars contig. allocated */
 	int id;				/* ID of first bar */
-	uint64_t offset;
+	u64 offset;
 	unsigned long phys_addr;	/* Physical address of the BAR base */
 	unsigned long phys_size;	/* Bar total size */
 	void __iomem *iomem;
 };
 
 struct nfp_plat_event_priv {
-	uint32_t match;
-	uint32_t mask;
+	u32 match;
+	u32 mask;
 	unsigned int type;
 	int em_slot;
 };
@@ -435,18 +435,15 @@ static void bar_unlock(struct nfp_plat_bar *bar)
 	}
 }
 
-static int bar_find(struct nfp_cpp_area *area,
-		    enum bar_type type,
-		    int bars,
-		    uint32_t csr,
-		    int can_alloc)
+static int bar_find(struct nfp_cpp_area *area, enum bar_type type,
+		    int bars, u32 csr, int can_alloc)
 {
-	struct nfp_plat_area_priv *priv = nfp_cpp_area_priv(area);
 	struct nfp3200_plat *nfp_priv = nfp_cpp_priv(nfp_cpp_area_cpp(area));
+	struct nfp_plat_area_priv *priv = nfp_cpp_area_priv(area);
 	struct nfp_plat_bar *bar;
+	unsigned long bar_base;
 	unsigned int bar_max;
 	size_t bar_size;
-	unsigned long bar_base;
 	unsigned int i, j;
 
 	/* Only for unallocated areas... */
@@ -531,8 +528,7 @@ found_slot:
 	return 0;
 }
 
-static inline void bulk_csr(uint32_t *csr, uint32_t dest,
-			    uint64_t addr, int width)
+static inline void bulk_csr(u32 *csr, u32 dest, u64 addr, int width)
 {
 	*csr = NFP_ARM_GCSR_BULK_CSR(0,	/* Always expansion */
 			  NFP_CPP_ID_TARGET_of(dest),
@@ -542,7 +538,7 @@ static inline void bulk_csr(uint32_t *csr, uint32_t dest,
 			  addr);
 }
 
-static inline void bulk_set(struct nfp3200_plat *priv, uint32_t csr,
+static inline void bulk_set(struct nfp3200_plat *priv, u32 csr,
 			    unsigned int id)
 {
 	int i;
@@ -559,8 +555,7 @@ static inline void bulk_set(struct nfp3200_plat *priv, uint32_t csr,
 			csr);
 }
 
-static inline void expa_csr(uint32_t *csr, uint32_t dest,
-			    uint64_t addr, int width)
+static inline void expa_csr(u32 *csr, u32 dest, u64 addr, int width)
 {
 	unsigned action = NFP_CPP_ID_ACTION_of(dest);
 	int is_64 = (width == 8) ? 1 : 0;
@@ -577,7 +572,7 @@ static inline void expa_csr(uint32_t *csr, uint32_t dest,
 			  addr);
 }
 
-static inline void expa_set(struct nfp3200_plat *priv, uint32_t csr,
+static inline void expa_set(struct nfp3200_plat *priv, u32 csr,
 			    unsigned int id)
 {
 	int i;
@@ -595,11 +590,10 @@ static inline void expa_set(struct nfp3200_plat *priv, uint32_t csr,
 }
 
 static int nfp3200_plat_area_init(struct nfp_cpp_area *area,
-				  uint32_t dest, uint64_t addr,
-				  unsigned long size)
+				  u32 dest, u64 addr, unsigned long size)
 {
-	struct nfp_plat_area_priv *priv = nfp_cpp_area_priv(area);
 	struct nfp3200_plat *nfp_priv = nfp_cpp_priv(nfp_cpp_area_cpp(area));
+	struct nfp_plat_area_priv *priv = nfp_cpp_area_priv(area);
 	int pp;
 
 	pp = nfp_priv->target_pushpull(dest, addr);
@@ -633,14 +627,14 @@ void nfp3200_plat_area_cleanup(struct nfp_cpp_area *area)
 
 static int bar_find_any(struct nfp_cpp_area *area, int can_allocate)
 {
-	struct nfp_plat_area_priv *priv = nfp_cpp_area_priv(area);
 	struct nfp3200_plat *nfp_priv = nfp_cpp_priv(nfp_cpp_area_cpp(area));
-	uint32_t csr;
-	uint32_t dest;
-	uint64_t addr;
+	struct nfp_plat_area_priv *priv = nfp_cpp_area_priv(area);
 	unsigned long size;
 	int bars, err, i;
 	int width;
+	u32 dest;
+	u64 addr;
+	u32 csr;
 
 	BUG_ON(priv->bar);
 
@@ -687,8 +681,8 @@ static int bar_find_any(struct nfp_cpp_area *area, int can_allocate)
 static int nfp3200_plat_acquire(struct nfp_cpp_area *area)
 {
 	struct nfp_plat_area_priv *priv = nfp_cpp_area_priv(area);
-	int err;
 	phys_addr_t phys_offset;
+	int err;
 
 	err = bar_find_any(area, false);
 	if (err != 0)
@@ -710,8 +704,8 @@ static int nfp3200_plat_acquire(struct nfp_cpp_area *area)
 
 static void nfp3200_plat_release(struct nfp_cpp_area *area)
 {
-	struct nfp_plat_area_priv *priv = nfp_cpp_area_priv(area);
 	struct nfp3200_plat *nfp_priv = nfp_cpp_priv(nfp_cpp_area_cpp(area));
+	struct nfp_plat_area_priv *priv = nfp_cpp_area_priv(area);
 	int i;
 
 	BUG_ON(!priv->bar);
@@ -769,9 +763,9 @@ static int nfp3200_plat_read(struct nfp_cpp_area *area, void *kernel_vaddr,
 			     unsigned long offset, unsigned int length)
 {
 	struct nfp_plat_area_priv *priv = nfp_cpp_area_priv(area);
+	void __iomem *iomem;
 	unsigned long i;
 	int is_64;
-	void __iomem *iomem;
 
 	BUG_ON(!priv->bar);
 
@@ -785,28 +779,28 @@ static int nfp3200_plat_read(struct nfp_cpp_area *area, void *kernel_vaddr,
 	is_64 = (priv->width.read == 8) ? 1 : 0;
 
 	if (is_64) {
-		if (((offset % sizeof(uint64_t)) != 0) ||
-		    ((length % sizeof(uint64_t)) != 0))
+		if (((offset % sizeof(u64)) != 0) ||
+		    ((length % sizeof(u64)) != 0))
 			return -EINVAL;
 	} else {
-		if (((offset % sizeof(uint32_t)) != 0) ||
-		    ((length % sizeof(uint32_t)) != 0))
+		if (((offset % sizeof(u32)) != 0) ||
+		    ((length % sizeof(u32)) != 0))
 			return -EINVAL;
 	}
 	BUG_ON((offset + length) > priv->size);
 
 	if (priv->type == BAR_BULK || priv->type == BAR_EXPA) {
 		/* Easy! It's bulk or expansion bar! */
-		if (((offset % sizeof(uint64_t)) == 0) &&
-		    ((length % sizeof(uint64_t)) == 0)) {
-			for (i = 0; i < length; i += sizeof(uint64_t)) {
-				uint64_t tmp = readq(iomem + offset + i);
-				*(uint64_t *)(kernel_vaddr + i) = tmp;
+		if (((offset % sizeof(u64)) == 0) &&
+		    ((length % sizeof(u64)) == 0)) {
+			for (i = 0; i < length; i += sizeof(u64)) {
+				u64 tmp = readq(iomem + offset + i);
+				*(u64 *)(kernel_vaddr + i) = tmp;
 			}
 		} else {
-			for (i = 0; i < length; i += sizeof(uint32_t)) {
-				uint32_t tmp = readl(iomem + offset + i);
-				*(uint32_t *)(kernel_vaddr + i) = tmp;
+			for (i = 0; i < length; i += sizeof(u32)) {
+				u32 tmp = readl(iomem + offset + i);
+				*(u32 *)(kernel_vaddr + i) = tmp;
 			}
 		}
 		return i;
@@ -822,9 +816,9 @@ static int nfp3200_plat_write(struct nfp_cpp_area *area,
 			      unsigned int length)
 {
 	struct nfp_plat_area_priv *priv = nfp_cpp_area_priv(area);
+	void __iomem *iomem;
 	unsigned long i;
 	int is_64;
-	void __iomem *iomem;
 
 	BUG_ON(!priv->bar);
 
@@ -838,26 +832,26 @@ static int nfp3200_plat_write(struct nfp_cpp_area *area,
 	is_64 = (priv->width.write == 8) ? 1 : 0;
 
 	if (is_64) {
-		if (((offset % sizeof(uint64_t)) != 0) ||
-		    ((length % sizeof(uint64_t)) != 0))
+		if (((offset % sizeof(u64)) != 0) ||
+		    ((length % sizeof(u64)) != 0))
 			return -EINVAL;
 	} else {
-		if (((offset % sizeof(uint32_t)) != 0) ||
-		    ((length % sizeof(uint32_t)) != 0))
+		if (((offset % sizeof(u32)) != 0) ||
+		    ((length % sizeof(u32)) != 0))
 			return -EINVAL;
 	}
 
 	if (priv->type == BAR_BULK || priv->type == BAR_EXPA) {
 		/* Easy! It's bulk or expansion bar! */
-		if (((offset % sizeof(uint64_t)) == 0) &&
-		    ((length % sizeof(uint64_t)) == 0)) {
-			for (i = 0; i < length; i += sizeof(uint64_t)) {
-				writeq(*(uint64_t *)(kernel_vaddr + i),
+		if (((offset % sizeof(u64)) == 0) &&
+		    ((length % sizeof(u64)) == 0)) {
+			for (i = 0; i < length; i += sizeof(u64)) {
+				writeq(*(u64 *)(kernel_vaddr + i),
 				       iomem + offset + i);
 			}
 		} else {
-			for (i = 0; i < length; i += sizeof(uint32_t)) {
-				writel(*(uint32_t *)(kernel_vaddr + i),
+			for (i = 0; i < length; i += sizeof(u32)) {
+				writel(*(u32 *)(kernel_vaddr + i),
 				       iomem + offset + i);
 			}
 		}
@@ -879,14 +873,13 @@ static irqreturn_t nfp3200_plat_irq(int irq, void *priv)
 }
 
 static int nfp3200_plat_event_acquire(struct nfp_cpp_event *event,
-				      uint32_t match, uint32_t mask,
-				      unsigned int type)
+				      u32 match, u32 mask, unsigned int type)
 {
 	struct nfp_plat_event_priv *event_priv = nfp_cpp_event_priv(event);
 	struct nfp3200_plat *priv = nfp_cpp_priv(nfp_cpp_event_cpp(event));
 	int err, em_slot;
 	unsigned int irq;
-	uint32_t spec[4];
+	u32 spec[4];
 
 	/* Only type 0 filters are supported */
 	if (type != 0)
@@ -955,7 +948,7 @@ struct nfp_plat_explicit_priv {
 
 #define EXPL_BASE		  0xf800
 #define EXPL_INDEX_TO_OFFSET(n)	  ((n) << 5)
-#define EXPL_INDEX_TO_DATA_REF(n) ({ uint16_t offset = EXPL_BASE + \
+#define EXPL_INDEX_TO_DATA_REF(n) ({ u16 offset = EXPL_BASE + \
 				     EXPL_INDEX_TO_OFFSET(n); \
 				     (offset & 0x3ff0) | \
 				     ((offset & 0xc000) >> 14); })
@@ -982,8 +975,8 @@ int nfp3200_plat_explicit_acquire(struct nfp_cpp_explicit *expl)
 /* Release an explicit transaction handle */
 void nfp3200_plat_explicit_release(struct nfp_cpp_explicit *expl)
 {
-	struct nfp_cpp *cpp = nfp_cpp_explicit_cpp(expl);
 	struct nfp_plat_explicit_priv *expl_priv = nfp_cpp_explicit_priv(expl);
+	struct nfp_cpp *cpp = nfp_cpp_explicit_cpp(expl);
 	struct nfp3200_plat *priv = nfp_cpp_priv(cpp);
 
 	clear_bit(expl_priv->index, priv->expl_bar_mask);
@@ -992,19 +985,19 @@ void nfp3200_plat_explicit_release(struct nfp_cpp_explicit *expl)
 /* Perform the transaction */
 static int nfp3200_plat_explicit_do(struct nfp_cpp_explicit *expl,
 				    const struct nfp_cpp_explicit_command *cmd,
-				    uint64_t address)
+				    u64 address)
 {
+	struct nfp_plat_explicit_priv *expl_priv = nfp_cpp_explicit_priv(expl);
 	struct nfp_cpp *cpp = nfp_cpp_explicit_cpp(expl);
 	struct nfp3200_plat *priv = nfp_cpp_priv(cpp);
-	struct nfp_plat_explicit_priv *expl_priv = nfp_cpp_explicit_priv(expl);
-	int err, index = expl_priv->index;
-	uint32_t expl1, expl2, post;
-	uint16_t signal_master, data_master, default_master;
-	uint16_t data_ref, signal_ref;
-	uint32_t required = 0;
-	void __iomem *gcsr = priv->gcsr;
+	u16 signal_master, data_master, default_master;
 	void __iomem *expl_io = priv->expl_io;
-	uint32_t model = nfp_cpp_model(cpp);
+	void __iomem *gcsr = priv->gcsr;
+	int err, index = expl_priv->index;
+	u32 expl1, expl2, post;
+	u16 data_ref, signal_ref;
+	u32 required = 0;
+	u32 model = nfp_cpp_model(cpp);
 
 	if (NFP_CPP_MODEL_IS_3200(model))
 		default_master = 0x41;
@@ -1143,9 +1136,9 @@ static int nfp3200_plat_explicit_do(struct nfp_cpp_explicit *expl,
 int nfp3200_plat_explicit_put(struct nfp_cpp_explicit *expl,
 			      const void *buff, size_t len)
 {
+	struct nfp_plat_explicit_priv *expl_priv = nfp_cpp_explicit_priv(expl);
 	struct nfp_cpp *cpp = nfp_cpp_explicit_cpp(expl);
 	struct nfp3200_plat *priv = nfp_cpp_priv(cpp);
-	struct nfp_plat_explicit_priv *expl_priv = nfp_cpp_explicit_priv(expl);
 
 	if (len > 128)
 		return -EINVAL;
@@ -1160,9 +1153,9 @@ int nfp3200_plat_explicit_put(struct nfp_cpp_explicit *expl,
 int nfp3200_plat_explicit_get(struct nfp_cpp_explicit *expl,
 			      void *buff, size_t len)
 {
+	struct nfp_plat_explicit_priv *expl_priv = nfp_cpp_explicit_priv(expl);
 	struct nfp_cpp *cpp = nfp_cpp_explicit_cpp(expl);
 	struct nfp3200_plat *priv = nfp_cpp_priv(cpp);
-	struct nfp_plat_explicit_priv *expl_priv = nfp_cpp_explicit_priv(expl);
 
 	if (len > 128)
 		return -EINVAL;
@@ -1213,14 +1206,13 @@ MODULE_DEVICE_TABLE(of, nfp3200_plat_match);
 #define BARTYPE_EXPL	2
 
 static int nfp3200_plat_bar_scan(struct nfp3200_plat *priv,
-				 uint32_t arm_addr, uint32_t arm_size,
-					uint32_t cpp_id, uint64_t cpp_addr,
-					unsigned long *used)
+				 u32 arm_addr, u32 arm_size,
+				 u32 cpp_id, u64 cpp_addr, unsigned long *used)
 {
-	int bar, type = 0;
-	uint32_t csr;
-	struct device *dev = priv->dev;
 	int pp, target, action, token, is_64;
+	struct device *dev = priv->dev;
+	int bar, type = 0;
+	u32 csr;
 
 	target = NFP_CPP_ID_TARGET_of(cpp_id);
 	action = NFP_CPP_ID_ACTION_of(cpp_id);
@@ -1329,8 +1321,8 @@ static int nfp3200_plat_bar_scan(struct nfp3200_plat *priv,
  */
 static int nfp3200_plat_of(struct nfp3200_plat *priv)
 {
-	struct device *dev = priv->dev;
 	struct device_node *dn = priv->dev->of_node;
+	struct device *dev = priv->dev;
 	DECLARE_BITMAP(used, 8 + 16 + 8);
 	struct property *prop;
 	struct resource res;
@@ -1379,14 +1371,14 @@ static int nfp3200_plat_of(struct nfp3200_plat *priv)
 	}
 
 	of_property_for_each_u32(dn, "ranges", prop, ptr, tmp) {
-		uint32_t cpp_id;
-		uint64_t cpp_addr;
+		u32 cpp_id;
+		u64 cpp_addr;
 
-		uint32_t arm_addr;
-		uint32_t arm_size;
+		u32 arm_addr;
+		u32 arm_size;
 
 		cpp_id = tmp & 0xffffff00;
-		cpp_addr = (uint64_t)(tmp & 0xff) << 32;
+		cpp_addr = (u64)(tmp & 0xff) << 32;
 
 		ptr = of_prop_next_u32(prop, ptr, &tmp);
 		if (!ptr) {
@@ -1471,10 +1463,10 @@ static int nfp3200_plat_of(struct nfp3200_plat *priv)
 
 static int nfp3200_plat_probe(struct platform_device *pdev)
 {
-	struct nfp3200_plat *priv;
 	const struct of_device_id *of_id;
+	struct nfp3200_plat *priv;
 	int i, err, vnic_units;
-	uint32_t model;
+	u32 model;
 
 	of_id = of_match_device(nfp3200_plat_match, &pdev->dev);
 	if (!of_id) {
