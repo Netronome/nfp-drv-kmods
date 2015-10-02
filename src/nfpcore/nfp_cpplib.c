@@ -346,7 +346,7 @@
 #define   NFP_PL_DEVICE_ID_MINOR_REV_of(_x)   (((_x) >> 0) & 0xf)
 
 /**
- * nfp_cpp_readl() - Read a uint32_t word from a CPP location
+ * nfp_cpp_readl() - Read a u32 word from a CPP location
  * @cpp:	CPP device handle
  * @cpp_id:	CPP ID for operation
  * @address:	Address for operation
@@ -354,11 +354,11 @@
  *
  * Return: length of the io, or -ERRNO
  */
-int nfp_cpp_readl(struct nfp_cpp *cpp, uint32_t cpp_id,
-		  unsigned long long address, uint32_t *value)
+int nfp_cpp_readl(struct nfp_cpp *cpp, u32 cpp_id,
+		  unsigned long long address, u32 *value)
 {
 	int err;
-	uint32_t tmp;
+	u32 tmp;
 
 	err = nfp_cpp_read(cpp, cpp_id, address, &tmp, sizeof(tmp));
 	*value = le32_to_cpu(tmp);
@@ -367,7 +367,7 @@ int nfp_cpp_readl(struct nfp_cpp *cpp, uint32_t cpp_id,
 }
 
 /**
- * nfp_cpp_writel() - Write a uint32_t word to a CPP location
+ * nfp_cpp_writel() - Write a u32 word to a CPP location
  * @cpp:	CPP device handle
  * @cpp_id:	CPP ID for operation
  * @address:	Address for operation
@@ -375,15 +375,15 @@ int nfp_cpp_readl(struct nfp_cpp *cpp, uint32_t cpp_id,
  *
  * Return: length of the io, or -ERRNO
  */
-int nfp_cpp_writel(struct nfp_cpp *cpp, uint32_t cpp_id,
-		   unsigned long long address, uint32_t value)
+int nfp_cpp_writel(struct nfp_cpp *cpp, u32 cpp_id,
+		   unsigned long long address, u32 value)
 {
 	value = cpu_to_le32(value);
 	return nfp_cpp_write(cpp, cpp_id, address, &value, sizeof(value));
 }
 
 /**
- * nfp_cpp_readq() - Read a uint64_t word from a CPP location
+ * nfp_cpp_readq() - Read a u64 word from a CPP location
  * @cpp:	CPP device handle
  * @cpp_id:	CPP ID for operation
  * @address:	Address for operation
@@ -391,11 +391,11 @@ int nfp_cpp_writel(struct nfp_cpp *cpp, uint32_t cpp_id,
  *
  * Return: length of the io, or -ERRNO
  */
-int nfp_cpp_readq(struct nfp_cpp *cpp, uint32_t cpp_id,
-		  unsigned long long address, uint64_t *value)
+int nfp_cpp_readq(struct nfp_cpp *cpp, u32 cpp_id,
+		  unsigned long long address, u64 *value)
 {
 	int err;
-	uint64_t tmp;
+	u64 tmp;
 
 	err = nfp_cpp_read(cpp, cpp_id, address, &tmp, sizeof(tmp));
 	*value = le64_to_cpu(tmp);
@@ -404,7 +404,7 @@ int nfp_cpp_readq(struct nfp_cpp *cpp, uint32_t cpp_id,
 }
 
 /**
- * nfp_cpp_writeq() - Write a uint64_t word to a CPP location
+ * nfp_cpp_writeq() - Write a u64 word to a CPP location
  * @cpp:	CPP device handle
  * @cpp_id:	CPP ID for operation
  * @address:	Address for operation
@@ -412,8 +412,8 @@ int nfp_cpp_readq(struct nfp_cpp *cpp, uint32_t cpp_id,
  *
  * Return: length of the io, or -ERRNO
  */
-int nfp_cpp_writeq(struct nfp_cpp *cpp, uint32_t cpp_id,
-		   unsigned long long address, uint64_t value)
+int nfp_cpp_writeq(struct nfp_cpp *cpp, u32 cpp_id,
+		   unsigned long long address, u64 value)
 {
 	value = cpu_to_le64(value);
 	return  nfp_cpp_write(cpp, cpp_id, address, &value, sizeof(value));
@@ -425,10 +425,10 @@ int nfp_cpp_writeq(struct nfp_cpp *cpp, uint32_t cpp_id,
 /* NOTE: This code should not use nfp_xpb_* functions,
  * as those are model-specific
  */
-int __nfp_cpp_model_autodetect(struct nfp_cpp *cpp, uint32_t *model)
+int __nfp_cpp_model_autodetect(struct nfp_cpp *cpp, u32 *model)
 {
+	const u32 arm_id = NFP_CPP_ID(NFP_CPP_TARGET_ARM, 0, 0);
 	int err;
-	const uint32_t arm_id = NFP_CPP_ID(NFP_CPP_TARGET_ARM, 0, 0);
 
 	/* Safe to read on the NFP3200 also, returns 0 */
 	err = nfp_cpp_readl(cpp, arm_id, NFP6000_ARM_GCSR_SOFTMODEL0, model);
@@ -437,8 +437,8 @@ int __nfp_cpp_model_autodetect(struct nfp_cpp *cpp, uint32_t *model)
 
 	/* Assume NFP3200 if zero */
 	if (*model == 0) {
-		const uint32_t xpb = NFP_CPP_ID(13, NFP_CPP_ACTION_RW, 0);
-		uint32_t tmp;
+		const u32 xpb = NFP_CPP_ID(13, NFP_CPP_ACTION_RW, 0);
+		u32 tmp;
 		int mes;
 
 		*model = 0x320000A0;
@@ -478,7 +478,7 @@ int __nfp_cpp_model_autodetect(struct nfp_cpp *cpp, uint32_t *model)
 		*model |= (mes / 10) << 20;
 		*model |= (mes % 10) << 16;
 	} else if (NFP_CPP_MODEL_IS_6000(*model)) {
-		uint32_t tmp;
+		u32 tmp;
 		int err;
 
 		/* The PL's PluDeviceID revision code is authoratative */
@@ -498,15 +498,14 @@ int __nfp_cpp_model_autodetect(struct nfp_cpp *cpp, uint32_t *model)
 /* THIS FUNCTION IS NOT EXPORTED */
 
 /* Fix up any ARM firmware issues */
-static int ddr3200_guess_size(struct nfp_cpp *cpp, int ddr, uint32_t *size)
+static int ddr3200_guess_size(struct nfp_cpp *cpp, int ddr, u32 *size)
 {
 	int err;
-	uint32_t tmp;
-	uint32_t mask = (ddr == 0) ?
+	u32 tmp;
+	u32 mask = (ddr == 0) ?
 		(NFP_PL_RE_DDR0_ENABLE | NFP_PL_RE_DDR0_RESET) :
 		(NFP_PL_RE_DDR1_ENABLE | NFP_PL_RE_DDR1_RESET);
-	uint32_t ddr_ctl = (ddr == 0) ? NFP_XPB_MU_PCTL0 :
-					NFP_XPB_MU_PCTL1;
+	u32 ddr_ctl = (ddr == 0) ? NFP_XPB_MU_PCTL0 : NFP_XPB_MU_PCTL1;
 	int ranks, rowb, rows, colb, cols, bankb, banks;
 
 	err = nfp_xpb_readl(cpp, NFP_XPB_PL + NFP_PL_RE, &tmp);
@@ -530,15 +529,15 @@ static int ddr3200_guess_size(struct nfp_cpp *cpp, int ddr, uint32_t *size)
 	bankb = NFP_MU_PCTL_DTUAWDT_BANK_ADDR_WIDTH_of(tmp) + 2;
 	banks = (1 << bankb);
 
-	*size = ranks * (rows * cols * banks / SZ_1M) * sizeof(uint64_t);
+	*size = ranks * (rows * cols * banks / SZ_1M) * sizeof(u64);
 	return 0;
 }
 
 static int workaround_resource_table(struct nfp_cpp *cpp,
 				     struct nfp_cpp_mutex **mx,
-		uint32_t ddr0_size, uint32_t ddr1_size)
+				     u32 ddr0_size, u32 ddr1_size)
 {
-	uint32_t ddr = NFP_CPP_ID(NFP_CPP_TARGET_MU, NFP_CPP_ACTION_RW, 1);
+	u32 ddr = NFP_CPP_ID(NFP_CPP_TARGET_MU, NFP_CPP_ACTION_RW, 1);
 	int err;
 
 	dev_warn(nfp_cpp_device(cpp), "WARNING: NFP Resource Table not found at 7:0:1:0x0, injecting workaround\n");
@@ -550,18 +549,16 @@ static int workaround_resource_table(struct nfp_cpp *cpp,
 	 * series resource list, which is assumed if there
 	 * is no existing resource map on a NFP3200
 	 */
-	err = nfp_cpp_resource_add(cpp, NFP_RESOURCE_ARM_WORKSPACE,
-				   ddr,
-				   (uint64_t)(ddr0_size + ddr1_size - 512)
-				   * SZ_1M,
-			SZ_512M, NULL);
+	err = nfp_cpp_resource_add(cpp, NFP_RESOURCE_ARM_WORKSPACE, ddr,
+				   (u64)(ddr0_size + ddr1_size - 512)
+				   * SZ_1M, SZ_512M, NULL);
 	if (err < 0)
 		return err;
 
 	err = nfp_cpp_resource_add(cpp, NFP_RESOURCE_NFP_HWINFO,
 				   NFP_CPP_ID(NFP_CPP_TARGET_ARM_SCRATCH,
 					      NFP_CPP_ACTION_RW, 0),
-		0x0000, 0x800, NULL);
+				   0x0000, 0x800, NULL);
 	if (err < 0)
 		return err;
 
@@ -577,18 +574,15 @@ static int workaround_resource_table(struct nfp_cpp *cpp,
 	if (err < 0)
 		return err;
 
-	err = nfp_cpp_resource_add(cpp, "msix.tbl", ddr,
-				   0x2000, 0x1000, NULL);
+	err = nfp_cpp_resource_add(cpp, "msix.tbl", ddr, 0x2000, 0x1000, NULL);
 	if (err < 0)
 		return err;
 
-	err = nfp_cpp_resource_add(cpp, "msix.pba", ddr,
-				   0x3000, 0x1000, NULL);
+	err = nfp_cpp_resource_add(cpp, "msix.pba", ddr, 0x3000, 0x1000, NULL);
 	if (err < 0)
 		return err;
 
-	err = nfp_cpp_resource_add(cpp, "arm.tty", ddr,
-				   0xb000, 0x3000, NULL);
+	err = nfp_cpp_resource_add(cpp, "arm.tty", ddr, 0xb000, 0x3000, NULL);
 	if (err < 0)
 		return err;
 
@@ -597,8 +591,7 @@ static int workaround_resource_table(struct nfp_cpp *cpp,
 	if (err < 0)
 		return err;
 
-	err = nfp_cpp_resource_add(cpp, "arm.ctrl", ddr,
-				   0xf000, 0x1000, NULL);
+	err = nfp_cpp_resource_add(cpp, "arm.ctrl", ddr, 0xf000, 0x1000, NULL);
 	if (err < 0)
 		return err;
 
@@ -607,14 +600,14 @@ static int workaround_resource_table(struct nfp_cpp *cpp,
 
 int __nfp_cpp_model_fixup(struct nfp_cpp *cpp)
 {
+	u32 ddr = NFP_CPP_ID(NFP_CPP_TARGET_MU, NFP_CPP_ACTION_RW, 1);
 	int err;
-	uint32_t ddr = NFP_CPP_ID(NFP_CPP_TARGET_MU, NFP_CPP_ACTION_RW, 1);
 
 	if (NFP_CPP_MODEL_IS_3200(nfp_cpp_model(cpp))) {
 		struct nfp_cpp_mutex *lock = NULL;
-		uint8_t resid[8];
-		uint32_t ddr0_size;
-		uint32_t ddr1_size;
+		u8 resid[8];
+		u32 ddr0_size;
+		u32 ddr1_size;
 
 		/* See if the DDR is even on */
 		err = ddr3200_guess_size(cpp, 0, &ddr0_size);
@@ -657,8 +650,8 @@ int __nfp_cpp_model_fixup(struct nfp_cpp *cpp)
 }
 
 /* THIS FUNCTION IS NOT EXPORTED */
-#define MUTEX_LOCKED(interface)  ((((uint32_t)(interface)) << 16) | 0x000f)
-#define MUTEX_UNLOCK(interface)  ((((uint32_t)(interface)) << 16) | 0x0000)
+#define MUTEX_LOCKED(interface)  ((((u32)(interface)) << 16) | 0x000f)
+#define MUTEX_UNLOCK(interface)  ((((u32)(interface)) << 16) | 0x0000)
 
 #define MUTEX_IS_LOCKED(value)   (((value) & 0xffff) == 0x000f)
 #define MUTEX_IS_UNLOCKED(value) (((value) & 0xffff) == 0x0000)
@@ -671,12 +664,12 @@ int __nfp_cpp_model_fixup(struct nfp_cpp *cpp)
 struct nfp_cpp_mutex {
 	struct nfp_cpp *cpp;
 	int target;
-	uint16_t depth;
+	u16 depth;
 	unsigned long long address;
-	uint32_t key;
+	u32 key;
 };
 
-static int _nfp_cpp_mutex_validate(uint32_t model, uint16_t interface,
+static int _nfp_cpp_mutex_validate(u32 model, u16 interface,
 				   int *target, unsigned long long address)
 {
 	/* Not permitted on invalid interfaces */
@@ -720,11 +713,11 @@ static int _nfp_cpp_mutex_validate(uint32_t model, uint16_t interface,
  * Return: 0 on success, or -errno on failure
  */
 int nfp_cpp_mutex_init(struct nfp_cpp *cpp,
-		       int target, unsigned long long address, uint32_t key)
+		       int target, unsigned long long address, u32 key)
 {
-	uint32_t model = nfp_cpp_model(cpp);
-	uint16_t interface = nfp_cpp_interface(cpp);
-	uint32_t muw = NFP_CPP_ID(target, 4, 0);    /* atomic_write */
+	u16 interface = nfp_cpp_interface(cpp);
+	u32 muw = NFP_CPP_ID(target, 4, 0);    /* atomic_write */
+	u32 model = nfp_cpp_model(cpp);
 	int err;
 
 	err = _nfp_cpp_mutex_validate(model, interface, &target, address);
@@ -758,18 +751,15 @@ int nfp_cpp_mutex_init(struct nfp_cpp *cpp,
  *
  * Return:	A non-NULL struct nfp_cpp_mutex * on success, NULL on failure.
  */
-struct nfp_cpp_mutex *nfp_cpp_mutex_alloc(
-		struct nfp_cpp *cpp,
-		int target,
-		unsigned long long address,
-		uint32_t key)
+struct nfp_cpp_mutex *nfp_cpp_mutex_alloc(struct nfp_cpp *cpp, int target,
+					  unsigned long long address, u32 key)
 {
-	uint32_t model = nfp_cpp_model(cpp);
-	uint16_t interface = nfp_cpp_interface(cpp);
+	u16 interface = nfp_cpp_interface(cpp);
+	u32 model = nfp_cpp_model(cpp);
+	u32 mur = NFP_CPP_ID(target, 3, 0);    /* atomic_read */
 	struct nfp_cpp_mutex *mutex;
-	uint32_t mur = NFP_CPP_ID(target, 3, 0);    /* atomic_read */
 	int err;
-	uint32_t tmp;
+	u32 tmp;
 
 	err = _nfp_cpp_mutex_validate(model, interface, &target, address);
 	if (err)
@@ -841,11 +831,11 @@ int nfp_cpp_mutex_lock(struct nfp_cpp_mutex *mutex)
  */
 int nfp_cpp_mutex_unlock(struct nfp_cpp_mutex *mutex)
 {
-	uint32_t muw = NFP_CPP_ID(mutex->target, 4, 0);    /* atomic_write */
-	uint32_t mur = NFP_CPP_ID(mutex->target, 3, 0);    /* atomic_read */
+	u32 muw = NFP_CPP_ID(mutex->target, 4, 0);    /* atomic_write */
+	u32 mur = NFP_CPP_ID(mutex->target, 3, 0);    /* atomic_read */
 	struct nfp_cpp *cpp = mutex->cpp;
-	uint32_t key, value;
-	uint16_t interface = nfp_cpp_interface(cpp);
+	u32 key, value;
+	u16 interface = nfp_cpp_interface(cpp);
 	int err;
 
 	if (mutex->depth > 1) {
@@ -883,10 +873,10 @@ int nfp_cpp_mutex_unlock(struct nfp_cpp_mutex *mutex)
  */
 int nfp_cpp_mutex_trylock(struct nfp_cpp_mutex *mutex)
 {
-	uint32_t mur = NFP_CPP_ID(mutex->target, 3, 0);    /* atomic_read */
-	uint32_t muw = NFP_CPP_ID(mutex->target, 4, 0);    /* atomic_write */
-	uint32_t mus = NFP_CPP_ID(mutex->target, 5, 3);    /* test_set_imm */
-	uint32_t key, value, tmp;
+	u32 mur = NFP_CPP_ID(mutex->target, 3, 0);    /* atomic_read */
+	u32 muw = NFP_CPP_ID(mutex->target, 4, 0);    /* atomic_write */
+	u32 mus = NFP_CPP_ID(mutex->target, 5, 3);    /* test_set_imm */
+	u32 key, value, tmp;
 	struct nfp_cpp *cpp = mutex->cpp;
 	int err;
 
@@ -955,9 +945,9 @@ int nfp_cpp_mutex_trylock(struct nfp_cpp_mutex *mutex)
 	return MUTEX_IS_LOCKED(tmp) ? -EBUSY : -EINVAL;
 }
 
-static inline uint8_t __nfp_bytemask_of(int width, uint64_t addr)
+static inline u8 __nfp_bytemask_of(int width, u64 addr)
 {
-	uint8_t byte_mask;
+	u8 byte_mask;
 
 	if (width == 8)
 		byte_mask = 0xff;
@@ -973,15 +963,14 @@ static inline uint8_t __nfp_bytemask_of(int width, uint64_t addr)
 	return byte_mask;
 }
 
-int __nfp_cpp_explicit_read(struct nfp_cpp *cpp, uint32_t cpp_id,
-			    uint64_t addr, void *buff, size_t len,
-			    int width_read)
+int __nfp_cpp_explicit_read(struct nfp_cpp *cpp, u32 cpp_id,
+			    u64 addr, void *buff, size_t len, int width_read)
 {
 	struct nfp_cpp_explicit *expl;
 	int cnt, incr = 16 * width_read;
 	char *tmp = buff;
 	int err;
-	uint8_t byte_mask;
+	u8 byte_mask;
 
 	expl = nfp_cpp_explicit_acquire(cpp);
 
@@ -1035,15 +1024,14 @@ int __nfp_cpp_explicit_read(struct nfp_cpp *cpp, uint32_t cpp_id,
 	return len;
 }
 
-int __nfp_cpp_explicit_write(struct nfp_cpp *cpp, uint32_t cpp_id,
-			     uint64_t addr, const void *buff, size_t len,
-			     int width_write)
+int __nfp_cpp_explicit_write(struct nfp_cpp *cpp, u32 cpp_id, u64 addr,
+			     const void *buff, size_t len, int width_write)
 {
 	struct nfp_cpp_explicit *expl;
 	int cnt, incr = 16 * width_write;
 	const char *tmp = buff;
 	int err;
-	uint8_t byte_mask;
+	u8 byte_mask;
 
 	expl = nfp_cpp_explicit_acquire(cpp);
 
