@@ -332,18 +332,18 @@
 
 /** nfp.nffw meinfo **/
 struct nffw_meinfo {
-	uint32_t ctxmask__fwid__meid;
+	u32 ctxmask__fwid__meid;
 };
 
 struct nffw_fwinfo {
-	uint32_t loaded__mu_da__mip_off_hi;
-	uint32_t mip_cppid; /* 0 means no MIP */
-	uint32_t mip_offset_lo;
+	u32 loaded__mu_da__mip_off_hi;
+	u32 mip_cppid; /* 0 means no MIP */
+	u32 mip_offset_lo;
 };
 
 /** Resource: nfp.nffw main **/
 struct nfp_nffw_info {
-	uint32_t flags[2];
+	u32 flags[2];
 	struct nffw_meinfo meinfo[NFFW_MEINFO_CNT];
 	struct nffw_fwinfo fwinfo[NFFW_FWINFO_CNT];
 };
@@ -358,32 +358,32 @@ struct nfp_nffw_info_priv {
  * into the table plus this base */
 
 /* loaded = loaded__mu_da__mip_off_hi<31:31> */
-static inline uint32_t nffw_fwinfo_loaded_get(struct nffw_fwinfo *fi)
+static inline u32 nffw_fwinfo_loaded_get(struct nffw_fwinfo *fi)
 {
 	return (fi->loaded__mu_da__mip_off_hi >> 31) & 1;
 }
 
 /* mip_cppid = mip_cppid */
-static inline uint32_t nffw_fwinfo_mip_cppid_get(struct nffw_fwinfo *fi)
+static inline u32 nffw_fwinfo_mip_cppid_get(struct nffw_fwinfo *fi)
 {
 	return fi->mip_cppid;
 }
 
 /* loaded = loaded__mu_da__mip_off_hi<8:8> */
-static inline uint32_t nffw_fwinfo_mip_mu_da_get(struct nffw_fwinfo *fi)
+static inline u32 nffw_fwinfo_mip_mu_da_get(struct nffw_fwinfo *fi)
 {
 	return (fi->loaded__mu_da__mip_off_hi >> 8) & 1;
 }
 
 /* mip_offset = (loaded__mu_da__mip_off_hi<7:0> << 8) | mip_offset_lo */
-static inline uint64_t nffw_fwinfo_mip_offset_get(struct nffw_fwinfo *fi)
+static inline u64 nffw_fwinfo_mip_offset_get(struct nffw_fwinfo *fi)
 {
-	return (((uint64_t)fi->loaded__mu_da__mip_off_hi & 0xFF) << 32) |
+	return (((u64)fi->loaded__mu_da__mip_off_hi & 0xFF) << 32) |
 		fi->mip_offset_lo;
 }
 
 /* flg_init = flags[0]<0> */
-static inline uint32_t nffw_res_flg_init_get(struct nfp_nffw_info *res)
+static inline u32 nffw_res_flg_init_get(struct nfp_nffw_info *res)
 {
 	return (res->flags[0] >> 0) & 0x1;
 }
@@ -432,8 +432,8 @@ int nfp_nffw_info_acquire(struct nfp_device *dev)
 
 	res = nfp_resource_acquire(dev, NFP_RESOURCE_NFP_NFFW);
 	if (res) {
-		uint32_t cpp_id = nfp_resource_cpp_id(res);
-		uint64_t addr = nfp_resource_address(res);
+		u32 cpp_id = nfp_resource_cpp_id(res);
+		u64 addr = nfp_resource_address(res);
 		size_t size = nfp_resource_size(res);
 
 		if (sizeof(priv->fwinf) > size) {
@@ -451,10 +451,10 @@ int nfp_nffw_info_acquire(struct nfp_device *dev)
 #ifndef __LITTLE_ENDIAN
 		/* Endian swap */
 		{
-			uint32_t *v;
+			u32 *v;
 			size_t i;
 
-			for (i = 0, v = (uint32_t *)&priv->fwinf;
+			for (i = 0, v = (u32 *)&priv->fwinf;
 			     i < sizeof(priv->fwinf);
 			     i += sizeof(*v), v++) {
 				*v = le32_to_cpu(*v);
@@ -497,16 +497,16 @@ int nfp_nffw_info_release(struct nfp_device *dev)
 
 	res = priv->res;
 	{
-		uint32_t cpp_id = nfp_resource_cpp_id(res);
-		uint64_t addr = nfp_resource_address(res);
+		u32 cpp_id = nfp_resource_cpp_id(res);
+		u64 addr = nfp_resource_address(res);
 
 #ifndef __LITTLE_ENDIAN
 		/* Endian swap the buffer we are writing out in-place */
 		{
-			uint32_t *v;
+			u32 *v;
 			size_t i;
 
-			for (i = 0, v = (uint32_t *)&priv->fwinf;
+			for (i = 0, v = (u32 *)&priv->fwinf;
 			     i < sizeof(priv->fwinf);
 			     i += sizeof(*v), v++) {
 				*v = cpu_to_le32(*v);
@@ -538,7 +538,7 @@ int nfp_nffw_info_release(struct nfp_device *dev)
  * Return: 0, or -ERRNO
  */
 int nfp_nffw_info_fw_mip(struct nfp_device *dev, uint8_t fwid,
-			 uint32_t *cpp_id, uint64_t *off)
+			 u32 *cpp_id, u64 *off)
 {
 	struct nffw_fwinfo *fwinfo;
 	struct nfp_nffw_info *fwinf = _nfp_nffw_info(dev);
