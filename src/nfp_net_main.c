@@ -440,7 +440,7 @@ static int nfp_net_fw_load(struct pci_dev *pdev,
 	const struct firmware *fw;
 	const char *fw_default, *fw_model;
 	char fw_name[128];
-	uint16_t interface;
+	u16 interface;
 	int timeout = 30; /* Seconds */
 	int err;
 
@@ -460,7 +460,8 @@ static int nfp_net_fw_load(struct pci_dev *pdev,
 		return 0;
 
 	if (fw_model) {
-		snprintf(fw_name, sizeof(fw_name), "netronome/%s.cat", fw_model);
+		snprintf(fw_name,
+			 sizeof(fw_name), "netronome/%s.cat", fw_model);
 		fw_name[sizeof(fw_name)-1] = 0;
 		dev_info(&pdev->dev, "FW image: %s\n", fw_name);
 		err = request_firmware(&fw, fw_name, &pdev->dev);
@@ -469,7 +470,8 @@ static int nfp_net_fw_load(struct pci_dev *pdev,
 	}
 
 	if (err < 0) {
-		snprintf(fw_name, sizeof(fw_name), "netronome/%s.cat", fw_default);
+		snprintf(fw_name,
+			 sizeof(fw_name), "netronome/%s.cat", fw_default);
 		fw_name[sizeof(fw_name)-1] = 0;
 		dev_info(&pdev->dev, "Default FW image: %s\n", fw_name);
 		err = request_firmware(&fw, fw_name, &pdev->dev);
@@ -479,7 +481,8 @@ static int nfp_net_fw_load(struct pci_dev *pdev,
 
 	if (NFP_CPP_MODEL_IS_6000(nfp_cpp_model(cpp))) {
 		/* Make sure we have the ARM service processor */
-		dev_info(&pdev->dev, "Waiting for NSP to respond (%d sec max).\n", timeout);
+		dev_info(&pdev->dev,
+			 "Waiting for NSP to respond (%d sec max).\n", timeout);
 		for (; timeout > 0; timeout--) {
 			err = nfp_nsp_command(nfp, SPCODE_NOOP, 0, 0, 0);
 			if (err != -EAGAIN)
@@ -834,19 +837,19 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 {
 	struct platform_device *dev_cpp = NULL;
 	const struct nfp_rtsym *ctrl_sym;
-	uint32_t tx_area_sz, rx_area_sz;
 	int max_tx_rings, max_rx_rings;
 	struct nfp_cpp_area *ctrl_area;
+	u32 tx_area_sz, rx_area_sz;
 	struct nfp_device *nfp_dev;
 	u8 __iomem *ctrl_bar;
 	struct nfp_cpp *cpp;
 	char pf_symbol[256];
-	uint16_t interface;
 	struct nfp_net *nn;
-	uint32_t version;
-	uint32_t start_q;
 	int is_nfp3200;
+	u16 interface;
 	int fw_loaded;
+	u32 version;
+	u32 start_q;
 	int pcie_pf;
 	int stride;
 	int err;
@@ -982,10 +985,8 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	    NFP_NET_CFG_VERSION_CLASS(NFP_NET_CFG_VERSION_CLASS_GENERIC)) {
 		/* We only support the Generic Class */
 		dev_err(&pdev->dev, "Unknown Firmware ABI %d.%d.%d.%d\n",
-				(version >> 24) & 0xff,
-				(version >> 16) & 0xff,
-				(version >>  8) & 0xff,
-				(version >>  0) & 0xff);
+			(version >> 24) & 0xff, (version >> 16) & 0xff,
+			(version >>  8) & 0xff,	(version >>  0) & 0xff);
 		err = -EINVAL;
 		goto err_nn_init;
 	}
@@ -1006,10 +1007,8 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 			break;
 		default:
 			dev_err(&pdev->dev, "Unsupported Firmware ABI %d.%d.%d.%d\n",
-					(version >> 24) & 0xff,
-					(version >> 16) & 0xff,
-					(version >>  8) & 0xff,
-					(version >>  0) & 0xff);
+				(version >> 24) & 0xff,	(version >> 16) & 0xff,
+				(version >>  8) & 0xff,	(version >>  0) & 0xff);
 			err = -EINVAL;
 			goto err_nn_init;
 		}
