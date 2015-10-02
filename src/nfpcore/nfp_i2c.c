@@ -409,7 +409,7 @@ static inline void i2c_ack(struct i2c_driver *bus, int ack)
 	i2c_clock_delay(bus);
 }
 
-static inline int i2c_writeb(struct i2c_driver *bus, uint8_t data)
+static inline int i2c_writeb(struct i2c_driver *bus, u8 data)
 {
 	int i, nack;
 
@@ -440,9 +440,9 @@ static inline int i2c_writeb(struct i2c_driver *bus, uint8_t data)
 	return 0;
 }
 
-static inline uint8_t i2c_readb(struct i2c_driver *bus, int ack)
+static inline u8 i2c_readb(struct i2c_driver *bus, int ack)
 {
-	uint8_t tmp;
+	u8 tmp;
 	int i;
 
 	tmp = 0;
@@ -509,9 +509,9 @@ static int ms_timeout(struct timeval *tv_epoc, long timeout_ms)
 	return (timeout_ms < ms);
 }
 
-static int i2c_cmd(struct i2c_driver *bus, uint8_t chip,
-		   const uint8_t *w_buff, size_t w_len,
-		   uint8_t *r_buff, size_t r_len)
+static int i2c_cmd(struct i2c_driver *bus, u8 chip,
+		   const u8 *w_buff, size_t w_len,
+		   u8 *r_buff, size_t r_len)
 {
 	int i, err;
 	struct timeval tv;
@@ -570,9 +570,9 @@ done:
 	return err;
 }
 
-static int i2c_write(struct i2c_driver *bus, uint8_t chip,
+static int i2c_write(struct i2c_driver *bus, u8 chip,
 		     unsigned int addr, size_t alen,
-		     const uint8_t *buff, size_t buff_len)
+		     const u8 *buff, size_t buff_len)
 {
 	int i, err;
 	struct timeval tv;
@@ -618,9 +618,9 @@ static int i2c_write(struct i2c_driver *bus, uint8_t chip,
 	return 0;
 }
 
-static int i2c_read(struct i2c_driver *bus, uint8_t chip,
+static int i2c_read(struct i2c_driver *bus, u8 chip,
 		    unsigned int addr, size_t alen,
-		    uint8_t *buff, size_t buff_len)
+		    u8 *buff, size_t buff_len)
 {
 	int i, err;
 	struct timeval tv;
@@ -770,7 +770,7 @@ struct nfp_i2c *nfp_i2c_alloc(struct nfp_device *nfp,
 			      int gpio_scl, int gpio_sda)
 {
 	struct nfp_i2c *i2c;
-	uint32_t model;
+	u32 model;
 	int pins;
 
 	model = nfp_cpp_model(nfp_device_cpp(nfp));
@@ -889,7 +889,7 @@ int nfp_i2c_cmd(struct nfp_i2c *i2c, int i2c_dev,
  *
  * Return: 0, or -ERRNO
  */
-int nfp_i2c_read(struct nfp_i2c *i2c, int i2c_dev, uint32_t addr,
+int nfp_i2c_read(struct nfp_i2c *i2c, int i2c_dev, u32 addr,
 		 size_t a_len, void *r_buff, size_t r_len)
 {
 	if (!i2c->initialized) {
@@ -914,7 +914,7 @@ int nfp_i2c_read(struct nfp_i2c *i2c, int i2c_dev, uint32_t addr,
  *
  * Return: 0, or -ERRNO
  */
-int nfp_i2c_write(struct nfp_i2c *i2c, int i2c_dev, uint32_t addr,
+int nfp_i2c_write(struct nfp_i2c *i2c, int i2c_dev, u32 addr,
 		  size_t a_len, const void *w_buff, size_t w_len)
 {
 	if (!i2c->initialized) {
