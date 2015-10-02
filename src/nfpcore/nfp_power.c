@@ -439,8 +439,8 @@
 #define	NFP_QCTLR_CFGSTATUSHIGH_WRITEPTR(_x)	(((_x) & 0x3ffff) << 0)
 
 static const struct {
-	uint32_t reset_mask;
-	uint32_t enable_mask;
+	u32 reset_mask;
+	u32 enable_mask;
 } target_to_mask[] = {
 	[NFP3200_DEVICE_ARM] = {
 		.reset_mask = NFP_PL_RE_ARM_CORE_RESET,
@@ -511,7 +511,7 @@ static const struct {
 static int nfp3200_reset_get(struct nfp_cpp *cpp, unsigned int subdevice,
 			     int *reset, int *enable)
 {
-	uint32_t r_mask, e_mask, csr;
+	u32 r_mask, e_mask, csr;
 	int err;
 
 	if (subdevice >= ARRAY_SIZE(target_to_mask))
@@ -556,8 +556,8 @@ static int nfp3200_reset_get(struct nfp_cpp *cpp, unsigned int subdevice,
 static int nfp3200_reset_set(struct nfp_cpp *cpp, unsigned int subdevice,
 			     int reset, int enable)
 {
-	uint32_t csr, r_mask, e_mask;
-	uint16_t interface;
+	u32 csr, r_mask, e_mask;
+	u16 interface;
 	int err;
 
 	if (subdevice >= ARRAY_SIZE(target_to_mask))
@@ -617,15 +617,15 @@ static int nfp3200_reset_set(struct nfp_cpp *cpp, unsigned int subdevice,
  *
  * 0xFULL => (unsigned long long)0xf
  */
-static const uint64_t imb_island_mask = ~(0 | (0xFULL << 8)	/* NBI */
-					    | (0xFULL << 24)	/* IMU */
-					    | (0xFULL << 28)	/* EMU */
-					  );
+static const u64 imb_island_mask = ~(0 | (0xFULL << 8)	/* NBI */
+				     | (0xFULL << 24)	/* IMU */
+				     | (0xFULL << 28)	/* EMU */
+	);
 
 static int nfp6000_reset_get(struct nfp_cpp *cpp, unsigned int subdevice,
 			     int *reset, int *enable)
 {
-	uint32_t csr;
+	u32 csr;
 	int island, mask, err;
 
 	if (subdevice < NFP6000_DEVICE(1, 0) ||
@@ -651,7 +651,7 @@ static int nfp6000_reset_get(struct nfp_cpp *cpp, unsigned int subdevice,
 static int nfp6000_reset_set(struct nfp_cpp *cpp, unsigned int subdevice,
 			     int reset, int enable)
 {
-	uint32_t csr, mem;
+	u32 csr, mem;
 	int island, mask, err;
 
 	if (subdevice < NFP6000_DEVICE(1, 0) ||
@@ -715,7 +715,7 @@ static int nfp6000_reset_set(struct nfp_cpp *cpp, unsigned int subdevice,
 int nfp_power_get(struct nfp_device *nfp, unsigned int subdevice, int *state)
 {
 	struct nfp_cpp *cpp;
-	uint32_t model;
+	u32 model;
 	int err, reset = 0, enable = 0;
 
 	cpp = nfp_device_cpp(nfp);
@@ -737,9 +737,9 @@ int nfp_power_get(struct nfp_device *nfp, unsigned int subdevice, int *state)
 	return err;
 }
 
-static int eccmon_enable(struct nfp_cpp *cpp, uint32_t ecc)
+static int eccmon_enable(struct nfp_cpp *cpp, u32 ecc)
 {
-	uint32_t tmp;
+	u32 tmp;
 	int err;
 
 	err = nfp_xpb_writel(cpp, ecc + NFP_ECC_ECCENABLE,
@@ -759,12 +759,11 @@ static int eccmon_enable(struct nfp_cpp *cpp, uint32_t ecc)
 }
 
 #ifdef NFP_ECC_FULL_CLEAR
-static int memzap(struct nfp_cpp *cpp, uint32_t cpp_id, uint64_t addr,
-		  uint64_t len, uint64_t value)
+static int memzap(struct nfp_cpp *cpp, u32 cpp_id, u64 addr, u64 len, u64 value)
 {
 	struct nfp_cpp_area *area;
 	const int mask = sizeof(value) - 1;
-	uint64_t offset = 0;
+	u64 offset = 0;
 
 	if ((len & mask) || (addr & mask))
 		return -EINVAL;
@@ -783,13 +782,13 @@ static int memzap(struct nfp_cpp *cpp, uint32_t cpp_id, uint64_t addr,
 
 static int muqueue_zap(struct nfp_cpp *cpp, int island)
 {
-	uint32_t mum = NFP_CPP_ID(NFP_CPP_TARGET_MU, NFP_CPP_ACTION_RW, 0);
-	uint32_t muq = NFP_CPP_ID(NFP_CPP_TARGET_MU, 16, 0);
+	u32 mum = NFP_CPP_ID(NFP_CPP_TARGET_MU, NFP_CPP_ACTION_RW, 0);
+	u32 muq = NFP_CPP_ID(NFP_CPP_TARGET_MU, 16, 0);
 	int err, i;
 	struct nfp_cpp_explicit *expl;
-	uint64_t addr;
+	u64 addr;
 
-	addr = (1ULL << 39) | ((uint64_t)island << 32);
+	addr = (1ULL << 39) | ((u64)island << 32);
 	if (addr >= 24 && addr <= 27)
 		addr |= (2 * 1024 * 1024);
 
@@ -832,7 +831,7 @@ exit:
 #endif /* NFP_ECC_FULL_CLEAR */
 
 struct ecc_location {
-	uint32_t base;
+	u32 base;
 	int count;
 	int unit;
 };
@@ -911,7 +910,7 @@ static int nfp6000_island_ecc_init(struct nfp_cpp *cpp,
 	int i, err;
 
 	for (i = 0; i < eccs; i++) {
-		uint32_t xpb;
+		u32 xpb;
 		int j;
 
 		if (ecc[i].unit != unit)
@@ -931,11 +930,11 @@ static int nfp6000_island_ecc_init(struct nfp_cpp *cpp,
 static int nfp6000_island_ctm_init(struct nfp_cpp *cpp, int island)
 {
 #ifdef NFP_ECC_FULL_CLEAR
-	uint32_t id = NFP_CPP_ID(NFP_CPP_TARGET_MU, NFP_CPP_ACTION_RW, 0);
-	uint64_t addr = (1ULL << 39) | ((uint64_t)island << 32);
+	u32 id = NFP_CPP_ID(NFP_CPP_TARGET_MU, NFP_CPP_ACTION_RW, 0);
+	u64 addr = (1ULL << 39) | ((u64)island << 32);
 #endif /* NFP_ECC_FULL_CLEAR */
 	int i, err;
-	uint32_t tmp;
+	u32 tmp;
 
 	/* Set up island's CTMs for packet operation
 	 * (all CTM islands have IMBs)
@@ -1005,8 +1004,8 @@ static int nfp6000_island_ctm_init(struct nfp_cpp *cpp, int island)
 static int nfp6000_island_cls_init(struct nfp_cpp *cpp, int island)
 {
 #ifdef NFP_ECC_FULL_CLEAR
-	uint32_t id = NFP_CPP_ID(NFP_CPP_TARGET_CLS, NFP_CPP_ACTION_RW, 0);
-	uint64_t addr = (uint64_t)island << 34;
+	u32 id = NFP_CPP_ID(NFP_CPP_TARGET_CLS, NFP_CPP_ACTION_RW, 0);
+	u64 addr = (u64)island << 34;
 	int err;
 
 	err = memzap(cpp, id, addr, 0x10000, 0);
@@ -1019,12 +1018,11 @@ static int nfp6000_island_cls_init(struct nfp_cpp *cpp, int island)
 	return 0;
 }
 
-static int nfp6000_island_arm_init(struct nfp_cpp *cpp,
-					       int island, int unit)
+static int nfp6000_island_arm_init(struct nfp_cpp *cpp, int island, int unit)
 {
 #ifdef NFP_ECC_FULL_CLEAR
 	int i;
-	uint32_t id = NFP_CPP_ID(NFP_CPP_TARGET_ARM, NFP_CPP_ACTION_RW, 0);
+	u32 id = NFP_CPP_ID(NFP_CPP_TARGET_ARM, NFP_CPP_ACTION_RW, 0);
 
 	if (unit != 0)
 		goto exit_ecc;
@@ -1086,8 +1084,8 @@ exit_ecc:
 static int nfp6000_island_imu_init(struct nfp_cpp *cpp, int island, int unit)
 {
 #ifdef NFP_ECC_FULL_CLEAR
-	uint32_t id = NFP_CPP_ID(NFP_CPP_TARGET_MU, NFP_CPP_ACTION_RW, 0);
-	uint64_t addr = (1ULL << 39) | ((uint64_t)island << 32);
+	u32 id = NFP_CPP_ID(NFP_CPP_TARGET_MU, NFP_CPP_ACTION_RW, 0);
+	u64 addr = (1ULL << 39) | ((u64)island << 32);
 	int err;
 #endif /* NFP_ECC_FULL_CLEAR */
 	int i;
@@ -1119,8 +1117,8 @@ static int nfp6000_island_emu_init(struct nfp_cpp *cpp, int island, int unit)
 {
 #ifdef NFP_ECC_FULL_CLEAR
 	int err;
-	const uint32_t id = NFP_CPP_ID(NFP_CPP_TARGET_MU, NFP_CPP_ACTION_RW, 0);
-	uint64_t addr = (uint64_t)((island - 24) + 4) << 35;
+	const u32 id = NFP_CPP_ID(NFP_CPP_TARGET_MU, NFP_CPP_ACTION_RW, 0);
+	u64 addr = (u64)((island - 24) + 4) << 35;
 
 	if (unit == NFP6000_DEVICE_EMU_CORE) {
 		/* DCache init */
@@ -1148,9 +1146,9 @@ static int nfp6000_island_nbi_init(struct nfp_cpp *cpp, int island, int unit)
 	if (unit == 0) {
 		int err;
 #ifdef NFP_ECC_FULL_CLEAR
-		uint32_t nbi = NFP_CPP_ID(NFP_CPP_TARGET_NBI,
+		u32 nbi = NFP_CPP_ID(NFP_CPP_TARGET_NBI,
 					  NFP_CPP_ACTION_RW, 0);
-		uint64_t addr = (uint64_t)(island - 8) << 38;
+		u64 addr = (u64)(island - 8) << 38;
 		int i;
 
 		/* Initialize NbiDmaBD SRAM */
@@ -1211,7 +1209,7 @@ static int nfp6000_island_nbi_init(struct nfp_cpp *cpp, int island, int unit)
 
 		/* Initialize NFP_NBI_TM_Q_QUEUEDROPCOUNTCLEAR */
 		for (i = 0; i < 0x400; i++) {
-			uint32_t tmp;
+			u32 tmp;
 
 			err = nfp_xpb_readl(cpp, NFP_XPB_ISLAND(island) +
 					    NFP_NBI_TMX_Q +
@@ -1285,8 +1283,8 @@ static int nfp6000_island_nbi_init(struct nfp_cpp *cpp, int island, int unit)
 
 static int nfp6000_island_pci_init(struct nfp_cpp *cpp, int island, int unit)
 {
-	const uint32_t pci_w = NFP_CPP_ID(NFP_CPP_TARGET_PCIE, 3, 0);
-	uint64_t addr = ((uint64_t)(island - 4) << 38);
+	const u32 pci_w = NFP_CPP_ID(NFP_CPP_TARGET_PCIE, 3, 0);
+	u64 addr = ((u64)(island - 4) << 38);
 	int i;
 
 	if (unit == NFP6000_DEVICE_PCI_PCI) {
@@ -1323,8 +1321,8 @@ static int nfp6000_island_pci_init(struct nfp_cpp *cpp, int island, int unit)
 
 #ifdef NFP_ECC_FULL_CLEAR
 	if (unit == NFP6000_DEVICE_PCI_PCI) {
-		const uint32_t pci_r = NFP_CPP_ID(NFP_CPP_TARGET_PCIE, 2, 0);
-		uint32_t tmp;
+		const u32 pci_r = NFP_CPP_ID(NFP_CPP_TARGET_PCIE, 2, 0);
+		u32 tmp;
 
 		/* Clear out the PCI SRAM:
 		 */
@@ -1339,8 +1337,7 @@ static int nfp6000_island_pci_init(struct nfp_cpp *cpp, int island, int unit)
 				       pci_ecc, ARRAY_SIZE(pci_ecc));
 }
 
-static int nfp6000_island_imb_init(struct nfp_cpp *cpp,
-				   int island, int unit)
+static int nfp6000_island_imb_init(struct nfp_cpp *cpp, int island, int unit)
 {
 	int i, err;
 
@@ -1357,9 +1354,9 @@ static int nfp6000_island_imb_init(struct nfp_cpp *cpp,
 		goto ctm_init;
 
 	for (i = 0; i < 16; i++) {
-		uint32_t xpb_src = 0x000a0000 + (i * 4);
-		uint32_t xpb_dst = (island << 24) | xpb_src;
-		uint32_t tmp;
+		u32 xpb_src = 0x000a0000 + (i * 4);
+		u32 xpb_dst = (island << 24) | xpb_src;
+		u32 tmp;
 
 		err = nfp_xpb_readl(cpp, xpb_src, &tmp);
 		if (err < 0)
@@ -1429,7 +1426,7 @@ static int nfp6000_island_init(struct nfp_cpp *cpp, unsigned int subdevice)
 int nfp_power_set(struct nfp_device *nfp, unsigned int subdevice, int state)
 {
 	struct nfp_cpp *cpp;
-	uint32_t model;
+	u32 model;
 	int err, curr_state;
 
 	err = nfp_power_get(nfp, subdevice, &curr_state);
