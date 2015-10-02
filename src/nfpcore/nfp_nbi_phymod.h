@@ -384,30 +384,27 @@ int nfp_phymod_get_type(struct nfp_phymod *phymod, int *type);
 int nfp_phymod_indicate_link(struct nfp_phymod *phymod, int is_on);
 int nfp_phymod_indicate_activity(struct nfp_phymod *phymod, int is_on);
 
-int nfp_phymod_read_status(struct nfp_phymod *phymod, uint32_t *txstatus,
-			   uint32_t *rxstatus);
-int nfp_phymod_read_status_los(struct nfp_phymod *phymod, uint32_t *txstatus,
-			       uint32_t *rxstatus);
-int nfp_phymod_read_status_fault(struct nfp_phymod *phymod, uint32_t *txstatus,
-				 uint32_t *rxstatus);
+int nfp_phymod_read_status(struct nfp_phymod *phymod,
+			   u32 *txstatus, u32 *rxstatus);
+int nfp_phymod_read_status_los(struct nfp_phymod *phymod,
+			       u32 *txstatus, u32 *rxstatus);
+int nfp_phymod_read_status_fault(struct nfp_phymod *phymod,
+				 u32 *txstatus, u32 *rxstatus);
 int nfp_phymod_read_status_optpower(struct nfp_phymod *phymod,
-				    uint32_t *txstatus,
-				    uint32_t *rxstatus);
+				    u32 *txstatus, u32 *rxstatus);
 int nfp_phymod_read_status_optbias(struct nfp_phymod *phymod,
-				   uint32_t *rxtstaus,
-				   uint32_t *txstatus);
+				   u32 *rxtstaus, u32 *txstatus);
 int nfp_phymod_read_status_voltage(struct nfp_phymod *phymod,
-				   uint32_t *txstatus,
-				   uint32_t *rxstatus);
-int nfp_phymod_read_status_temp(struct nfp_phymod *phymod, uint32_t *txstatus,
-				uint32_t *rxstatus);
-int nfp_phymod_read_lanedisable(struct nfp_phymod *phymod, uint32_t *txstatus,
-				uint32_t *rxstatus);
-int nfp_phymod_write_lanedisable(struct nfp_phymod *phymod, uint32_t txstate,
-				 uint32_t rxstate);
+				   u32 *txstatus, u32 *rxstatus);
+int nfp_phymod_read_status_temp(struct nfp_phymod *phymod,
+				u32 *txstatus, u32 *rxstatus);
+int nfp_phymod_read_lanedisable(struct nfp_phymod *phymod,
+				u32 *txstatus, u32 *rxstatus);
+int nfp_phymod_write_lanedisable(struct nfp_phymod *phymod,
+				 u32 txstate, u32 rxstate);
 
-int nfp_phymod_read8(struct nfp_phymod *phymod, uint32_t addr, uint8_t *data);
-int nfp_phymod_write8(struct nfp_phymod *phymod, uint32_t addr, uint8_t data);
+int nfp_phymod_read8(struct nfp_phymod *phymod, u32 addr, u8 *data);
+int nfp_phymod_write8(struct nfp_phymod *phymod, u32 addr, u8 data);
 
 struct nfp_phymod_eth *nfp_phymod_eth_next(struct nfp_device *dev,
 					   struct nfp_phymod *phy, void **ptr);
@@ -415,7 +412,7 @@ struct nfp_phymod_eth *nfp_phymod_eth_next(struct nfp_device *dev,
 int nfp_phymod_eth_get_index(struct nfp_phymod_eth *eth, int *index);
 int nfp_phymod_eth_get_phymod(struct nfp_phymod_eth *eth,
 			      struct nfp_phymod **phy, int *lane);
-int nfp_phymod_eth_get_mac(struct nfp_phymod_eth *eth, const uint8_t **mac);
+int nfp_phymod_eth_get_mac(struct nfp_phymod_eth *eth, const u8 **mac);
 int nfp_phymod_eth_get_label(struct nfp_phymod_eth *eth, const char **label);
 int nfp_phymod_eth_get_nbi(struct nfp_phymod_eth *eth, int *nbi);
 int nfp_phymod_eth_get_port(struct nfp_phymod_eth *eth, int *base, int *lanes);
@@ -423,9 +420,9 @@ int nfp_phymod_eth_get_speed(struct nfp_phymod_eth *eth, int *speed);
 int nfp_phymod_eth_get_fail_to_wire(struct nfp_phymod_eth *eth,
 				    const char **eth_label, int *active);
 int nfp_phymod_eth_set_fail_to_wire(struct nfp_phymod_eth *eth, int force);
-int nfp_phymod_eth_read_disable(struct nfp_phymod_eth *eth, uint32_t *txstatus,
-				uint32_t *rxstatus);
-int nfp_phymod_eth_write_disable(struct nfp_phymod_eth *eth, uint32_t txstate,
-				 uint32_t rxstate);
+int nfp_phymod_eth_read_disable(struct nfp_phymod_eth *eth,
+				u32 *txstatus, u32 *rxstatus);
+int nfp_phymod_eth_write_disable(struct nfp_phymod_eth *eth,
+				 u32 txstate, u32 rxstate);
 
 #endif
