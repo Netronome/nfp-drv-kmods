@@ -340,7 +340,7 @@ MODULE_PARM_DESC(nfp_dev_cpp, "NFP CPP /dev interface (default = enabled)");
 bool nfp_net_null;
 module_param(nfp_net_null, bool, 0444);
 MODULE_PARM_DESC(nfp_net_null, "Null net devices (default = disabled)");
-bool nfp_net_vnic = 0;
+bool nfp_net_vnic;
 module_param(nfp_net_vnic, bool, 0444);
 MODULE_PARM_DESC(nfp_net_vnic, "vNIC net devices (default = disabled)");
 static bool nfp_mon_event = 1;
@@ -349,13 +349,15 @@ MODULE_PARM_DESC(nfp_mon_event, "Event monitor support (default = enabled)");
 static bool nfp_reset;
 module_param(nfp_reset, bool, 0444);
 MODULE_PARM_DESC(nfp_reset,
-		                 "Soft reset the NFP on init (default = disable)");
+		 "Soft reset the NFP on init (default = disable)");
 static char *nfp3200_firmware;
 module_param(nfp3200_firmware, charp, 0444);
-MODULE_PARM_DESC(nfp3200_firmware, "NFP3200 firmware to load from /lib/firmware/");
+MODULE_PARM_DESC(nfp3200_firmware,
+		 "NFP3200 firmware to load from /lib/firmware/");
 static char *nfp6000_firmware;
 module_param(nfp6000_firmware, charp, 0444);
-MODULE_PARM_DESC(nfp6000_firmware, "NFP6000 firmware to load from /lib/firmware/");
+MODULE_PARM_DESC(nfp6000_firmware,
+		 "NFP6000 firmware to load from /lib/firmware/");
 
 struct nfp_pci {
 	struct nfp_cpp *cpp;
@@ -473,7 +475,7 @@ static int nfp_pcie_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
 {
 	const struct firmware *fw = NULL;
 	const char *fw_name;
-	uint32_t model = nfp_cpp_model(cpp);
+	u32 model = nfp_cpp_model(cpp);
 	int err, timeout = 30; /* Seconds */
 	struct nfp_device *nfp;
 	int need_armsp;
@@ -496,7 +498,8 @@ static int nfp_pcie_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
 		dev_info(&pdev->dev, "NFP soft-reset requested\n");
 		err = nfp_reset_soft(nfp);
 		if (err < 0) {
-			dev_warn(&pdev->dev, "Could not soft-reset, err = %d\n", err);
+			dev_warn(&pdev->dev,
+				 "Could not soft-reset, err = %d\n", err);
 			goto exit;
 		}
 		dev_info(&pdev->dev, "NFP soft-reset completed\n");
@@ -509,7 +512,8 @@ static int nfp_pcie_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
 
 	/* Make sure we have the ARM service processor */
 	if (need_armsp) {
-		dev_info(&pdev->dev, "Waiting for NSP to respond (%d sec max).\n", timeout);
+		dev_info(&pdev->dev,
+			 "Waiting for NSP to respond (%d sec max).\n", timeout);
 		for (; timeout > 0; timeout--) {
 			err = nfp_nsp_command(nfp, SPCODE_NOOP, 0, 0, 0);
 			if (err != -EAGAIN)
@@ -653,7 +657,7 @@ static void nfp_sriov_attr_remove(struct device *dev)
 static void register_pf(struct nfp_pci *np)
 {
 	int pcie_unit;
-	uint32_t model = nfp_cpp_model(np->cpp);
+	u32 model = nfp_cpp_model(np->cpp);
 
 	pcie_unit = NFP_CPP_INTERFACE_UNIT_of(nfp_cpp_interface(np->cpp));
 
