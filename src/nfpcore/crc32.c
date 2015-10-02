@@ -309,7 +309,6 @@
  * Author: Jason McMullan <jason.mcmullan@netronome.com>
  */
 
-
 #include <linux/kernel.h>
 #include <linux/crc32.h>
 
@@ -323,7 +322,7 @@
  *
  * Return: New CRC32 working state
  */
-uint32_t crc32_posix_add(uint32_t crc, const void *buff, size_t len)
+u32 crc32_posix_add(u32 crc, const void *buff, size_t len)
 {
 	return crc32_be(crc, buff, len);
 }
@@ -335,11 +334,11 @@ uint32_t crc32_posix_add(uint32_t crc, const void *buff, size_t len)
  *
  * Return: Final POSIX CRC32 value
  */
-uint32_t crc32_posix_end(uint32_t crc, size_t total_len)
+u32 crc32_posix_end(u32 crc, size_t total_len)
 {
 	/* Extend with the length of the string. */
 	while (total_len != 0) {
-		uint8_t c = total_len & 0xff;
+		u8 c = total_len & 0xff;
 
 		crc = crc32_posix_add(crc, &c, 1);
 		total_len >>= 8;
