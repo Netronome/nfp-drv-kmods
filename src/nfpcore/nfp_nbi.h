@@ -328,10 +328,9 @@ void nfp_nbi_close(struct nfp_nbi_dev *nfpnbidev);
 
 int nfp_nbi_index(struct nfp_nbi_dev *nfpnbidev);
 
-int nfp_nbi_mac_regr(struct nfp_nbi_dev *nbi, uint32_t base,
-		     uint32_t reg, uint32_t *data);
-int nfp_nbi_mac_regw(struct nfp_nbi_dev *nbi, uint32_t base, uint32_t reg,
-		     uint32_t mask, uint32_t data);
+int nfp_nbi_mac_regr(struct nfp_nbi_dev *nbi, u32 base, u32 reg, u32 *data);
+int nfp_nbi_mac_regw(struct nfp_nbi_dev *nbi, u32 base, u32 reg,
+		     u32 mask, u32 data);
 
 /* Offset into CTM */
 #define NFP_NBI_MAC_STATS_OFFSET          0xed000
@@ -360,120 +359,120 @@ int nfp_nbi_mac_regw(struct nfp_nbi_dev *nbi, uint32_t base, uint32_t reg,
  * Port statistics counters
  */
 struct nfp_nbi_mac_portstats {
-	uint64_t RxAlignmentErrors;
-	uint64_t RxCBFCPauseFramesReceived0;
-	uint64_t RxCBFCPauseFramesReceived1;
-	uint64_t RxCBFCPauseFramesReceived2;
-	uint64_t RxCBFCPauseFramesReceived3;
-	uint64_t RxCBFCPauseFramesReceived4;
-	uint64_t RxCBFCPauseFramesReceived5;
-	uint64_t RxCBFCPauseFramesReceived6;
-	uint64_t RxCBFCPauseFramesReceived7;
-	uint64_t RxFrameCheckSequenceErrors;
-	uint64_t RxFrameTooLongErrors;
-	uint64_t RxFramesReceivedOK;
-	uint64_t RxInRangeLengthErrors;
-	uint64_t RxPIfInBroadCastPkts;
-	uint64_t RxPIfInErrors;
-	uint64_t RxPIfInMultiCastPkts;
-	uint64_t RxPIfInUniCastPkts;
-	uint64_t RxPStatsDropEvents;
-	uint64_t RxPStatsFragments;
-	uint64_t RxPStatsJabbers;
-	uint64_t RxPStatsOversizePkts;
-	uint64_t RxPStatsPkts;
-	uint64_t RxPStatsPkts1024to1518octets;
-	uint64_t RxPStatsPkts128to255octets;
-	uint64_t RxPStatsPkts1519toMaxoctets;
-	uint64_t RxPStatsPkts256to511octets;
-	uint64_t RxPStatsPkts512to1023octets;
-	uint64_t RxPStatsPkts64octets;
-	uint64_t RxPStatsPkts65to127octets;
-	uint64_t RxPStatsUndersizePkts;
-	uint64_t RxPauseMacCtlFramesReceived;
-	uint64_t RxVlanReceivedOK;
-	uint64_t TxCBFCPauseFramesTransmitted0;
-	uint64_t TxCBFCPauseFramesTransmitted1;
-	uint64_t TxCBFCPauseFramesTransmitted2;
-	uint64_t TxCBFCPauseFramesTransmitted3;
-	uint64_t TxCBFCPauseFramesTransmitted4;
-	uint64_t TxCBFCPauseFramesTransmitted5;
-	uint64_t TxCBFCPauseFramesTransmitted6;
-	uint64_t TxCBFCPauseFramesTransmitted7;
-	uint64_t TxFramesTransmittedOK;
-	uint64_t TxPIfOutBroadCastPkts;
-	uint64_t TxPIfOutErrors;
-	uint64_t TxPIfOutMultiCastPkts;
-	uint64_t TxPIfOutUniCastPkts;
-	uint64_t TxPStatsPkts1024to1518octets;
-	uint64_t TxPStatsPkts128to255octets;
-	uint64_t TxPStatsPkts1518toMAXoctets;
-	uint64_t TxPStatsPkts256to511octets;
-	uint64_t TxPStatsPkts512to1023octets;
-	uint64_t TxPStatsPkts64octets;
-	uint64_t TxPStatsPkts65to127octets;
-	uint64_t TxPauseMacCtlFramesTransmitted;
-	uint64_t TxVlanTransmittedOK;
-	uint64_t RxPIfInOctets;
-	uint64_t TxPIfOutOctets;
+	u64 RxAlignmentErrors;
+	u64 RxCBFCPauseFramesReceived0;
+	u64 RxCBFCPauseFramesReceived1;
+	u64 RxCBFCPauseFramesReceived2;
+	u64 RxCBFCPauseFramesReceived3;
+	u64 RxCBFCPauseFramesReceived4;
+	u64 RxCBFCPauseFramesReceived5;
+	u64 RxCBFCPauseFramesReceived6;
+	u64 RxCBFCPauseFramesReceived7;
+	u64 RxFrameCheckSequenceErrors;
+	u64 RxFrameTooLongErrors;
+	u64 RxFramesReceivedOK;
+	u64 RxInRangeLengthErrors;
+	u64 RxPIfInBroadCastPkts;
+	u64 RxPIfInErrors;
+	u64 RxPIfInMultiCastPkts;
+	u64 RxPIfInUniCastPkts;
+	u64 RxPStatsDropEvents;
+	u64 RxPStatsFragments;
+	u64 RxPStatsJabbers;
+	u64 RxPStatsOversizePkts;
+	u64 RxPStatsPkts;
+	u64 RxPStatsPkts1024to1518octets;
+	u64 RxPStatsPkts128to255octets;
+	u64 RxPStatsPkts1519toMaxoctets;
+	u64 RxPStatsPkts256to511octets;
+	u64 RxPStatsPkts512to1023octets;
+	u64 RxPStatsPkts64octets;
+	u64 RxPStatsPkts65to127octets;
+	u64 RxPStatsUndersizePkts;
+	u64 RxPauseMacCtlFramesReceived;
+	u64 RxVlanReceivedOK;
+	u64 TxCBFCPauseFramesTransmitted0;
+	u64 TxCBFCPauseFramesTransmitted1;
+	u64 TxCBFCPauseFramesTransmitted2;
+	u64 TxCBFCPauseFramesTransmitted3;
+	u64 TxCBFCPauseFramesTransmitted4;
+	u64 TxCBFCPauseFramesTransmitted5;
+	u64 TxCBFCPauseFramesTransmitted6;
+	u64 TxCBFCPauseFramesTransmitted7;
+	u64 TxFramesTransmittedOK;
+	u64 TxPIfOutBroadCastPkts;
+	u64 TxPIfOutErrors;
+	u64 TxPIfOutMultiCastPkts;
+	u64 TxPIfOutUniCastPkts;
+	u64 TxPStatsPkts1024to1518octets;
+	u64 TxPStatsPkts128to255octets;
+	u64 TxPStatsPkts1518toMAXoctets;
+	u64 TxPStatsPkts256to511octets;
+	u64 TxPStatsPkts512to1023octets;
+	u64 TxPStatsPkts64octets;
+	u64 TxPStatsPkts65to127octets;
+	u64 TxPauseMacCtlFramesTransmitted;
+	u64 TxVlanTransmittedOK;
+	u64 RxPIfInOctets;
+	u64 TxPIfOutOctets;
 };
 
 /**
  * Channel statistics counters
  */
 struct nfp_nbi_mac_chanstats {
-	uint64_t RxCIfInErrors;
-	uint64_t RxCIfInUniCastPkts;
-	uint64_t RxCIfInMultiCastPkts;
-	uint64_t RxCIfInBroadCastPkts;
-	uint64_t RxCStatsPkts;
-	uint64_t RxCStatsPkts64octets;
-	uint64_t RxCStatsPkts65to127octets;
-	uint64_t RxCStatsPkts128to255octets;
-	uint64_t RxCStatsPkts256to511octets;
-	uint64_t RxCStatsPkts512to1023octets;
-	uint64_t RxCStatsPkts1024to1518octets;
-	uint64_t RxCStatsPkts1519toMaxoctets;
-	uint64_t RxChanFramesReceivedOK;
-	uint64_t RxChanVlanReceivedOK;
-	uint64_t TxCIfOutBroadCastPkts;
-	uint64_t TxCIfOutErrors;
-	uint64_t TxCIfOutUniCastPkts;
-	uint64_t TxChanFramesTransmittedOK;
-	uint64_t TxChanVlanTransmittedOK;
-	uint64_t TxCIfOutMultiCastPkts;
-	uint64_t RxCIfInOctets;
-	uint64_t RxCStatsOctets;
-	uint64_t TxCIfOutOctets;
+	u64 RxCIfInErrors;
+	u64 RxCIfInUniCastPkts;
+	u64 RxCIfInMultiCastPkts;
+	u64 RxCIfInBroadCastPkts;
+	u64 RxCStatsPkts;
+	u64 RxCStatsPkts64octets;
+	u64 RxCStatsPkts65to127octets;
+	u64 RxCStatsPkts128to255octets;
+	u64 RxCStatsPkts256to511octets;
+	u64 RxCStatsPkts512to1023octets;
+	u64 RxCStatsPkts1024to1518octets;
+	u64 RxCStatsPkts1519toMaxoctets;
+	u64 RxChanFramesReceivedOK;
+	u64 RxChanVlanReceivedOK;
+	u64 TxCIfOutBroadCastPkts;
+	u64 TxCIfOutErrors;
+	u64 TxCIfOutUniCastPkts;
+	u64 TxChanFramesTransmittedOK;
+	u64 TxChanVlanTransmittedOK;
+	u64 TxCIfOutMultiCastPkts;
+	u64 RxCIfInOctets;
+	u64 RxCStatsOctets;
+	u64 TxCIfOutOctets;
 };
 
 /**
  * Interlaken single channel statistics counters
  */
 struct nfp_nbi_mac_ilkstats {
-	uint64_t LkTxStatsFill;
-	uint64_t LkTxStatsParity;
-	uint64_t LkTxStatsRdParity;
-	uint64_t LkTxStatsWrParity;
+	u64 LkTxStatsFill;
+	u64 LkTxStatsParity;
+	u64 LkTxStatsRdParity;
+	u64 LkTxStatsWrParity;
 
-	uint64_t LkTxStatsWrByte;
-	uint64_t LkTxStatsWrPkt;
-	uint64_t LkTxStatsWrErr;
-	uint64_t LkTxStatsRdByte;
-	uint64_t LkTxStatsRdPkt;
-	uint64_t LkTxStatsRdErr;
+	u64 LkTxStatsWrByte;
+	u64 LkTxStatsWrPkt;
+	u64 LkTxStatsWrErr;
+	u64 LkTxStatsRdByte;
+	u64 LkTxStatsRdPkt;
+	u64 LkTxStatsRdErr;
 
-	uint64_t LkRxStatsFill;
-	uint64_t LkRxStatsParity;
-	uint64_t LkRxStatsRdParity;
-	uint64_t LkRxStatsWrParity;
+	u64 LkRxStatsFill;
+	u64 LkRxStatsParity;
+	u64 LkRxStatsRdParity;
+	u64 LkRxStatsWrParity;
 
-	uint64_t LkRxStatsWrByte;
-	uint64_t LkRxStatsWrPkt;
-	uint64_t LkRxStatsWrErr;
-	uint64_t LkRxStatsRdByte;
-	uint64_t LkRxStatsRdPkt;
-	uint64_t LkRxStatsRdErr;
+	u64 LkRxStatsWrByte;
+	u64 LkRxStatsWrPkt;
+	u64 LkRxStatsWrErr;
+	u64 LkRxStatsRdByte;
+	u64 LkRxStatsRdPkt;
+	u64 LkRxStatsRdErr;
 };
 
 int nfp_nbi_mac_stats_read_port(struct nfp_nbi_dev *nbi, int port,
@@ -515,11 +514,11 @@ int nfp_nbi_mac_stats_read_ilks(struct nfp_nbi_dev *nbi, int core,
 int nfp_nbi_mac_eth_ifdown(struct nfp_nbi_dev *nbi, int core, int port);
 int nfp_nbi_mac_eth_ifup(struct nfp_nbi_dev *nbi, int core, int port);
 int nfp_nbi_mac_eth_read_linkstate(struct nfp_nbi_dev *nbi,
-				   int core, int port, uint32_t *linkstate);
+				   int core, int port, u32 *linkstate);
 int nfp_nbi_mac_eth_write_mac_addr(struct nfp_nbi_dev *nbi,
-				   int core, int port, uint64_t hwaddr);
+				   int core, int port, u64 hwaddr);
 int nfp_nbi_mac_eth_read_mac_addr(struct nfp_nbi_dev *nbi, int core,
-				  int port, uint64_t *waddr);
+				  int port, u64 *waddr);
 int nfp_nbi_mac_eth_read_mode(struct nfp_nbi_dev *nbi, int core, int port);
 
 #endif
