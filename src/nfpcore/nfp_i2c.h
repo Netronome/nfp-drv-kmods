@@ -325,10 +325,10 @@ int nfp_i2c_cmd(struct nfp_i2c *bus, int i2c_dev,
 		const void *w_buff, size_t w_len,
 		void *r_buff, size_t r_len);
 int nfp_i2c_read(struct nfp_i2c *bus, int i2c_dev,
-		 uint32_t addr, size_t a_len,
+		 u32 addr, size_t a_len,
 		 void *r_buff, size_t r_len);
 int nfp_i2c_write(struct nfp_i2c *bus, int i2c_dev,
-		  uint32_t address, size_t a_len,
+		  u32 address, size_t a_len,
 		  const void *w_buff, size_t w_len);
 
 #endif /* NFP_I2C_H */
