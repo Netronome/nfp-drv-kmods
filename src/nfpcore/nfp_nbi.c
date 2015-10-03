@@ -33,7 +33,8 @@
 
 /*
  * nfp_nbi.c
- * Author: Jason McMullan <jason.mcmullan@netronome.com>
+ * Authors: Anthony Egan <tony.egan@netronome.com>
+ *          Jason McMullan <jason.mcmullan@netronome.com>
  */
 
 #include <linux/kernel.h>

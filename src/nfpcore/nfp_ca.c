@@ -33,7 +33,10 @@
 
 /*
  * nfp_ca.h
- * Author: Jason McMullan <jason.mcmullan@netronome.com>
+ * Authors: Mike Aitken <mike.aitken@netronome.com>
+ *          Jason McMullan <jason.mcmullan@netronome.com>
+ *          Rolf Neugebauer <rolf.neugebauer@netronome.com>
+ *          Francois H. Theron <francois.theron@netronome.com>
  */
 
 #include <linux/kernel.h>

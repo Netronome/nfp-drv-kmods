@@ -33,6 +33,8 @@
 
 /*
  * nfp_spi.h
+ * Authors: David Brunecz <david.brunecz@netronome.com>
+ *          Jason McMullan <jason.mcmullan@netronome.com>
  */
 
 #ifndef NFP_SPI_H

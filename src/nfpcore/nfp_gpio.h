@@ -33,6 +33,7 @@
 
 /*
  * nfp_gpio.h
+ * Author: Jason McMullan <jason.mcmullan@netronome.com>
  */
 
 #ifndef NFP_GPIO_H

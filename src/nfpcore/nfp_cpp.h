@@ -34,6 +34,8 @@
 /*
  * nfp_cpp.h
  * Interface for low-level NFP CPP access.
+ * Authors: Jason McMullan <jason.mcmullan@netronome.com>
+ *          Rolf Neugebauer <rolf.neugebauer@netronome.com>
  */
 #ifndef __NFP_CPP_H__
 #define __NFP_CPP_H__

@@ -33,7 +33,9 @@
 
 /*
  * nfp_net_vnic.c
- * @file kernel/nfp_net_vnic.c
+ * Authors: Jason McMullan <jason.mcmullan@netronome.com>
+ *          Rolf Neugebauer <rolf.neugebauer@netronome.com>
+ *          Espen Skoglund <espen.skoglund@netronome.com>
  *
  * Implements a software network interface for communicating over the
  * PCIe interface to the NFP's ARM core.

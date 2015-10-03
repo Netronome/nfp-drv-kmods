@@ -33,7 +33,8 @@
 
 /*
  * nfp_nffw.h
- * Author: Jason McMullan <jason.mcmullan@netronome.com>
+ * Authors: Jason McMullan <jason.mcmullan@netronome.com>
+ *          Francois H. Theron <francois.theron@netronome.com>
  */
 
 #ifndef NFP_NFFW_H

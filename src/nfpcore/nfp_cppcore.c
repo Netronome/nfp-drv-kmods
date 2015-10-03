@@ -34,6 +34,8 @@
 /*
  * nfp_cppcore.c
  * Provides low-level access to the NFP's internal CPP bus
+ * Authors: Jason McMullan <jason.mcmullan@netronome.com>
+ *          Rolf Neugebauer <rolf.neugebauer@netronome.com>
  */
 
 #include <linux/kernel.h>

@@ -34,6 +34,7 @@
 /*
  * nfp_ioctl.h
  * ioctl definitions for the /dev/nfp-cpp-N devices
+ * Author: Jason McMullan <jason.mcmullan@netronome.com>
  */
 #ifndef NFP_IOCTL_H
 #define NFP_IOCTL_H

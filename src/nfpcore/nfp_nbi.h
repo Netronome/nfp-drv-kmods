@@ -34,6 +34,8 @@
 /*
  * nfp_nbi.h
  * nfp6000 NBI API functions
+ * Authors: Anthony Egan <tony.egan@netronome.com>
+ *          Jason McMullan <jason.mcmullan@netronome.com>
  */
 
 #ifndef __NFP_NBI_H__

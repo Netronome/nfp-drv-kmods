@@ -34,6 +34,8 @@
 /*
  * nfp_target.h
  * CPP Access Width Decoder
+ * Authors: Jason McMullan <jason.mcmullan@netronome.com>
+ *          Francois H. Theron <francois.theron@netronome.com>
  */
 
 #ifndef NFP_BSP_NFP_TARGET_H

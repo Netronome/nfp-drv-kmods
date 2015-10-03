@@ -34,6 +34,8 @@
 /*
  * nfp_cpplib.c
  * Library of functions to access the NFP's CPP bus
+ * Authors: Jason McMullan <jason.mcmullan@netronome.com>
+ *          Rolf Neugebauer <rolf.neugebauer@netronome.com>
  */
 
 #include <linux/kernel.h>

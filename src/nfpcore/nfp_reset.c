@@ -33,7 +33,8 @@
 
 /*
  * nfp_reset.c
- * Author: Jason McMullan <jason.mcmullan@netronome.com>
+ * Authors: Mike Aitken <mike.aitken@netronome.com>
+ *          Jason McMullan <jason.mcmullan@netronome.com>
  */
 
 #define NFP_SUBSYS	"nfp_reset: "

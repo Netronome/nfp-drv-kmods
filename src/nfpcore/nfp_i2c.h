@@ -33,6 +33,7 @@
 
 /*
  * nfp_i2c.h
+ * Author: Jason McMullan <jason.mcmullan@netronome.com>
  */
 
 #ifndef NFP_I2C_H

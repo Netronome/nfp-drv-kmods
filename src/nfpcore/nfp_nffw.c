@@ -33,6 +33,8 @@
 
 /*
  * nfp_nffw.c
+ * Authors: Jason McMullan <jason.mcmullan@netronome.com>
+ *          Francois H. Theron <francois.theron@netronome.com>
  */
 
 #include <linux/kernel.h>

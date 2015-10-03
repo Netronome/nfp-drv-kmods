@@ -33,6 +33,7 @@
 
 /*
  * nfp_i2c.c
+ * Author: Jason McMullan <jason.mcmullan@netronome.com>
  */
 
 #include <linux/kernel.h>

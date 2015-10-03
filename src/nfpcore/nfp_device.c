@@ -34,6 +34,7 @@
 /*
  * nfp_device.c
  * The NFP CPP device wrapper
+ * Author: Jason McMullan <jason.mcmullan@netronome.com>
  */
 
 #include <linux/version.h>

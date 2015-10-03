@@ -34,6 +34,8 @@
 /*
  * nfp_mon_err.c
  * NFP Hardware Error Monitor Driver
+ * Authors: Jason McMullan <jason.mcmullan@netronome.com>
+ *          Espen Skoglund <espen.skoglund@netronome.com>
  */
 
 #include <linux/kernel.h>

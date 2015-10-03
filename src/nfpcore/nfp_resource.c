@@ -33,6 +33,7 @@
 
 /*
  * nfp_resource.c
+ * Author: Jason McMullan <jason.mcmullan@netronome.com>
  */
 
 #define NFP6000_LONGNAMES 1

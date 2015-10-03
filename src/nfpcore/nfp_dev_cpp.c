@@ -34,6 +34,9 @@
 /*
  * nfp_dev_cpp.c
  * Implements the NFP CPP API interface (/dev/nfp-cpp-N) in /dev.
+ * Authors: Jakub Kicinski <jakub.kicinski@netronome.com>
+ *          Jason McMullan <jason.mcmullan@netronome.com>
+ *          Rolf Neugebauer <rolf.neugebauer@netronome.com>
  */
 
 #include <linux/kernel.h>

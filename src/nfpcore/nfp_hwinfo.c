@@ -33,6 +33,7 @@
 
 /*
  * nfp_ca.h
+ * Author: Jason McMullan <jason.mcmullan@netronome.com>
  *
  * Parses the hwinfo table that the ARM firmware builds in the ARM scratch SRAM
  * after chip reset.

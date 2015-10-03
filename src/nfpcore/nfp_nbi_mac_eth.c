@@ -34,6 +34,7 @@
 /*
  * nfp_nbi_mac_eth.c
  * nfp6000 MAC API functions
+ * Author: Jason McMullan <jason.mcmullan@netronome.com>
  *
  * Functions mostly related to the MAC Ethernet
  * (Hydra) core and the MAC-NBI channel interface.

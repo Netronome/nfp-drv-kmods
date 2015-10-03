@@ -33,6 +33,8 @@
 
 /*
  * nfp_spi.c
+ * Authors: David Brunecz <david.brunecz@netronome.com>
+ *          Jason McMullan <jason.mcmullan@netronome.com>
  */
 #include <linux/kernel.h>
 #include <linux/time.h>

@@ -33,7 +33,8 @@
 
 /*
  * nfp_mip.c
- * Author: Jason McMullan <jason.mcmullan@netronome.com>
+ * Authors: Jason McMullan <jason.mcmullan@netronome.com>
+ *          Espen Skoglund <espen.skoglund@netronome.com>
  */
 
 #define NFP6000_LONGNAMES

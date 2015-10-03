@@ -33,8 +33,8 @@
 
 /*
  * nfp_net_null
- * Author: Jason McMullan <jason.mcmullan@netronome.com>
  * Null network device, for use as an ethtool interface
+ * Author: Jason McMullan <jason.mcmullan@netronome.com>
  */
 
 #include <linux/kernel.h>

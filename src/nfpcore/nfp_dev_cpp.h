@@ -34,7 +34,6 @@
 /*
  * nfp_dev_cpp.h
  * Author: Jason McMullan <jason.mcmullan@netronome.com>
- *
  */
 
 #ifndef NFP_DEV_CPP_H

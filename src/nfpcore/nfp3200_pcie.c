@@ -33,6 +33,10 @@
 
 /*
  * nfp3200_pcie.c
+ * Authors: Jason McMullan <jason.mcmullan@netronome.com>
+ *          Rolf Neugebauer <rolf.neugebauer@netronome.com>
+ *          Espen Skoglund <espen.skoglund@netronome.com>
+ *
  * Multiplexes the NFP BARs between NFP internal resources and
  * implements the PCIe specific interface for generic CPP bus access.
  *

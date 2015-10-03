@@ -34,6 +34,9 @@
 /*
  * nfp_rtsym.c
  * Interface for accessing run-time symbol table
+ * Authors: Jason McMullan <jason.mcmullan@netronome.com>
+ *          Espen Skoglund <espen.skoglund@netronome.com>
+ *          Francois H. Theron <francois.theron@netronome.com>
  */
 #define NFP6000_LONGNAMES
 
