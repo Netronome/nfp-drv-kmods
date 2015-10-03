@@ -33,7 +33,10 @@
 
 /*
  * nfp_main.c
- * Author: Jason McMullan <jason.mcmullan@netronome.com>
+ * Authors: Jakub Kicinski <jakub.kicinski@netronome.com>
+ *          Alejandro Lucero <alejandro.lucero@netronome.com>
+ *          Jason McMullan <jason.mcmullan@netronome.com>
+ *          Rolf Neugebauer <rolf.neugebauer@netronome.com>
  */
 
 #include <linux/kernel.h>
