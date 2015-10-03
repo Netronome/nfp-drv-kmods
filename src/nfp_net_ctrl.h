@@ -34,7 +34,10 @@
 /*
  * nfp_net_ctrl.h
  * Netronome network device driver: Control BAR layout
- * Author: Jason McMullan <jason.mcmullan@netronome.com>
+ * Authors: Jakub Kicinski <jakub.kicinski@netronome.com>
+ *          Jason McMullan <jason.mcmullan@netronome.com>
+ *          Rolf Neugebauer <rolf.neugebauer@netronome.com>
+ *          Brad Petrus <brad.petrus@netronome.com>
  */
 
 #ifndef _NFP_NET_CTRL_H_

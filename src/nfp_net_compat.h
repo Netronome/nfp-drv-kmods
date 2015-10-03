@@ -34,7 +34,9 @@
 /*
  * nfp_net_compat.h
  * Common declarations for kernel backwards-compatibility
- * Author: Jason McMullan <jason.mcmullan@netronome.com>
+ * Authors: Jakub Kicinski <jakub.kicinski@netronome.com>
+ *          Jason McMullan <jason.mcmullan@netronome.com>
+ *          Rolf Neugebauer <rolf.neugebauer@netronome.com>
  */
 
 #ifndef _NFP_NET_COMPAT_H_

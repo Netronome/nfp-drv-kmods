@@ -34,7 +34,11 @@
 /*
  * nfp_net_common.c
  * Netronome network device driver: Common functions between PF and VF
- * Author: Jason McMullan <jason.mcmullan@netronome.com>
+ * Authors: Jakub Kicinski <jakub.kicinski@netronome.com>
+ *          Jason McMullan <jason.mcmullan@netronome.com>
+ *          Rolf Neugebauer <rolf.neugebauer@netronome.com>
+ *          Brad Petrus <brad.petrus@netronome.com>
+ *          Chris Telfer <chris.telfer@netronome.com>
  */
 
 /* This file is used by multiple drivers, in which case Kbuild does

@@ -35,6 +35,7 @@
  * nfp_netvf_main.c
  * Netronome virtual function network device driver: Main entry point
  * Author: Jason McMullan <jason.mcmullan@netronome.com>
+ *         Rolf Neugebauer <rolf.neugebauer@netronome.com>
  */
 
 #include <linux/version.h>

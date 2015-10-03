@@ -32,9 +32,12 @@
  */
 
 /*
- * nfp_modinfo.h
+ * nfp_net_main.c
  * Netronome network device driver: Main entry point
- * Author: Jason McMullan <jason.mcmullan@netronome.com>
+ * Authors: Jakub Kicinski <jakub.kicinski@netronome.com>
+ *          Alejandro Lucero <alejandro.lucero@netronome.com>
+ *          Jason McMullan <jason.mcmullan@netronome.com>
+ *          Rolf Neugebauer <rolf.neugebauer@netronome.com>
  */
 
 #include <linux/version.h>

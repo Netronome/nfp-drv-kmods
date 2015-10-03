@@ -34,7 +34,10 @@
 /*
  * nfp_net_ethtool.c
  * Netronome network device driver: ethtool support
- * Author: Jason McMullan <jason.mcmullan@netronome.com>
+ * Authors: Jakub Kicinski <jakub.kicinski@netronome.com>
+ *          Jason McMullan <jason.mcmullan@netronome.com>
+ *          Rolf Neugebauer <rolf.neugebauer@netronome.com>
+ *          Brad Petrus <brad.petrus@netronome.com>
  */
 
 #include <linux/version.h>
