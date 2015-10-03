@@ -20,6 +20,13 @@ For more information, please see:
 
   http://www.netronome.com
 
+If questions arise or an issue is identified related the released
+driver code, please contact either your local Netronome contact or
+email us on:
+
+  oss-drivers@netronome.com
+
+
 # Acquiring Firmware
 
 The NFP3200 and NFP6000 devices require application
