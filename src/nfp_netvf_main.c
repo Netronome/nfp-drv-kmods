@@ -382,7 +382,7 @@ static void __exit nfp_netvf_exit(void)
 module_init(nfp_netvf_init);
 module_exit(nfp_netvf_exit);
 
-MODULE_AUTHOR("Netronome Systems <support@netronome.com>");
+MODULE_AUTHOR("Netronome Systems <oss-drivers@netronome.com>");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("NFP VF network device driver");
 MODULE_INFO_NFP();

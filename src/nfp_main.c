@@ -640,7 +640,7 @@ static void __exit nfp_main_exit(void)
 module_init(nfp_main_init);
 module_exit(nfp_main_exit);
 
-MODULE_AUTHOR("Netronome Systems <support@netronome.com>");
+MODULE_AUTHOR("Netronome Systems <oss-drivers@netronome.com>");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("The Netronome Flow Processor (NFP) driver.");
 MODULE_INFO_NFP();
