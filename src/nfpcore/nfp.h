@@ -294,6 +294,9 @@ struct nfp_resource_entry {
 int nfp_cpp_resource_init(struct nfp_cpp *cpp,
 			  struct nfp_cpp_mutex **resource_mutex);
 
+int nfp_cpp_resource_table(struct nfp_cpp *cpp, int *target,
+			   u64 *base, size_t *sizep);
+
 struct nfp_resource *nfp_resource_acquire(struct nfp_device *nfp,
 					  const char *name);
 

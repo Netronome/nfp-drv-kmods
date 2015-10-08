@@ -65,8 +65,8 @@ struct nfp_resource {
 /* If the EMU is not enabled, we probably don't
  * have any resources anyway.
  */
-static int __nfp_resource_location(struct nfp_cpp *cpp, int *target,
-				   u64 *base, size_t *sizep)
+int nfp_cpp_resource_table(struct nfp_cpp *cpp, int *target,
+			   u64 *base, size_t *sizep)
 {
 	u32 model = nfp_cpp_model(cpp);
 	size_t size;
@@ -100,7 +100,7 @@ static int __nfp_resource_entry_init(struct nfp_cpp *cpp, int entry,
 	int err;
 	u64 base;
 
-	entries = __nfp_resource_location(cpp, &target, &base, &size);
+	entries = nfp_cpp_resource_table(cpp, &target, &base, &size);
 	if (entries < 0)
 		return entries;
 
@@ -170,7 +170,7 @@ int nfp_cpp_resource_init(struct nfp_cpp *cpp, struct nfp_cpp_mutex **mutexp)
 		.cpp_token  = 1
 	};
 
-	entries = __nfp_resource_location(cpp, &target, &base, &size);
+	entries = nfp_cpp_resource_table(cpp, &target, &base, &size);
 	if (entries < 0)
 		return entries;
 
@@ -240,7 +240,7 @@ int nfp_cpp_resource_add(struct nfp_cpp *cpp, const char *name,
 			region.name[i] = 0;
 	}
 
-	entries = __nfp_resource_location(cpp, &target, &base, NULL);
+	entries = nfp_cpp_resource_table(cpp, &target, &base, NULL);
 	if (entries < 0)
 		return entries;
 
@@ -316,7 +316,7 @@ static int nfp_cpp_resource_acquire(struct nfp_cpp *cpp, const char *name,
 			region.name[i] = 0;
 	}
 
-	entries = __nfp_resource_location(cpp, &target, &base, NULL);
+	entries = nfp_cpp_resource_table(cpp, &target, &base, NULL);
 	if (entries < 0)
 		return entries;
 
