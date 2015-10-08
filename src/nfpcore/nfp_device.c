@@ -54,6 +54,7 @@
 struct nfp_device {
 	int cpp_free;
 	struct nfp_cpp *cpp;
+	struct nfp_cpp_mutex *nfp_mutex;
 
 	spinlock_t private_lock;	/* Lock for private_list */
 	struct list_head private_list;
@@ -124,6 +125,9 @@ void nfp_device_close(struct nfp_device *nfp)
 			priv->destructor(&priv[1]);
 		kfree(priv);
 	}
+
+	if (nfp->nfp_mutex)
+		nfp_cpp_mutex_free(nfp->nfp_mutex);
 
 	if (nfp->cpp_free)
 		nfp_cpp_free(nfp->cpp);
@@ -227,4 +231,87 @@ void *nfp_device_private_alloc(struct nfp_device *dev,
 	list_add(&priv->entry, &dev->private_list);
 	spin_unlock(&dev->private_lock);
 	return &priv[1];
+}
+
+/* Retrieve the Global NFP Lock, located at the first
+ * High Locality address in the first MU/EMU.
+ *
+ * This overlaps and is identical to the lock for
+ * the first NFP Resource Entry in the NFP Resource Page.
+ */
+static struct nfp_cpp_mutex *nfp_device_mutex(struct nfp_device *dev)
+{
+	struct nfp_cpp *cpp;
+	const u32 key = 0;     /* NFP Resource Entry 0's key */
+	int cpptgt = -1;
+	u64 base;
+	int err;
+
+	if (dev->nfp_mutex)
+		return dev->nfp_mutex;
+
+	cpp = nfp_device_cpp(dev);
+	if (!cpp)
+		return NULL;
+
+	/* Find the location of the NFP CPP Resource table
+	 */
+	err = nfp_cpp_resource_table(cpp, &cpptgt, &base, NULL);
+	if (err < 0)
+		return NULL;
+
+	dev->nfp_mutex = nfp_cpp_mutex_alloc(cpp, cpptgt, base, key);
+
+	return dev->nfp_mutex;
+}
+
+/**
+ * Perform an advisory trylock on the NFP device
+ *
+ * @param dev           NFP device
+ *
+ * @return 0 on success, or -1 on error (and set errno accordingly)
+ */
+int nfp_device_trylock(struct nfp_device *dev)
+{
+	struct nfp_cpp_mutex *m = nfp_device_mutex(dev);
+
+	if (!m)
+		return -EINVAL;
+
+	return nfp_cpp_mutex_trylock(m);
+}
+
+/**
+ * Perform an advisory lock on the NFP device
+ *
+ * @param dev           NFP device
+ *
+ * @return 0 on success, or -1 on error (and set errno accordingly)
+ */
+int nfp_device_lock(struct nfp_device *dev)
+{
+	struct nfp_cpp_mutex *m = nfp_device_mutex(dev);
+
+	if (!m)
+		return -EINVAL;
+
+	return nfp_cpp_mutex_lock(m);
+}
+
+/**
+ * Perform an advisory unlock on the NFP device
+ *
+ * @param dev           NFP device
+ *
+ * @return 0 on success, or -1 on error (and set errno accordingly)
+ */
+int nfp_device_unlock(struct nfp_device *dev)
+{
+	struct nfp_cpp_mutex *m = nfp_device_mutex(dev);
+
+	if (!m)
+		return -EINVAL;
+
+	return nfp_cpp_mutex_unlock(m);
 }
