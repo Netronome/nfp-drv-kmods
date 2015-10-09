@@ -2433,10 +2433,6 @@ int nfp_net_netdev_init(struct net_device *netdev)
 		netdev->hw_features |= NETIF_F_SG;
 		nn->ctrl |= NFP_NET_CFG_CTRL_SCATTER | NFP_NET_CFG_CTRL_GATHER;
 	}
-	if (nn->cap & NFP_NET_CFG_CTRL_LSO) {
-		netdev->hw_features |= NETIF_F_TSO | NETIF_F_TSO6;
-		nn->ctrl |= NFP_NET_CFG_CTRL_LSO;
-	}
 	if (nn->cap & NFP_NET_CFG_CTRL_RSS) {
 		netdev->hw_features |= NETIF_F_RXHASH | NETIF_F_NTUPLE;
 		nn->ctrl |= NFP_NET_CFG_CTRL_RSS;
@@ -2457,6 +2453,10 @@ int nfp_net_netdev_init(struct net_device *netdev)
 		nn->ctrl |= NFP_NET_CFG_CTRL_TXVLAN;
 	}
 	netdev->features = netdev->hw_features;
+
+	/* Advertise but disable TSO by default. */
+	if (nn->cap & NFP_NET_CFG_CTRL_LSO)
+		netdev->hw_features |= NETIF_F_TSO | NETIF_F_TSO6;
 
 	/* Allow L2 Broadcast through by default, if supported */
 	if (nn->cap & NFP_NET_CFG_CTRL_L2BC)
