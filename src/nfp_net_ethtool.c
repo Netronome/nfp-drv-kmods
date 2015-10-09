@@ -572,8 +572,7 @@ static int nfp_net_get_rxfh(struct net_device *netdev, u32 *indir, u8 *key,
 #else
 static int nfp_net_get_rxfh(struct net_device *netdev, u32 *indir, u8 *key)
 {
-	u8 _hfunc;
-	u8 *hfunc = &_hfunc;
+	u8 *hfunc = NULL;
 
 #define ETH_RSS_HASH_UNKNOWN    0
 #endif
@@ -583,10 +582,12 @@ static int nfp_net_get_rxfh(struct net_device *netdev, u32 *indir, u8 *key)
 	if (!(nn->cap & NFP_NET_CFG_CTRL_RSS))
 		return -EOPNOTSUPP;
 
-	for (i = 0; i < ARRAY_SIZE(nn->rss_itbl); i++)
-		indir[i] = nn->rss_itbl[i];
+	if (indir)
+		for (i = 0; i < ARRAY_SIZE(nn->rss_itbl); i++)
+			indir[i] = nn->rss_itbl[i];
 
-	*hfunc = ETH_RSS_HASH_UNKNOWN;
+	if (hfunc)
+		*hfunc = ETH_RSS_HASH_UNKNOWN;
 
 	return 0;
 }
