@@ -77,7 +77,7 @@ struct nfp_device_private {
  */
 struct nfp_cpp *nfp_device_cpp(struct nfp_device *nfp)
 {
-		return nfp->cpp;
+	return nfp->cpp;
 }
 
 /**
@@ -88,23 +88,23 @@ struct nfp_cpp *nfp_device_cpp(struct nfp_device *nfp)
  */
 struct nfp_device *nfp_device_from_cpp(struct nfp_cpp *cpp)
 {
-		int err = -ENODEV;
-		struct nfp_device *nfp;
+	int err = -ENODEV;
+	struct nfp_device *nfp;
 
-		nfp = kzalloc(sizeof(*nfp), GFP_KERNEL);
-		if (!nfp) {
-			err = -ENOMEM;
-			goto err_nfp_alloc;
-		}
-		nfp->cpp = cpp;
+	nfp = kzalloc(sizeof(*nfp), GFP_KERNEL);
+	if (!nfp) {
+		err = -ENOMEM;
+		goto err_nfp_alloc;
+	}
+	nfp->cpp = cpp;
 
-		spin_lock_init(&nfp->private_lock);
-		INIT_LIST_HEAD(&nfp->private_list);
+	spin_lock_init(&nfp->private_lock);
+	INIT_LIST_HEAD(&nfp->private_list);
 
-		return nfp;
+	return nfp;
 
 err_nfp_alloc:
-		return NULL;
+	return NULL;
 }
 
 /**
@@ -113,21 +113,22 @@ err_nfp_alloc:
  */
 void nfp_device_close(struct nfp_device *nfp)
 {
-		struct nfp_device_private *priv;
+	struct nfp_device_private *priv;
 
-		while (!list_empty(&nfp->private_list)) {
-			priv = list_first_entry(&nfp->private_list,
-						struct nfp_device_private,
-						entry);
-			list_del(&priv->entry);
-			if (priv->destructor)
-				priv->destructor(&priv[1]);
-			kfree(priv);
-		}
+	while (!list_empty(&nfp->private_list)) {
+		priv = list_first_entry(&nfp->private_list,
+					struct nfp_device_private,
+					entry);
+		list_del(&priv->entry);
+		if (priv->destructor)
+			priv->destructor(&priv[1]);
+		kfree(priv);
+	}
 
-		if (nfp->cpp_free)
-			nfp_cpp_free(nfp->cpp);
-		kfree(nfp);
+	if (nfp->cpp_free)
+		nfp_cpp_free(nfp->cpp);
+
+	kfree(nfp);
 }
 
 /**
@@ -138,21 +139,21 @@ void nfp_device_close(struct nfp_device *nfp)
  */
 struct nfp_device *nfp_device_open(unsigned int id)
 {
-		struct nfp_cpp *cpp;
-		struct nfp_device *nfp;
+	struct nfp_cpp *cpp;
+	struct nfp_device *nfp;
 
-		cpp = nfp_cpp_from_device_id(id);
-		if (!cpp)
-			return NULL;
+	cpp = nfp_cpp_from_device_id(id);
+	if (!cpp)
+		return NULL;
 
-		nfp = nfp_device_from_cpp(cpp);
-		if (!nfp) {
-			nfp_cpp_free(cpp);
-			return NULL;
-		}
+	nfp = nfp_device_from_cpp(cpp);
+	if (!nfp) {
+		nfp_cpp_free(cpp);
+		return NULL;
+	}
 
-		nfp->cpp_free = 1;
-		return nfp;
+	nfp->cpp_free = 1;
+	return nfp;
 }
 
 /**
@@ -163,7 +164,7 @@ struct nfp_device *nfp_device_open(unsigned int id)
  */
 int nfp_device_id(struct nfp_device *nfp)
 {
-		return nfp_cpp_device_id(nfp->cpp);
+	return nfp_cpp_device_id(nfp->cpp);
 }
 
 /**
