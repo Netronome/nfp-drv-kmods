@@ -164,9 +164,9 @@ err_out:
 
 static int nfp6000_pcie_sriov_disable(struct pci_dev *pdev)
 {
+#ifdef CONFIG_PCI_IOV
 	struct nfp_pci *nfp = pci_get_drvdata(pdev);
 
-#ifdef CONFIG_PCI_IOV
 	/* Device specific VF config goes here */
 	nfp->num_vfs = 0;
 
