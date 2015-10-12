@@ -205,8 +205,11 @@ static int nfp_net_fw_load(struct pci_dev *pdev,
 		dev_info(&pdev->dev, "Default FW image: %s\n", fw_name);
 		err = request_firmware(&fw, fw_name, &pdev->dev);
 	}
-	if (err < 0)
-		goto err_request;
+	if (err < 0) {
+		dev_err(&pdev->dev, "Failed to request FW with %d.%s\n",
+			err, fw_stop_on_fail ? "" : " Continuing...");
+		goto err;
+	}
 
 	if (NFP_CPP_MODEL_IS_6000(nfp_cpp_model(cpp))) {
 		/* Make sure we have the ARM service processor */
@@ -222,43 +225,51 @@ static int nfp_net_fw_load(struct pci_dev *pdev,
 			}
 		}
 		if (err < 0)
-			goto err_armsp;
+			goto exit_release_fw;
 	}
 
 	if (nfp_reset) {
 		dev_info(&pdev->dev, "NFP soft-reset...\n");
 		err = nfp_reset_soft(nfp);
-		if (err < 0)
-			goto err_sreset;
+		if (err < 0) {
+			dev_err(&pdev->dev, "Failed to soft reset the NFP %d.\n",
+				err);
+			goto exit_release_fw;
+		}
+	}
+
+	/* Lock the NFP, prevent others from touching it while we
+	 * load the firmware.
+	 */
+	err = nfp_device_lock(nfp);
+	if (err < 0) {
+		fw_stop_on_fail = 1;
+		dev_err(&pdev->dev, "Can't lock NFP device %d.", err);
+		goto exit_release_fw;
 	}
 
 	dev_info(&pdev->dev, "Loading FW image: %s\n", fw_name);
 
 	err = nfp_ca_replay(cpp, fw->data, fw->size);
+	if (err < 0) {
+		dev_err(&pdev->dev, "FW loading failed with %d.%s",
+			err, fw_stop_on_fail ? "" : " Continuing...");
+		goto exit_unlock;
+	}
+
+	nfp_device_unlock(nfp);
 	release_firmware(fw);
-	if (err < 0)
-		goto err_replay;
 
 	dev_info(&pdev->dev, "Finished loading FW image: %s\n", fw_name);
 	return 1;
 
-err_sreset:
-	release_firmware(fw);
-	dev_err(&pdev->dev, "Failed to soft reset the NFP %d.\n",
-		err);
-	return err;
-err_armsp:
+exit_unlock:
+	nfp_device_unlock(nfp);
+exit_release_fw:
 	release_firmware(fw);
 	dev_err(&pdev->dev, "Failed to find NFP Service Processor with %d.%s\n",
 		err, fw_stop_on_fail ? "" : " Continuing...");
-	return fw_stop_on_fail ? err : 0;
-err_request:
-	dev_err(&pdev->dev, "Failed to request FW with %d.%s\n",
-		err, fw_stop_on_fail ? "" : " Continuing...");
-	return fw_stop_on_fail ? err : 0;
-err_replay:
-	dev_err(&pdev->dev, "FW loading failed with %d.%s",
-		err, fw_stop_on_fail ? "" : " Continuing...");
+err:
 	return fw_stop_on_fail ? err : 0;
 }
 

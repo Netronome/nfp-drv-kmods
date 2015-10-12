@@ -219,25 +219,16 @@ static int nfp_pcie_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
 		return 0;
 	}
 
+	if (!fw_name)
+		return 0;
+
 	nfp = nfp_device_from_cpp(cpp);
 	if (!nfp)
 		return 0;
 
-	if (nfp_reset) {
-		dev_info(&pdev->dev, "NFP soft-reset requested\n");
-		err = nfp_reset_soft(nfp);
-		if (err < 0) {
-			dev_warn(&pdev->dev,
-				 "Could not soft-reset, err = %d\n", err);
-			goto exit;
-		}
-		dev_info(&pdev->dev, "NFP soft-reset completed\n");
-	}
-
-	if (!fw_name) {
-		err = 0;
-		goto exit;
-	}
+	err = request_firmware(&fw, fw_name, &pdev->dev);
+	if (err < 0)
+		goto exit_close;
 
 	/* Make sure we have the ARM service processor */
 	if (need_armsp) {
@@ -252,30 +243,48 @@ static int nfp_pcie_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
 				break;
 			}
 		}
-		if (err < 0)
-			goto exit;
+		if (err < 0) {
+			dev_err(&pdev->dev, "NSP failed to respond\n");
+			goto exit_release_fw;
+		}
 	}
 
-	nfp_device_close(nfp);
-	nfp = NULL;
+	if (nfp_reset) {
+		dev_info(&pdev->dev, "NFP soft-reset requested\n");
+		err = nfp_reset_soft(nfp);
+		if (err < 0) {
+			dev_warn(&pdev->dev,
+				 "Could not soft-reset, err = %d\n", err);
+			goto exit_release_fw;
+		}
+		dev_info(&pdev->dev, "NFP soft-reset completed\n");
+	}
 
-	err = request_firmware(&fw, fw_name, &pdev->dev);
+	err = nfp_device_lock(nfp);
 	if (err < 0) {
-		fw = NULL;
-		goto exit;
+		dev_err(&pdev->dev, "NFP device lock failed\n");
+		goto exit_release_fw;
 	}
 
 	err = nfp_ca_replay(cpp, fw->data, fw->size);
+	if (err < 0) {
+		dev_err(&pdev->dev, "NFP firmware load failed\n");
+		goto exit_unlock;
+	}
+
+	nfp_device_unlock(nfp);
 	release_firmware(fw);
-	if (err < 0)
-		goto exit;
+	nfp_device_close(nfp);
 
 	dev_info(&pdev->dev, "Loaded FW image: %s\n", fw_name);
 	return 1;
 
-exit:
-	if (nfp)
-		nfp_device_close(nfp);
+exit_unlock:
+	nfp_device_unlock(nfp);
+exit_release_fw:
+	release_firmware(fw);
+exit_close:
+	nfp_device_close(nfp);
 
 	if (err < 0 && fw_name) {
 		dev_err(&pdev->dev, "Could not %s firmare \"%s\", err %d\n",
