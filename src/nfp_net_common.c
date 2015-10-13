@@ -1144,6 +1144,20 @@ static inline int nfp_net_rx_space(struct nfp_net_rx_ring *rx_ring)
 }
 
 /**
+ * nfp_net_rx_csum_has_errors() - group check if rxd has any csum errors
+ * @flags: RX descriptor flags field in CPU byte order
+ */
+static int nfp_net_rx_csum_has_errors(u16 flags)
+{
+	u16 csum_all_checked, csum_all_ok;
+
+	csum_all_checked = flags & __PCIE_DESC_RX_CSUM_ALL;
+	csum_all_ok = flags & __PCIE_DESC_RX_CSUM_ALL_OK;
+
+	return csum_all_checked != (csum_all_ok << PCIE_DESC_RX_CSUM_OK_SHIFT);
+}
+
+/**
  * nfp_net_rx_csum() - set SKB checksum field based on RX descriptor flags
  * @nn:  NFP Net device
  * @r_vec: per-ring structure
@@ -1158,34 +1172,21 @@ static void nfp_net_rx_csum(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 	if (!(nn->netdev->features & NETIF_F_RXCSUM))
 		return;
 
-	/* If IPv4 and IP checksum error, fail */
-	if ((rxd->rxd.flags & PCIE_DESC_RX_IP4_CSUM) &&
-	    !(rxd->rxd.flags & PCIE_DESC_RX_IP4_CSUM_OK))
-		goto err_csum;
-
-	/* If neither UDP nor TCP return */
-	if (!(rxd->rxd.flags & PCIE_DESC_RX_TCP_CSUM) &&
-	    !(rxd->rxd.flags & PCIE_DESC_RX_UDP_CSUM))
+	if (nfp_net_rx_csum_has_errors(le16_to_cpu(rxd->rxd.flags))) {
+		u64_stats_update_begin(&r_vec->rx_sync);
+		r_vec->hw_csum_rx_error++;
+		u64_stats_update_end(&r_vec->rx_sync);
 		return;
+	}
 
-	if ((rxd->rxd.flags & PCIE_DESC_RX_TCP_CSUM) &&
-	    !(rxd->rxd.flags & PCIE_DESC_RX_TCP_CSUM_OK))
-		goto err_csum;
-
-	if ((rxd->rxd.flags & PCIE_DESC_RX_UDP_CSUM) &&
+	if (!(rxd->rxd.flags & PCIE_DESC_RX_TCP_CSUM_OK) &&
 	    !(rxd->rxd.flags & PCIE_DESC_RX_UDP_CSUM_OK))
-		goto err_csum;
+		return;
 
 	skb->ip_summed = CHECKSUM_UNNECESSARY;
 
 	u64_stats_update_begin(&r_vec->rx_sync);
 	r_vec->hw_csum_rx_ok++;
-	u64_stats_update_end(&r_vec->rx_sync);
-	return;
-
-err_csum:
-	u64_stats_update_begin(&r_vec->rx_sync);
-	r_vec->hw_csum_rx_error++;
 	u64_stats_update_end(&r_vec->rx_sync);
 }
 

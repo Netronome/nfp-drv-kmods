@@ -242,6 +242,17 @@ struct nfp_net_tx_ring {
 #define PCIE_DESC_RX_UDP_CSUM_OK	cpu_to_le16(BIT(1))
 #define PCIE_DESC_RX_VLAN		cpu_to_le16(BIT(0))
 
+#define PCIE_DESC_RX_CSUM_ALL		(PCIE_DESC_RX_IP4_CSUM |	\
+					 PCIE_DESC_RX_TCP_CSUM |	\
+					 PCIE_DESC_RX_UDP_CSUM |	\
+					 PCIE_DESC_RX_I_IP4_CSUM |	\
+					 PCIE_DESC_RX_I_TCP_CSUM |	\
+					 PCIE_DESC_RX_I_UDP_CSUM)
+#define PCIE_DESC_RX_CSUM_OK_SHIFT	1
+#define __PCIE_DESC_RX_CSUM_ALL		le16_to_cpu(PCIE_DESC_RX_CSUM_ALL)
+#define __PCIE_DESC_RX_CSUM_ALL_OK	(__PCIE_DESC_RX_CSUM_ALL >>	\
+					 PCIE_DESC_RX_CSUM_OK_SHIFT)
+
 struct nfp_net_rx_desc {
 	union {
 		struct {
