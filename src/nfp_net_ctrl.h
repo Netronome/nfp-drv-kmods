@@ -137,6 +137,7 @@
 #define   NFP_NET_CFG_UPDATE_L2SWITCH     (0x1 <<  6) /* Switch changes */
 #define   NFP_NET_CFG_UPDATE_RESET        (0x1 <<  7) /* Update due to FLR */
 #define   NFP_NET_CFG_UPDATE_IRQMOD       (0x1 <<  8) /* IRQ mod change */
+#define   NFP_NET_CFG_UPDATE_VXLAN	  (0x1 <<  9) /* VXLAN port change */
 #define   NFP_NET_CFG_UPDATE_ERR          (0x1 << 31) /* A error occurred */
 #define NFP_NET_CFG_TXRS_ENABLE         0x0008
 #define NFP_NET_CFG_RXRS_ENABLE         0x0010
@@ -189,6 +190,9 @@
  */
 #define NFP_NET_CFG_RX_OFFSET		0x0050
 #define NFP_NET_CFG_RX_OFFSET_DYNAMIC		0	/* Prepend mode */
+
+#define NFP_NET_CFG_VXLAN_PORT		0x0060
+#define NFP_NET_CFG_VXLAN_SZ		0x0008
 
 /**
  * 64B reserved for future use (0x0080 - 0x00c0)

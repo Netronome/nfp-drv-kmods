@@ -1179,15 +1179,25 @@ static void nfp_net_rx_csum(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 		return;
 	}
 
-	if (!(rxd->rxd.flags & PCIE_DESC_RX_TCP_CSUM_OK) &&
-	    !(rxd->rxd.flags & PCIE_DESC_RX_UDP_CSUM_OK))
-		return;
+	/* Assume that the firmware will never report inner CSUM_OK unless outer
+	 * L4 headers were successfully parsed. FW will always report zero UDP
+	 * checksum as CSUM_OK.
+	 */
+	if (rxd->rxd.flags & PCIE_DESC_RX_TCP_CSUM_OK ||
+	    rxd->rxd.flags & PCIE_DESC_RX_UDP_CSUM_OK) {
+		compat_incr_checksum_unnecessary(skb, false);
+		u64_stats_update_begin(&r_vec->rx_sync);
+		r_vec->hw_csum_rx_ok++;
+		u64_stats_update_end(&r_vec->rx_sync);
+	}
 
-	skb->ip_summed = CHECKSUM_UNNECESSARY;
-
-	u64_stats_update_begin(&r_vec->rx_sync);
-	r_vec->hw_csum_rx_ok++;
-	u64_stats_update_end(&r_vec->rx_sync);
+	if (rxd->rxd.flags & PCIE_DESC_RX_I_TCP_CSUM_OK ||
+	    rxd->rxd.flags & PCIE_DESC_RX_I_UDP_CSUM_OK) {
+		compat_incr_checksum_unnecessary(skb, true);
+		u64_stats_update_begin(&r_vec->rx_sync);
+		r_vec->hw_csum_rx_inner_ok++;
+		u64_stats_update_end(&r_vec->rx_sync);
+	}
 }
 
 /**
@@ -2371,6 +2381,60 @@ nfp_net_features_check(struct sk_buff *skb, struct net_device *dev,
 }
 #endif
 
+#if COMPAT__HAVE_VXLAN_OFFLOAD
+/**
+ * nfp_net_set_vxlan_port() - set vxlan port in SW and HW
+ * @nn:   NFP Net device to reconfigure
+ * @idx:  Index into the port table where new port should be written
+ * @port: UDP port to configure (pass zero to remove VXLAN port)
+ */
+static void nfp_net_set_vxlan_port(struct nfp_net *nn, int idx, __be16 port)
+{
+	int i;
+
+	BUILD_BUG_ON(NFP_NET_N_VXLAN_PORTS & 1);
+
+	nn->vxlan_ports[idx] = port;
+
+	for (i = 0; i < NFP_NET_N_VXLAN_PORTS; i += 2)
+		nn_writel(nn, NFP_NET_CFG_VXLAN_PORT,
+			  be16_to_cpu(nn->vxlan_ports[i + 1]) << 16 |
+			  be16_to_cpu(nn->vxlan_ports[i]));
+
+	nfp_net_reconfig(nn, NFP_NET_CFG_UPDATE_VXLAN);
+}
+
+static void nfp_net_add_vxlan_port(struct net_device *netdev,
+				   sa_family_t sa_family, __be16 port)
+{
+	struct nfp_net *nn = netdev_priv(netdev);
+	int i, free_idx = -1;
+
+	for (i = 0; i < NFP_NET_N_VXLAN_PORTS; i++) {
+		if (nn->vxlan_ports[i] == port)
+			return;
+		if (!nn->vxlan_ports[i])
+			free_idx = i;
+	}
+
+	if (free_idx == -1)
+		return;
+
+	nfp_net_set_vxlan_port(nn, free_idx, port);
+}
+
+static void nfp_net_del_vxlan_port(struct net_device *netdev,
+				   sa_family_t sa_family, __be16 port)
+{
+	struct nfp_net *nn = netdev_priv(netdev);
+	int i;
+
+	for (i = 0; i < NFP_NET_N_VXLAN_PORTS; i++)
+		if (nn->vxlan_ports[i] == port)
+			nfp_net_set_vxlan_port(nn, i, 0);
+}
+#endif /* COMPAT__HAVE_VXLAN_OFFLOAD */
+
 static struct net_device_ops nfp_net_netdev_ops = {
 	.ndo_open		= nfp_net_netdev_open,
 	.ndo_stop		= nfp_net_netdev_close,
@@ -2383,6 +2447,10 @@ static struct net_device_ops nfp_net_netdev_ops = {
 	.ndo_set_features	= nfp_net_set_features,
 #if COMPAT__HAVE_NDO_FEATURES_CHECK
 	.ndo_features_check	= nfp_net_features_check,
+#endif
+#if COMPAT__HAVE_VXLAN_OFFLOAD
+	.ndo_add_vxlan_port     = nfp_net_add_vxlan_port,
+	.ndo_del_vxlan_port     = nfp_net_del_vxlan_port,
 #endif
 };
 

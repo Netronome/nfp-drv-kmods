@@ -111,7 +111,7 @@ static const struct _nfp_net_et_stats nfp_net_et_stats[] = {
 
 #define NN_ET_GLOBAL_STATS_LEN ARRAY_SIZE(nfp_net_et_stats)
 #define NN_ET_RVEC_STATS_LEN (nn->num_r_vecs * 3)
-#define NN_ET_RVEC_GATHER_STATS 6
+#define NN_ET_RVEC_GATHER_STATS 7
 #define NN_ET_QUEUE_STATS_LEN ((nn->num_tx_rings + nn->num_rx_rings) * 2)
 #define NN_ET_STATS_LEN (NN_ET_GLOBAL_STATS_LEN + NN_ET_RVEC_GATHER_STATS + \
 			 NN_ET_RVEC_STATS_LEN + NN_ET_QUEUE_STATS_LEN)
@@ -207,6 +207,8 @@ static void nfp_net_get_strings(struct net_device *netdev,
 		}
 		strncpy(p, "hw_rx_csum_ok", ETH_GSTRING_LEN);
 		p += ETH_GSTRING_LEN;
+		strncpy(p, "hw_rx_csum_inner_ok", ETH_GSTRING_LEN);
+		p += ETH_GSTRING_LEN;
 		strncpy(p, "hw_rx_csum_err", ETH_GSTRING_LEN);
 		p += ETH_GSTRING_LEN;
 		strncpy(p, "hw_tx_csum", ETH_GSTRING_LEN);
@@ -275,17 +277,18 @@ static void nfp_net_get_stats(struct net_device *netdev,
 			start = u64_stats_fetch_begin(&nn->r_vecs[j].rx_sync);
 			data[i++] = nn->r_vecs[j].rx_pkts;
 			tmp[0] = nn->r_vecs[j].hw_csum_rx_ok;
-			tmp[1] = nn->r_vecs[j].hw_csum_rx_error;
+			tmp[1] = nn->r_vecs[j].hw_csum_rx_inner_ok;
+			tmp[2] = nn->r_vecs[j].hw_csum_rx_error;
 		} while (u64_stats_fetch_retry(&nn->r_vecs[j].rx_sync, start));
 
 		do {
 			start = u64_stats_fetch_begin(&nn->r_vecs[j].tx_sync);
 			data[i++] = nn->r_vecs[j].tx_pkts;
 			data[i++] = nn->r_vecs[j].tx_busy;
-			tmp[2] = nn->r_vecs[j].hw_csum_tx;
-			tmp[3] = nn->r_vecs[j].hw_csum_tx_inner;
-			tmp[4] = nn->r_vecs[j].tx_gather;
-			tmp[5] = nn->r_vecs[j].tx_lso;
+			tmp[3] = nn->r_vecs[j].hw_csum_tx;
+			tmp[4] = nn->r_vecs[j].hw_csum_tx_inner;
+			tmp[5] = nn->r_vecs[j].tx_gather;
+			tmp[6] = nn->r_vecs[j].tx_lso;
 		} while (u64_stats_fetch_retry(&nn->r_vecs[j].tx_sync, start));
 
 		for (k = 0; k < NN_ET_RVEC_GATHER_STATS; k++)
