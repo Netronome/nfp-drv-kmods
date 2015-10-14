@@ -1682,7 +1682,7 @@ static void nfp_net_tx_ring_free(struct nfp_net_tx_ring *tx_ring)
 
 /**
  * nfp_net_tx_ring_alloc() - Allocate resource for a TX ring
- * *tx_ring:   TX Ring structure to allocate
+ * @tx_ring:   TX Ring structure to allocate
  *
  * Return: 0 on success, negative errno otherwise.
  */
