@@ -1375,16 +1375,10 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 		 */
 		dma_rmb();
 
-		if (le16_to_cpu(rxd->rxd.data_len) > nn->fl_bufsz) {
-			nn_err(nn, "RX data larger than freelist buffer (%u > %u) on %d:%u rxd[0]=%#x rxd[1]=%#x\n",
-			       le16_to_cpu(rxd->rxd.data_len), nn->fl_bufsz,
-			       rx_ring->idx, idx, rxd->vals[0], rxd->vals[1]);
-			/* Halt here. The device may have DMAed beyond the end
-			 * of the freelist buffer and all bets are off.
-			 */
-			BUG();
-			break;
-		}
+		nn_assert(le16_to_cpu(rxd->rxd.data_len) <= nn->fl_bufsz,
+			  "RX data larger than freelist buffer (%u > %u) on %d:%u rxd[0]=%#x rxd[1]=%#x\n",
+			  le16_to_cpu(rxd->rxd.data_len), nn->fl_bufsz,
+			  rx_ring->idx, idx, rxd->vals[0], rxd->vals[1]);
 
 		dma_unmap_single(&nn->pdev->dev,
 				 rx_ring->rxbufs[idx].dma_addr,
