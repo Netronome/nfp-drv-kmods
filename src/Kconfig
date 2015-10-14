@@ -17,14 +17,14 @@ if NET_VENDOR_NETRONOME
 
 # TODO: move this to a Kconfig in a nfp/ subfolder
 
-config CONFIG_NFP
+config NFP
 	tristate "Netronome(R) NFP3200/NFP6000 core driver"
 	depends on PCI
 	---help---
 	  This driver supports basic communication and programming of
 	  the Netronome(R) NFP3200 and NFP6000 flow processors.
 
-config CONFIG_NFP_NET
+config NFP_NET
 	tristate "Netronome(R) NFP3200/NFP6000 NIC driver"
 	depends on PCI && PCI_MSI
 	---help---
@@ -32,7 +32,7 @@ config CONFIG_NFP_NET
 	  as a advanced Ethernet NIC.
 
 
-config CONFIG_NFP_NETVF
+config NFP_NETVF
 	tristate "Netronome(R) NFP3200/NFP6000 VF NIC driver"
 	depends on PCI && PCI_MSI
 	---help---
