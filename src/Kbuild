@@ -32,7 +32,7 @@ ifneq ($(CONFIG_NFP),n)
 endif
 endif
 
-override EXTRA_CFLAGS += -DDEBUG
+override EXTRA_CFLAGS += -DCONFIG_NFP_NET_DEBUG
 override EXTRA_CFLAGS += -Werror -Wenum-compare
 override EXTRA_CFLAGS += -I$(src)
 
