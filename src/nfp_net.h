@@ -403,6 +403,8 @@ struct nfp_net_r_vector {
  * @removing_pdev:      Are we in the process of removing the device driver
  * @link_up:            Is the link up?
  * @fw_loaded:          Is the firmware loaded?
+ * @ctrl:               Local copy of the control register/word.
+ * @fl_bufsz:           Currently configured size of the freelist buffers
  * @cpp:                Pointer to the CPP handle
  * @nfp_dev_cpp:        Pointer to the NFP Device handle
  * @ctrl_area:          Pointer to the CPP area for the control BAR
@@ -420,8 +422,6 @@ struct nfp_net_r_vector {
  * @rss_cfg:            RSS configuration
  * @rss_key:            RSS secret key
  * @rss_itbl:           RSS indirection table
- * @ctrl:               Local copy of the control register/word.
- * @fl_bufsz:           Currently configured size of the freelist buffers
  * @max_tx_rings:       Maximum number of TX rings supported by the Firmware
  * @max_rx_rings:       Maximum number of RX rings supported by the Firmware
  * @num_tx_rings:       Currently configured number of TX rings
@@ -467,6 +467,11 @@ struct nfp_net {
 	unsigned link_up:1;
 	unsigned fw_loaded:1;
 
+	u32 ctrl;
+	u32 fl_bufsz;
+
+	int rx_prepend;
+
 #ifdef CONFIG_PCI_IOV
 	unsigned int num_vfs;
 	struct vf_data_storage *vfinfo;
@@ -488,11 +493,6 @@ struct nfp_net {
 	u32 rss_cfg;
 	u32 rss_key[NFP_NET_CFG_RSS_KEY_SZ / sizeof(u32)];
 	u8 rss_itbl[NFP_NET_CFG_RSS_ITBL_SZ];
-
-	u32 ctrl;
-	u32 fl_bufsz;
-
-	int rx_prepend;
 
 	int max_tx_rings;
 	int max_rx_rings;
