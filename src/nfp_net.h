@@ -56,17 +56,18 @@
 	} while (0)
 #ifdef NFP_NET_DEBUG
 #define nn_dbg(nn, fmt, args...)  netdev_info((nn)->netdev, fmt, ## args)
-#define nn_assert(cond, fmt, args...) {					\
+#define nn_assert(cond, fmt, args...)					\
+	do {								\
 		if (!(cond)) {						\
 			pr_err("assertion %s failed: %s:%d\n",		\
 			       #cond, __func__, __LINE__);		\
 			pr_err(fmt, ## args);				\
 			BUG();						\
 		}							\
-	}
+	} while (0)
 #else
-#define nn_dbg(nn, fmt, args...)
-#define nn_assert(cond, fmt, args...)
+#define nn_dbg(nn, fmt, args...)	do { } while (0)
+#define nn_assert(cond, fmt, args...)	do { } while (0)
 #endif
 
 /* Forward declaration */
