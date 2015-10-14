@@ -405,6 +405,7 @@ struct nfp_net_r_vector {
  * @fw_loaded:          Is the firmware loaded?
  * @ctrl:               Local copy of the control register/word.
  * @fl_bufsz:           Currently configured size of the freelist buffers
+ * @rx_offset:		Offset in the RX buffers where packet data starts
  * @cpp:                Pointer to the CPP handle
  * @nfp_dev_cpp:        Pointer to the NFP Device handle
  * @ctrl_area:          Pointer to the CPP area for the control BAR
@@ -470,7 +471,7 @@ struct nfp_net {
 	u32 ctrl;
 	u32 fl_bufsz;
 
-	int rx_prepend;
+	u32 rx_offset;
 
 #ifdef CONFIG_PCI_IOV
 	unsigned int num_vfs;

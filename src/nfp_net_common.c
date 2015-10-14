@@ -1387,15 +1387,15 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 		meta_len = rxd->rxd.meta_len_dd & PCIE_DESC_RX_META_LEN_MASK;
 		data_len = le16_to_cpu(rxd->rxd.data_len);
 
-		if (nn->rx_prepend == NFP_NET_CFG_RX_OFFSET_DYNAMIC) {
+		if (nn->rx_offset == NFP_NET_CFG_RX_OFFSET_DYNAMIC) {
 			/* The packet data starts after the metadata */
 			skb_reserve(skb, meta_len);
 		} else {
 			/* The packet data starts at a fixed offset */
-			skb_reserve(skb, nn->rx_prepend);
+			skb_reserve(skb, nn->rx_offset);
 		}
 
-		/* Adjust the SKB for the meta data pre-pended */
+		/* Adjust the SKB for the dynamic meta data pre-pended */
 		skb_put(skb, data_len - meta_len);
 
 		nfp_net_set_hash(skb, rxd);
@@ -2706,14 +2706,12 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	    nn->num_vecs > 1 && nn->per_vector_masking)
 		nn->ctrl |= NFP_NET_CFG_CTRL_MSIXAUTO;
 
-	/* On NFP4000/NFP6000, determine RX packet/metadata boundary offset
-	 */
+	/* On NFP4000/NFP6000, determine RX packet/metadata boundary offset */
 	if ((nn->ver & NFP_NET_CFG_VERSION_MAJOR_MASK) >=
-	    NFP_NET_CFG_VERSION_MAJOR(2)) {
-		nn->rx_prepend = nn_readl(nn, NFP_NET_CFG_RX_OFFSET);
-	} else {
-		nn->rx_prepend = NFP_NET_RX_OFFSET;
-	}
+	    NFP_NET_CFG_VERSION_MAJOR(2))
+		nn->rx_offset = nn_readl(nn, NFP_NET_CFG_RX_OFFSET);
+	else
+		nn->rx_offset = NFP_NET_RX_OFFSET;
 
 	/* Generate some random bits for RSS and write to device */
 	if (nn->cap & NFP_NET_CFG_CTRL_RSS) {
@@ -2748,10 +2746,10 @@ int nfp_net_netdev_init(struct net_device *netdev)
 
 	nfp_net_irqs_assign(netdev);
 
-	if (nn->rx_prepend == NFP_NET_CFG_RX_OFFSET_DYNAMIC)
+	if (nn->rx_offset == NFP_NET_CFG_RX_OFFSET_DYNAMIC)
 		nn_info(nn, "Dynamic RX metadata length\n");
 	else
-		nn_info(nn, "%d bytes for RX metadata\n", nn->rx_prepend);
+		nn_info(nn, "%d bytes for RX metadata\n", nn->rx_offset);
 
 	if (nn->is_nfp3200) {
 		/* YDS-155 workaround. */
