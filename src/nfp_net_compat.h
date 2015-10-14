@@ -75,6 +75,10 @@
 #define  PCI_MSIX_TABLE_OFFSET  0xfffffff8 /* Offset into specified BAR */
 #endif
 
+#ifndef PCI_VENDOR_ID_NETRONOME
+#define PCI_VENDOR_ID_NETRONOME		0x19ee
+#endif
+
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 3, 0))
 typedef u32 netdev_features_t;
 #endif /* KERNEL_VERSION(3, 3, 0) */

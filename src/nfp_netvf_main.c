@@ -52,7 +52,6 @@
 
 const char nfp_net_driver_name[] = "nfp_netvf";
 const char nfp_net_driver_version[] = "0.1";
-#define PCI_VENDOR_ID_NETRONOME         0x19ee
 #define PCI_DEVICE_NFP6000VF		0x6003
 static const struct pci_device_id nfp_netvf_pci_device_ids[] = {
 	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_NFP6000VF,

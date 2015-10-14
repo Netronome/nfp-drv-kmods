@@ -49,7 +49,6 @@
 /*
  * NFP hardware vendor/device ids.  Should be added to Linux.
  */
-#define PCI_VENDOR_ID_NETRONOME         0x19ee
 #define PCI_DEVICE_NFP3200              0x3200
 #define PCI_DEVICE_NFP3240              0x3240
 #define PCI_DEVICE_NFP4000              0x4000

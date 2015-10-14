@@ -53,6 +53,10 @@
 #define KBUILD_MODNAME	"nfpcore"
 #endif
 
+#ifndef PCI_VENDOR_ID_NETRONOME
+#define PCI_VENDOR_ID_NETRONOME		0x19ee
+#endif
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 6, 0))
 #include <linux/sizes.h>
 #else
