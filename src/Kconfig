@@ -19,14 +19,14 @@ if NET_VENDOR_NETRONOME
 
 config NFP
 	tristate "Netronome(R) NFP3200/NFP6000 core driver"
-	depends on PCI
+	depends on PCI && 64BIT
 	---help---
 	  This driver supports basic communication and programming of
 	  the Netronome(R) NFP3200 and NFP6000 flow processors.
 
 config NFP_NET
 	tristate "Netronome(R) NFP3200/NFP6000 NIC driver"
-	depends on PCI && PCI_MSI
+	depends on PCI && PCI_MSI && 64BIT
 	---help---
 	  This driver supports using Netronome(R) NFP3200/NFP6000 cards
 	  as a advanced Ethernet NIC.
