@@ -58,7 +58,7 @@
 #define nn_dbg(nn, fmt, args...)  netdev_info((nn)->netdev, fmt, ## args)
 #define nn_assert(cond, fmt, args...)					\
 	do {								\
-		if (!(cond)) {						\
+		if (unlikely(!(cond))) {				\
 			pr_err("assertion %s failed: %s:%d\n",		\
 			       #cond, __func__, __LINE__);		\
 			pr_err(fmt, ## args);				\
