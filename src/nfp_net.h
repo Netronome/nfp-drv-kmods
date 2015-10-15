@@ -45,6 +45,8 @@
 #include <linux/netdevice.h>
 #include <linux/pci.h>
 
+#include "nfp_net_ctrl.h"
+
 #ifdef CONFIG_NFP_NET_DEBUG
 #define DEBUG
 #endif
