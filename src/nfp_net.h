@@ -459,6 +459,7 @@ struct nfp_net_r_vector {
  * @rx_bar:             Pointer to mapped FL/RX queues
  * @spare_va:           Pointer to a spare mapped area to be used by the NFP
  * @spare_dma:          DMA address for spare area
+ * @debugfs_dir:	Device directory in debugfs
  */
 struct nfp_net {
 	struct pci_dev *pdev;
@@ -550,6 +551,8 @@ struct nfp_net {
 
 	void *spare_va;
 	dma_addr_t spare_dma;
+
+	struct dentry *debugfs_dir;
 };
 
 /* Functions to read/write from/to a BAR
@@ -723,5 +726,10 @@ void nfp_net_coalesce_write_cfg(struct nfp_net *nn);
 int nfp_net_irqs_alloc(struct nfp_net *nn);
 void nfp_net_irqs_disable(struct nfp_net *nn);
 void __iomem *nfp_net_msix_map(struct pci_dev *pdev, unsigned nr_entries);
+
+void nfp_net_debugfs_create(void);
+void nfp_net_debugfs_destroy(void);
+void nfp_net_debugfs_adapter_add(struct nfp_net *nn);
+void nfp_net_debugfs_adapter_del(struct nfp_net *nn);
 
 #endif /* _NFP_NET_H_ */

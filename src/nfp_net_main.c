@@ -837,6 +837,8 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	nfp_device_close(nfp_dev);
 
 	nfp_net_info(nn);
+	nfp_net_debugfs_adapter_add(nn);
+
 	return 0;
 
 err_netdev_init:
@@ -897,6 +899,8 @@ static void nfp_net_pci_remove(struct pci_dev *pdev)
 	struct nfp_net *nn = pci_get_drvdata(pdev);
 	struct nfp_device *nfp_dev;
 	int err;
+
+	nfp_net_debugfs_adapter_del(nn);
 
 #ifdef CONFIG_PCI_IOV
 	/* TODO Need to better handle the case where the PF netdev
@@ -993,6 +997,8 @@ static int __init nfp_net_init(void)
 	if (err < 0)
 		goto fail_dev_cpp_init;
 
+	nfp_net_debugfs_create();
+
 	err = pci_register_driver(&nfp_net_pci_driver);
 	if (err < 0)
 		goto fail_pci_init;
@@ -1000,6 +1006,7 @@ static int __init nfp_net_init(void)
 	return err;
 
 fail_pci_init:
+	nfp_net_debugfs_destroy();
 	nfp_dev_cpp_exit();
 fail_dev_cpp_init:
 	nfp_cppcore_exit();
@@ -1010,6 +1017,7 @@ fail_cppcore_init:
 static void __exit nfp_net_exit(void)
 {
 	pci_unregister_driver(&nfp_net_pci_driver);
+	nfp_net_debugfs_destroy();
 	nfp_dev_cpp_exit();
 	nfp_cppcore_exit();
 }

@@ -297,6 +297,8 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 	pci_set_drvdata(pdev, nn);
 
 	nfp_net_info(nn);
+	nfp_net_debugfs_adapter_add(nn);
+
 	return 0;
 
 err_netdev_init:
@@ -332,6 +334,8 @@ static void nfp_netvf_pci_remove(struct pci_dev *pdev)
 	 * to keep the nn pointer around till we have freed everything.
 	 */
 	BUG_ON(!nn);
+
+	nfp_net_debugfs_adapter_del(nn);
 
 	nn->removing_pdev = 1;
 	nfp_net_netdev_clean(nn->netdev);
@@ -370,13 +374,20 @@ static int __init nfp_netvf_init(void)
 	pr_info("%s: NFP VF Network driver, Copyright (C) 2014-2015 Netronome Systems\n",
 		nfp_net_driver_name);
 
+	nfp_net_debugfs_create();
 	err = pci_register_driver(&nfp_netvf_pci_driver);
-	return err;
+	if (err) {
+		nfp_net_debugfs_destroy();
+		return err;
+	}
+
+	return 0;
 }
 
 static void __exit nfp_netvf_exit(void)
 {
 	pci_unregister_driver(&nfp_netvf_pci_driver);
+	nfp_net_debugfs_destroy();
 }
 
 module_init(nfp_netvf_init);

@@ -97,6 +97,10 @@ static inline u32 ethtool_rxfh_indir_default(u32 index, u32 n_rx_rings)
 #define NETIF_F_HW_VLAN_CTAG_TX NETIF_F_HW_VLAN_TX
 #endif
 
+#ifndef READ_ONCE
+#define READ_ONCE(x)	(x)
+#endif
+
 #if (LINUX_VERSION_CODE <= KERNEL_VERSION(3, 6, 0))
 static inline int netif_get_num_default_rss_queues(void)
 {
