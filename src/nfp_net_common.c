@@ -2746,11 +2746,6 @@ int nfp_net_netdev_init(struct net_device *netdev)
 
 	nfp_net_irqs_assign(netdev);
 
-	if (nn->rx_offset == NFP_NET_CFG_RX_OFFSET_DYNAMIC)
-		nn_info(nn, "Dynamic RX metadata length\n");
-	else
-		nn_info(nn, "%d bytes for RX metadata\n", nn->rx_offset);
-
 	if (nn->is_nfp3200) {
 		/* YDS-155 workaround. */
 		nn->spare_va = dma_zalloc_coherent(&nn->pdev->dev, 4096,
