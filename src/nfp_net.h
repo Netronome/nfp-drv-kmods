@@ -123,12 +123,6 @@ struct nfp_net;
 /* Offload definitions */
 #define NFP_NET_N_VXLAN_PORTS	(NFP_NET_CFG_VXLAN_SZ / sizeof(__be16))
 
-/* Debug support */
-#define NFP_NET_DUMP_TX_MIN	1000
-#define NFP_NET_DUMP_TX_MAX	(NFP_NET_DUMP_TX_MIN + NFP_NET_MAX_TX_RINGS - 1)
-#define NFP_NET_DUMP_RX_MIN	2000
-#define NFP_NET_DUMP_RX_MAX	(NFP_NET_DUMP_RX_MIN + NFP_NET_MAX_RX_RINGS - 1)
-
 /* Forward declaration */
 struct nfp_net_r_vector;
 
@@ -419,7 +413,6 @@ struct nfp_net_r_vector {
  * @hw_csum_rx_error:   Counter of packets with bad checksums
  * @hw_csum_tx:         Counter of packets with TX checksum offload requested
  * @tx_gather:          Counter of packets with Gather DMA
- * @et_dump_flag:       Flag used to dump RX/TX ring information (via ethtool)
  * @ver:                Firmware version
  * @cap:                Capabilities advertised by the Firmware
  * @max_mtu:            Maximum support MTU advertised by the Firmware
@@ -488,8 +481,6 @@ struct nfp_net {
 	struct nfp_cpp_area *ctrl_area;
 	struct nfp_cpp_area *tx_area;
 	struct nfp_cpp_area *rx_area;
-
-	u32 et_dump_flag;
 
 	u32 ver;
 	u32 cap;
@@ -718,8 +709,6 @@ int nfp_net_netdev_init(struct net_device *netdev);
 void nfp_net_netdev_clean(struct net_device *netdev);
 void nfp_net_set_ethtool_ops(struct net_device *netdev);
 void nfp_net_info(struct nfp_net *nn);
-int nfp_net_tx_dump(struct nfp_net_tx_ring *tx_ring, char *p);
-int nfp_net_rx_dump(struct nfp_net_rx_ring *rx_ring, char *p);
 int nfp_net_reconfig(struct nfp_net *nn, u32 update);
 void nfp_net_rss_write_itbl(struct nfp_net *nn);
 void nfp_net_coalesce_write_cfg(struct nfp_net *nn);

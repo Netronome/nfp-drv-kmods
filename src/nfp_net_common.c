@@ -1138,64 +1138,6 @@ static void nfp_net_tx_timeout(struct net_device *netdev)
 	nn_warn(nn, "TX watchdog timeout\n");
 }
 
-/**
- * nfp_net_tx_dump() - Print the ring contents into the buffer
- * @tx_ring:   TX ring to print
- * @p:         Buffer to print into
- *
- * Assumes that the buffer pointed to by @p is big enough.
- *
- * Return: Number of characters added
- */
-int nfp_net_tx_dump(struct nfp_net_tx_ring *tx_ring, char *p)
-{
-	struct nfp_net_tx_desc *txd;
-	int d_rd_p, d_wr_p, txd_cnt;
-	struct sk_buff *skb;
-	int off = 0;
-	int i;
-
-	txd_cnt = tx_ring->cnt;
-
-	d_rd_p = nfp_qcp_rd_ptr_read(tx_ring->qcp_q);
-	d_wr_p = nfp_qcp_wr_ptr_read(tx_ring->qcp_q);
-
-	off += sprintf(p + off, "TX[%02d]: H_RD=%d H_WR=%d D_RD=%d D_WR=%d\n",
-		       tx_ring->idx, tx_ring->rd_p, tx_ring->wr_p,
-		       d_rd_p, d_wr_p);
-
-	for (i = 0; i < txd_cnt; i++) {
-		txd = &tx_ring->txds[i];
-		off += sprintf(p + off,
-			       "%04d: 0x%08x 0x%08x 0x%08x 0x%08x", i,
-			       txd->vals[0], txd->vals[1],
-			       txd->vals[2], txd->vals[3]);
-
-		if (tx_ring->txbufs && tx_ring->txbufs[i].skb) {
-			skb = tx_ring->txbufs[i].skb;
-			off += sprintf(p + off, " skb->head=%p skb->data=%p",
-				       skb->head, skb->data);
-		}
-		if (tx_ring->txbufs && tx_ring->txbufs[i].dma_addr)
-			off += sprintf(p + off, " dma_addr=%#llx",
-				       (unsigned long long)
-				       tx_ring->txbufs[i].dma_addr);
-
-		if (i == tx_ring->rd_p % txd_cnt)
-			off += sprintf(p + off, " H_RD");
-		if (i == tx_ring->wr_p % txd_cnt)
-			off += sprintf(p + off, " H_WR");
-		if (i == d_rd_p % txd_cnt)
-			off += sprintf(p + off, " D_RD");
-		if (i == d_wr_p % txd_cnt)
-			off += sprintf(p + off, " D_WR");
-
-		off += sprintf(p + off, "\n");
-	}
-
-	return off;
-}
-
 /* Receive processing
  */
 
@@ -1532,69 +1474,6 @@ static void nfp_net_rx_flush(struct nfp_net_rx_ring *rx_ring)
 
 		rx_ring->rd_p++;
 	}
-}
-
-/**
- * nfp_net_rx_dump() - Print the ring contents into the buffer
- * @rx_ring:   RX ring to print
- * @p:         Buffer to print into
- *
- * Assumes that the buffer pointed to by @p is big enough.
- *
- * Return: Number of characters added
- */
-int nfp_net_rx_dump(struct nfp_net_rx_ring *rx_ring, char *p)
-{
-	int fl_rd_p, fl_wr_p, rx_rd_p, rx_wr_p, rxd_cnt;
-	struct nfp_net_rx_desc *rxd;
-	struct sk_buff *skb;
-	int off = 0;
-	int i;
-
-	rxd_cnt = rx_ring->cnt;
-
-	fl_rd_p = nfp_qcp_rd_ptr_read(rx_ring->qcp_fl);
-	fl_wr_p = nfp_qcp_wr_ptr_read(rx_ring->qcp_fl);
-	rx_rd_p = nfp_qcp_rd_ptr_read(rx_ring->qcp_rx);
-	rx_wr_p = nfp_qcp_wr_ptr_read(rx_ring->qcp_rx);
-
-	off += sprintf(p + off,
-		       "RX[%02d]: H_RD=%d H_WR=%d FL_RD=%d FL_WR=%d RX_RD=%d RX_WR=%d\n",
-		       rx_ring->idx, rx_ring->rd_p, rx_ring->wr_p,
-		       fl_rd_p, fl_wr_p, rx_rd_p, rx_wr_p);
-
-	for (i = 0; i < rxd_cnt; i++) {
-		rxd = &rx_ring->rxds[i];
-		off += sprintf(p + off, "%04d: 0x%08x 0x%08x",
-			       i, rxd->vals[0], rxd->vals[1]);
-
-		if (rx_ring->rxbufs && rx_ring->rxbufs[i].skb) {
-			skb = rx_ring->rxbufs[i].skb;
-			off += sprintf(p + off, " skb->head=%p skb->data=%p",
-				       skb->head, skb->data);
-		}
-		if (rx_ring->rxbufs && rx_ring->rxbufs[i].dma_addr)
-			off += sprintf(p + off, " dma_addr=%#llx",
-				       (unsigned long long)
-				       rx_ring->rxbufs[i].dma_addr);
-
-		if (i == rx_ring->rd_p % rxd_cnt)
-			off += sprintf(p + off, " H_RD ");
-		if (i == rx_ring->wr_p % rxd_cnt)
-			off += sprintf(p + off, " H_WR ");
-		if (i == fl_rd_p % rxd_cnt)
-			off += sprintf(p + off, " FL_RD");
-		if (i == fl_wr_p % rxd_cnt)
-			off += sprintf(p + off, " FL_WR");
-		if (i == rx_rd_p % rxd_cnt)
-			off += sprintf(p + off, " RX_RD");
-		if (i == rx_wr_p % rxd_cnt)
-			off += sprintf(p + off, " RX_WR");
-
-		off += sprintf(p + off, "\n");
-	}
-
-	return off;
 }
 
 /**

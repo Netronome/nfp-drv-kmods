@@ -654,80 +654,6 @@ static void nfp_net_get_regs(struct net_device *netdev,
 		regs_buf[i] = readl(nn->ctrl_bar + (i * sizeof(u32)));
 }
 
-/* Debug support.
- * We "mis-use" the ethtool dump support to dump selected RX/TX rings
- */
-static int nfp_net_set_dump(struct net_device *netdev, struct ethtool_dump *val)
-{
-	struct nfp_net *nn = netdev_priv(netdev);
-
-	switch (val->flag) {
-	case NFP_NET_DUMP_TX_MIN ... NFP_NET_DUMP_TX_MAX:
-	case NFP_NET_DUMP_RX_MIN ... NFP_NET_DUMP_RX_MAX:
-		break;
-
-	default:
-		return -EINVAL;
-	}
-
-	nn->et_dump_flag = val->flag;
-	return 0;
-}
-
-static int nfp_net_get_dump_flag(struct net_device *netdev,
-				 struct ethtool_dump *dump)
-{
-	struct nfp_net *nn = netdev_priv(netdev);
-
-	dump->version = 1;
-	dump->flag = nn->et_dump_flag;
-
-	switch (nn->et_dump_flag) {
-	case NFP_NET_DUMP_TX_MIN ... NFP_NET_DUMP_TX_MAX:
-		dump->len = 80 + 120 * nn->txd_cnt;
-		break;
-	case NFP_NET_DUMP_RX_MIN ... NFP_NET_DUMP_RX_MAX:
-		dump->len = 80 + 120 * nn->rxd_cnt;
-		break;
-	default:
-		dump->len = 0;
-		break;
-	}
-
-	return 0;
-}
-
-static int nfp_net_get_dump_data(struct net_device *netdev,
-				 struct ethtool_dump *dump, void *buffer)
-{
-	struct nfp_net *nn = netdev_priv(netdev);
-	struct nfp_net_tx_ring *tx_ring;
-	struct nfp_net_rx_ring *rx_ring;
-	int ridx;
-	int len = 0;
-
-	if (!netif_running(netdev))
-		return 0;
-
-	switch (nn->et_dump_flag) {
-	case NFP_NET_DUMP_TX_MIN ... NFP_NET_DUMP_TX_MAX:
-		ridx = nn->et_dump_flag - NFP_NET_DUMP_TX_MIN;
-		tx_ring = &nn->tx_rings[ridx];
-		len = nfp_net_tx_dump(tx_ring, buffer);
-		break;
-
-	case NFP_NET_DUMP_RX_MIN ... NFP_NET_DUMP_RX_MAX:
-		ridx = nn->et_dump_flag - NFP_NET_DUMP_RX_MIN;
-		rx_ring = &nn->rx_rings[ridx];
-		len = nfp_net_rx_dump(rx_ring, buffer);
-		break;
-	}
-
-	dump->len = len;
-	dump->flag = nn->et_dump_flag;
-	return 0;
-}
-
 static int nfp_net_get_coalesce(struct net_device *netdev,
 				struct ethtool_coalesce *ec)
 {
@@ -824,9 +750,6 @@ static const struct ethtool_ops nfp_net_ethtool_ops = {
 #endif /* 3.16 */
 	.get_regs_len		= nfp_net_get_regs_len,
 	.get_regs		= nfp_net_get_regs,
-	.set_dump               = nfp_net_set_dump,
-	.get_dump_flag          = nfp_net_get_dump_flag,
-	.get_dump_data          = nfp_net_get_dump_data,
 	.get_coalesce           = nfp_net_get_coalesce,
 	.set_coalesce           = nfp_net_set_coalesce,
 };
