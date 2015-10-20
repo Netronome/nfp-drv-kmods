@@ -797,7 +797,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 				      rx_area_sz, &nn->rx_area);
 	if (IS_ERR_OR_NULL(nn->rx_bar)) {
 		nn_err(nn, "Failed to map RX area.\n");
-		err =  PTR_ERR(nn->rx_bar);
+		err = PTR_ERR(nn->rx_bar);
 		goto err_map_rx;
 	}
 
