@@ -334,8 +334,6 @@ static void nfp_netvf_pci_remove(struct pci_dev *pdev)
 	/* Note, the order is slightly different from above as we need
 	 * to keep the nn pointer around till we have freed everything.
 	 */
-	BUG_ON(!nn);
-
 	nfp_net_debugfs_adapter_del(nn);
 
 	nn->removing_pdev = 1;
