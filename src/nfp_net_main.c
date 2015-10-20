@@ -886,12 +886,6 @@ err_nfp_cpp:
 	pci_release_regions(pdev);
 err_dma_mask:
 	pci_disable_device(pdev);
-
-	/* It is a bug to leave via this error path and
-	 * have err be zero or positive.
-	 */
-	BUG_ON(err >= 0);
-
 	return err;
 }
 
