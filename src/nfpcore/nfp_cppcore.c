@@ -977,6 +977,13 @@ static struct nfp_cpp_area_cache *area_cache_get(struct nfp_cpp *cpp,
 	struct nfp_cpp_area_cache *cache;
 	int err;
 
+	/* Early exit when length == 0, which prevents
+	 * the need for special case code below when
+	 * checking against available cache size.
+	 */
+	if (length == 0)
+		return NULL;
+
 	if (list_empty(&cpp->area_cache_list) || id == 0)
 		return NULL;
 
@@ -997,9 +1004,16 @@ static struct nfp_cpp_area_cache *area_cache_get(struct nfp_cpp *cpp,
 			goto exit;
 	}
 
-	/* No matches - pull the tail of the LRU */
+	/* No matches - inspect the tail of the LRU */
 	cache = list_entry(cpp->area_cache_list.prev,
 			   struct nfp_cpp_area_cache, entry);
+
+	/* Can we fit in the cache entry? */
+	if (rounddown(addr + length - 1, cache->size) !=
+	    rounddown(addr, cache->size)) {
+		mutex_unlock(&cpp->area_cache_mutex);
+		return NULL;
+	}
 
 	/* If id != 0, we will need to release it */
 	if (cache->id) {
