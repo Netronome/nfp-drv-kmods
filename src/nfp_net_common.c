@@ -262,13 +262,8 @@ int nfp_net_irqs_alloc(struct nfp_net *nn)
 		return 0;
 	}
 
-	if (nirqs <= NFP_NET_NON_Q_VECTORS) {
-		nn->num_irqs = 1;
-		nn->num_r_vecs = 1;
-	} else {
-		nn->num_irqs = nirqs;
-		nn->num_r_vecs = nn->num_irqs - NFP_NET_NON_Q_VECTORS;
-	}
+	nn->num_irqs = nirqs;
+	nn->num_r_vecs = nn->num_irqs - NFP_NET_NON_Q_VECTORS;
 
 	if (nirqs < wanted_irqs)
 		nn_warn(nn, "Unable to allocate %d vectors. Got %d instead\n",
@@ -386,32 +381,6 @@ static irqreturn_t nfp_net_irq_exn(int irq, void *data)
 }
 
 /**
- * nfp_net_intr() - Shared interrupt service routing for exceptions
- * @irq:      Interrupt
- * @data:     Opaque data structure
- *
- * Return: Indicate if the interrupt has been handled.
- */
-static irqreturn_t nfp_net_intr(int irq, void *data)
-{
-	struct net_device *netdev = data;
-	struct nfp_net *nn = netdev_priv(netdev);
-	struct nfp_net_r_vector *r_vec = &nn->r_vecs[0];
-	struct napi_struct *napi = &r_vec->napi;
-
-	nfp_net_irq_lsc(irq, data);
-	/* XXX Add exception when implemented */
-
-	if (!r_vec->rx_ring && !r_vec->tx_ring)
-		return IRQ_HANDLED;
-
-	if (napi_schedule_prep(napi))
-		__napi_schedule(napi);
-
-	return IRQ_HANDLED;
-}
-
-/**
  * nfp_net_tx_ring_init() - Fill in the boilerplate for a TX ring
  * @tx_ring:  TX ring structure
  */
@@ -461,29 +430,6 @@ static void nfp_net_irqs_assign(struct net_device *netdev)
 		nn->num_rx_rings = nn->num_r_vecs;
 	}
 
-	if (nn->num_irqs == 1) {
-		/* Shared IRQ, yuk */
-		nn_assert(nn->num_r_vecs == 1, "num_rvecs should be 1");
-
-		nn->shared_handler = nfp_net_intr;
-		r_vec = &nn->r_vecs[0];
-		r_vec->nfp_net = nn;
-		r_vec->idx = 0;
-
-		r_vec->tx_ring = &nn->tx_rings[0];
-		nn->tx_rings[0].idx = 0;
-		nn->tx_rings[0].r_vec = r_vec;
-		nfp_net_tx_ring_init(r_vec->tx_ring);
-
-		r_vec->rx_ring = &nn->rx_rings[0];
-		nn->rx_rings[0].idx = 0;
-		nn->rx_rings[0].r_vec = r_vec;
-		nfp_net_rx_ring_init(r_vec->rx_ring);
-
-		return;
-	}
-
-	/* Here we have at least 3 vectors */
 	nn->lsc_handler = nfp_net_irq_lsc;
 	nn->exn_handler = nfp_net_irq_exn;
 
@@ -517,30 +463,11 @@ static void nfp_net_irqs_assign(struct net_device *netdev)
  */
 static void nfp_net_irqs_request(struct net_device *netdev)
 {
-	struct msix_entry *entry, *lsc_entry, *exn_entry;
+	struct msix_entry *lsc_entry, *exn_entry;
 	struct nfp_net *nn = netdev_priv(netdev);
 	int err;
 
 	nn_assert(nn->num_irqs > 0, "num_irqs is zero");
-
-	if (nn->num_irqs == 1) {
-		/* Shared interrupt */
-		entry = &nn->irq_entries[0];
-
-		snprintf(nn->shared_name, sizeof(nn->shared_name),
-			 "%s-shared", netdev->name);
-		err = request_irq(entry->vector, nn->shared_handler, 0,
-				  nn->shared_name, netdev);
-		if (err) {
-			nn_err(nn, "Failed to request IRQ %d (err=%d).\n",
-			       entry->vector, err);
-			return;
-		}
-
-		nn_writeb(nn, NFP_NET_CFG_LSC, 0);
-		nn_writeb(nn, NFP_NET_CFG_EXN, 0);
-		return;
-	}
 
 	lsc_entry = &nn->irq_entries[NFP_NET_IRQ_LSC_IDX];
 
@@ -588,14 +515,6 @@ static void nfp_net_irqs_free(struct net_device *netdev)
 	struct nfp_net *nn = netdev_priv(netdev);
 
 	nn_assert(nn->num_irqs > 0, "num_irqs is 0");
-
-	if (nn->num_irqs == 1) {
-		synchronize_irq(nn->irq_entries[0].vector);
-		free_irq(nn->irq_entries[0].vector, netdev);
-		nn_writeb(nn, NFP_NET_CFG_EXN, 0xff);
-		nn_writeb(nn, NFP_NET_CFG_LSC, 0xff);
-		return;
-	}
 
 	synchronize_irq(nn->irq_entries[NFP_NET_IRQ_EXN_IDX].vector);
 	free_irq(nn->irq_entries[NFP_NET_IRQ_EXN_IDX].vector, netdev);
@@ -1704,28 +1623,23 @@ static int nfp_net_alloc_resources(struct nfp_net *nn)
 		netif_napi_add(nn->netdev, &r_vec->napi,
 			       nfp_net_poll, NFP_NET_NAPI_WEIGHT);
 
-		if (nn->num_irqs > 1) {
-			/* Request the interrupt if available */
-			entry = &nn->irq_entries[r_vec->irq_idx];
+		entry = &nn->irq_entries[r_vec->irq_idx];
 
-			snprintf(r_vec->name, sizeof(r_vec->name),
-				 "%s-rxtx-%d", nn->netdev->name, r);
-			err = request_irq(entry->vector, r_vec->handler, 0,
-					  r_vec->name, r_vec);
-			if (err) {
-				nn_dbg(nn, "Error requesting IRQ %d\n",
-				       entry->vector);
-				goto err_alloc;
-			}
-
-			r_vec->requested = 1;
-
-			irq_set_affinity_hint(entry->vector,
-					      &r_vec->affinity_mask);
-
-			nn_dbg(nn, "RV%02d: irq=%03d/%03d\n",
-			       r, entry->vector, entry->entry);
+		snprintf(r_vec->name, sizeof(r_vec->name),
+			 "%s-rxtx-%d", nn->netdev->name, r);
+		err = request_irq(entry->vector, r_vec->handler, 0,
+				  r_vec->name, r_vec);
+		if (err) {
+			nn_dbg(nn, "Error requesting IRQ %d\n", entry->vector);
+			goto err_alloc;
 		}
+
+		r_vec->requested = 1;
+
+		irq_set_affinity_hint(entry->vector, &r_vec->affinity_mask);
+
+		nn_dbg(nn, "RV%02d: irq=%03d/%03d\n",
+		       r, entry->vector, entry->entry);
 
 		/* Allocate TX ring resources */
 		if (r_vec->tx_ring) {
@@ -2581,7 +2495,7 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	 * interrupts are not shared.
 	 */
 	if (nn->is_nfp3200 && nn->cap & NFP_NET_CFG_CTRL_MSIXAUTO &&
-	    nn->num_irqs > 1 && nn->per_vector_masking)
+	    nn->per_vector_masking)
 		nn->ctrl |= NFP_NET_CFG_CTRL_MSIXAUTO;
 
 	/* On NFP4000/NFP6000, determine RX packet/metadata boundary offset */
