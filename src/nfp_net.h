@@ -344,8 +344,20 @@ struct nfp_net_rx_ring {
  * @requested:      Has this vector been requested?
  * @name:           Name of the interrupt vector
  * @affinity_mask:  SMP affinity mask for this vector
- * @tx_pkts:        Number of Transmitted packets
+ * @rx_sync:	    Seqlock for atomic updates of RX stats
  * @rx_pkts:        Number of received packets
+ * @rx_bytes:	    Number of received bytes
+ * @hw_csum_rx_ok:  Counter of packets where the HW checksum was OK
+ * @hw_csum_rx_inner_ok: Counter of packets where the inner HW checksum was OK
+ * @hw_csum_rx_error:	 Counter of packets with bad checksums
+ * @tx_sync:	    Seqlock for atomic updates of TX stats
+ * @tx_pkts:	    Number of Transmitted packets
+ * @tx_bytes:	    Number of Transmitted bytes
+ * @hw_csum_tx:	    Counter of packets with TX checksum offload requested
+ * @hw_csum_tx_inner:	 Counter of inner TX checksum offload requests
+ * @tx_gather:	    Counter of packets with Gather DMA
+ * @tx_lso:	    Counter of LSO packets sent
+ * @tx_errors:	    How many TX errors were encountered
  * @tx_busy:        How often was TX busy (no space)?
  *
  * This structure ties RX and TX rings to interrupt vectors and a NAPI
@@ -406,11 +418,6 @@ struct nfp_net_r_vector {
  * @ctrl_area:          Pointer to the CPP area for the control BAR
  * @tx_area:            Pointer to the CPP area for the TX queues
  * @rx_area:            Pointer to the CPP area for the FL/RX queues
- * @stats:              Standard netdev statistics
- * @hw_csum_rx_ok:      Counter of packets where the HW checksum was OK
- * @hw_csum_rx_error:   Counter of packets with bad checksums
- * @hw_csum_tx:         Counter of packets with TX checksum offload requested
- * @tx_gather:          Counter of packets with Gather DMA
  * @ver:                Firmware version
  * @cap:                Capabilities advertised by the Firmware
  * @max_mtu:            Maximum support MTU advertised by the Firmware
