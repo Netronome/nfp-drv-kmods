@@ -50,6 +50,7 @@
 
 #include "nfp_net_ctrl.h"
 #include "nfp_net.h"
+#include "nfp_net_compat.h"
 
 /* Support for stats. Returns netdev, driver, and device stats */
 enum { NETDEV_ET_STATS, NFP_NET_DRV_ET_STATS, NFP_NET_DEV_ET_STATS };
@@ -604,16 +605,23 @@ static int nfp_net_get_rxfh(struct net_device *netdev, u32 *indir, u8 *key)
 static int nfp_net_set_rxfh(struct net_device *netdev,
 			    const u32 *indir, const u8 *key,
 			    const u8 hfunc)
+{
 #else
 static int nfp_net_set_rxfh(struct net_device *netdev,
 			    const u32 *indir, const u8 *key)
-#endif
 {
+	const u8 hfunc = 0;
+#endif
+
 	struct nfp_net *nn = netdev_priv(netdev);
 	int i;
 
-	if (!(nn->cap & NFP_NET_CFG_CTRL_RSS))
+	if (!(nn->cap & NFP_NET_CFG_CTRL_RSS) ||
+	    !(hfunc == ETH_RSS_HASH_NO_CHANGE || hfunc == ETH_RSS_HASH_TOP) ||
+	    key)
 		return -EOPNOTSUPP;
+	if (!indir)
+		return 0;
 
 	for (i = 0; i < ARRAY_SIZE(nn->rss_itbl); i++)
 		nn->rss_itbl[i] = indir[i];

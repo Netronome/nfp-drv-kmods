@@ -96,6 +96,12 @@ static inline u32 ethtool_rxfh_indir_default(u32 index, u32 n_rx_rings)
 #ifndef NETIF_F_HW_VLAN_CTAG_TX
 #define NETIF_F_HW_VLAN_CTAG_TX NETIF_F_HW_VLAN_TX
 #endif
+#ifndef ETH_RSS_HASH_NO_CHANGE
+#define ETH_RSS_HASH_NO_CHANGE	0
+#endif
+#ifndef ETH_RSS_HASH_TOP
+#define ETH_RSS_HASH_TOP	0
+#endif
 
 #ifndef READ_ONCE
 #define READ_ONCE(x)	(x)
