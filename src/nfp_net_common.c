@@ -457,7 +457,7 @@ static void nfp_net_irqs_assign(struct net_device *netdev)
 	/* Assumes nn->num_tx_rings == nn->num_rx_rings */
 	if (nn->num_tx_rings > nn->num_r_vecs) {
 		nn_warn(nn, "More rings (%d) than vectors (%d).\n",
-			num_rings, nn->num_r_vecs);
+			nn->num_tx_rings, nn->num_r_vecs);
 		nn->num_tx_rings = nn->num_r_vecs;
 		nn->num_rx_rings = nn->num_r_vecs;
 	}
