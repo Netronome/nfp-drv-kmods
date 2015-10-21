@@ -77,9 +77,6 @@
 #define nn_assert(cond, fmt, args...)	do { } while (0)
 #endif
 
-/* Forward declaration */
-struct nfp_net;
-
 /* NAPI weight */
 #define NFP_NET_NAPI_WEIGHT    64
 
@@ -123,7 +120,8 @@ struct nfp_net;
 /* Offload definitions */
 #define NFP_NET_N_VXLAN_PORTS	(NFP_NET_CFG_VXLAN_SZ / sizeof(__be16))
 
-/* Forward declaration */
+/* Forward declarations */
+struct nfp_net;
 struct nfp_net_r_vector;
 
 /* Convenience macro for writing dma address into RX/TX descriptors */
