@@ -134,7 +134,7 @@ int nfp_net_reconfig(struct nfp_net *nn, u32 update)
  *
  * If successful, the table must be un-mapped using iounmap().
  *
- * Return: Pointer to mapped table or PTR_ERR
+ * Return: Pointer to mapped table or NULL
  */
 void __iomem *nfp_net_msix_map(struct pci_dev *pdev, unsigned nr_entries)
 {
