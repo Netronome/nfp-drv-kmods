@@ -197,7 +197,7 @@ static void nfp_net_irq_unmask(struct nfp_net *nn, unsigned int entry_nr)
  *
  * For MSI-X we want at least NFP_NET_NON_Q_VECTORS + 1 vectors.
  *
- * Return: Number of MSI-X vectors obtained or 0 or error.
+ * Return: Number of MSI-X vectors obtained or 0 on error.
  */
 static int nfp_net_msix_alloc(struct nfp_net *nn, int nr_vecs)
 {
