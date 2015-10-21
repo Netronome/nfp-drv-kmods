@@ -649,8 +649,8 @@ static int nfp_net_tx_ring_should_stop(struct nfp_net_tx_ring *tx_ring)
 
 /**
  * nfp_net_tx_ring_stop() - stop tx ring
- * @nd_q - netdev queue
- * @tx_ring - driver tx queue structure
+ * @nd_q:    netdev queue
+ * @tx_ring: driver tx queue structure
  *
  * Safely stop TX ring.  Remember that while we are running .start_xmit()
  * someone else may be cleaning the TX ring completions so we need to be
@@ -1815,8 +1815,8 @@ void nfp_net_rss_write_itbl(struct nfp_net *nn)
 }
 
 /**
- * nfp_net_coalesce_write_cfg - Write interrupt coalescence
- * configuration to device
+ * nfp_net_coalesce_write_cfg() - Write irq coalescence configuration to HW
+ * @nn:      NFP Net device to reconfigure
  */
 void nfp_net_coalesce_write_cfg(struct nfp_net *nn)
 {
@@ -1844,7 +1844,10 @@ void nfp_net_coalesce_write_cfg(struct nfp_net *nn)
 }
 
 /**
- * nfp_net_write_mac_addr - Write mac address to device registers
+ * nfp_net_write_mac_addr() - Write mac address to device registers
+ * @nn:      NFP Net device to reconfigure
+ * @mac:     Six-byte MAC address to be written
+ *
  * We do a bit of byte swapping dance because firmware is LE.
  */
 static void nfp_net_write_mac_addr(struct nfp_net *nn, const u8 *mac)
@@ -1855,9 +1858,6 @@ static void nfp_net_write_mac_addr(struct nfp_net *nn, const u8 *mac)
 		  get_unaligned_be16(nn->netdev->dev_addr + 4) << 16);
 }
 
-/**
- * nfp_net_netdev_open - Called when the device is upped
- */
 static int nfp_net_netdev_open(struct net_device *netdev)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
