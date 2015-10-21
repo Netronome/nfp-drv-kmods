@@ -1319,7 +1319,7 @@ static int nfp_net_rx_fill_freelist(struct nfp_net_rx_ring *rx_ring)
 		for (i = 0; i < NFP_NET_FL_BATCH; i++) {
 			skb = netdev_alloc_skb(nn->netdev, bufsz);
 			if (!skb) {
-				nn_warn(nn, "Failed to alloc receive SKB\n");
+				nn_warn_ratelimit(nn, "Failed to alloc receive SKB\n");
 				break;
 			}
 
@@ -1327,7 +1327,7 @@ static int nfp_net_rx_fill_freelist(struct nfp_net_rx_ring *rx_ring)
 						  bufsz, DMA_FROM_DEVICE);
 			if (dma_mapping_error(&nn->pdev->dev, dma_addr)) {
 				dev_kfree_skb_any(skb);
-				nn_warn(nn, "Failed to map DMA RX buffer\n");
+				nn_warn_ratelimit(nn, "Failed to map DMA RX buffer\n");
 				break;
 			}
 
