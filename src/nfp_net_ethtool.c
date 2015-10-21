@@ -164,7 +164,7 @@ static int nfp_net_set_ringparam(struct net_device *netdev,
 	}
 
 	/* We don't have separate queues/rings for small/large frames. */
-	if ((ring->rx_mini_pending) || (ring->rx_jumbo_pending))
+	if (ring->rx_mini_pending || ring->rx_jumbo_pending)
 		return -EINVAL;
 
 	/* Round up to supported values */
@@ -176,7 +176,7 @@ static int nfp_net_set_ringparam(struct net_device *netdev,
 	txd_cnt = max_t(u32, txd_cnt, NFP_NET_MIN_TX_DESCS);
 	txd_cnt = min_t(u32, txd_cnt, NFP_NET_MAX_TX_DESCS);
 
-	if ((nn->rxd_cnt != rxd_cnt) || (nn->txd_cnt != txd_cnt))
+	if (nn->rxd_cnt != rxd_cnt || nn->txd_cnt != txd_cnt)
 		nn_dbg(nn, "Change ring size: RxQ %u->%u, TxQ %u->%u\n",
 		       nn->rxd_cnt, rxd_cnt, nn->txd_cnt, txd_cnt);
 
