@@ -251,23 +251,21 @@ static int nfp_net_irqs_wanted(struct nfp_net *nn)
  */
 int nfp_net_irqs_alloc(struct nfp_net *nn)
 {
-	int wanted_irqs, nirqs;
+	int wanted_irqs;
 
 	wanted_irqs = nfp_net_irqs_wanted(nn);
 
-	nirqs = nfp_net_msix_alloc(nn, wanted_irqs);
-
-	if (nirqs == 0) {
+	nn->num_irqs = nfp_net_msix_alloc(nn, wanted_irqs);
+	if (nn->num_irqs == 0) {
 		nn_err(nn, "Failed to allocate MSI-X IRQs\n");
 		return 0;
 	}
 
-	nn->num_irqs = nirqs;
 	nn->num_r_vecs = nn->num_irqs - NFP_NET_NON_Q_VECTORS;
 
-	if (nirqs < wanted_irqs)
+	if (nn->num_irqs < wanted_irqs)
 		nn_warn(nn, "Unable to allocate %d vectors. Got %d instead\n",
-			wanted_irqs, nirqs);
+			wanted_irqs, nn->num_irqs);
 
 	return nn->num_irqs;
 }
