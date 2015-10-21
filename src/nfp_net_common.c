@@ -235,7 +235,7 @@ static int nfp_net_irqs_wanted(struct nfp_net *nn)
 	int ncpus;
 	int vecs;
 
-	ncpus =  num_online_cpus();
+	ncpus = num_online_cpus();
 
 	vecs = max_t(int, nn->num_tx_rings, nn->num_rx_rings);
 	vecs = min_t(int, vecs, ncpus);
