@@ -434,7 +434,7 @@ struct nfp_net_r_vector {
  * @rx_rings:           Array of pre-allocated RX ring structures
  * @per_vector_masking: Are we using per vector masking?
  * @msix_table:         Pointer to mapped MSI-X table
- * @num_vecs:           Number of allocated vectors
+ * @num_irqs:	        Number of allocated interrupt vectors
  * @num_r_vecs:         Number of used ring vectors
  * @r_vecs:             Pre-allocated array of ring vectors
  * @irq_entries:        Pre-allocated array of MSI-X entries
@@ -512,7 +512,7 @@ struct nfp_net {
 
 	unsigned per_vector_masking:1;
 	u8 __iomem *msix_table;
-	u8 num_vecs;
+	u8 num_irqs;
 	u8 num_r_vecs;
 	struct nfp_net_r_vector r_vecs[NFP_NET_MAX_TX_RINGS];
 	struct msix_entry irq_entries[NFP_NET_NON_Q_VECTORS +

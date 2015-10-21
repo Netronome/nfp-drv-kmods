@@ -251,31 +251,30 @@ static int nfp_net_irqs_wanted(struct nfp_net *nn)
  */
 int nfp_net_irqs_alloc(struct nfp_net *nn)
 {
-	int wanted_vecs;
-	int nvecs;
+	int wanted_irqs, nirqs;
 
-	wanted_vecs = nfp_net_irqs_wanted(nn);
+	wanted_irqs = nfp_net_irqs_wanted(nn);
 
-	nvecs = nfp_net_msix_alloc(nn, wanted_vecs);
+	nirqs = nfp_net_msix_alloc(nn, wanted_irqs);
 
-	if (nvecs == 0) {
+	if (nirqs == 0) {
 		nn_err(nn, "Failed to allocate MSI-X IRQs\n");
 		return 0;
 	}
 
-	if (nvecs <= NFP_NET_NON_Q_VECTORS) {
-		nn->num_vecs = 1;
+	if (nirqs <= NFP_NET_NON_Q_VECTORS) {
+		nn->num_irqs = 1;
 		nn->num_r_vecs = 1;
 	} else {
-		nn->num_vecs = nvecs;
-		nn->num_r_vecs = nn->num_vecs - NFP_NET_NON_Q_VECTORS;
+		nn->num_irqs = nirqs;
+		nn->num_r_vecs = nn->num_irqs - NFP_NET_NON_Q_VECTORS;
 	}
 
-	if (nvecs < wanted_vecs)
+	if (nirqs < wanted_irqs)
 		nn_warn(nn, "Unable to allocate %d vectors. Got %d instead\n",
-			wanted_vecs, nvecs);
+			wanted_irqs, nirqs);
 
-	return nn->num_vecs;
+	return nn->num_irqs;
 }
 
 /**
@@ -451,7 +450,7 @@ static void nfp_net_irqs_assign(struct net_device *netdev)
 	struct nfp_net_r_vector *r_vec;
 	int i, r;
 
-	nn_assert(nn->num_vecs > 0, "num_vecs is zero");
+	nn_assert(nn->num_irqs > 0, "num_irqs is zero");
 	nn_assert(nn->num_r_vecs > 0, "num_r_vecs is zero");
 
 	/* Assumes nn->num_tx_rings == nn->num_rx_rings */
@@ -462,7 +461,7 @@ static void nfp_net_irqs_assign(struct net_device *netdev)
 		nn->num_rx_rings = nn->num_r_vecs;
 	}
 
-	if (nn->num_vecs == 1) {
+	if (nn->num_irqs == 1) {
 		/* Shared IRQ, yuk */
 		nn_assert(nn->num_r_vecs == 1, "num_rvecs should be 1");
 
@@ -488,7 +487,7 @@ static void nfp_net_irqs_assign(struct net_device *netdev)
 	nn->lsc_handler = nfp_net_irq_lsc;
 	nn->exn_handler = nfp_net_irq_exn;
 
-	for (i = NFP_NET_NON_Q_VECTORS, r = 0; i < nn->num_vecs; i++, r++) {
+	for (i = NFP_NET_NON_Q_VECTORS, r = 0; i < nn->num_irqs; i++, r++) {
 		r_vec = &nn->r_vecs[r];
 		r_vec->nfp_net = nn;
 		r_vec->idx = r;
@@ -522,9 +521,9 @@ static void nfp_net_irqs_request(struct net_device *netdev)
 	struct nfp_net *nn = netdev_priv(netdev);
 	int err;
 
-	nn_assert(nn->num_vecs > 0, "num_vecs is zero");
+	nn_assert(nn->num_irqs > 0, "num_irqs is zero");
 
-	if (nn->num_vecs == 1) {
+	if (nn->num_irqs == 1) {
 		/* Shared interrupt */
 		entry = &nn->irq_entries[0];
 
@@ -588,9 +587,9 @@ static void nfp_net_irqs_free(struct net_device *netdev)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
 
-	nn_assert(nn->num_vecs > 0, "num_vecs is 0");
+	nn_assert(nn->num_irqs > 0, "num_irqs is 0");
 
-	if (nn->num_vecs == 1) {
+	if (nn->num_irqs == 1) {
 		synchronize_irq(nn->irq_entries[0].vector);
 		free_irq(nn->irq_entries[0].vector, netdev);
 		nn_writeb(nn, NFP_NET_CFG_EXN, 0xff);
@@ -1705,7 +1704,7 @@ static int nfp_net_alloc_resources(struct nfp_net *nn)
 		netif_napi_add(nn->netdev, &r_vec->napi,
 			       nfp_net_poll, NFP_NET_NAPI_WEIGHT);
 
-		if (nn->num_vecs > 1) {
+		if (nn->num_irqs > 1) {
 			/* Request the interrupt if available */
 			entry = &nn->irq_entries[r_vec->irq_idx];
 
@@ -2582,7 +2581,7 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	 * interrupts are not shared.
 	 */
 	if (nn->is_nfp3200 && nn->cap & NFP_NET_CFG_CTRL_MSIXAUTO &&
-	    nn->num_vecs > 1 && nn->per_vector_masking)
+	    nn->num_irqs > 1 && nn->per_vector_masking)
 		nn->ctrl |= NFP_NET_CFG_CTRL_MSIXAUTO;
 
 	/* On NFP4000/NFP6000, determine RX packet/metadata boundary offset */
