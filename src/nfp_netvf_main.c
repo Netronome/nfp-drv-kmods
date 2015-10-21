@@ -161,8 +161,7 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 		}
 	}
 
-	/* Find out how many rings are supported.
-	 */
+	/* Find out how many rings are supported */
 	max_tx_rings = readl(ctrl_bar + NFP_NET_CFG_MAX_TXRINGS);
 	max_rx_rings = readl(ctrl_bar + NFP_NET_CFG_MAX_RXRINGS);
 
