@@ -2056,9 +2056,7 @@ static int nfp_net_change_mtu(struct net_device *netdev, int new_mtu)
 
 	/* Freelist buffer size rounded up to the nearest 1K */
 	tmp = new_mtu + ETH_HLEN + VLAN_HLEN + NFP_NET_MAX_PREPEND;
-	nn->fl_bufsz = tmp & ~(1024 - 1);
-	if (tmp & (1024 - 1))
-		nn->fl_bufsz += 1024;
+	nn->fl_bufsz = roundup(tmp, 1024);
 
 	/* restart if running */
 	if (netif_running(netdev)) {
