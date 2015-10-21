@@ -125,8 +125,10 @@ static void nfp_net_get_drvinfo(struct net_device *netdev,
 	strlcpy(drvinfo->version, nfp_net_driver_version,
 		sizeof(drvinfo->version));
 
-	/* FIXME: Hardcoded value.  Should get something from the me code. */
-	snprintf(drvinfo->fw_version, sizeof(drvinfo->fw_version), "%s", "0.1");
+	snprintf(drvinfo->fw_version, sizeof(drvinfo->fw_version),
+		 "%d.%d.%d.%d",
+		 (nn->ver >> 24) & 0xff, (nn->ver >> 16) & 0xff,
+		 (nn->ver >>  8) & 0xff, (nn->ver >>  0) & 0xff);
 	strlcpy(drvinfo->bus_info, pci_name(nn->pdev),
 		sizeof(drvinfo->bus_info));
 
