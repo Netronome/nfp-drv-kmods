@@ -214,6 +214,7 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 
 	if (rx_bar_no == tx_bar_no) {
 		u32 bar_off, bar_sz;
+		resource_size_t map_addr;
 
 		/* Make a single overlapping BAR mapping */
 		if (tx_bar_off < rx_bar_off)
@@ -226,10 +227,8 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 		else
 			bar_sz = (rx_bar_off + rx_bar_sz) - bar_off;
 
-		nn->q_bar = devm_ioremap_nocache(
-			&pdev->dev,
-			pci_resource_start(pdev, tx_bar_no) + bar_off,
-			bar_sz);
+		map_addr = pci_resource_start(pdev, tx_bar_no) + bar_off;
+		nn->q_bar = ioremap_nocache(map_addr, bar_sz);
 		if (!nn->q_bar) {
 			nn_err(nn, "Failed to map resource %d", tx_bar_no);
 			err = -EIO;
@@ -241,11 +240,11 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 		/* RX queues */
 		nn->rx_bar = nn->q_bar + (rx_bar_off - bar_off);
 	} else {
+		resource_size_t map_addr;
+
 		/* TX queues */
-		nn->tx_bar = devm_ioremap_nocache(
-			&pdev->dev,
-			pci_resource_start(pdev, tx_bar_no) + tx_bar_off,
-			tx_bar_sz);
+		map_addr = pci_resource_start(pdev, tx_bar_no) + tx_bar_off;
+		nn->tx_bar = ioremap_nocache(map_addr, tx_bar_sz);
 		if (!nn->tx_bar) {
 			nn_err(nn, "Failed to map resource %d", tx_bar_no);
 			err = -EIO;
@@ -253,10 +252,8 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 		}
 
 		/* RX queues */
-		nn->rx_bar = devm_ioremap_nocache(
-			&pdev->dev,
-			pci_resource_start(pdev, rx_bar_no) + rx_bar_off,
-			rx_bar_sz);
+		map_addr = pci_resource_start(pdev, rx_bar_no) + rx_bar_off;
+		nn->rx_bar = ioremap_nocache(map_addr, rx_bar_sz);
 		if (!nn->rx_bar) {
 			nn_err(nn, "Failed to map resource %d", rx_bar_no);
 			err = -EIO;
@@ -308,12 +305,12 @@ err_map_msix_table:
 	nfp_net_irqs_disable(nn);
 err_irqs_alloc:
 	if (!nn->q_bar)
-		devm_iounmap(&pdev->dev, nn->rx_bar);
+		iounmap(nn->rx_bar);
 err_barmap_rx:
 	if (!nn->q_bar)
-		devm_iounmap(&pdev->dev, nn->tx_bar);
+		iounmap(nn->tx_bar);
 	else
-		devm_iounmap(&pdev->dev, nn->q_bar);
+		iounmap(nn->q_bar);
 err_barmap_tx:
 	pci_set_drvdata(pdev, NULL);
 	nfp_net_netdev_free(nn);
@@ -343,10 +340,10 @@ static void nfp_netvf_pci_remove(struct pci_dev *pdev)
 	nfp_net_irqs_disable(nn);
 
 	if (!nn->q_bar) {
-		devm_iounmap(&pdev->dev, nn->rx_bar);
-		devm_iounmap(&pdev->dev, nn->tx_bar);
+		iounmap(nn->rx_bar);
+		iounmap(nn->tx_bar);
 	} else {
-		devm_iounmap(&pdev->dev, nn->q_bar);
+		iounmap(nn->q_bar);
 	}
 	iounmap(nn->ctrl_bar);
 
