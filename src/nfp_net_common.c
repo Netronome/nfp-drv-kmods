@@ -459,7 +459,7 @@ static void nfp_net_irqs_assign(struct net_device *netdev)
  *
  * Interrupts for LSC and EXN (ring vectors are requested elsewhere)
  */
-static void nfp_net_irqs_request(struct net_device *netdev)
+static int nfp_net_irqs_request(struct net_device *netdev)
 {
 	struct msix_entry *lsc_entry, *exn_entry;
 	struct nfp_net *nn = netdev_priv(netdev);
@@ -475,7 +475,7 @@ static void nfp_net_irqs_request(struct net_device *netdev)
 	if (err) {
 		nn_err(nn, "Failed to request IRQ %d (err=%d).\n",
 		       lsc_entry->vector, err);
-		goto err_lsc;
+		return err;
 	}
 	nn_writeb(nn, NFP_NET_CFG_LSC, NFP_NET_IRQ_LSC_IDX);
 
@@ -489,16 +489,14 @@ static void nfp_net_irqs_request(struct net_device *netdev)
 		       exn_entry->vector, err);
 		goto err_exn;
 	}
-
 	nn_writeb(nn, NFP_NET_CFG_EXN, NFP_NET_IRQ_EXN_IDX);
 
-	return;
+	return 0;
 
 err_exn:
 	free_irq(lsc_entry->vector, netdev);
 	nn_writeb(nn, NFP_NET_CFG_LSC, 0xff);
-err_lsc:
-	return;
+	return err;
 }
 
 /**
@@ -1793,7 +1791,9 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 	 * - Allocate RX and TX ring resources
 	 * - Setup initial RSS table
 	 */
-	nfp_net_irqs_request(netdev);
+	err = nfp_net_irqs_request(netdev);
+	if (err)
+		return err;
 
 	err = nfp_net_alloc_resources(nn);
 	if (err)
