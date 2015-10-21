@@ -1953,7 +1953,6 @@ static int nfp_net_netdev_close(struct net_device *netdev)
 
 	/* Step 1: Disable RX and TX rings from the Linux kernel perspective
 	 */
-
 	netif_carrier_off(netdev);
 
 	for (r = 0; r < nn->num_r_vecs; r++) {
