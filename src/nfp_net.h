@@ -195,12 +195,12 @@ struct nfp_net_tx_buf {
  * @r_vec:      Back pointer to ring vector structure
  * @idx:        Ring index from Linux's perspective
  * @qcidx:      Queue Controller Peripheral (QCP) queue index for the TX queue
- * @qcp_p:      Pointer to base of the QCP TX queue
+ * @qcp_q:      Pointer to base of the QCP TX queue
  * @cnt:        Size of the queue in number of descriptors
  * @wr_p:       TX ring write pointer (free running)
  * @rd_p:       TX ring read pointer (free running)
  * @qcp_rd_p:   Local copy of QCP TX queue read pointer
- * @qcp_wr_add:	Accumulated number of buffers to add to QCP write pointer
+ * @wr_ptr_add:	Accumulated number of buffers to add to QCP write pointer
  *		(used for .xmit_more delayed kick)
  * @txbufs:     Array of transmitted TX buffers, to free on transmit
  * @txds:       Virtual address of TX ring in host memory
