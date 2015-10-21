@@ -109,9 +109,8 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 	 * first NFP_NET_CFG_BAR_SZ of the BAR.  This keeps the code
 	 * the identical for PF and VF drivers.
 	 */
-	ctrl_bar = devm_ioremap_nocache(
-		&pdev->dev, pci_resource_start(pdev, NFP_NET_CRTL_BAR),
-		NFP_NET_CFG_BAR_SZ);
+	ctrl_bar = ioremap_nocache(pci_resource_start(pdev, NFP_NET_CRTL_BAR),
+				   NFP_NET_CFG_BAR_SZ);
 	if (!ctrl_bar) {
 		dev_err(&pdev->dev,
 			"Failed to map resource %d\n", NFP_NET_CRTL_BAR);
@@ -319,7 +318,7 @@ err_barmap_tx:
 	pci_set_drvdata(pdev, NULL);
 	nfp_net_netdev_free(nn);
 err_nn_init:
-	devm_iounmap(&pdev->dev, ctrl_bar);
+	iounmap(ctrl_bar);
 err_dma_mask:
 	pci_release_regions(pdev);
 err_pci_regions:
@@ -349,7 +348,7 @@ static void nfp_netvf_pci_remove(struct pci_dev *pdev)
 	} else {
 		devm_iounmap(&pdev->dev, nn->q_bar);
 	}
-	devm_iounmap(&pdev->dev, nn->ctrl_bar);
+	iounmap(nn->ctrl_bar);
 
 	pci_set_drvdata(pdev, NULL);
 
