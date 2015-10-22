@@ -44,6 +44,7 @@
 #include <linux/init.h>
 #include <linux/etherdevice.h>
 
+#include "nfpcore/kcompat.h"
 #include "nfp_net_compat.h"
 #include "nfp_net_ctrl.h"
 #include "nfp_net.h"
@@ -61,6 +62,24 @@ static const struct pci_device_id nfp_netvf_pci_device_ids[] = {
 	{ 0, } /* Required last entry. */
 };
 MODULE_DEVICE_TABLE(pci, nfp_netvf_pci_device_ids);
+
+static void nfp_netvf_get_mac_addr(struct nfp_net *nn)
+{
+	u8 mac_addr[ETH_ALEN];
+
+	put_unaligned_be32(nn_readl(nn, NFP_NET_CFG_MACADDR + 0), &mac_addr[0]);
+	/* We can't do readw for NFP-3200 compatibility */
+	put_unaligned_be16(nn_readl(nn, NFP_NET_CFG_MACADDR + 4) >> 16,
+			   &mac_addr[4]);
+
+	if (!is_valid_ether_addr(mac_addr)) {
+		eth_hw_addr_random(nn->netdev);
+		return;
+	}
+
+	ether_addr_copy(nn->netdev->dev_addr, mac_addr);
+	ether_addr_copy(nn->netdev->perm_addr, mac_addr);
+}
 
 static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 			       const struct pci_device_id *pci_id)
@@ -260,10 +279,7 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 		}
 	}
 
-	/* XXX For now generate a MAC address until we figured out how
-	 * to do this properly with VF.
-	 */
-	random_ether_addr(nn->netdev->dev_addr);
+	nfp_netvf_get_mac_addr(nn);
 
 	err = nfp_net_irqs_alloc(nn);
 	if (!err) {

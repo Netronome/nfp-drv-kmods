@@ -1762,6 +1762,7 @@ static void nfp_net_write_mac_addr(struct nfp_net *nn, const u8 *mac)
 {
 	nn_writel(nn, NFP_NET_CFG_MACADDR + 0,
 		  get_unaligned_be32(nn->netdev->dev_addr));
+	/* We can't do writew for NFP-3200 compatibility */
 	nn_writel(nn, NFP_NET_CFG_MACADDR + 4,
 		  get_unaligned_be16(nn->netdev->dev_addr + 4) << 16);
 }

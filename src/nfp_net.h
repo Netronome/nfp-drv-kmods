@@ -559,6 +559,8 @@ static inline void nn_writeb(struct nfp_net *nn, int off, u8 val)
 	writeb(val, nn->ctrl_bar + off);
 }
 
+/* NFP-3200 can't handle 16-bit accesses too well - hence no readw/writew */
+
 static inline u32 nn_readl(struct nfp_net *nn, int off)
 {
 	return readl(nn->ctrl_bar + off);
