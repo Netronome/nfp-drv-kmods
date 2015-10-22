@@ -312,8 +312,7 @@ static irqreturn_t nfp_net_irq_rxtx(int irq, void *data)
 		return IRQ_HANDLED;
 	}
 
-	if (napi_schedule_prep(napi))
-		__napi_schedule(napi);
+	napi_schedule(napi);
 
 	return IRQ_HANDLED;
 }
