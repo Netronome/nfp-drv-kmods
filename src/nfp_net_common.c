@@ -1782,7 +1782,6 @@ static void nfp_net_write_mac_addr(struct nfp_net *nn, const u8 *mac)
 static int nfp_net_netdev_open(struct net_device *netdev)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
-	struct nfp_net_r_vector *r_vec;
 	int err, n, i, r;
 	u32 update = 0;
 	u32 new_ctrl;
@@ -1895,16 +1894,40 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 	 * - set link state
 	 */
 	for (r = 0; r < nn->num_r_vecs; r++) {
-		r_vec = &nn->r_vecs[r];
+		struct nfp_net_r_vector *r_vec = &nn->r_vecs[r];
+
+		/* Because we don't have any "RX enable bit" as soon as we give
+		 * FW buffers it can start consuming them.  Add to that the IRQ
+		 * automasking feature and we can deadlock the RX - FW may
+		 * consume all the buffers before we can take interrupts.
+		 *
+		 * As a workaround we set 32 buffers aside - we put them on the
+		 * ring just don't increment the ring count for FW.  We can then
+		 * give them to FW once IRQs are fully ready without risking any
+		 * races with IRQ/napi handlers.
+		 * We need at least 32 buffers because thats the batch size
+		 * in which FW consumes them.
+		 */
+		for (i = 0; i < 32; i++)
+			if (nfp_net_rx_freelist_alloc_one(r_vec->rx_ring))
+				goto err_reconfig;
+
 		n = nfp_net_rx_fill_freelist(r_vec->rx_ring);
 		nn_dbg(nn, "RV%02d RxQ%02d: Added %d freelist buffers\n",
-		       r, r_vec->rx_ring->idx, n);
+		       r, r_vec->rx_ring->idx, n + 1);
 
 		napi_enable(&r_vec->napi);
 		set_bit(NFP_NET_RVEC_NAPI_STARTED, &r_vec->flags);
 	}
 
 	netif_tx_wake_all_queues(netdev);
+
+	/* Now we are fully set up - unmask IRQs and release extra buffers */
+	for (r = 0; r < nn->num_r_vecs; r++)
+		nfp_net_irq_unmask(nn, nn->r_vecs[r].irq_idx);
+	msleep(1);
+	for (r = 0; r < nn->num_r_vecs; r++)
+		nfp_qcp_wr_ptr_add(nn->r_vecs[r].rx_ring->qcp_fl, 32);
 
 	sts = nn_readl(nn, NFP_NET_CFG_STS);
 	nn->link_up = !!(sts & NFP_NET_CFG_STS_LINK);
@@ -1913,28 +1936,6 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 		netif_carrier_on(netdev);
 	} else {
 		nfp_net_print_link(nn, false);
-	}
-
-	/* If the firmware is receiving traffic, the RX rings
-	 * can become full in the time between the configuration
-	 * update and the NAPI initialization.
-	 *
-	 * If the RX ring is full, the firmware will drop packets,
-	 * and we will not get an interrupt to trigger a NAPI
-	 * schedule.
-	 *
-	 * Therefore, we call napi_schedule() explicitly here
-	 * to kick all the RX rings so that they will start
-	 * generating interrupts on RXed packets.
-	 *
-	 * Even though we are calling napi_schedule() on a
-	 * single CPU here, this will only be done on device
-	 * open time - NAPI processing will migrate to multiple
-	 * CPUs after this scheduled NAPI poll.
-	 */
-	for (r = 0; r < nn->num_r_vecs; r++) {
-		r_vec = &nn->r_vecs[r];
-		napi_schedule(&r_vec->napi);
 	}
 
 	return 0;
