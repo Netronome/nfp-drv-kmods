@@ -32,18 +32,18 @@ config NFP_NET
 	  as a advanced Ethernet NIC.
 
 config NFP_NETVF
-	tristate "Netronome(R) NFP3200/NFP6000 VF NIC driver"
+	tristate "Netronome(R) NFP4000/NFP6000 VF NIC driver"
 	depends on PCI && PCI_MSI
 	---help---
 	  This driver supports SR-IOV virtual functions of
-	  the Netronome(R) NFP3200/NFP6000 cards working as
+	  the Netronome(R) NFP4000/NFP6000 cards working as
 	  a advanced Ethernet NIC.
 
 config NFP_NET_DEBUG
        bool "Debug support for Netronome(R) NFP3200/NFP6000 NIC drivers"
        depends on NFP_NET || NFP_NETVF
        ---help---
-	  Enable debug messages and extra sanity checks in
-	  Netronome(R) NFP3200/NFP6000 NIC PF and VF drivers.
+	  Enable debugfs support, debug messages and extra sanity checks
+	  in Netronome(R) NFP3200/NFP6000 NIC PF and VF drivers.
 
 endif
