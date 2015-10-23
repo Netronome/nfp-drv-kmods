@@ -42,6 +42,7 @@
 #ifndef _NFP_NET_H_
 #define _NFP_NET_H_
 
+#include <linux/interrupt.h>
 #include <linux/netdevice.h>
 #include <linux/pci.h>
 
