@@ -826,6 +826,18 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	 */
 	nn->me_freq_mhz = 1200;
 
+	if (nn->is_nfp3200) {
+		/* YDS-155 workaround - FW will issue DMA reads of this mem */
+		nn->spare_va = dma_zalloc_coherent(&pdev->dev,
+						   NFP3200_SPARE_DMA_SIZE,
+						   &nn->spare_dma, GFP_KERNEL);
+		if (!nn->spare_va)
+			return -ENOMEM;
+
+		nn_writeq(nn, NFP_NET_CFG_SPARE_ADDR, nn->spare_dma);
+		nn_info(nn, "Enabled NFP-3200 workaround.");
+	}
+
 	/*
 	 * Finalise
 	 */
@@ -914,6 +926,10 @@ static void nfp_net_pci_remove(struct pci_dev *pdev)
 
 	if (!nn->nfp_fallback) {
 		nfp_net_netdev_clean(nn->netdev);
+
+		if (nn->is_nfp3200)
+			dma_free_coherent(&pdev->dev, NFP3200_SPARE_DMA_SIZE,
+					  nn->spare_va, nn->spare_dma);
 
 		if (nn->msix_table)
 			iounmap(nn->msix_table);

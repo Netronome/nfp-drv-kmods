@@ -2546,15 +2546,6 @@ int nfp_net_netdev_init(struct net_device *netdev)
 
 	nfp_net_irqs_assign(netdev);
 
-	if (nn->is_nfp3200) {
-		/* YDS-155 workaround. */
-		nn->spare_va = dma_zalloc_coherent(&nn->pdev->dev, 4096,
-						   &nn->spare_dma, GFP_KERNEL);
-		if (!nn->spare_va)
-			return -ENOMEM;
-		nn_writel(nn, NFP_NET_CFG_SPARE_ADDR, nn->spare_dma);
-		nn_info(nn, "Enabled NFP-3200 workaround.");
-	}
 	return 0;
 
 err_reconfig:
@@ -2567,11 +2558,5 @@ err_reconfig:
  */
 void nfp_net_netdev_clean(struct net_device *netdev)
 {
-	struct nfp_net *nn = netdev_priv(netdev);
-
-	if (nn->is_nfp3200)
-		dma_free_coherent(&nn->pdev->dev, 4096,
-				  nn->spare_va, nn->spare_dma);
-
 	unregister_netdev(netdev);
 }

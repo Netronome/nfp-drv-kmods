@@ -121,6 +121,9 @@
 /* Offload definitions */
 #define NFP_NET_N_VXLAN_PORTS	(NFP_NET_CFG_VXLAN_SZ / sizeof(__be16))
 
+/* Workaround definitions */
+#define NFP3200_SPARE_DMA_SIZE	128
+
 /* Forward declarations */
 struct nfp_net;
 struct nfp_net_r_vector;
