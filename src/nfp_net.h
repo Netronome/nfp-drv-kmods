@@ -341,14 +341,10 @@ struct nfp_net_rx_ring {
  * @nfp_net:        Backpointer to nfp_net structure
  * @napi:           NAPI structure for this ring vec
  * @flags:          Flags
- * @idx:            Index of this ring vector
  * @tx_ring:        Pointer to TX ring
  * @rx_ring:        Pointer to RX ring
- * @handler:        Interrupt handler for this ring vector
+ * @idx:            Index of this ring vector
  * @irq_idx:        Index into MSI-X table
- * @requested:      Has this vector been requested?
- * @name:           Name of the interrupt vector
- * @affinity_mask:  SMP affinity mask for this vector
  * @rx_sync:	    Seqlock for atomic updates of RX stats
  * @rx_pkts:        Number of received packets
  * @rx_bytes:	    Number of received bytes
@@ -364,6 +360,10 @@ struct nfp_net_rx_ring {
  * @tx_lso:	    Counter of LSO packets sent
  * @tx_errors:	    How many TX errors were encountered
  * @tx_busy:        How often was TX busy (no space)?
+ * @handler:        Interrupt handler for this ring vector
+ * @name:           Name of the interrupt vector
+ * @affinity_mask:  SMP affinity mask for this vector
+ * @requested:      Has this vector been requested?
  *
  * This structure ties RX and TX rings to interrupt vectors and a NAPI
  * context. This currently only supports one RX and TX ring per
@@ -376,16 +376,11 @@ struct nfp_net_r_vector {
 	unsigned long flags;
 #define NFP_NET_RVEC_NAPI_STARTED	BIT(0)
 
-	int idx;
 	struct nfp_net_tx_ring *tx_ring;
 	struct nfp_net_rx_ring *rx_ring;
 
-	irq_handler_t handler;
+	int idx;
 	int irq_idx;
-	int requested;
-	char name[IFNAMSIZ + 8];
-
-	cpumask_t affinity_mask;
 
 	struct u64_stats_sync rx_sync;
 	u64 rx_pkts;
@@ -403,6 +398,11 @@ struct nfp_net_r_vector {
 	u64 tx_lso;
 	u64 tx_errors;
 	u64 tx_busy;
+
+	irq_handler_t handler;
+	char name[IFNAMSIZ + 8];
+	cpumask_t affinity_mask;
+	int requested;
 };
 
 /**
