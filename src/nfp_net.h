@@ -403,7 +403,7 @@ struct nfp_net_r_vector {
 	char name[IFNAMSIZ + 8];
 	cpumask_t affinity_mask;
 	int requested;
-};
+} ____cacheline_aligned;
 
 /**
  * struct nfp_net - NFP network device structure
