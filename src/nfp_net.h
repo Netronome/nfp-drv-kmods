@@ -337,10 +337,20 @@ struct nfp_net_rx_ring {
 } ____cacheline_aligned;
 
 /**
+ * enum nfp_net_r_vector_flags - Flags for flags field of nfp_net_r_vector
+ * @NFP_NET_RVEC_IRQ_REQUESTED:	IRQ vector has been requested
+ * @NFP_NET_RVEC_NAPI_STARTED:	Called napi_enable() for this vector
+ */
+enum nfp_net_r_vector_flags {
+	NFP_NET_RVEC_IRQ_REQUESTED = 0,
+	NFP_NET_RVEC_NAPI_STARTED,
+};
+
+/**
  * struct nfp_net_r_vector - Per ring interrupt vector configuration
  * @nfp_net:        Backpointer to nfp_net structure
  * @napi:           NAPI structure for this ring vec
- * @flags:          Flags
+ * @flags:          Flags, see enum nfp_net_r_vector_flags
  * @tx_ring:        Pointer to TX ring
  * @rx_ring:        Pointer to RX ring
  * @idx:            Index of this ring vector
@@ -363,7 +373,6 @@ struct nfp_net_rx_ring {
  * @handler:        Interrupt handler for this ring vector
  * @name:           Name of the interrupt vector
  * @affinity_mask:  SMP affinity mask for this vector
- * @requested:      Has this vector been requested?
  *
  * This structure ties RX and TX rings to interrupt vectors and a NAPI
  * context. This currently only supports one RX and TX ring per
@@ -374,7 +383,6 @@ struct nfp_net_r_vector {
 	struct nfp_net *nfp_net;
 	struct napi_struct napi;
 	unsigned long flags;
-#define NFP_NET_RVEC_NAPI_STARTED	BIT(0)
 
 	struct nfp_net_tx_ring *tx_ring;
 	struct nfp_net_rx_ring *rx_ring;
@@ -402,7 +410,6 @@ struct nfp_net_r_vector {
 	irq_handler_t handler;
 	char name[IFNAMSIZ + 8];
 	cpumask_t affinity_mask;
-	int requested;
 } ____cacheline_aligned;
 
 /**

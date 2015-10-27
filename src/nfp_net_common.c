@@ -436,7 +436,7 @@ static void nfp_net_irqs_assign(struct net_device *netdev)
 		r_vec->idx = r;
 		r_vec->handler = nfp_net_irq_rxtx;
 		r_vec->irq_idx = i;
-		r_vec->requested = 0;
+		clear_bit(NFP_NET_RVEC_IRQ_REQUESTED, &r_vec->flags);
 
 		cpumask_set_cpu(r, &r_vec->affinity_mask);
 
@@ -1641,7 +1641,7 @@ static int nfp_net_alloc_resources(struct nfp_net *nn)
 			goto err_alloc;
 		}
 
-		r_vec->requested = 1;
+		set_bit(NFP_NET_RVEC_IRQ_REQUESTED, &r_vec->flags);
 
 		irq_set_affinity_hint(entry->vector, &r_vec->affinity_mask);
 
@@ -1674,11 +1674,11 @@ err_alloc:
 		if (r_vec->tx_ring)
 			nfp_net_tx_ring_free(r_vec->tx_ring);
 
-		if (r_vec->requested) {
+		if (test_bit(NFP_NET_RVEC_IRQ_REQUESTED, &r_vec->flags)) {
 			entry = &nn->irq_entries[r_vec->irq_idx];
 			irq_set_affinity_hint(entry->vector, NULL);
 			free_irq(entry->vector, r_vec);
-			r_vec->requested = 0;
+			clear_bit(NFP_NET_RVEC_IRQ_REQUESTED, &r_vec->flags);
 		}
 		netif_napi_del(&r_vec->napi);
 	}
@@ -1704,11 +1704,11 @@ static void nfp_net_free_resources(struct nfp_net *nn)
 		if (r_vec->tx_ring)
 			nfp_net_tx_ring_free(r_vec->tx_ring);
 
-		if (r_vec->requested) {
+		if (test_bit(NFP_NET_RVEC_IRQ_REQUESTED, &r_vec->flags)) {
 			irq_set_affinity_hint(entry->vector, NULL);
 			synchronize_irq(entry->vector);
 			free_irq(entry->vector, r_vec);
-			r_vec->requested = 0;
+			clear_bit(NFP_NET_RVEC_IRQ_REQUESTED, &r_vec->flags);
 		}
 
 		netif_napi_del(&r_vec->napi);
