@@ -451,10 +451,10 @@ struct nfp_net_r_vector {
  * @shared_name:        Name for shared interrupt
  * @me_freq_mhz:        ME clock_freq (MHz)
  * @reconfig_lock:	Protects HW reconfiguration request regs/machinery
- * @rx_coalesce_usecs      RX interrupt moderation usecs delay parameter
- * @rx_coalesce_max_frames RX interrupt moderation frame count parameter
- * @tx_coalesce_usecs      TX interrupt moderation usecs delay parameter
- * @tx_coalesce_max_frames TX interrupt moderation frame count parameter
+ * @rx_coalesce_usecs:      RX interrupt moderation usecs delay parameter
+ * @rx_coalesce_max_frames: RX interrupt moderation frame count parameter
+ * @tx_coalesce_usecs:      TX interrupt moderation usecs delay parameter
+ * @tx_coalesce_max_frames: TX interrupt moderation frame count parameter
  * @vxlan_ports:	VXLAN ports for RX inner csum offload communicated to HW
  * @qcp_cfg:            Pointer to QCP queue used for configuration notification
  * @ctrl_bar:           Pointer to mapped control BAR
