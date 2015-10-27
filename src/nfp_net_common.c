@@ -1932,12 +1932,9 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 
 	sts = nn_readl(nn, NFP_NET_CFG_STS);
 	nn->link_up = !!(sts & NFP_NET_CFG_STS_LINK);
-	if (nn->link_up) {
-		nfp_net_print_link(nn, true);
+	nfp_net_print_link(nn, nn->link_up);
+	if (nn->link_up)
 		netif_carrier_on(netdev);
-	} else {
-		nfp_net_print_link(nn, false);
-	}
 
 	return 0;
 
