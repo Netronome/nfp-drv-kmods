@@ -1908,13 +1908,13 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 		 * We need at least 32 buffers because thats the batch size
 		 * in which FW consumes them.
 		 */
-		for (i = 0; i < 32; i++)
+		for (i = 0; i < NFP_NET_FL_KICK_BATCH; i++)
 			if (nfp_net_rx_freelist_alloc_one(r_vec->rx_ring))
 				goto err_reconfig;
 
 		n = nfp_net_rx_fill_freelist(r_vec->rx_ring);
 		nn_dbg(nn, "RV%02d RxQ%02d: Added %d freelist buffers\n",
-		       r, r_vec->rx_ring->idx, n + 1);
+		       r, r_vec->rx_ring->idx, n + NFP_NET_FL_KICK_BATCH);
 
 		napi_enable(&r_vec->napi);
 		set_bit(NFP_NET_RVEC_NAPI_STARTED, &r_vec->flags);
@@ -1927,7 +1927,8 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 		nfp_net_irq_unmask(nn, nn->r_vecs[r].irq_idx);
 	msleep(1);
 	for (r = 0; r < nn->num_r_vecs; r++)
-		nfp_qcp_wr_ptr_add(nn->r_vecs[r].rx_ring->qcp_fl, 32);
+		nfp_qcp_wr_ptr_add(nn->r_vecs[r].rx_ring->qcp_fl,
+				   NFP_NET_FL_KICK_BATCH);
 
 	sts = nn_readl(nn, NFP_NET_CFG_STS);
 	nn->link_up = !!(sts & NFP_NET_CFG_STS_LINK);

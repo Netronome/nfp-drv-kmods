@@ -122,6 +122,7 @@
 #define NFP_NET_N_VXLAN_PORTS	(NFP_NET_CFG_VXLAN_SZ / sizeof(__be16))
 
 /* Workaround definitions */
+#define NFP_NET_FL_KICK_BATCH	32	/* FW buffer consumption batch size */
 #define NFP3200_SPARE_DMA_SIZE	128
 
 /* Forward declarations */
