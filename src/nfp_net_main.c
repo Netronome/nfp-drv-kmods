@@ -66,10 +66,10 @@
 
 #include "nfp_modinfo.h"
 
-static bool nfp_dev_cpp = 1;
+static bool nfp_dev_cpp = true;
 module_param(nfp_dev_cpp, bool, 0444);
 MODULE_PARM_DESC(nfp_dev_cpp,
-		 "Enable NFP CPP user-space access (default = True)");
+		 "Enable NFP CPP user-space access (default = true)");
 
 /* Default FW names */
 static char *nfp3200_net_fw = "nfp3200_net";
@@ -79,17 +79,17 @@ MODULE_FIRMWARE("netronome/nfp6000_net.cat");
 
 static bool fw_stop_on_fail;
 module_param(fw_stop_on_fail, bool, 0444);
-MODULE_PARM_DESC(fw_stop_on_fail, "Stop if FW load fails (default = False)");
+MODULE_PARM_DESC(fw_stop_on_fail, "Stop if FW load fails (default = false)");
 
-static bool nfp_fallback = 1;
+static bool nfp_fallback = true;
 module_param(nfp_fallback, bool, 0444);
 MODULE_PARM_DESC(nfp_fallback,
-		 "Fallback to nfp.ko behaviour if no suitable FW is present (default = True)");
+		 "Fallback to nfp.ko behaviour if no suitable FW is present (default = true)");
 
-static bool nfp_reset = 1;
+static bool nfp_reset = true;
 module_param(nfp_reset, bool, 0444);
 MODULE_PARM_DESC(nfp_reset,
-		 "Soft reset the NFP during firmware unload (default = True)");
+		 "Force soft reset the NFP during init (default = false)");
 
 const char nfp_net_driver_name[] = "nfp_net";
 const char nfp_net_driver_version[] = "0.1";

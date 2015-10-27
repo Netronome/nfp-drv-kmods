@@ -62,31 +62,38 @@
 
 bool nfp_mon_err;
 module_param(nfp_mon_err, bool, 0444);
-MODULE_PARM_DESC(nfp_mon_err, "ECC Monitor (default = disbled)");
-bool nfp_dev_cpp = 1;
+MODULE_PARM_DESC(nfp_mon_err, "ECC Monitor (default = false)");
+
+bool nfp_dev_cpp = true;
 module_param(nfp_dev_cpp, bool, 0444);
-MODULE_PARM_DESC(nfp_dev_cpp, "NFP CPP /dev interface (default = enabled)");
+MODULE_PARM_DESC(nfp_dev_cpp, "NFP CPP /dev interface (default = true)");
+
 bool nfp_net_null;
 module_param(nfp_net_null, bool, 0444);
-MODULE_PARM_DESC(nfp_net_null, "Null net devices (default = disabled)");
+MODULE_PARM_DESC(nfp_net_null, "Null net devices (default = false)");
+
 bool nfp_net_vnic;
 module_param(nfp_net_vnic, bool, 0444);
-MODULE_PARM_DESC(nfp_net_vnic, "vNIC net devices (default = disabled)");
-static bool nfp_mon_event = 1;
+MODULE_PARM_DESC(nfp_net_vnic, "vNIC net devices (default = false)");
+
+static bool nfp_mon_event = true;
 module_param(nfp_mon_event, bool, 0444);
-MODULE_PARM_DESC(nfp_mon_event, "Event monitor support (default = enabled)");
+MODULE_PARM_DESC(nfp_mon_event, "Event monitor support (default = true)");
+
 static bool nfp_reset;
 module_param(nfp_reset, bool, 0444);
 MODULE_PARM_DESC(nfp_reset,
-		 "Soft reset the NFP on init (default = disable)");
+		 "Soft reset the NFP on init (default = false)");
+
 static char *nfp3200_firmware;
 module_param(nfp3200_firmware, charp, 0444);
 MODULE_PARM_DESC(nfp3200_firmware,
-		 "NFP3200 firmware to load from /lib/firmware/");
+		 "NFP3200 firmware to load from /lib/firmware/ (optional)");
+
 static char *nfp6000_firmware;
 module_param(nfp6000_firmware, charp, 0444);
 MODULE_PARM_DESC(nfp6000_firmware,
-		 "NFP6000 firmware to load from /lib/firmware/");
+		 "NFP6000 firmware to load from /lib/firmware/ (optional)");
 
 struct nfp_pci {
 	struct nfp_cpp *cpp;
