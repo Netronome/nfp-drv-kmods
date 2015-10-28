@@ -1785,7 +1785,6 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 	int err, n, i, r;
 	u32 update = 0;
 	u32 new_ctrl;
-	u32 rss_cfg;
 	u32 sts;
 
 	if (nn->ctrl & NFP_NET_CFG_CTRL_ENABLE) {
@@ -1827,11 +1826,11 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 		new_ctrl |= NFP_NET_CFG_CTRL_RSS;
 
 		/* Enable IPv4/IPv6 TCP by default */
-		rss_cfg = NFP_NET_CFG_RSS_IPV4_TCP |
-			NFP_NET_CFG_RSS_IPV6_TCP |
-			NFP_NET_CFG_RSS_TOEPLITZ |
-			NFP_NET_CFG_RSS_MASK;
-		writel(rss_cfg, nn->ctrl_bar + NFP_NET_CFG_RSS_CTRL);
+		nn->rss_cfg = NFP_NET_CFG_RSS_IPV4_TCP |
+			      NFP_NET_CFG_RSS_IPV6_TCP |
+			      NFP_NET_CFG_RSS_TOEPLITZ |
+			      NFP_NET_CFG_RSS_MASK;
+		nn_writel(nn, NFP_NET_CFG_RSS_CTRL, nn->rss_cfg);
 		update |= NFP_NET_CFG_UPDATE_RSS;
 	}
 
