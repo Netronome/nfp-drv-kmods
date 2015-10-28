@@ -1150,10 +1150,8 @@ static void nfp_net_set_hash(struct net_device *netdev, struct sk_buff *skb,
 	struct nfp_net_rx_hash *rx_hash;
 
 	if (!(rxd->rxd.flags & PCIE_DESC_RX_RSS) ||
-	    !(netdev->features & NETIF_F_RXHASH)) {
-		skb_set_hash(skb, 0, PKT_HASH_TYPE_NONE);
+	    !(netdev->features & NETIF_F_RXHASH))
 		return;
-	}
 
 	rx_hash = (struct nfp_net_rx_hash *)(skb->data - sizeof(*rx_hash));
 
@@ -1165,6 +1163,7 @@ static void nfp_net_set_hash(struct net_device *netdev, struct sk_buff *skb,
 		break;
 	default:
 		skb_set_hash(skb, be32_to_cpu(rx_hash->hash), PKT_HASH_TYPE_L4);
+		break;
 	}
 }
 
