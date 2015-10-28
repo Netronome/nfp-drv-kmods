@@ -369,20 +369,16 @@ static int nfp_net_get_rxnfc(struct net_device *netdev,
 			     struct ethtool_rxnfc *cmd, u32 *rule_locs)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
-	int ret = -EOPNOTSUPP;
 
 	switch (cmd->cmd) {
 	case ETHTOOL_GRXRINGS:
 		cmd->data = nn->num_rx_rings;
 		return 0;
 	case ETHTOOL_GRXFH:
-		ret = nfp_net_get_rss_hash_opts(nn, cmd);
-		break;
+		return nfp_net_get_rss_hash_opts(nn, cmd);
 	default:
-		break;
+		return -EOPNOTSUPP;
 	}
-
-	return ret;
 }
 
 static int nfp_net_set_rss_hash_opt(struct nfp_net *nn,
@@ -441,17 +437,13 @@ static int nfp_net_set_rxnfc(struct net_device *netdev,
 			     struct ethtool_rxnfc *cmd)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
-	int ret = -EOPNOTSUPP;
 
 	switch (cmd->cmd) {
 	case ETHTOOL_SRXFH:
-		ret = nfp_net_set_rss_hash_opt(nn, cmd);
-		break;
+		return nfp_net_set_rss_hash_opt(nn, cmd);
 	default:
-		break;
+		return -EOPNOTSUPP;
 	}
-
-	return ret;
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 3, 0))
