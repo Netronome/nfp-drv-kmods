@@ -1876,9 +1876,6 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 	if (nn->pdev->msix_enabled)
 		update |= NFP_NET_CFG_UPDATE_MSIX;
 
-	if (nn->rss_cfg)
-		update |= NFP_NET_CFG_UPDATE_RSS;
-
 	nn_writel(nn, NFP_NET_CFG_CTRL, new_ctrl);
 	err = nfp_net_reconfig(nn, update);
 	if (err)
