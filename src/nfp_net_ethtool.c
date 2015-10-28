@@ -458,6 +458,13 @@ static u32 nfp_net_get_rxfh_indir_size(struct net_device *netdev)
 }
 #endif
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0))
+static u32 nfp_net_get_rxfh_key_size(struct net_device *netdev)
+{
+	return NFP_NET_CFG_RSS_KEY_SZ;
+}
+#endif
+
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 3, 0))
 static int nfp_net_get_rxfh_indir(struct net_device *netdev,
 				  struct ethtool_rxfh_indir *indir)
@@ -516,7 +523,8 @@ static int nfp_net_get_rxfh(struct net_device *netdev, u32 *indir, u8 *key)
 	if (indir)
 		for (i = 0; i < ARRAY_SIZE(nn->rss_itbl); i++)
 			indir[i] = nn->rss_itbl[i];
-
+	if (key)
+		memcpy(key, nn->rss_key, NFP_NET_CFG_RSS_KEY_SZ);
 	if (hfunc)
 		*hfunc = ETH_RSS_HASH_UNKNOWN;
 
@@ -534,21 +542,28 @@ static int nfp_net_set_rxfh(struct net_device *netdev,
 {
 	const u8 hfunc = 0;
 #endif
-
 	struct nfp_net *nn = netdev_priv(netdev);
 	int i;
 
 	if (!(nn->cap & NFP_NET_CFG_CTRL_RSS) ||
-	    !(hfunc == ETH_RSS_HASH_NO_CHANGE || hfunc == ETH_RSS_HASH_TOP) ||
-	    key)
+	    !(hfunc == ETH_RSS_HASH_NO_CHANGE || hfunc == ETH_RSS_HASH_TOP))
 		return -EOPNOTSUPP;
-	if (!indir)
+
+	if (!key && !indir)
 		return 0;
 
-	for (i = 0; i < ARRAY_SIZE(nn->rss_itbl); i++)
-		nn->rss_itbl[i] = indir[i];
+	if (key) {
+		memcpy(nn->rss_key, key, NFP_NET_CFG_RSS_KEY_SZ);
+		for (i = 0; i < NFP_NET_CFG_RSS_KEY_SZ; i += 4)
+			nn_writel(nn, NFP_NET_CFG_RSS_KEY + i,
+				  nn->rss_key[i / sizeof(u32)]);
+	}
+	if (indir) {
+		for (i = 0; i < ARRAY_SIZE(nn->rss_itbl); i++)
+			nn->rss_itbl[i] = indir[i];
 
-	nfp_net_rss_write_itbl(nn);
+		nfp_net_rss_write_itbl(nn);
+	}
 	return nfp_net_reconfig(nn, NFP_NET_CFG_UPDATE_RSS);
 }
 #endif
@@ -693,6 +708,7 @@ static const struct ethtool_ops nfp_net_ethtool_ops = {
 	.get_rxfh_indir_size	= nfp_net_get_rxfh_indir_size,
 #endif /* 3.3 */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0))
+	.get_rxfh_key_size	= nfp_net_get_rxfh_key_size,
 	.get_rxfh		= nfp_net_get_rxfh,
 	.set_rxfh		= nfp_net_set_rxfh,
 #else /* 3.16 */
