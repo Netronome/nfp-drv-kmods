@@ -2255,7 +2255,7 @@ static void nfp_net_set_vxlan_port(struct nfp_net *nn, int idx, __be16 port)
 	nn->vxlan_ports[idx] = port;
 
 	for (i = 0; i < NFP_NET_N_VXLAN_PORTS; i += 2)
-		nn_writel(nn, NFP_NET_CFG_VXLAN_PORT,
+		nn_writel(nn, NFP_NET_CFG_VXLAN_PORT + i * sizeof(port),
 			  be16_to_cpu(nn->vxlan_ports[i + 1]) << 16 |
 			  be16_to_cpu(nn->vxlan_ports[i]));
 
