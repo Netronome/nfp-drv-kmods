@@ -2151,8 +2151,8 @@ static int nfp_net_set_features(struct net_device *netdev,
 			new_ctrl &= ~NFP_NET_CFG_CTRL_LSO;
 	}
 
-	if (changed & (NETIF_F_RXHASH | NETIF_F_NTUPLE)) {
-		if (features & (NETIF_F_RXHASH | NETIF_F_NTUPLE))
+	if (changed & NETIF_F_RXHASH) {
+		if (features & NETIF_F_RXHASH)
 			new_ctrl |= NFP_NET_CFG_CTRL_RSS;
 		else
 			new_ctrl &= ~NFP_NET_CFG_CTRL_RSS;
@@ -2454,7 +2454,7 @@ int nfp_net_netdev_init(struct net_device *netdev)
 		nn->ctrl |= NFP_NET_CFG_CTRL_SCATTER | NFP_NET_CFG_CTRL_GATHER;
 	}
 	if (nn->cap & NFP_NET_CFG_CTRL_RSS) {
-		netdev->hw_features |= NETIF_F_RXHASH | NETIF_F_NTUPLE;
+		netdev->hw_features |= NETIF_F_RXHASH;
 		nn->ctrl |= NFP_NET_CFG_CTRL_RSS;
 	}
 	if (nn->cap & NFP_NET_CFG_CTRL_GATHER) {
