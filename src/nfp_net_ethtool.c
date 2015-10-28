@@ -511,8 +511,6 @@ static int nfp_net_get_rxfh(struct net_device *netdev, u32 *indir, u8 *key,
 static int nfp_net_get_rxfh(struct net_device *netdev, u32 *indir, u8 *key)
 {
 	u8 *hfunc = NULL;
-
-#define ETH_RSS_HASH_UNKNOWN    0
 #endif
 	struct nfp_net *nn = netdev_priv(netdev);
 	int i;
@@ -526,7 +524,7 @@ static int nfp_net_get_rxfh(struct net_device *netdev, u32 *indir, u8 *key)
 	if (key)
 		memcpy(key, nn->rss_key, NFP_NET_CFG_RSS_KEY_SZ);
 	if (hfunc)
-		*hfunc = ETH_RSS_HASH_UNKNOWN;
+		*hfunc = ETH_RSS_HASH_TOP;
 
 	return 0;
 }
