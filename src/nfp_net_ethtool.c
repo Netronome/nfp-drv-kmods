@@ -327,49 +327,40 @@ static int nfp_net_get_sset_count(struct net_device *netdev, int sset)
 
 /* RX network flow classification (RSS, filters, etc)
  */
+static u32 ethtool_flow_to_nfp_flag(u32 flow_type)
+{
+	static const u32 xlate_ethtool_to_nfp[IPV6_FLOW + 1] = {
+		[TCP_V4_FLOW]	= NFP_NET_CFG_RSS_IPV4_TCP,
+		[TCP_V6_FLOW]	= NFP_NET_CFG_RSS_IPV6_TCP,
+		[UDP_V4_FLOW]	= NFP_NET_CFG_RSS_IPV4_UDP,
+		[UDP_V6_FLOW]	= NFP_NET_CFG_RSS_IPV6_UDP,
+		[IPV4_FLOW]	= NFP_NET_CFG_RSS_IPV4,
+		[IPV6_FLOW]	= NFP_NET_CFG_RSS_IPV6,
+	};
+
+	if (flow_type >= ARRAY_SIZE(xlate_ethtool_to_nfp))
+		return 0;
+
+	return xlate_ethtool_to_nfp[flow_type];
+}
+
 static int nfp_net_get_rss_hash_opts(struct nfp_net *nn,
 				     struct ethtool_rxnfc *cmd)
 {
+	u32 nfp_rss_flag;
+
 	cmd->data = 0;
 
 	if (!(nn->cap & NFP_NET_CFG_CTRL_RSS))
 		return -EOPNOTSUPP;
 
-	/* Report enabled RSS options */
-	switch (cmd->flow_type) {
-	case TCP_V4_FLOW:
-		if (nn->rss_cfg & NFP_NET_CFG_RSS_IPV4_TCP)
-			cmd->data |= RXH_L4_B_0_1 | RXH_L4_B_2_3;
-		cmd->data |= RXH_IP_SRC | RXH_IP_DST;
-		break;
-	case UDP_V4_FLOW:
-		if (nn->rss_cfg & NFP_NET_CFG_RSS_IPV4_UDP)
-			cmd->data |= RXH_L4_B_0_1 | RXH_L4_B_2_3;
-		cmd->data |= RXH_IP_SRC | RXH_IP_DST;
-		break;
-	case IPV4_FLOW:
-		if (nn->rss_cfg & NFP_NET_CFG_RSS_IPV4)
-			cmd->data |= RXH_L4_B_0_1 | RXH_L4_B_2_3;
-		cmd->data |= RXH_IP_SRC | RXH_IP_DST;
-		break;
-	case TCP_V6_FLOW:
-		if (nn->rss_cfg & NFP_NET_CFG_RSS_IPV6_TCP)
-			cmd->data |= RXH_L4_B_0_1 | RXH_L4_B_2_3;
-		cmd->data |= RXH_IP_SRC | RXH_IP_DST;
-		break;
-	case UDP_V6_FLOW:
-		if (nn->rss_cfg & NFP_NET_CFG_RSS_IPV6_UDP)
-			cmd->data |= RXH_L4_B_0_1 | RXH_L4_B_2_3;
-		cmd->data |= RXH_IP_SRC | RXH_IP_DST;
-		break;
-	case IPV6_FLOW:
-		if (nn->rss_cfg & NFP_NET_CFG_RSS_IPV6)
-			cmd->data |= RXH_L4_B_0_1 | RXH_L4_B_2_3;
-		cmd->data |= RXH_IP_SRC | RXH_IP_DST;
-		break;
-	default:
+	nfp_rss_flag = ethtool_flow_to_nfp_flag(cmd->flow_type);
+	if (!nfp_rss_flag)
 		return -EINVAL;
-	}
+
+	cmd->data |= RXH_IP_SRC | RXH_IP_DST;
+	if (nn->rss_cfg & nfp_rss_flag)
+		cmd->data |= RXH_L4_B_0_1 | RXH_L4_B_2_3;
 
 	return 0;
 }
@@ -398,6 +389,7 @@ static int nfp_net_set_rss_hash_opt(struct nfp_net *nn,
 				    struct ethtool_rxnfc *nfc)
 {
 	u32 new_rss_cfg = nn->rss_cfg;
+	u32 nfp_rss_flag;
 	int err;
 
 	if (!(nn->cap & NFP_NET_CFG_CTRL_RSS))
@@ -413,78 +405,16 @@ static int nfp_net_set_rss_hash_opt(struct nfp_net *nn,
 	    !(nfc->data & RXH_IP_DST))
 		return -EINVAL;
 
-	switch (nfc->flow_type) {
-	case TCP_V4_FLOW:
-		switch (nfc->data & (RXH_L4_B_0_1 | RXH_L4_B_2_3)) {
-		case 0:
-			new_rss_cfg &= ~NFP_NET_CFG_RSS_IPV4_TCP;
-			break;
-		case (RXH_L4_B_0_1 | RXH_L4_B_2_3):
-			new_rss_cfg |= NFP_NET_CFG_RSS_IPV4_TCP;
-			break;
-		default:
-			return -EINVAL;
-		}
+	nfp_rss_flag = ethtool_flow_to_nfp_flag(nfc->flow_type);
+	if (!nfp_rss_flag)
+		return -EINVAL;
+
+	switch (nfc->data & (RXH_L4_B_0_1 | RXH_L4_B_2_3)) {
+	case 0:
+		new_rss_cfg &= ~nfp_rss_flag;
 		break;
-	case TCP_V6_FLOW:
-		switch (nfc->data & (RXH_L4_B_0_1 | RXH_L4_B_2_3)) {
-		case 0:
-			new_rss_cfg &= ~NFP_NET_CFG_RSS_IPV6_TCP;
-			break;
-		case (RXH_L4_B_0_1 | RXH_L4_B_2_3):
-			new_rss_cfg |= NFP_NET_CFG_RSS_IPV6_TCP;
-			break;
-		default:
-			return -EINVAL;
-		}
-		break;
-	case UDP_V4_FLOW:
-		switch (nfc->data & (RXH_L4_B_0_1 | RXH_L4_B_2_3)) {
-		case 0:
-			new_rss_cfg &= ~NFP_NET_CFG_RSS_IPV4_UDP;
-			break;
-		case (RXH_L4_B_0_1 | RXH_L4_B_2_3):
-			new_rss_cfg |= NFP_NET_CFG_RSS_IPV4_UDP;
-			break;
-		default:
-			return -EINVAL;
-		}
-		break;
-	case UDP_V6_FLOW:
-		switch (nfc->data & (RXH_L4_B_0_1 | RXH_L4_B_2_3)) {
-		case 0:
-			new_rss_cfg &= ~NFP_NET_CFG_RSS_IPV6_UDP;
-			break;
-		case (RXH_L4_B_0_1 | RXH_L4_B_2_3):
-			new_rss_cfg |= NFP_NET_CFG_RSS_IPV6_UDP;
-			break;
-		default:
-			return -EINVAL;
-		}
-		break;
-	case IPV4_FLOW:
-		switch (nfc->data & (RXH_L4_B_0_1 | RXH_L4_B_2_3)) {
-		case 0:
-			new_rss_cfg &= ~NFP_NET_CFG_RSS_IPV4;
-			break;
-		case (RXH_L4_B_0_1 | RXH_L4_B_2_3):
-			new_rss_cfg |= NFP_NET_CFG_RSS_IPV4;
-			break;
-		default:
-			return -EINVAL;
-		}
-		break;
-	case IPV6_FLOW:
-		switch (nfc->data & (RXH_L4_B_0_1 | RXH_L4_B_2_3)) {
-		case 0:
-			new_rss_cfg &= ~NFP_NET_CFG_RSS_IPV6;
-			break;
-		case (RXH_L4_B_0_1 | RXH_L4_B_2_3):
-			new_rss_cfg |= NFP_NET_CFG_RSS_IPV6;
-			break;
-		default:
-			return -EINVAL;
-		}
+	case (RXH_L4_B_0_1 | RXH_L4_B_2_3):
+		new_rss_cfg |= nfp_rss_flag;
 		break;
 	default:
 		return -EINVAL;
