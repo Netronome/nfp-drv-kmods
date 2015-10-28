@@ -1137,17 +1137,20 @@ static void nfp_net_rx_csum(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 
 /**
  * nfp_net_set_hash() - Set SKB hash data
+ * @netdev: adapter's net_device structure
  * @skb:   SKB to set the hash data on
  * @rxd:   RX descriptor
  *
  * The RSS hash and hash-type are pre-pended to the packet data.
  * Extract and decode it and set the skb fields.
  */
-static void nfp_net_set_hash(struct sk_buff *skb, struct nfp_net_rx_desc *rxd)
+static void nfp_net_set_hash(struct net_device *netdev, struct sk_buff *skb,
+			     struct nfp_net_rx_desc *rxd)
 {
 	struct nfp_net_rx_hash *rx_hash;
 
-	if (!(rxd->rxd.flags & PCIE_DESC_RX_RSS)) {
+	if (!(rxd->rxd.flags & PCIE_DESC_RX_RSS) ||
+	    !(netdev->features & NETIF_F_RXHASH)) {
 		skb_set_hash(skb, 0, PKT_HASH_TYPE_NONE);
 		return;
 	}
@@ -1264,7 +1267,7 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 		/* Adjust the SKB for the dynamic meta data pre-pended */
 		skb_put(skb, data_len - meta_len);
 
-		nfp_net_set_hash(skb, rxd);
+		nfp_net_set_hash(nn->netdev, skb, rxd);
 
 		/* Pad small frames to minimum */
 		if (skb_put_padto(skb, 60))
@@ -1834,8 +1837,6 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 				ethtool_rxfh_indir_default(i, nn->num_rx_rings);
 		nfp_net_rss_write_itbl(nn);
 
-		new_ctrl |= NFP_NET_CFG_CTRL_RSS;
-
 		/* Enable IPv4/IPv6 TCP by default */
 		nn->rss_cfg = NFP_NET_CFG_RSS_IPV4_TCP |
 			      NFP_NET_CFG_RSS_IPV6_TCP |
@@ -2149,13 +2150,6 @@ static int nfp_net_set_features(struct net_device *netdev,
 			new_ctrl |= NFP_NET_CFG_CTRL_LSO;
 		else
 			new_ctrl &= ~NFP_NET_CFG_CTRL_LSO;
-	}
-
-	if (changed & NETIF_F_RXHASH) {
-		if (features & NETIF_F_RXHASH)
-			new_ctrl |= NFP_NET_CFG_CTRL_RSS;
-		else
-			new_ctrl &= ~NFP_NET_CFG_CTRL_RSS;
 	}
 
 	if (changed & NETIF_F_HW_VLAN_CTAG_RX) {
