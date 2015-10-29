@@ -2241,7 +2241,7 @@ nfp_net_features_check(struct sk_buff *skb, struct net_device *dev,
 
 #if COMPAT__HAVE_VXLAN_OFFLOAD
 /**
- * nfp_net_set_vxlan_port() - set vxlan port in SW and HW
+ * nfp_net_set_vxlan_port() - set vxlan port in SW and reconfigure HW
  * @nn:   NFP Net device to reconfigure
  * @idx:  Index into the port table where new port should be written
  * @port: UDP port to configure (pass zero to remove VXLAN port)
@@ -2250,10 +2250,12 @@ static void nfp_net_set_vxlan_port(struct nfp_net *nn, int idx, __be16 port)
 {
 	int i;
 
-	BUILD_BUG_ON(NFP_NET_N_VXLAN_PORTS & 1);
-
 	nn->vxlan_ports[idx] = port;
 
+	if (!(nn->ctrl & NFP_NET_CFG_CTRL_VXLAN))
+		return;
+
+	BUILD_BUG_ON(NFP_NET_N_VXLAN_PORTS & 1);
 	for (i = 0; i < NFP_NET_N_VXLAN_PORTS; i += 2)
 		nn_writel(nn, NFP_NET_CFG_VXLAN_PORT + i * sizeof(port),
 			  be16_to_cpu(nn->vxlan_ports[i + 1]) << 16 |
