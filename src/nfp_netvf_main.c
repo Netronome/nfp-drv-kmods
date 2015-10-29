@@ -84,6 +84,7 @@ static void nfp_netvf_get_mac_addr(struct nfp_net *nn)
 static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 			       const struct pci_device_id *pci_id)
 {
+	struct nfp_net_fw_version fw_ver;
 	int max_tx_rings, max_rx_rings;
 	u32 tx_bar_off, rx_bar_off;
 	u32 tx_bar_sz, rx_bar_sz;
@@ -91,7 +92,6 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 	u8 __iomem *ctrl_bar;
 	struct nfp_net *nn;
 	int is_nfp3200;
-	u32 version;
 	u32 startq;
 	int stride;
 	int err;
@@ -137,30 +137,25 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 		goto err_dma_mask;
 	}
 
-	/* Determine stride */
-	version = readl(ctrl_bar + NFP_NET_CFG_VERSION);
-
-	if ((NFP_NET_CFG_VERSION_CLASS_MASK & version) !=
-	    NFP_NET_CFG_VERSION_CLASS(NFP_NET_CFG_VERSION_CLASS_GENERIC)) {
-		/* We only support the Generic Class */
+	nfp_net_get_fw_version(&fw_ver, ctrl_bar);
+	if (fw_ver.class != NFP_NET_CFG_VERSION_CLASS_GENERIC) {
 		dev_err(&pdev->dev, "Unknown Firmware ABI %d.%d.%d.%d\n",
-			(version >> 24) & 0xff, (version >> 16) & 0xff,
-			(version >>  8) & 0xff, (version >>  0) & 0xff);
+			fw_ver.resv, fw_ver.class, fw_ver.major, fw_ver.minor);
 		err = -EINVAL;
 		goto err_nn_init;
 	}
 
-	if (version == 0x00000000 ||
-	    version == 0x00000001 ||
-	    version == 0x00001248) {
+	/* Determine stride */
+	if (nfp_net_fw_ver_eq(&fw_ver, 0, 0, 0, 0) ||
+	    nfp_net_fw_ver_eq(&fw_ver, 0, 0, 0, 1) ||
+	    nfp_net_fw_ver_eq(&fw_ver, 0, 0, 0x12, 0x48)) {
 		stride = 2;
 		tx_bar_no = NFP_NET_Q0_BAR;
 		rx_bar_no = NFP_NET_Q1_BAR;
 		dev_warn(&pdev->dev, "OBSOLETE Firmware detected - VF isolation not available\n");
 	} else {
-		switch (NFP_NET_CFG_VERSION_MAJOR_MASK & version) {
-		case NFP_NET_CFG_VERSION_MAJOR(1):
-		case NFP_NET_CFG_VERSION_MAJOR(2):
+		switch (fw_ver.major) {
+		case 1 ... 2:
 			if (is_nfp3200) {
 				stride = 2;
 				tx_bar_no = NFP_NET_Q0_BAR;
@@ -173,8 +168,8 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 			break;
 		default:
 			dev_err(&pdev->dev, "Unsupported Firmware ABI %d.%d.%d.%d\n",
-				(version >> 24) & 0xff, (version >> 16) & 0xff,
-				(version >>  8) & 0xff,	(version >>  0) & 0xff);
+				fw_ver.resv, fw_ver.class,
+				fw_ver.major, fw_ver.minor);
 			err = -EINVAL;
 			goto err_nn_init;
 		}
@@ -223,7 +218,7 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 		goto err_nn_init;
 	}
 
-	nn->ver = version;
+	nn->fw_ver = fw_ver;
 	nn->ctrl_bar = ctrl_bar;
 	nn->is_vf = 1;
 	nn->is_nfp3200 = is_nfp3200;

@@ -412,6 +412,23 @@ struct nfp_net_r_vector {
 	cpumask_t affinity_mask;
 } ____cacheline_aligned;
 
+/* Firmware version as it is written in the 32bit value in the BAR */
+struct nfp_net_fw_version {
+	u8 minor;
+	u8 major;
+	u8 class;
+	u8 resv;
+} __packed;
+
+static inline bool nfp_net_fw_ver_eq(struct nfp_net_fw_version *fw_ver,
+				     u8 resv, u8 class, u8 major, u8 minor)
+{
+	return fw_ver->resv == resv &&
+	       fw_ver->class == class &&
+	       fw_ver->major == major &&
+	       fw_ver->minor == minor;
+}
+
 /**
  * struct nfp_net - NFP network device structure
  * @pdev:               Backpointer to PCI device
@@ -430,7 +447,7 @@ struct nfp_net_r_vector {
  * @ctrl_area:          Pointer to the CPP area for the control BAR
  * @tx_area:            Pointer to the CPP area for the TX queues
  * @rx_area:            Pointer to the CPP area for the FL/RX queues
- * @ver:                Firmware version
+ * @fw_ver:             Firmware version
  * @cap:                Capabilities advertised by the Firmware
  * @max_mtu:            Maximum support MTU advertised by the Firmware
  * @rss_cfg:            RSS configuration
@@ -499,7 +516,7 @@ struct nfp_net {
 	struct nfp_cpp_area *tx_area;
 	struct nfp_cpp_area *rx_area;
 
-	u32 ver;
+	struct nfp_net_fw_version fw_ver;
 	u32 cap;
 	u32 max_mtu;
 
@@ -721,6 +738,9 @@ extern const char nfp_net_driver_name[];
 extern const char nfp_net_driver_version[];
 
 /* Prototypes */
+void nfp_net_get_fw_version(struct nfp_net_fw_version *fw_ver,
+			    void __iomem *ctrl_bar);
+
 struct nfp_net *nfp_net_netdev_alloc(struct pci_dev *pdev,
 				     int max_tx_rings, int max_rx_rings);
 void nfp_net_netdev_free(struct nfp_net *nn);

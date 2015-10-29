@@ -83,6 +83,20 @@ module_param(num_rings, uint, 0);
 MODULE_PARM_DESC(num_rings, "Number of RX/TX rings to use");
 
 /**
+ * nfp_net_get_fw_version() - Read and parse the FW version
+ * @fw_ver:	Output fw_version structure to read to
+ * @ctrl_bar:	Mapped address of the control BAR
+ */
+void nfp_net_get_fw_version(struct nfp_net_fw_version *fw_ver,
+			    void __iomem *ctrl_bar)
+{
+	u32 reg;
+
+	reg = readl(ctrl_bar + NFP_NET_CFG_VERSION);
+	put_unaligned_le32(reg, fw_ver);
+}
+
+/**
  * nfp_net_reconfig() - Reconfigure the firmware
  * @nn:      NFP Net device to reconfigure
  * @update:  The value for the update field in the BAR config
@@ -2319,8 +2333,10 @@ void nfp_net_info(struct nfp_net *nn)
 		nn->is_vf ? "VF " : "",
 		nn->num_tx_rings, nn->max_tx_rings,
 		nn->num_rx_rings, nn->max_rx_rings);
-	nn_info(nn, "VER: %#x, Maximum supported MTU: %d\n",
-		nn->ver, nn->max_mtu);
+	nn_info(nn, "VER: %d.%d.%d.%d, Maximum supported MTU: %d\n",
+		nn->fw_ver.resv, nn->fw_ver.class,
+		nn->fw_ver.major, nn->fw_ver.minor,
+		nn->max_mtu);
 	nn_info(nn, "CAP: %#x %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
 		nn->cap,
 		nn->cap & NFP_NET_CFG_CTRL_PROMISC  ? "PROMISC "  : "",
@@ -2408,7 +2424,7 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	int i, err;
 
 	/* Get some of the read-only fields from the BAR */
-	nn->ver = nn_readl(nn, NFP_NET_CFG_VERSION);
+	nfp_net_get_fw_version(&nn->fw_ver, nn->ctrl_bar);
 	nn->cap = nn_readl(nn, NFP_NET_CFG_CAP);
 	nn->max_mtu = nn_readl(nn, NFP_NET_CFG_MAX_MTU);
 
@@ -2501,8 +2517,7 @@ int nfp_net_netdev_init(struct net_device *netdev)
 		nn->ctrl |= NFP_NET_CFG_CTRL_MSIXAUTO;
 
 	/* On NFP4000/NFP6000, determine RX packet/metadata boundary offset */
-	if ((nn->ver & NFP_NET_CFG_VERSION_MAJOR_MASK) >=
-	    NFP_NET_CFG_VERSION_MAJOR(2))
+	if (nn->fw_ver.major >= 2)
 		nn->rx_offset = nn_readl(nn, NFP_NET_CFG_RX_OFFSET);
 	else
 		nn->rx_offset = NFP_NET_RX_OFFSET;

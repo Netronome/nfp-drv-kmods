@@ -600,6 +600,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 {
 	struct platform_device *dev_cpp = NULL;
 	const struct nfp_rtsym *ctrl_sym;
+	struct nfp_net_fw_version fw_ver;
 	int max_tx_rings, max_rx_rings;
 	struct nfp_cpp_area *ctrl_area;
 	u32 tx_area_sz, rx_area_sz;
@@ -611,7 +612,6 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	int is_nfp3200;
 	u16 interface;
 	int fw_loaded;
-	u32 version;
 	u32 start_q;
 	int pcie_pf;
 	int stride;
@@ -742,27 +742,23 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 		goto err_ctrl;
 	}
 
-	/* Determine stride */
-	version = readl(ctrl_bar + NFP_NET_CFG_VERSION);
-	if ((NFP_NET_CFG_VERSION_CLASS_MASK & version) !=
-	    NFP_NET_CFG_VERSION_CLASS(NFP_NET_CFG_VERSION_CLASS_GENERIC)) {
-		/* We only support the Generic Class */
+	nfp_net_get_fw_version(&fw_ver, ctrl_bar);
+	if (fw_ver.class != NFP_NET_CFG_VERSION_CLASS_GENERIC) {
 		dev_err(&pdev->dev, "Unknown Firmware ABI %d.%d.%d.%d\n",
-			(version >> 24) & 0xff, (version >> 16) & 0xff,
-			(version >>  8) & 0xff,	(version >>  0) & 0xff);
+			fw_ver.resv, fw_ver.class, fw_ver.major, fw_ver.minor);
 		err = -EINVAL;
 		goto err_nn_init;
 	}
 
-	if (version == 0x00000000 ||
-	    version == 0x00000001 ||
-	    version == 0x00001248) {
+	/* Determine stride */
+	if (nfp_net_fw_ver_eq(&fw_ver, 0, 0, 0, 0) ||
+	    nfp_net_fw_ver_eq(&fw_ver, 0, 0, 0, 1) ||
+	    nfp_net_fw_ver_eq(&fw_ver, 0, 0, 0x12, 0x48)) {
 		stride = 2;
 		dev_warn(&pdev->dev, "OBSOLETE Firmware detected - VF isolation not available\n");
 	} else {
-		switch (NFP_NET_CFG_VERSION_MAJOR_MASK & version) {
-		case NFP_NET_CFG_VERSION_MAJOR(1):
-		case NFP_NET_CFG_VERSION_MAJOR(2):
+		switch (fw_ver.major) {
+		case 1 ... 2:
 			if (is_nfp3200)
 				stride = 2;
 			else
@@ -770,8 +766,8 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 			break;
 		default:
 			dev_err(&pdev->dev, "Unsupported Firmware ABI %d.%d.%d.%d\n",
-				(version >> 24) & 0xff,	(version >> 16) & 0xff,
-				(version >>  8) & 0xff,	(version >>  0) & 0xff);
+				fw_ver.resv, fw_ver.class,
+				fw_ver.major, fw_ver.minor);
 			err = -EINVAL;
 			goto err_nn_init;
 		}
@@ -791,7 +787,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 		goto err_nn_init;
 	}
 
-	nn->ver = version;
+	nn->fw_ver = fw_ver;
 	nn->cpp = cpp;
 	nn->nfp_dev_cpp = dev_cpp;
 	nn->ctrl_area = ctrl_area;

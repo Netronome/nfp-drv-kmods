@@ -128,8 +128,8 @@ static void nfp_net_get_drvinfo(struct net_device *netdev,
 
 	snprintf(drvinfo->fw_version, sizeof(drvinfo->fw_version),
 		 "%d.%d.%d.%d",
-		 (nn->ver >> 24) & 0xff, (nn->ver >> 16) & 0xff,
-		 (nn->ver >>  8) & 0xff, (nn->ver >>  0) & 0xff);
+		 nn->fw_ver.resv, nn->fw_ver.class,
+		 nn->fw_ver.major, nn->fw_ver.minor);
 	strlcpy(drvinfo->bus_info, pci_name(nn->pdev),
 		sizeof(drvinfo->bus_info));
 
@@ -593,7 +593,7 @@ static void nfp_net_get_regs(struct net_device *netdev,
 	u32 *regs_buf = p;
 	int i;
 
-	regs->version = nn->ver;
+	regs->version = nn_readl(nn, NFP_NET_CFG_VERSION);
 
 	for (i = 0; i < NFP_NET_CFG_BAR_SZ / sizeof(u32); i++)
 		regs_buf[i] = readl(nn->ctrl_bar + (i * sizeof(u32)));
