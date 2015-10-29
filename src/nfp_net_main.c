@@ -696,7 +696,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	pcie_pf = NFP_CPP_INTERFACE_UNIT_of(interface);
 
 	/* Verify that the board has completed initialization */
-	if (nfp_is_ready(nfp_dev)) {
+	if ((fw_loaded || !nfp_reset) && nfp_is_ready(nfp_dev)) {
 		snprintf(pf_symbol, sizeof(pf_symbol),
 			 "_pf%d_net_bar0", pcie_pf);
 
@@ -707,7 +707,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 				pf_symbol);
 	} else {
 		dev_err(&pdev->dev,
-			"NFP is not ready for operation.\n");
+			"NFP is not ready for NIC operation.\n");
 		ctrl_sym = NULL;
 	}
 
