@@ -86,7 +86,7 @@ module_param(nfp_fallback, bool, 0444);
 MODULE_PARM_DESC(nfp_fallback,
 		 "Fallback to nfp.ko behaviour if no suitable FW is present (default = true)");
 
-static bool nfp_reset = true;
+static bool nfp_reset;
 module_param(nfp_reset, bool, 0444);
 MODULE_PARM_DESC(nfp_reset,
 		 "Force soft reset the NFP during init (default = false)");
@@ -152,6 +152,53 @@ static const char *nfp_net_fw_select(struct pci_dev *pdev,
 }
 
 /**
+ * nfp_net_fw_find() - Find the correct firmware image
+ * @pdev:       PCI Device structure
+ * @nfp:        NFP Device structure
+ *
+ * Return: firmware, or NULL
+ */
+static int nfp_net_fw_find(struct pci_dev *pdev, struct nfp_device *nfp,
+			   const struct firmware **fwp)
+{
+	const struct firmware *fw = NULL;
+	const char *fw_default, *fw_model;
+	char fw_name[128];
+	int err;
+
+	fw_default = nfp_net_fw_select(pdev, nfp, &fw_model);
+
+	if (!fw_default)
+		return -EINVAL;
+
+	if (fw_model) {
+		snprintf(fw_name,
+			 sizeof(fw_name), "netronome/%s.cat", fw_model);
+		fw_name[sizeof(fw_name)-1] = 0;
+		err = request_firmware(&fw, fw_name, &pdev->dev);
+	} else {
+		/* Use the default firmware if no model detected */
+		err = -1;
+	}
+
+	if (err < 0) {
+		snprintf(fw_name,
+			 sizeof(fw_name), "netronome/%s.cat", fw_default);
+		fw_name[sizeof(fw_name)-1] = 0;
+		err = request_firmware(&fw, fw_name, &pdev->dev);
+	}
+
+	if (err >= 0) {
+		dev_info(&pdev->dev, "Loading FW image: %s\n", fw_name);
+		*fwp = fw;
+	} else {
+		*fwp = NULL;
+	}
+
+	return err;
+}
+
+/**
  * nfp_net_fw_load() - Load the firmware image
  * @pdev:       PCI Device structure
  * @nfp:        NFP Device structure
@@ -162,49 +209,29 @@ static int nfp_net_fw_load(struct pci_dev *pdev,
 			   struct nfp_device *nfp)
 {
 	struct nfp_cpp *cpp = nfp_device_cpp(nfp);
-	const struct firmware *fw;
-	const char *fw_default, *fw_model;
-	char fw_name[128];
+	const struct firmware *fw = NULL;
 	u16 interface;
 	int timeout = 30; /* Seconds */
 	int err;
 
 	interface = nfp_cpp_interface(cpp);
 	if (NFP_CPP_INTERFACE_UNIT_of(interface) != 0) {
-		/* Only Unit 0 can load firmware */
+		/* Only Unit 0 should reset or load firmware */
 		dev_info(&pdev->dev, "Firmware will be loaded by partner\n");
 		return 0;
 	}
 
-	fw_default = nfp_net_fw_select(pdev, nfp, &fw_model);
-
-	if (!fw_default)
-		return 0;
-
-	if (fw_model) {
-		snprintf(fw_name,
-			 sizeof(fw_name), "netronome/%s.cat", fw_model);
-		fw_name[sizeof(fw_name)-1] = 0;
-		dev_info(&pdev->dev, "FW image: %s\n", fw_name);
-		err = request_firmware(&fw, fw_name, &pdev->dev);
-	} else {
-		err = -1;
-	}
-
+	err = nfp_net_fw_find(pdev, nfp, &fw);
 	if (err < 0) {
-		snprintf(fw_name,
-			 sizeof(fw_name), "netronome/%s.cat", fw_default);
-		fw_name[sizeof(fw_name)-1] = 0;
-		dev_info(&pdev->dev, "Default FW image: %s\n", fw_name);
-		err = request_firmware(&fw, fw_name, &pdev->dev);
-	}
-	if (err < 0) {
-		dev_err(&pdev->dev, "Failed to request FW with %d.%s\n",
-			err, fw_stop_on_fail ? "" : " Continuing...");
-		goto err;
+		dev_err(&pdev->dev, "No firmware located for NFP%s: %d\n",
+			nfp_reset ? ", reset only mode" : "", err);
+		/* Even though we did not find firmware, this is not
+		 * fatal. We will simply use the fallback driver.
+		 */
+		err = 0;
 	}
 
-	if (NFP_CPP_MODEL_IS_6000(nfp_cpp_model(cpp))) {
+	if (fw && NFP_CPP_MODEL_IS_6000(nfp_cpp_model(cpp))) {
 		/* Make sure we have the ARM service processor */
 		dev_info(&pdev->dev,
 			 "Waiting for NSP to respond (%d sec max).\n", timeout);
@@ -217,52 +244,55 @@ static int nfp_net_fw_load(struct pci_dev *pdev,
 				break;
 			}
 		}
-		if (err < 0)
-			goto exit_release_fw;
-	}
-
-	if (nfp_reset) {
-		dev_info(&pdev->dev, "NFP soft-reset...\n");
-		err = nfp_reset_soft(nfp);
 		if (err < 0) {
-			dev_err(&pdev->dev, "Failed to soft reset the NFP %d.\n",
+			dev_err(&pdev->dev, "Failed to find NFP Service Processor: %d\n",
 				err);
 			goto exit_release_fw;
 		}
 	}
 
-	/* Lock the NFP, prevent others from touching it while we
-	 * load the firmware.
-	 */
-	err = nfp_device_lock(nfp);
-	if (err < 0) {
-		fw_stop_on_fail = 1;
-		dev_err(&pdev->dev, "Can't lock NFP device %d.", err);
-		goto exit_release_fw;
+	/* Always soft-reset the NFP before loading firmware */
+	if (fw || nfp_reset) {
+		dev_info(&pdev->dev, "NFP soft-reset...\n");
+		err = nfp_reset_soft(nfp);
+		if (err < 0) {
+			dev_err(&pdev->dev, "Failed to soft reset the NFP: %d\n",
+				err);
+			goto exit_release_fw;
+		}
 	}
 
-	dev_info(&pdev->dev, "Loading FW image: %s\n", fw_name);
+	if (fw) {
+		/* Lock the NFP, prevent others from touching it while we
+		 * load the firmware.
+		 */
+		err = nfp_device_lock(nfp);
+		if (err < 0) {
+			fw_stop_on_fail = 1;
+			dev_err(&pdev->dev, "Can't lock NFP device: %d\n", err);
+			goto exit_release_fw;
+		}
 
-	err = nfp_ca_replay(cpp, fw->data, fw->size);
-	if (err < 0) {
-		dev_err(&pdev->dev, "FW loading failed with %d.%s",
-			err, fw_stop_on_fail ? "" : " Continuing...");
-		goto exit_unlock;
+		err = nfp_ca_replay(cpp, fw->data, fw->size);
+		nfp_device_unlock(nfp);
+
+		if (err < 0) {
+			dev_err(&pdev->dev, "FW loading failed: %d\n",
+				err);
+			goto exit_release_fw;
+		}
+
+		release_firmware(fw);
+
+		dev_info(&pdev->dev, "Finished loading FW image\n");
 	}
 
-	nfp_device_unlock(nfp);
-	release_firmware(fw);
+	return fw ? 1 : 0;
 
-	dev_info(&pdev->dev, "Finished loading FW image: %s\n", fw_name);
-	return 1;
-
-exit_unlock:
-	nfp_device_unlock(nfp);
 exit_release_fw:
-	release_firmware(fw);
-	dev_err(&pdev->dev, "Failed to find NFP Service Processor with %d.%s\n",
-		err, fw_stop_on_fail ? "" : " Continuing...");
-err:
+	if (fw)
+		release_firmware(fw);
+
 	return fw_stop_on_fail ? err : 0;
 }
 
@@ -862,19 +892,14 @@ err_nn_init:
 	nfp_cpp_area_release_free(ctrl_area);
 err_ctrl:
 	if (fw_loaded) {
-		if (nfp_reset) {
-			int ret = nfp_reset_soft(nfp_dev);
+		int ret = nfp_reset_soft(nfp_dev);
 
-			if (ret < 0)
-				dev_warn(&pdev->dev,
-					 "Couldn't unload firmware: %d\n", ret);
-			else
-				dev_info(&pdev->dev,
-					 "Firmware safely unloaded\n");
-		} else {
+		if (ret < 0)
 			dev_warn(&pdev->dev,
-				 "Firmware was not unloaded (nfp_reset=0)\n");
-		}
+				 "Couldn't unload firmware: %d\n", ret);
+		else
+			dev_info(&pdev->dev,
+				 "Firmware safely unloaded\n");
 	}
 err_fw_load:
 	nfp_device_close(nfp_dev);
@@ -936,7 +961,7 @@ static void nfp_net_pci_remove(struct pci_dev *pdev)
 	if (nn->fw_loaded) {
 		nfp_dev = nfp_device_from_cpp(nn->cpp);
 
-		if (nfp_dev && nfp_reset) {
+		if (nfp_dev) {
 			err = nfp_reset_soft(nfp_dev);
 			if (err < 0)
 				nn_warn(nn,
@@ -944,8 +969,7 @@ static void nfp_net_pci_remove(struct pci_dev *pdev)
 			else
 				nn_info(nn, "Firmware safely unloaded\n");
 		} else {
-			nn_warn(nn, "Firmware was not unloaded (%s=0)\n",
-				nfp_dev ? "nfp_reset" : "nfp_dev");
+			nn_warn(nn, "Firmware was not unloaded (nfp_dev=0)\n");
 		}
 		if (nfp_dev)
 			nfp_device_close(nfp_dev);
