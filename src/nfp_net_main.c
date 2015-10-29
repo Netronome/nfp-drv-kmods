@@ -155,8 +155,9 @@ static const char *nfp_net_fw_select(struct pci_dev *pdev,
  * nfp_net_fw_find() - Find the correct firmware image
  * @pdev:       PCI Device structure
  * @nfp:        NFP Device structure
+ * @fwp:	Pointer to firmware pointer
  *
- * Return: firmware, or NULL
+ * Return: -ERRNO on error, or 0 if firmware found
  */
 static int nfp_net_fw_find(struct pci_dev *pdev, struct nfp_device *nfp,
 			   const struct firmware **fwp)
@@ -205,8 +206,7 @@ static int nfp_net_fw_find(struct pci_dev *pdev, struct nfp_device *nfp,
  *
  * Return: -ERRNO, 0 for no firmware loaded, 1 for firmware loaded
  */
-static int nfp_net_fw_load(struct pci_dev *pdev,
-			   struct nfp_device *nfp)
+static int nfp_net_fw_load(struct pci_dev *pdev, struct nfp_device *nfp)
 {
 	struct nfp_cpp *cpp = nfp_device_cpp(nfp);
 	const struct firmware *fw = NULL;
@@ -268,7 +268,7 @@ static int nfp_net_fw_load(struct pci_dev *pdev,
 		 */
 		err = nfp_device_lock(nfp);
 		if (err < 0) {
-			fw_stop_on_fail = 1;
+			fw_stop_on_fail = true;
 			dev_err(&pdev->dev, "Can't lock NFP device: %d\n", err);
 			goto exit_release_fw;
 		}
