@@ -2264,34 +2264,55 @@ static void nfp_net_set_vxlan_port(struct nfp_net *nn, int idx, __be16 port)
 	nfp_net_reconfig(nn, NFP_NET_CFG_UPDATE_VXLAN);
 }
 
+/**
+ * nfp_net_find_vxlan_idx() - find table entry of the port or a free one
+ * @nn:   NFP Network structure
+ * @port: UDP port to look for
+ *
+ * Return: if the port is already in the table -- it's position;
+ *	   if the port is not in the table -- free position to use;
+ *	   if the table is full -- -ENOSPC.
+ */
+static int nfp_net_find_vxlan_idx(struct nfp_net *nn, __be16 port)
+{
+	int i, free_idx = -ENOSPC;
+
+	for (i = 0; i < NFP_NET_N_VXLAN_PORTS; i++) {
+		if (nn->vxlan_ports[i] == port)
+			return i;
+		if (!nn->vxlan_usecnt[i])
+			free_idx = i;
+	}
+
+	return free_idx;
+}
+
 static void nfp_net_add_vxlan_port(struct net_device *netdev,
 				   sa_family_t sa_family, __be16 port)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
-	int i, free_idx = -1;
+	int idx;
 
-	for (i = 0; i < NFP_NET_N_VXLAN_PORTS; i++) {
-		if (nn->vxlan_ports[i] == port)
-			return;
-		if (!nn->vxlan_ports[i])
-			free_idx = i;
-	}
-
-	if (free_idx == -1)
+	idx = nfp_net_find_vxlan_idx(nn, port);
+	if (idx == -ENOSPC)
 		return;
 
-	nfp_net_set_vxlan_port(nn, free_idx, port);
+	if (!nn->vxlan_usecnt[idx]++)
+		nfp_net_set_vxlan_port(nn, idx, port);
 }
 
 static void nfp_net_del_vxlan_port(struct net_device *netdev,
 				   sa_family_t sa_family, __be16 port)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
-	int i;
+	int idx;
 
-	for (i = 0; i < NFP_NET_N_VXLAN_PORTS; i++)
-		if (nn->vxlan_ports[i] == port)
-			nfp_net_set_vxlan_port(nn, i, 0);
+	idx = nfp_net_find_vxlan_idx(nn, port);
+	if (!nn->vxlan_usecnt[idx] || idx == -ENOSPC)
+		return;
+
+	if (!--nn->vxlan_usecnt[idx])
+		nfp_net_set_vxlan_port(nn, idx, 0);
 }
 #endif /* COMPAT__HAVE_VXLAN_OFFLOAD */
 
