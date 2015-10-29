@@ -77,10 +77,6 @@ static char *nfp6000_net_fw = "nfp6000_net";
 MODULE_FIRMWARE("netronome/nfp3200_net.cat");
 MODULE_FIRMWARE("netronome/nfp6000_net.cat");
 
-static bool fw_noload;
-module_param(fw_noload, bool, 0444);
-MODULE_PARM_DESC(fw_noload, "Do not load FW (default = False)");
-
 static bool fw_stop_on_fail;
 module_param(fw_stop_on_fail, bool, 0444);
 MODULE_PARM_DESC(fw_stop_on_fail, "Stop if FW load fails (default = False)");
@@ -172,9 +168,6 @@ static int nfp_net_fw_load(struct pci_dev *pdev,
 	u16 interface;
 	int timeout = 30; /* Seconds */
 	int err;
-
-	if (fw_noload)
-		return 0;
 
 	interface = nfp_cpp_interface(cpp);
 	if (NFP_CPP_INTERFACE_UNIT_of(interface) != 0) {
