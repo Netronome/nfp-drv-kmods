@@ -103,7 +103,7 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 	err = pci_request_regions(pdev, nfp_net_driver_name);
 	if (err) {
 		dev_err(&pdev->dev, "Unable to allocate device memory.\n");
-		goto err_pci_regions;
+		goto err_pci_disable;
 	}
 
 	switch (pdev->device) {
@@ -112,7 +112,7 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 		break;
 	default:
 		err = -ENODEV;
-		goto err_dma_mask;
+		goto err_pci_regions;
 	}
 
 	pci_set_master(pdev);
@@ -120,7 +120,7 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 	err = dma_set_mask_and_coherent(&pdev->dev,
 					DMA_BIT_MASK(NFP_NET_MAX_DMA_BITS));
 	if (err)
-		goto err_dma_mask;
+		goto err_pci_regions;
 
 	/* Map the Control BAR.
 	 *
@@ -134,7 +134,7 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 		dev_err(&pdev->dev,
 			"Failed to map resource %d\n", NFP_NET_CRTL_BAR);
 		err = -EIO;
-		goto err_dma_mask;
+		goto err_pci_regions;
 	}
 
 	nfp_net_get_fw_version(&fw_ver, ctrl_bar);
@@ -142,7 +142,7 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 		dev_err(&pdev->dev, "Unknown Firmware ABI %d.%d.%d.%d\n",
 			fw_ver.resv, fw_ver.class, fw_ver.major, fw_ver.minor);
 		err = -EINVAL;
-		goto err_nn_init;
+		goto err_ctrl_unmap;
 	}
 
 	/* Determine stride */
@@ -171,7 +171,7 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 				fw_ver.resv, fw_ver.class,
 				fw_ver.major, fw_ver.minor);
 			err = -EINVAL;
-			goto err_nn_init;
+			goto err_ctrl_unmap;
 		}
 	}
 
@@ -208,14 +208,14 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 		break;
 	default:
 		err = -ENODEV;
-		goto err_nn_init;
+		goto err_ctrl_unmap;
 	}
 
 	/* Allocate and initialise the netdev */
 	nn = nfp_net_netdev_alloc(pdev, max_tx_rings, max_rx_rings);
 	if (IS_ERR(nn)) {
 		err = PTR_ERR(nn);
-		goto err_nn_init;
+		goto err_ctrl_unmap;
 	}
 
 	nn->fw_ver = fw_ver;
@@ -245,7 +245,7 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 		if (!nn->q_bar) {
 			nn_err(nn, "Failed to map resource %d\n", tx_bar_no);
 			err = -EIO;
-			goto err_barmap_tx;
+			goto err_netdev_free;
 		}
 
 		/* TX queues */
@@ -261,7 +261,7 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 		if (!nn->tx_bar) {
 			nn_err(nn, "Failed to map resource %d\n", tx_bar_no);
 			err = -EIO;
-			goto err_barmap_tx;
+			goto err_netdev_free;
 		}
 
 		/* RX queues */
@@ -270,7 +270,7 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 		if (!nn->rx_bar) {
 			nn_err(nn, "Failed to map resource %d\n", rx_bar_no);
 			err = -EIO;
-			goto err_barmap_rx;
+			goto err_unmap_tx;
 		}
 	}
 
@@ -280,14 +280,14 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 	if (!err) {
 		nn_warn(nn, "Unable to allocate MSI-X Vectors. Exiting\n");
 		err = -EIO;
-		goto err_irqs_alloc;
+		goto err_unmap_rx;
 	}
 
 	if (pdev->msix_enabled) {
 		nn->msix_table = nfp_net_msix_map(pdev, 255);
 		if (!nn->msix_table) {
 			err = -EIO;
-			goto err_map_msix_table;
+			goto err_irqs_disable;
 		}
 	}
 
@@ -311,24 +311,24 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 err_netdev_init:
 	if (nn->msix_table)
 		iounmap(nn->msix_table);
-err_map_msix_table:
+err_irqs_disable:
 	nfp_net_irqs_disable(nn);
-err_irqs_alloc:
+err_unmap_rx:
 	if (!nn->q_bar)
 		iounmap(nn->rx_bar);
-err_barmap_rx:
+err_unmap_tx:
 	if (!nn->q_bar)
 		iounmap(nn->tx_bar);
 	else
 		iounmap(nn->q_bar);
-err_barmap_tx:
+err_netdev_free:
 	pci_set_drvdata(pdev, NULL);
 	nfp_net_netdev_free(nn);
-err_nn_init:
+err_ctrl_unmap:
 	iounmap(ctrl_bar);
-err_dma_mask:
-	pci_release_regions(pdev);
 err_pci_regions:
+	pci_release_regions(pdev);
+err_pci_disable:
 	pci_disable_device(pdev);
 	return err;
 }
