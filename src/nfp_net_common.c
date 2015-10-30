@@ -157,9 +157,6 @@ static void nfp_net_irq_unmask(struct nfp_net *nn, unsigned int entry_nr)
 	struct pci_dev *pdev = nn->pdev;
 	int off;
 
-	if (!pdev->msix_enabled)
-		return;
-
 	if (nn->ctrl & NFP_NET_CFG_CTRL_MSIXAUTO) {
 		/* If MSI-X auto-masking is used, clear the entry */
 		struct list_head *msi_head = compat_get_msi_list_head(pdev);
@@ -1815,7 +1812,7 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 		update |= NFP_NET_CFG_UPDATE_RSS;
 	}
 
-	if (nn->pdev->msix_enabled && (nn->cap & NFP_NET_CFG_CTRL_IRQMOD)) {
+	if (nn->cap & NFP_NET_CFG_CTRL_IRQMOD) {
 		/* defaults correspond to no IRQ moderation */
 		nn->rx_coalesce_usecs      = 0;
 		nn->rx_coalesce_max_frames = 1;
@@ -1850,12 +1847,10 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 	/* Enable device */
 	new_ctrl |= NFP_NET_CFG_CTRL_ENABLE;
 	update |= NFP_NET_CFG_UPDATE_GEN;
+	update |= NFP_NET_CFG_UPDATE_MSIX;
 	update |= NFP_NET_CFG_UPDATE_RING;
 	if (nn->cap & NFP_NET_CFG_CTRL_RINGCFG)
 		new_ctrl |= NFP_NET_CFG_CTRL_RINGCFG;
-
-	if (nn->pdev->msix_enabled)
-		update |= NFP_NET_CFG_UPDATE_MSIX;
 
 	nn_writel(nn, NFP_NET_CFG_CTRL, new_ctrl);
 	err = nfp_net_reconfig(nn, update);
@@ -1955,9 +1950,8 @@ static int nfp_net_netdev_close(struct net_device *netdev)
 	new_ctrl = nn->ctrl;
 	new_ctrl &= ~NFP_NET_CFG_CTRL_ENABLE;
 	update = NFP_NET_CFG_UPDATE_GEN;
+	update |= NFP_NET_CFG_UPDATE_MSIX;
 	update |= NFP_NET_CFG_UPDATE_RING;
-	if (nn->pdev->msix_enabled)
-		update |= NFP_NET_CFG_UPDATE_MSIX;
 
 	if (nn->cap & NFP_NET_CFG_CTRL_RINGCFG)
 		new_ctrl &= ~NFP_NET_CFG_CTRL_RINGCFG;
@@ -2477,7 +2471,7 @@ int nfp_net_netdev_init(struct net_device *netdev)
 		nn->ctrl |= NFP_NET_CFG_CTRL_L2BC;
 
 	/* Allow IRQ moderation, if supported */
-	if (nn->pdev->msix_enabled && (nn->cap & NFP_NET_CFG_CTRL_IRQMOD))
+	if (nn->cap & NFP_NET_CFG_CTRL_IRQMOD)
 		nn->ctrl |= NFP_NET_CFG_CTRL_IRQMOD;
 
 	/* On NFP-3200 enable MSI-X auto-masking, if supported and the

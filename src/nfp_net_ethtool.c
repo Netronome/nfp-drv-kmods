@@ -604,7 +604,7 @@ static int nfp_net_get_coalesce(struct net_device *netdev,
 {
 	struct nfp_net *nn = netdev_priv(netdev);
 
-	if (!(nn->pdev->msix_enabled && (nn->cap & NFP_NET_CFG_CTRL_IRQMOD)))
+	if (!(nn->cap & NFP_NET_CFG_CTRL_IRQMOD))
 		return -EINVAL;
 
 	ec->rx_coalesce_usecs       = nn->rx_coalesce_usecs;
@@ -660,7 +660,7 @@ static int nfp_net_set_coalesce(struct net_device *netdev,
 	 * condition time_since_first_completion >= usecs
 	 */
 
-	if (!(nn->pdev->msix_enabled && (nn->cap & NFP_NET_CFG_CTRL_IRQMOD)))
+	if (!(nn->cap & NFP_NET_CFG_CTRL_IRQMOD))
 		return -EINVAL;
 
 	/* ensure valid configuration */
