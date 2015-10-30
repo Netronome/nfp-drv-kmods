@@ -461,7 +461,6 @@ static inline bool nfp_net_fw_ver_eq(struct nfp_net_fw_version *fw_ver,
  * @rxd_cnt:            Size of the RX ring in number of descriptors
  * @tx_rings:           Array of pre-allocated TX ring structures
  * @rx_rings:           Array of pre-allocated RX ring structures
- * @per_vector_masking: Are we using per vector masking?
  * @msix_table:         Pointer to mapped MSI-X table
  * @num_irqs:	        Number of allocated interrupt vectors
  * @num_r_vecs:         Number of used ring vectors
@@ -540,7 +539,6 @@ struct nfp_net {
 	struct nfp_net_tx_ring tx_rings[NFP_NET_MAX_TX_RINGS];
 	struct nfp_net_rx_ring rx_rings[NFP_NET_MAX_RX_RINGS];
 
-	unsigned per_vector_masking:1;
 	u8 __iomem *msix_table;
 	u8 num_irqs;
 	u8 num_r_vecs;

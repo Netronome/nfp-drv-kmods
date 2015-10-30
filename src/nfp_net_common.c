@@ -230,8 +230,6 @@ static int nfp_net_msix_alloc(struct nfp_net *nn, int nr_vecs)
 		return 0;
 	}
 
-	nn->per_vector_masking = 1;
-
 	return nvecs;
 }
 
@@ -2513,8 +2511,7 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	/* On NFP-3200 enable MSI-X auto-masking, if supported and the
 	 * interrupts are not shared.
 	 */
-	if (nn->is_nfp3200 && nn->cap & NFP_NET_CFG_CTRL_MSIXAUTO &&
-	    nn->per_vector_masking)
+	if (nn->is_nfp3200 && nn->cap & NFP_NET_CFG_CTRL_MSIXAUTO)
 		nn->ctrl |= NFP_NET_CFG_CTRL_MSIXAUTO;
 
 	/* On NFP4000/NFP6000, determine RX packet/metadata boundary offset */
