@@ -711,18 +711,11 @@ static void nfp_net_tx_csum(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 			return;
 		}
 
-		switch (l4_hdr) {
-		case IPPROTO_GRE:
-			txd->flags |= PCIE_DESC_TX_ENCAP_NVGRE;
-			break;
-		case IPPROTO_UDP:
-			txd->flags |= PCIE_DESC_TX_ENCAP_VXLAN;
-			break;
-		default:
+		if (l4_hdr == IPPROTO_GRE || l4_hdr == IPPROTO_UDP)
+			txd->flags |= PCIE_DESC_TX_ENCAP;
+		else
 			nn_warn_ratelimit(nn, "invalid encap l4 proto=%x!\n",
 					  l4_hdr);
-			return;
-		}
 
 		u64_stats_update_begin(&r_vec->tx_sync);
 		r_vec->hw_csum_tx_inner += txbuf->pkt_cnt;
