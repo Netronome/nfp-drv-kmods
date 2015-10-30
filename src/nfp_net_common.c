@@ -701,6 +701,7 @@ static void nfp_net_tx_csum(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 		switch (vlan_get_protocol(skb)) {
 		case htons(ETH_P_IP):
 			l4_hdr = ip_hdr(skb)->protocol;
+			txd->flags |= PCIE_DESC_TX_O_IP4_CSUM;
 			break;
 		case htons(ETH_P_IPV6):
 			l4_hdr = ipv6_hdr(skb)->nexthdr;

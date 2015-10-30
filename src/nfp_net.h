@@ -153,6 +153,7 @@ struct nfp_net_r_vector;
 #define PCIE_DESC_TX_VLAN		BIT(3)
 #define PCIE_DESC_TX_LSO		BIT(2)
 #define PCIE_DESC_TX_ENCAP		BIT(1)
+#define PCIE_DESC_TX_O_IP4_CSUM	BIT(0)
 
 struct nfp_net_tx_desc {
 	union {
