@@ -143,6 +143,7 @@ struct nfp_net_r_vector;
 
 #define PCIE_DESC_TX_EOP		BIT(7)
 #define PCIE_DESC_TX_OFFSET_MASK	GENMASK(6, 0)
+#define PCIE_DESC_TX_MSS_MASK		GENMASK(13, 0)
 
 /* Flags in the host TX descriptor */
 #define PCIE_DESC_TX_CSUM		BIT(7)
@@ -165,7 +166,7 @@ struct nfp_net_tx_desc {
 					 */
 			__le32 dma_addr_lo; /* Low 32bit of host buf addr */
 
-			__le16 lso;	/* MSS to be used for LSO */
+			__le16 mss;	/* MSS to be used for LSO */
 			u8 l4_offset;	/* LSO, where the L4 data starts */
 			u8 flags;	/* TX Flags, see @PCIE_DESC_TX_* */
 

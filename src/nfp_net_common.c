@@ -610,6 +610,7 @@ static int nfp_net_tx_tso(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 			  struct nfp_net_tx_desc *txd, struct sk_buff *skb)
 {
 	u32 hdrlen;
+	u16 mss;
 
 	if (!skb_is_gso(skb))
 		return 0;
@@ -630,8 +631,9 @@ static int nfp_net_tx_tso(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 	txbuf->pkt_cnt = skb_shinfo(skb)->gso_segs;
 	txbuf->real_len += hdrlen * (txbuf->pkt_cnt - 1);
 
+	mss = skb_shinfo(skb)->gso_size & PCIE_DESC_TX_MSS_MASK;
 	txd->l4_offset = hdrlen;
-	txd->lso = cpu_to_le16(skb_shinfo(skb)->gso_size);
+	txd->mss = cpu_to_le16(mss);
 	txd->flags |= PCIE_DESC_TX_LSO;
 
 	u64_stats_update_begin(&r_vec->tx_sync);
@@ -801,7 +803,7 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 	txd->data_len = cpu_to_le16(skb->len);
 
 	txd->flags = 0;
-	txd->lso = 0;
+	txd->mss = 0;
 	txd->l4_offset = 0;
 	err = nfp_net_tx_tso(nn, r_vec, txbuf, txd, skb);
 	if (err)
