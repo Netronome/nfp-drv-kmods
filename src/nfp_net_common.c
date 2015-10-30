@@ -2424,7 +2424,6 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	int i, err;
 
 	/* Get some of the read-only fields from the BAR */
-	nfp_net_get_fw_version(&nn->fw_ver, nn->ctrl_bar);
 	nn->cap = nn_readl(nn, NFP_NET_CFG_CAP);
 	nn->max_mtu = nn_readl(nn, NFP_NET_CFG_MAX_MTU);
 
