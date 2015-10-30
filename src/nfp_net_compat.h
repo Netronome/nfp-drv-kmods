@@ -314,4 +314,14 @@ static inline netdev_features_t vlan_features_check(const struct sk_buff *skb,
 }
 #endif
 
+static inline struct list_head *
+compat_get_msi_list_head(struct pci_dev *pdev)
+{
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 3, 0)
+	return &pdev->msi_list;
+#else
+	return &pdev->dev.msi_list;
+#endif
+}
+
 #endif /* _NFP_NET_COMPAT_H_ */

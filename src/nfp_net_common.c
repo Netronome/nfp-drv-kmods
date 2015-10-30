@@ -141,39 +141,6 @@ int nfp_net_reconfig(struct nfp_net *nn, u32 update)
 	return ret;
 }
 
-/**
- * nfp_net_msix_map() - Map the MSI-X table
- * @pdev:       PCI Device structure
- * @nr_entries: Number of entries in table to map
- *
- * If successful, the table must be un-mapped using iounmap().
- *
- * Return: Pointer to mapped table or NULL
- */
-void __iomem *nfp_net_msix_map(struct pci_dev *pdev, unsigned nr_entries)
-{
-	resource_size_t phys_addr;
-	u32 table_offset;
-	u8 msix_cap;
-	u8 bir;
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
-	msix_cap = pdev->msix_cap;
-#else
-	msix_cap = pci_find_capability(pdev, PCI_CAP_ID_MSIX);
-#endif
-
-	pci_read_config_dword(pdev, msix_cap + PCI_MSIX_TABLE,
-			      &table_offset);
-
-	bir = (u8)(table_offset & PCI_MSIX_TABLE_BIR);
-	table_offset &= PCI_MSIX_TABLE_OFFSET;
-
-	phys_addr = pci_resource_start(pdev, bir) + table_offset;
-
-	return ioremap_nocache(phys_addr, nr_entries * PCI_MSIX_ENTRY_SIZE);
-}
-
 /* Interrupt configuration and handling
  */
 
@@ -195,9 +162,15 @@ static void nfp_net_irq_unmask(struct nfp_net *nn, unsigned int entry_nr)
 
 	if (nn->ctrl & NFP_NET_CFG_CTRL_MSIXAUTO) {
 		/* If MSI-X auto-masking is used, clear the entry */
+		struct list_head *msi_head = compat_get_msi_list_head(pdev);
+		struct msi_desc *entry;
+
+		/* All MSI-Xs have the same mask_base */
+		entry = list_first_entry(msi_head, struct msi_desc, list);
+
 		off = (PCI_MSIX_ENTRY_SIZE * entry_nr) +
 			PCI_MSIX_ENTRY_VECTOR_CTRL;
-		writel(0, nn->msix_table + off);
+		writel(0, entry->mask_base + off);
 	} else {
 		nn_writeb(nn,
 			  NFP_NET_CFG_ICR(entry_nr), NFP_NET_CFG_ICR_UNMASKED);

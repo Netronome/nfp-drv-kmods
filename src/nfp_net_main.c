@@ -821,14 +821,6 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 		goto err_unmap_rx;
 	}
 
-	if (pdev->msix_enabled) {
-		nn->msix_table = nfp_net_msix_map(pdev, 255);
-		if (!nn->msix_table) {
-			err = -EIO;
-			goto err_irqs_disable;
-		}
-	}
-
 	/* Get MAC address */
 	nfp_net_get_mac_addr(nn, nfp_dev);
 
@@ -845,7 +837,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 						   &nn->spare_dma, GFP_KERNEL);
 		if (!nn->spare_va) {
 			err = -ENOMEM;
-			goto err_netdev_init;
+			goto err_irqs_disable;
 		}
 
 		nn_writeq(nn, NFP_NET_CFG_SPARE_ADDR, nn->spare_dma);
@@ -872,9 +864,6 @@ err_free_spare:
 	if (nn->is_nfp3200)
 		dma_free_coherent(&pdev->dev, NFP3200_SPARE_DMA_SIZE,
 				  nn->spare_va, nn->spare_dma);
-err_netdev_init:
-	if (nn->msix_table)
-		iounmap(nn->msix_table);
 err_irqs_disable:
 	nfp_net_irqs_disable(nn);
 err_unmap_rx:
@@ -944,8 +933,6 @@ static void nfp_net_pci_remove(struct pci_dev *pdev)
 			dma_free_coherent(&pdev->dev, NFP3200_SPARE_DMA_SIZE,
 					  nn->spare_va, nn->spare_dma);
 
-		if (nn->msix_table)
-			iounmap(nn->msix_table);
 		nfp_net_irqs_disable(nn);
 
 		nfp_cpp_area_release_free(nn->rx_area);

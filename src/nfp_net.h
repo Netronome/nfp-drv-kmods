@@ -461,7 +461,6 @@ static inline bool nfp_net_fw_ver_eq(struct nfp_net_fw_version *fw_ver,
  * @rxd_cnt:            Size of the RX ring in number of descriptors
  * @tx_rings:           Array of pre-allocated TX ring structures
  * @rx_rings:           Array of pre-allocated RX ring structures
- * @msix_table:         Pointer to mapped MSI-X table
  * @num_irqs:	        Number of allocated interrupt vectors
  * @num_r_vecs:         Number of used ring vectors
  * @r_vecs:             Pre-allocated array of ring vectors
@@ -539,7 +538,6 @@ struct nfp_net {
 	struct nfp_net_tx_ring tx_rings[NFP_NET_MAX_TX_RINGS];
 	struct nfp_net_rx_ring rx_rings[NFP_NET_MAX_RX_RINGS];
 
-	u8 __iomem *msix_table;
 	u8 num_irqs;
 	u8 num_r_vecs;
 	struct nfp_net_r_vector r_vecs[NFP_NET_MAX_TX_RINGS];
@@ -753,7 +751,6 @@ void nfp_net_rss_write_itbl(struct nfp_net *nn);
 void nfp_net_coalesce_write_cfg(struct nfp_net *nn);
 int nfp_net_irqs_alloc(struct nfp_net *nn);
 void nfp_net_irqs_disable(struct nfp_net *nn);
-void __iomem *nfp_net_msix_map(struct pci_dev *pdev, unsigned nr_entries);
 
 void nfp_net_debugfs_create(void);
 void nfp_net_debugfs_destroy(void);

@@ -283,14 +283,6 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 		goto err_unmap_rx;
 	}
 
-	if (pdev->msix_enabled) {
-		nn->msix_table = nfp_net_msix_map(pdev, 255);
-		if (!nn->msix_table) {
-			err = -EIO;
-			goto err_irqs_disable;
-		}
-	}
-
 	/* Get ME clock frequency from ctrl BAR
 	 * XXX for now frequency is hardcoded until we figure out how
 	 * to get the value from nfp-hwinfo into ctrl bar
@@ -299,7 +291,7 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 
 	err = nfp_net_netdev_init(nn->netdev);
 	if (err)
-		goto err_netdev_init;
+		goto err_irqs_disable;
 
 	pci_set_drvdata(pdev, nn);
 
@@ -308,9 +300,6 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 
 	return 0;
 
-err_netdev_init:
-	if (nn->msix_table)
-		iounmap(nn->msix_table);
 err_irqs_disable:
 	nfp_net_irqs_disable(nn);
 err_unmap_rx:
@@ -345,8 +334,6 @@ static void nfp_netvf_pci_remove(struct pci_dev *pdev)
 	nn->removing_pdev = 1;
 	nfp_net_netdev_clean(nn->netdev);
 
-	if (nn->msix_table)
-		iounmap(nn->msix_table);
 	nfp_net_irqs_disable(nn);
 
 	if (!nn->q_bar) {
