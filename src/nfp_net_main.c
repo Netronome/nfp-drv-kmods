@@ -850,8 +850,10 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 		nn->spare_va = dma_zalloc_coherent(&pdev->dev,
 						   NFP3200_SPARE_DMA_SIZE,
 						   &nn->spare_dma, GFP_KERNEL);
-		if (!nn->spare_va)
-			return -ENOMEM;
+		if (!nn->spare_va) {
+			err = -ENOMEM;
+			goto err_netdev_init;
+		}
 
 		nn_writeq(nn, NFP_NET_CFG_SPARE_ADDR, nn->spare_dma);
 		nn_info(nn, "Enabled NFP-3200 workaround.\n");
@@ -862,7 +864,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	 */
 	err = nfp_net_netdev_init(nn->netdev);
 	if (err)
-		goto err_netdev_init;
+		goto err_free_spare;
 
 	pci_set_drvdata(pdev, nn);
 
@@ -873,6 +875,10 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 
 	return 0;
 
+err_free_spare:
+	if (nn->is_nfp3200)
+		dma_free_coherent(&pdev->dev, NFP3200_SPARE_DMA_SIZE,
+				  nn->spare_va, nn->spare_dma);
 err_netdev_init:
 	if (nn->msix_table)
 		iounmap(nn->msix_table);
