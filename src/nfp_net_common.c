@@ -632,6 +632,7 @@ static int nfp_net_tx_tso(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 
 	txd->l4_offset = hdrlen;
 	txd->lso = cpu_to_le16(skb_shinfo(skb)->gso_size);
+	txd->flags |= PCIE_DESC_TX_LSO;
 
 	u64_stats_update_begin(&r_vec->tx_sync);
 	r_vec->tx_lso++;
@@ -799,13 +800,13 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 	nfp_desc_set_dma_addr(txd, dma_addr);
 	txd->data_len = cpu_to_le16(skb->len);
 
+	txd->flags = 0;
 	txd->lso = 0;
 	txd->l4_offset = 0;
 	err = nfp_net_tx_tso(nn, r_vec, txbuf, txd, skb);
 	if (err)
 		goto err_unmap_head;
 
-	txd->flags = 0;
 	nfp_net_tx_csum(nn, r_vec, txbuf, txd, skb);
 
 	if (skb_vlan_tag_present(skb) && nn->ctrl & NFP_NET_CFG_CTRL_TXVLAN) {
@@ -2479,7 +2480,7 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	netdev->features = netdev->hw_features;
 
 	/* Advertise but disable TSO by default. */
-	if (nn->cap & NFP_NET_CFG_CTRL_LSO)
+	if ((nn->cap & NFP_NET_CFG_CTRL_LSO) && nn->fw_ver.major > 2)
 		netdev->hw_features |= NETIF_F_TSO | NETIF_F_TSO6;
 
 	if (nn->cap & NFP_NET_CFG_CTRL_VXLAN &&
