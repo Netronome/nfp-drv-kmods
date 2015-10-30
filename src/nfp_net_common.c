@@ -290,8 +290,7 @@ int nfp_net_irqs_alloc(struct nfp_net *nn)
  */
 void nfp_net_irqs_disable(struct nfp_net *nn)
 {
-	if (nn->pdev->msix_enabled)
-		pci_disable_msix(nn->pdev);
+	pci_disable_msix(nn->pdev);
 }
 
 /**
