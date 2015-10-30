@@ -626,19 +626,19 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	err = pci_set_dma_mask(pdev,  DMA_BIT_MASK(40));
 	if (err < 0) {
 		dev_err(&pdev->dev, "Cannot set DMA mask\n");
-		goto err_dma_mask;
+		goto err_pci_disable;
 	}
 
 	err = pci_set_consistent_dma_mask(pdev,  DMA_BIT_MASK(40));
 	if (err < 0) {
 		dev_err(&pdev->dev, "Cannot set consistent DMA mask\n");
-		goto err_dma_mask;
+		goto err_pci_disable;
 	}
 
 	err = pci_request_regions(pdev, nfp_net_driver_name);
 	if (err < 0) {
 		dev_err(&pdev->dev, "Unable to reserve pci resources.\n");
-		goto err_dma_mask;
+		goto err_pci_disable;
 	}
 
 	switch (pdev->device) {
@@ -653,14 +653,14 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 		break;
 	default:
 		err = -ENODEV;
-		goto err_nfp_cpp;
+		goto err_pci_regions;
 	}
 
 	if (IS_ERR_OR_NULL(cpp)) {
 		err = PTR_ERR(cpp);
 		if (err >= 0)
 			err = -ENOMEM;
-		goto err_nfp_cpp;
+		goto err_pci_regions;
 	}
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
@@ -674,13 +674,13 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	nfp_dev = nfp_device_from_cpp(cpp);
 	if (!nfp_dev) {
 		err = -ENODEV;
-		goto err_open_dev;
+		goto err_cpp_free;
 	}
 
 	err = nfp_net_fw_load(pdev, nfp_dev);
 	if (err < 0) {
 		dev_err(&pdev->dev, "Failed to load FW\n");
-		goto err_fw_load;
+		goto err_nfp_close;
 	}
 
 	fw_loaded = !!err;
@@ -714,12 +714,12 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	if (!ctrl_sym) {
 		if (!nfp_fallback) {
 			err = -ENOENT;
-			goto err_ctrl;
+			goto err_fw_kill;
 		} else {
 			nn = nfp_net_fallback_alloc(pdev);
 			if (IS_ERR(nn)) {
 				err = PTR_ERR(nn);
-				goto err_ctrl;
+				goto err_fw_kill;
 			}
 
 			nn->nfp_dev_cpp = dev_cpp;
@@ -739,7 +739,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	if (IS_ERR_OR_NULL(ctrl_bar)) {
 		dev_err(&pdev->dev, "Failed to map PF BAR0\n");
 		err = PTR_ERR(ctrl_bar);
-		goto err_ctrl;
+		goto err_fw_kill;
 	}
 
 	nfp_net_get_fw_version(&fw_ver, ctrl_bar);
@@ -747,7 +747,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 		dev_err(&pdev->dev, "Unknown Firmware ABI %d.%d.%d.%d\n",
 			fw_ver.resv, fw_ver.class, fw_ver.major, fw_ver.minor);
 		err = -EINVAL;
-		goto err_nn_init;
+		goto err_ctrl_unmap;
 	}
 
 	/* Determine stride */
@@ -769,7 +769,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 				fw_ver.resv, fw_ver.class,
 				fw_ver.major, fw_ver.minor);
 			err = -EINVAL;
-			goto err_nn_init;
+			goto err_ctrl_unmap;
 		}
 	}
 
@@ -784,7 +784,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	nn = nfp_net_netdev_alloc(pdev, max_tx_rings, max_rx_rings);
 	if (IS_ERR(nn)) {
 		err = PTR_ERR(nn);
-		goto err_nn_init;
+		goto err_ctrl_unmap;
 	}
 
 	nn->fw_ver = fw_ver;
@@ -806,7 +806,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	if (IS_ERR_OR_NULL(nn->tx_bar)) {
 		nn_err(nn, "Failed to map TX area.\n");
 		err = PTR_ERR(nn->tx_bar);
-		goto err_map_tx;
+		goto err_netdev_free;
 	}
 
 	/* Map RX queues */
@@ -817,7 +817,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	if (IS_ERR_OR_NULL(nn->rx_bar)) {
 		nn_err(nn, "Failed to map RX area.\n");
 		err = PTR_ERR(nn->rx_bar);
-		goto err_map_rx;
+		goto err_unmap_tx;
 	}
 
 	/* Get MSI-X vectors */
@@ -825,14 +825,14 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	if (!err) {
 		nn_warn(nn, "Unable to allocate MSI-X Vectors. Exiting\n");
 		err = -EIO;
-		goto err_vec;
+		goto err_unmap_rx;
 	}
 
 	if (pdev->msix_enabled) {
 		nn->msix_table = nfp_net_msix_map(pdev, 255);
 		if (!nn->msix_table) {
 			err = -EIO;
-			goto err_map_msix_table;
+			goto err_irqs_disable;
 		}
 	}
 
@@ -882,17 +882,17 @@ err_free_spare:
 err_netdev_init:
 	if (nn->msix_table)
 		iounmap(nn->msix_table);
-err_map_msix_table:
+err_irqs_disable:
 	nfp_net_irqs_disable(nn);
-err_vec:
+err_unmap_rx:
 	nfp_cpp_area_release_free(nn->rx_area);
-err_map_rx:
+err_unmap_tx:
 	nfp_cpp_area_release_free(nn->tx_area);
-err_map_tx:
+err_netdev_free:
 	nfp_net_netdev_free(nn);
-err_nn_init:
+err_ctrl_unmap:
 	nfp_cpp_area_release_free(ctrl_area);
-err_ctrl:
+err_fw_kill:
 	if (fw_loaded) {
 		int ret = nfp_reset_soft(nfp_dev);
 
@@ -903,9 +903,9 @@ err_ctrl:
 			dev_info(&pdev->dev,
 				 "Firmware safely unloaded\n");
 	}
-err_fw_load:
+err_nfp_close:
 	nfp_device_close(nfp_dev);
-err_open_dev:
+err_cpp_free:
 	if (dev_cpp)
 		nfp_platform_device_unregister(dev_cpp);
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
@@ -914,9 +914,9 @@ err_open_dev:
 err_sriov:
 #endif
 	nfp_cpp_free(cpp);
-err_nfp_cpp:
+err_pci_regions:
 	pci_release_regions(pdev);
-err_dma_mask:
+err_pci_disable:
 	pci_disable_device(pdev);
 	return err;
 }
