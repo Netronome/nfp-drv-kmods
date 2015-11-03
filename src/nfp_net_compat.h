@@ -48,11 +48,20 @@
 #define KERNEL_VERSION(a, b, c) (((a) << 16) + ((b) << 8) + (c))
 #endif
 
+#ifndef KBUILD_MODNAME
+#define KBUILD_MODNAME "nfp_net_compat"
+#endif
+
 #include <linux/if_vlan.h>
 #include <linux/interrupt.h>
+#include <linux/ip.h>
+#include <linux/ipv6.h>
 #include <linux/msi.h>
 #include <linux/pci.h>
 #include <linux/skbuff.h>
+#include <linux/udp.h>
+
+#include "nfp_net.h"
 
 #define COMPAT__HAVE_VXLAN_OFFLOAD \
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0))
@@ -297,6 +306,64 @@ void compat_incr_checksum_unnecessary(struct sk_buff *skb, bool encap)
 #else
 	__skb_incr_checksum_unnecessary(skb);
 #endif
+}
+
+static inline int
+compat_ndo_features_check(struct nfp_net *nn, struct sk_buff *skb)
+{
+#if !COMPAT__HAVE_NDO_FEATURES_CHECK
+	u8 l4_hdr;
+
+	if (!skb->encapsulation)
+		return 0;
+
+	/* TSO limitation checks */
+	if (skb_is_gso(skb)) {
+		u32 hdrlen;
+
+		hdrlen = skb_inner_transport_header(skb) - skb->data +
+			inner_tcp_hdrlen(skb);
+
+		if (unlikely(hdrlen > NFP_NET_LSO_MAX_HDR_SZ)) {
+			nn_warn_ratelimit(nn, "L4 offset too large for TSO!\n");
+			return 1;
+		}
+	}
+
+	/* Checksum encap validation */
+	if (!(nn->ctrl & NFP_NET_CFG_CTRL_TXCSUM) ||
+	    skb->ip_summed != CHECKSUM_PARTIAL)
+		return 0;
+
+	switch (vlan_get_protocol(skb)) {
+	case htons(ETH_P_IP):
+		l4_hdr = ip_hdr(skb)->protocol;
+		break;
+	case htons(ETH_P_IPV6):
+		l4_hdr = ipv6_hdr(skb)->nexthdr;
+		break;
+	default:
+		nn_warn_ratelimit(nn, "non-IP packet for checksumming!\n");
+		return 1;
+	}
+
+	if (
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0)
+	    skb->inner_protocol != htons(ETH_P_TEB) ||
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
+	    skb->inner_protocol_type != ENCAP_TYPE_ETHER ||
+#endif
+	    (l4_hdr != IPPROTO_UDP && l4_hdr != IPPROTO_GRE) ||
+	    (l4_hdr == IPPROTO_UDP &&
+	     (skb_inner_mac_header(skb) - skb_transport_header(skb) !=
+	      sizeof(struct udphdr) + 8))) {
+		nn_warn_ratelimit(nn, "checksum on unsupported tunnel type!\n");
+		return 1;
+	}
+
+#endif /* !COMPAT__HAVE_NDO_FEATURES_CHECK */
+	return 0;
 }
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0)

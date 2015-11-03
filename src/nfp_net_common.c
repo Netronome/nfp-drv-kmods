@@ -584,28 +584,21 @@ static void nfp_net_tx_ring_stop(struct netdev_queue *nd_q,
  * Set up Tx descriptor for LSO, do nothing for non-LSO skbs.
  * Return error on packet header greater than maximum supported LSO header size.
  */
-static int nfp_net_tx_tso(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
-			  struct nfp_net_tx_buf *txbuf,
-			  struct nfp_net_tx_desc *txd, struct sk_buff *skb)
+static void nfp_net_tx_tso(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
+			   struct nfp_net_tx_buf *txbuf,
+			   struct nfp_net_tx_desc *txd, struct sk_buff *skb)
 {
 	u32 hdrlen;
 	u16 mss;
 
 	if (!skb_is_gso(skb))
-		return 0;
+		return;
 
 	if (!skb->encapsulation)
 		hdrlen = skb_transport_offset(skb) + tcp_hdrlen(skb);
 	else
 		hdrlen = skb_inner_transport_header(skb) - skb->data +
 			inner_tcp_hdrlen(skb);
-
-#if !COMPAT__HAVE_NDO_FEATURES_CHECK
-	if (unlikely(hdrlen > NFP_NET_LSO_MAX_HDR_SZ)) {
-		nn_warn_ratelimit(nn, "Header size too large: %d\n", hdrlen);
-		return -E2BIG;
-	}
-#endif
 
 	txbuf->pkt_cnt = skb_shinfo(skb)->gso_segs;
 	txbuf->real_len += hdrlen * (txbuf->pkt_cnt - 1);
@@ -618,8 +611,6 @@ static int nfp_net_tx_tso(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 	u64_stats_update_begin(&r_vec->tx_sync);
 	r_vec->tx_lso++;
 	u64_stats_update_end(&r_vec->tx_sync);
-
-	return 0;
 }
 
 /**
@@ -726,10 +717,9 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 	struct netdev_queue *nd_q;
 	dma_addr_t dma_addr;
 	unsigned int fsize;
-	int nr_frags;
+	int f, nr_frags;
 	int wr_idx;
 	u16 qidx;
-	int err, f;
 
 	qidx = skb_get_queue_mapping(skb);
 	tx_ring = &nn->tx_rings[qidx];
@@ -750,6 +740,11 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 		r_vec->tx_busy++;
 		u64_stats_update_end(&r_vec->tx_sync);
 		return NETDEV_TX_BUSY;
+	}
+
+	if (unlikely(compat_ndo_features_check(nn, skb))) {
+		dev_kfree_skb_any(skb);
+		return NETDEV_TX_OK;
 	}
 
 	/* Start with the head skbuf */
@@ -778,9 +773,8 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 	txd->flags = 0;
 	txd->mss = 0;
 	txd->l4_offset = 0;
-	err = nfp_net_tx_tso(nn, r_vec, txbuf, txd, skb);
-	if (err)
-		goto err_unmap_head;
+
+	nfp_net_tx_tso(nn, r_vec, txbuf, txd, skb);
 
 	nfp_net_tx_csum(nn, r_vec, txbuf, txd, skb);
 
@@ -801,7 +795,7 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 			dma_addr = skb_frag_dma_map(&nn->pdev->dev, frag, 0,
 						    fsize, DMA_TO_DEVICE);
 			if (dma_mapping_error(&nn->pdev->dev, dma_addr))
-				goto err_unmap_frags;
+				goto err_unmap;
 
 			wr_idx = (wr_idx + 1) % tx_ring->cnt;
 			tx_ring->txbufs[wr_idx].skb = skb;
@@ -843,7 +837,7 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 
 	return NETDEV_TX_OK;
 
-err_unmap_frags:
+err_unmap:
 	--f;
 	while (f >= 0) {
 		frag = &skb_shinfo(skb)->frags[f];
@@ -857,7 +851,6 @@ err_unmap_frags:
 		if (wr_idx < 0)
 			wr_idx += tx_ring->cnt;
 	}
-err_unmap_head:
 	dma_unmap_single(&nn->pdev->dev, tx_ring->txbufs[wr_idx].dma_addr,
 			 skb_headlen(skb), DMA_TO_DEVICE);
 	tx_ring->txbufs[wr_idx].skb = NULL;
