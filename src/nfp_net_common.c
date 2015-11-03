@@ -639,6 +639,8 @@ static void nfp_net_tx_csum(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 		return;
 
 	txd->flags |= PCIE_DESC_TX_CSUM;
+	if (skb->encapsulation)
+		txd->flags |= PCIE_DESC_TX_ENCAP;
 
 	iph = skb->encapsulation ? inner_ip_hdr(skb) : ip_hdr(skb);
 	ipv6h = skb->encapsulation ? inner_ipv6_hdr(skb) : ipv6_hdr(skb);
@@ -667,35 +669,11 @@ static void nfp_net_tx_csum(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 		return;
 	}
 
-	if (skb->encapsulation) {
-		switch (vlan_get_protocol(skb)) {
-		case htons(ETH_P_IP):
-			l4_hdr = ip_hdr(skb)->protocol;
-			txd->flags |= PCIE_DESC_TX_O_IP4_CSUM;
-			break;
-		case htons(ETH_P_IPV6):
-			l4_hdr = ipv6_hdr(skb)->nexthdr;
-			break;
-		default:
-			nn_warn_ratelimit(nn, "invalid proto for encap=%x!\n",
-					  vlan_get_protocol(skb));
-			return;
-		}
-
-		if (l4_hdr == IPPROTO_GRE || l4_hdr == IPPROTO_UDP)
-			txd->flags |= PCIE_DESC_TX_ENCAP;
-		else
-			nn_warn_ratelimit(nn, "invalid encap l4 proto=%x!\n",
-					  l4_hdr);
-
-		u64_stats_update_begin(&r_vec->tx_sync);
-		r_vec->hw_csum_tx_inner += txbuf->pkt_cnt;
-		u64_stats_update_end(&r_vec->tx_sync);
-		return;
-	}
-
 	u64_stats_update_begin(&r_vec->tx_sync);
-	r_vec->hw_csum_tx += txbuf->pkt_cnt;
+	if (skb->encapsulation)
+		r_vec->hw_csum_tx_inner += txbuf->pkt_cnt;
+	else
+		r_vec->hw_csum_tx += txbuf->pkt_cnt;
 	u64_stats_update_end(&r_vec->tx_sync);
 }
 
