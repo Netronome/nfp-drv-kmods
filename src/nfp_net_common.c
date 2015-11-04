@@ -2441,18 +2441,13 @@ int nfp_net_netdev_init(struct net_device *netdev)
 		netdev->hw_features |= NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM;
 		nn->ctrl |= NFP_NET_CFG_CTRL_TXCSUM;
 	}
-	if (nn->cap & NFP_NET_CFG_CTRL_SCATTER &&
-	    nn->cap & NFP_NET_CFG_CTRL_GATHER) {
+	if (nn->cap & NFP_NET_CFG_CTRL_GATHER) {
 		netdev->hw_features |= NETIF_F_SG;
-		nn->ctrl |= NFP_NET_CFG_CTRL_SCATTER | NFP_NET_CFG_CTRL_GATHER;
+		nn->ctrl |= NFP_NET_CFG_CTRL_GATHER;
 	}
 	if (nn->cap & NFP_NET_CFG_CTRL_RSS) {
 		netdev->hw_features |= NETIF_F_RXHASH;
 		nn->ctrl |= NFP_NET_CFG_CTRL_RSS;
-	}
-	if (nn->cap & NFP_NET_CFG_CTRL_GATHER) {
-		netdev->hw_features |= NETIF_F_SG;
-		nn->ctrl |= NFP_NET_CFG_CTRL_GATHER;
 	}
 
 	netdev->vlan_features = netdev->hw_features;
