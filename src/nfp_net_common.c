@@ -2445,9 +2445,22 @@ int nfp_net_netdev_init(struct net_device *netdev)
 		netdev->hw_features |= NETIF_F_SG;
 		nn->ctrl |= NFP_NET_CFG_CTRL_GATHER;
 	}
+	if ((nn->cap & NFP_NET_CFG_CTRL_LSO) && nn->fw_ver.major > 2) {
+		netdev->hw_features |= NETIF_F_TSO | NETIF_F_TSO6;
+		nn->ctrl |= NFP_NET_CFG_CTRL_LSO;
+	}
 	if (nn->cap & NFP_NET_CFG_CTRL_RSS) {
 		netdev->hw_features |= NETIF_F_RXHASH;
 		nn->ctrl |= NFP_NET_CFG_CTRL_RSS;
+	}
+	if (nn->cap & NFP_NET_CFG_CTRL_VXLAN &&
+	    nn->cap & NFP_NET_CFG_CTRL_NVGRE) {
+		if (nn->cap & NFP_NET_CFG_CTRL_LSO)
+			netdev->hw_features |= NETIF_F_GSO_GRE |
+					       NETIF_F_GSO_UDP_TUNNEL;
+		nn->ctrl |= NFP_NET_CFG_CTRL_VXLAN | NFP_NET_CFG_CTRL_NVGRE;
+
+		netdev->hw_enc_features = netdev->hw_features;
 	}
 
 	netdev->vlan_features = netdev->hw_features;
@@ -2464,26 +2477,7 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	netdev->features = netdev->hw_features;
 
 	/* Advertise but disable TSO by default. */
-	if ((nn->cap & NFP_NET_CFG_CTRL_LSO) && nn->fw_ver.major > 2)
-		netdev->hw_features |= NETIF_F_TSO | NETIF_F_TSO6;
-
-	if (nn->cap & NFP_NET_CFG_CTRL_VXLAN &&
-	    nn->cap & NFP_NET_CFG_CTRL_NVGRE) {
-		if (nn->cap & NFP_NET_CFG_CTRL_LSO)
-			netdev->hw_features |= NETIF_F_GSO_GRE |
-					       NETIF_F_GSO_UDP_TUNNEL;
-
-		/* Advertise features we support on encapsulated packets */
-		netdev->hw_enc_features =
-			netdev->hw_features & (NETIF_F_IP_CSUM |
-					       NETIF_F_IPV6_CSUM |
-					       NETIF_F_TSO |
-					       NETIF_F_TSO6 |
-					       NETIF_F_GSO_GRE |
-					       NETIF_F_GSO_UDP_TUNNEL);
-
-		nn->ctrl |= NFP_NET_CFG_CTRL_VXLAN | NFP_NET_CFG_CTRL_NVGRE;
-	}
+	netdev->features &= ~(NETIF_F_TSO | NETIF_F_TSO6);
 
 	/* Allow L2 Broadcast through by default, if supported */
 	if (nn->cap & NFP_NET_CFG_CTRL_L2BC)
