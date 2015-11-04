@@ -2070,7 +2070,7 @@ static int nfp_net_set_features(struct net_device *netdev,
 {
 	netdev_features_t changed = netdev->features ^ features;
 	struct nfp_net *nn = netdev_priv(netdev);
-	u32 new_ctrl, update;
+	u32 new_ctrl;
 	int err;
 
 	/* Assume this is not called with features we have not advertised */
@@ -2120,20 +2120,18 @@ static int nfp_net_set_features(struct net_device *netdev,
 	}
 
 	nn_dbg(nn, "Feature change 0x%llx -> 0x%llx (changed=0x%llx)\n",
-	       (long long)netdev->features, (long long)features,
-	       (long long)changed);
+	       netdev->features, features, changed);
 
-	if (new_ctrl != nn->ctrl) {
-		nn_dbg(nn, "NIC ctrl: 0x%x -> 0x%x\n", nn->ctrl, new_ctrl);
-		update = NFP_NET_CFG_UPDATE_GEN;
-		nn_writel(nn, NFP_NET_CFG_CTRL, new_ctrl);
-		err = nfp_net_reconfig(nn, update);
-		if (err)
-			return err;
-		nn->ctrl = new_ctrl;
-	}
+	if (new_ctrl == nn->ctrl)
+		return 0;
 
-	netdev->features = features;
+	nn_dbg(nn, "NIC ctrl: 0x%x -> 0x%x\n", nn->ctrl, new_ctrl);
+	nn_writel(nn, NFP_NET_CFG_CTRL, new_ctrl);
+	err = nfp_net_reconfig(nn, NFP_NET_CFG_UPDATE_GEN);
+	if (err)
+		return err;
+
+	nn->ctrl = new_ctrl;
 
 	return 0;
 }
