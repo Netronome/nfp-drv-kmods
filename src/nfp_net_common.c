@@ -1684,17 +1684,11 @@ static void nfp_net_free_resources(struct nfp_net *nn)
  */
 void nfp_net_rss_write_itbl(struct nfp_net *nn)
 {
-	u32 val;
-	int i, j;
+	int i;
 
-	for (i = 0, j = 0; i < NFP_NET_CFG_RSS_ITBL_SZ; i += 4) {
-		val = nn->rss_itbl[j++];
-		val |= nn->rss_itbl[j++] << 8;
-		val |= nn->rss_itbl[j++] << 16;
-		val |= nn->rss_itbl[j++] << 24;
-
-		nn_writel(nn, NFP_NET_CFG_RSS_ITBL + i, val);
-	}
+	for (i = 0; i < NFP_NET_CFG_RSS_ITBL_SZ; i += 4)
+		nn_writel(nn, NFP_NET_CFG_RSS_ITBL + i,
+			  get_unaligned_le32(nn->rss_itbl + i));
 }
 
 /**
