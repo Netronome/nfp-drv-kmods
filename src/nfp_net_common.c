@@ -1795,13 +1795,6 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 	}
 
 	if (nn->cap & NFP_NET_CFG_CTRL_IRQMOD) {
-		/* defaults correspond to no IRQ moderation */
-		nn->rx_coalesce_usecs      = 0;
-		nn->rx_coalesce_max_frames = 1;
-		nn->tx_coalesce_usecs      = 0;
-		nn->tx_coalesce_max_frames = 1;
-
-		/* write configuration to device */
 		nfp_net_coalesce_write_cfg(nn);
 
 		new_ctrl |= NFP_NET_CFG_CTRL_IRQMOD;
@@ -2391,6 +2384,19 @@ static void nfp_net_rss_init(struct nfp_net *nn)
 }
 
 /**
+ * nfp_net_irqmod_init() - Set the initial IRQ moderation parameters
+ * @nn:	     NFP Net device to reconfigure
+ */
+static void nfp_net_irqmod_init(struct nfp_net *nn)
+{
+	/* defaults correspond to no IRQ moderation */
+	nn->rx_coalesce_usecs      = 0;
+	nn->rx_coalesce_max_frames = 1;
+	nn->tx_coalesce_usecs      = 0;
+	nn->tx_coalesce_max_frames = 1;
+}
+
+/**
  * nfp_net_netdev_init() - Initialise/finalise the netdev structure
  * @netdev:      netdev structure
  *
@@ -2473,8 +2479,10 @@ int nfp_net_netdev_init(struct net_device *netdev)
 		nn->ctrl |= NFP_NET_CFG_CTRL_L2BC;
 
 	/* Allow IRQ moderation, if supported */
-	if (nn->cap & NFP_NET_CFG_CTRL_IRQMOD)
+	if (nn->cap & NFP_NET_CFG_CTRL_IRQMOD) {
+		nfp_net_irqmod_init(nn);
 		nn->ctrl |= NFP_NET_CFG_CTRL_IRQMOD;
+	}
 
 	/* On NFP-3200 enable MSI-X auto-masking, if supported and the
 	 * interrupts are not shared.
