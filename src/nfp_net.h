@@ -336,11 +336,9 @@ struct nfp_net_rx_ring {
 /**
  * enum nfp_net_r_vector_flags - Flags for flags field of nfp_net_r_vector
  * @NFP_NET_RVEC_IRQ_REQUESTED:	IRQ vector has been requested
- * @NFP_NET_RVEC_NAPI_STARTED:	Called napi_enable() for this vector
  */
 enum nfp_net_r_vector_flags {
 	NFP_NET_RVEC_IRQ_REQUESTED = 0,
-	NFP_NET_RVEC_NAPI_STARTED,
 };
 
 /**

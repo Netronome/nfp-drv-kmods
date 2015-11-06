@@ -294,17 +294,6 @@ static irqreturn_t nfp_net_irq_rxtx(int irq, void *data)
 	 * the MSI-X table or via the per entry ICR field.  So there
 	 * is no need to disable interrupts here.
 	 */
-
-	/* There is a short period between enabling interrupts and
-	 * enabling NAPI.  If a interrupt gets delivered during this
-	 * period, NAPI will not get scheduled and the auto-masked
-	 * interrupt will never get un-masked.  Handle this case here.
-	 */
-	if (unlikely(!test_bit(NFP_NET_RVEC_NAPI_STARTED, &r_vec->flags))) {
-		nfp_net_irq_unmask(r_vec->nfp_net, r_vec->irq_idx);
-		return IRQ_HANDLED;
-	}
-
 	napi_schedule(napi);
 
 	return IRQ_HANDLED;
@@ -1587,8 +1576,6 @@ static int nfp_net_alloc_resources(struct nfp_net *nn)
 	for (r = 0; r < nn->num_r_vecs; r++) {
 		r_vec = &nn->r_vecs[r];
 
-		clear_bit(NFP_NET_RVEC_NAPI_STARTED, &r_vec->flags);
-
 		/* Setup NAPI */
 		netif_napi_add(nn->netdev, &r_vec->napi,
 			       nfp_net_poll, NAPI_POLL_WEIGHT);
@@ -1864,7 +1851,6 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 		       r, r_vec->rx_ring->idx, n + NFP_NET_FL_KICK_BATCH);
 
 		napi_enable(&r_vec->napi);
-		set_bit(NFP_NET_RVEC_NAPI_STARTED, &r_vec->flags);
 	}
 
 	netif_tx_wake_all_queues(netdev);
@@ -1913,10 +1899,8 @@ static int nfp_net_netdev_close(struct net_device *netdev)
 	 */
 	netif_carrier_off(netdev);
 
-	for (r = 0; r < nn->num_r_vecs; r++) {
-		clear_bit(NFP_NET_RVEC_NAPI_STARTED, &nn->r_vecs[r].flags);
+	for (r = 0; r < nn->num_r_vecs; r++)
 		napi_disable(&nn->r_vecs[r].napi);
-	}
 
 	netif_tx_disable(netdev);
 
