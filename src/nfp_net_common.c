@@ -145,7 +145,29 @@ int nfp_net_reconfig(struct nfp_net *nn, u32 update)
  */
 
 /**
- * nfp_net_irq_unmask() - Unmask an interrupt
+ * nfp_net_irq_unmask_msix() - Unmask MSI-X after automasking
+ * @nn:       NFP Network structure
+ * @entry_nr: MSI-X table entry
+ *
+ * Clear the MSI-X table mask bit for the given entry bypassing Linux irq
+ * handling subsystem.  Use *only* to reenable automasked vectors.
+ */
+static void nfp_net_irq_unmask_msix(struct nfp_net *nn, unsigned int entry_nr)
+{
+	struct list_head *msi_head = compat_get_msi_list_head(nn->pdev);
+	struct msi_desc *entry;
+	u32 off;
+
+	/* All MSI-Xs have the same mask_base */
+	entry = list_first_entry(msi_head, struct msi_desc, list);
+
+	off = (PCI_MSIX_ENTRY_SIZE * entry_nr) +
+		PCI_MSIX_ENTRY_VECTOR_CTRL;
+	writel(0, entry->mask_base + off);
+}
+
+/**
+ * nfp_net_irq_unmask() - Unmask automasked interrupt
  * @nn:       NFP Network structure
  * @entry_nr: MSI-X table entry
  *
@@ -154,24 +176,12 @@ int nfp_net_reconfig(struct nfp_net *nn, u32 update)
  */
 static void nfp_net_irq_unmask(struct nfp_net *nn, unsigned int entry_nr)
 {
-	struct pci_dev *pdev = nn->pdev;
-	int off;
-
 	if (nn->ctrl & NFP_NET_CFG_CTRL_MSIXAUTO) {
-		/* If MSI-X auto-masking is used, clear the entry */
-		struct list_head *msi_head = compat_get_msi_list_head(pdev);
-		struct msi_desc *entry;
-
-		/* All MSI-Xs have the same mask_base */
-		entry = list_first_entry(msi_head, struct msi_desc, list);
-
-		off = (PCI_MSIX_ENTRY_SIZE * entry_nr) +
-			PCI_MSIX_ENTRY_VECTOR_CTRL;
-		writel(0, entry->mask_base + off);
-	} else {
-		nn_writeb(nn,
-			  NFP_NET_CFG_ICR(entry_nr), NFP_NET_CFG_ICR_UNMASKED);
+		nfp_net_irq_unmask_msix(nn, entry_nr);
+		return;
 	}
+
+	nn_writeb(nn, NFP_NET_CFG_ICR(entry_nr), NFP_NET_CFG_ICR_UNMASKED);
 }
 
 /**
