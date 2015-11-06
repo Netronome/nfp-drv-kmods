@@ -2514,14 +2514,9 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	netdev->watchdog_timeo = msecs_to_jiffies(5 * 1000);
 
 	nfp_net_set_ethtool_ops(netdev);
-
-	err = register_netdev(netdev);
-	if (err)
-		return err;
-
 	nfp_net_irqs_assign(netdev);
 
-	return 0;
+	return register_netdev(netdev);
 
 err_reconfig:
 	return err;
