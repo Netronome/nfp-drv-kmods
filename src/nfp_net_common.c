@@ -164,6 +164,7 @@ static void nfp_net_irq_unmask_msix(struct nfp_net *nn, unsigned int entry_nr)
 	off = (PCI_MSIX_ENTRY_SIZE * entry_nr) +
 		PCI_MSIX_ENTRY_VECTOR_CTRL;
 	writel(0, entry->mask_base + off);
+	readl(entry->mask_base);
 }
 
 /**
@@ -182,6 +183,7 @@ static void nfp_net_irq_unmask(struct nfp_net *nn, unsigned int entry_nr)
 	}
 
 	nn_writeb(nn, NFP_NET_CFG_ICR(entry_nr), NFP_NET_CFG_ICR_UNMASKED);
+	nn_pci_flush(nn);
 }
 
 /**
