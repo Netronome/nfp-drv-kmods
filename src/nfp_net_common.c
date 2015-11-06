@@ -1591,7 +1591,7 @@ static int nfp_net_alloc_resources(struct nfp_net *nn)
 
 		/* Setup NAPI */
 		netif_napi_add(nn->netdev, &r_vec->napi,
-			       nfp_net_poll, NFP_NET_NAPI_WEIGHT);
+			       nfp_net_poll, NAPI_POLL_WEIGHT);
 
 		entry = &nn->irq_entries[r_vec->irq_idx];
 

@@ -78,9 +78,6 @@
 #define nn_assert(cond, fmt, args...)	do { } while (0)
 #endif
 
-/* NAPI weight */
-#define NFP_NET_NAPI_WEIGHT    64
-
 /* Max time to wait for NFP to respond on updates (in ms) */
 #define NFP_NET_POLL_TIMEOUT	5000
 
