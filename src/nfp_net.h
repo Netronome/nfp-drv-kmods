@@ -520,7 +520,7 @@ struct nfp_net {
 	u32 max_mtu;
 
 	u32 rss_cfg;
-	u32 rss_key[NFP_NET_CFG_RSS_KEY_SZ / sizeof(u32)];
+	u8 rss_key[NFP_NET_CFG_RSS_KEY_SZ];
 	u8 rss_itbl[NFP_NET_CFG_RSS_ITBL_SZ];
 
 	int max_tx_rings;
@@ -748,6 +748,7 @@ void nfp_net_set_ethtool_ops(struct net_device *netdev);
 void nfp_net_info(struct nfp_net *nn);
 int nfp_net_reconfig(struct nfp_net *nn, u32 update);
 void nfp_net_rss_write_itbl(struct nfp_net *nn);
+void nfp_net_rss_write_key(struct nfp_net *nn);
 void nfp_net_coalesce_write_cfg(struct nfp_net *nn);
 int nfp_net_irqs_alloc(struct nfp_net *nn);
 void nfp_net_irqs_disable(struct nfp_net *nn);

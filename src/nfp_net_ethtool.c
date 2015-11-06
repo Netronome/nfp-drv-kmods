@@ -552,9 +552,7 @@ static int nfp_net_set_rxfh(struct net_device *netdev,
 
 	if (key) {
 		memcpy(nn->rss_key, key, NFP_NET_CFG_RSS_KEY_SZ);
-		for (i = 0; i < NFP_NET_CFG_RSS_KEY_SZ; i += 4)
-			nn_writel(nn, NFP_NET_CFG_RSS_KEY + i,
-				  nn->rss_key[i / sizeof(u32)]);
+		nfp_net_rss_write_key(nn);
 	}
 	if (indir) {
 		for (i = 0; i < ARRAY_SIZE(nn->rss_itbl); i++)

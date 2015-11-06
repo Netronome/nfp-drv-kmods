@@ -1698,6 +1698,19 @@ void nfp_net_rss_write_itbl(struct nfp_net *nn)
 }
 
 /**
+ * nfp_net_rss_write_key() - Write RSS hash key to device
+ * @nn:      NFP Net device to reconfigure
+ */
+void nfp_net_rss_write_key(struct nfp_net *nn)
+{
+	int i;
+
+	for (i = 0; i < NFP_NET_CFG_RSS_KEY_SZ; i += 4)
+		nn_writel(nn, NFP_NET_CFG_RSS_KEY + i,
+			  get_unaligned_le32(nn->rss_key + i));
+}
+
+/**
  * nfp_net_coalesce_write_cfg() - Write irq coalescence configuration to HW
  * @nn:      NFP Net device to reconfigure
  */
@@ -2379,7 +2392,7 @@ void nfp_net_netdev_free(struct nfp_net *nn)
 int nfp_net_netdev_init(struct net_device *netdev)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
-	int i, err;
+	int err;
 
 	/* Get some of the read-only fields from the BAR */
 	nn->cap = nn_readl(nn, NFP_NET_CFG_CAP);
@@ -2470,9 +2483,7 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	/* Generate some random bits for RSS and write to device */
 	if (nn->cap & NFP_NET_CFG_CTRL_RSS) {
 		get_random_bytes(nn->rss_key, NFP_NET_CFG_RSS_KEY_SZ);
-		for (i = 0; i < NFP_NET_CFG_RSS_KEY_SZ; i += 4)
-			nn_writel(nn, NFP_NET_CFG_RSS_KEY + i,
-				  nn->rss_key[i / sizeof(u32)]);
+		nfp_net_rss_write_key(nn);
 	}
 
 	/* Stash the re-configuration queue away.  First odd queue in TX Bar */
