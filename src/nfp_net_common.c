@@ -1788,16 +1788,8 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 		goto err_set_queues;
 
 	if (nn->cap & NFP_NET_CFG_CTRL_RSS) {
-		for (i = 0; i < sizeof(nn->rss_itbl); i++)
-			nn->rss_itbl[i] =
-				ethtool_rxfh_indir_default(i, nn->num_rx_rings);
+		nfp_net_rss_write_key(nn);
 		nfp_net_rss_write_itbl(nn);
-
-		/* Enable IPv4/IPv6 TCP by default */
-		nn->rss_cfg = NFP_NET_CFG_RSS_IPV4_TCP |
-			      NFP_NET_CFG_RSS_IPV6_TCP |
-			      NFP_NET_CFG_RSS_TOEPLITZ |
-			      NFP_NET_CFG_RSS_MASK;
 		nn_writel(nn, NFP_NET_CFG_RSS_CTRL, nn->rss_cfg);
 		update |= NFP_NET_CFG_UPDATE_RSS;
 	}
@@ -2378,6 +2370,27 @@ void nfp_net_netdev_free(struct nfp_net *nn)
 }
 
 /**
+ * nfp_net_rss_init() - Set the initial RSS parameters
+ * @nn:	     NFP Net device to reconfigure
+ */
+static void nfp_net_rss_init(struct nfp_net *nn)
+{
+	int i;
+
+	get_random_bytes(nn->rss_key, NFP_NET_CFG_RSS_KEY_SZ);
+
+	for (i = 0; i < sizeof(nn->rss_itbl); i++)
+		nn->rss_itbl[i] =
+			ethtool_rxfh_indir_default(i, nn->num_rx_rings);
+
+	/* Enable IPv4/IPv6 TCP by default */
+	nn->rss_cfg = NFP_NET_CFG_RSS_IPV4_TCP |
+		      NFP_NET_CFG_RSS_IPV6_TCP |
+		      NFP_NET_CFG_RSS_TOEPLITZ |
+		      NFP_NET_CFG_RSS_MASK;
+}
+
+/**
  * nfp_net_netdev_init() - Initialise/finalise the netdev structure
  * @netdev:      netdev structure
  *
@@ -2426,6 +2439,7 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	}
 	if (nn->cap & NFP_NET_CFG_CTRL_RSS) {
 		netdev->hw_features |= NETIF_F_RXHASH;
+		nfp_net_rss_init(nn);
 		nn->ctrl |= NFP_NET_CFG_CTRL_RSS;
 	}
 	if (nn->cap & NFP_NET_CFG_CTRL_VXLAN &&
@@ -2474,12 +2488,6 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	else
 		nn->rx_offset = NFP_NET_RX_OFFSET;
 
-	/* Generate some random bits for RSS and write to device */
-	if (nn->cap & NFP_NET_CFG_CTRL_RSS) {
-		get_random_bytes(nn->rss_key, NFP_NET_CFG_RSS_KEY_SZ);
-		nfp_net_rss_write_key(nn);
-	}
-
 	/* Stash the re-configuration queue away.  First odd queue in TX Bar */
 	nn->qcp_cfg = nn->tx_bar + NFP_QCP_QUEUE_ADDR_SZ;
 
@@ -2487,8 +2495,8 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	nn_writel(nn, NFP_NET_CFG_CTRL, 0);
 	nn_writeq(nn, NFP_NET_CFG_TXRS_ENABLE, 0);
 	nn_writeq(nn, NFP_NET_CFG_RXRS_ENABLE, 0);
-	err = nfp_net_reconfig(
-		nn, NFP_NET_CFG_UPDATE_RING | NFP_NET_CFG_UPDATE_GEN);
+	err = nfp_net_reconfig(nn, NFP_NET_CFG_UPDATE_RING |
+				   NFP_NET_CFG_UPDATE_GEN);
 	if (err)
 		goto err_reconfig;
 
