@@ -271,7 +271,7 @@ struct nfp_net_rx_desc {
 	union {
 		struct {
 			u8 dma_addr_hi;	/* High bits of the buf address */
-			__le16 padding;
+			__le16 reserved; /* Must be zero */
 			u8 meta_len_dd; /* Must be zero */
 
 			__le32 dma_addr_lo; /* Low bits of the buffer address */
