@@ -191,8 +191,13 @@
 #define NFP_NET_CFG_RX_OFFSET		0x0050
 #define NFP_NET_CFG_RX_OFFSET_DYNAMIC		0	/* Prepend mode */
 
+/**
+ * NFP6000/NFP4000 - VXLAN/UDP encap configuration
+ * @NFP_NET_CFG_VXLAN_PORT:	Base address of table of tunnels' UDP dst ports
+ * @NFP_NET_CFG_VXLAN_SZ:	Size of the UDP port table in bytes
+ */
 #define NFP_NET_CFG_VXLAN_PORT		0x0060
-#define NFP_NET_CFG_VXLAN_SZ		0x0008
+#define NFP_NET_CFG_VXLAN_SZ		  0x0008
 
 /**
  * 64B reserved for future use (0x0080 - 0x00c0)
