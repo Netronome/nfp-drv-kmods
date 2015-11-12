@@ -285,17 +285,13 @@ void nfp_net_irqs_disable(struct nfp_net *nn)
 static irqreturn_t nfp_net_irq_rxtx(int irq, void *data)
 {
 	struct nfp_net_r_vector *r_vec = data;
-	struct napi_struct *napi = &r_vec->napi;
 
-	if (!r_vec->rx_ring && !r_vec->tx_ring)
-		return IRQ_HANDLED;
+	napi_schedule_irqoff(&r_vec->napi);
 
 	/* The FW auto-masks any interrupt, either via the MASK bit in
 	 * the MSI-X table or via the per entry ICR field.  So there
 	 * is no need to disable interrupts here.
 	 */
-	napi_schedule_irqoff(napi);
-
 	return IRQ_HANDLED;
 }
 
