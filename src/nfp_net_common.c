@@ -294,7 +294,7 @@ static irqreturn_t nfp_net_irq_rxtx(int irq, void *data)
 	 * the MSI-X table or via the per entry ICR field.  So there
 	 * is no need to disable interrupts here.
 	 */
-	napi_schedule(napi);
+	napi_schedule_irqoff(napi);
 
 	return IRQ_HANDLED;
 }
