@@ -185,13 +185,13 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 	/* Sanity checks */
 	if (tx_bar_sz > pci_resource_len(pdev, tx_bar_no)) {
 		dev_err(&pdev->dev,
-			"TX BAR too small for number of TX rings. Adjusting");
+			"TX BAR too small for number of TX rings. Adjusting\n");
 		tx_bar_sz = pci_resource_len(pdev, tx_bar_no);
 		max_tx_rings = (tx_bar_sz / NFP_QCP_QUEUE_ADDR_SZ) / 2;
 	}
 	if (rx_bar_sz > pci_resource_len(pdev, rx_bar_no)) {
 		dev_err(&pdev->dev,
-			"RX BAR too small for number of RX rings. Adjusting");
+			"RX BAR too small for number of RX rings. Adjusting\n");
 		rx_bar_sz = pci_resource_len(pdev, rx_bar_no);
 		max_rx_rings = (rx_bar_sz / NFP_QCP_QUEUE_ADDR_SZ) / 2;
 	}
@@ -243,7 +243,7 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 		map_addr = pci_resource_start(pdev, tx_bar_no) + bar_off;
 		nn->q_bar = ioremap_nocache(map_addr, bar_sz);
 		if (!nn->q_bar) {
-			nn_err(nn, "Failed to map resource %d", tx_bar_no);
+			nn_err(nn, "Failed to map resource %d\n", tx_bar_no);
 			err = -EIO;
 			goto err_barmap_tx;
 		}
@@ -259,7 +259,7 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 		map_addr = pci_resource_start(pdev, tx_bar_no) + tx_bar_off;
 		nn->tx_bar = ioremap_nocache(map_addr, tx_bar_sz);
 		if (!nn->tx_bar) {
-			nn_err(nn, "Failed to map resource %d", tx_bar_no);
+			nn_err(nn, "Failed to map resource %d\n", tx_bar_no);
 			err = -EIO;
 			goto err_barmap_tx;
 		}
@@ -268,7 +268,7 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 		map_addr = pci_resource_start(pdev, rx_bar_no) + rx_bar_off;
 		nn->rx_bar = ioremap_nocache(map_addr, rx_bar_sz);
 		if (!nn->rx_bar) {
-			nn_err(nn, "Failed to map resource %d", rx_bar_no);
+			nn_err(nn, "Failed to map resource %d\n", rx_bar_no);
 			err = -EIO;
 			goto err_barmap_rx;
 		}

@@ -525,7 +525,7 @@ static void nfp_net_vnic_assign_addr(struct net_device *netdev,
 		   &mac_addr[0], &mac_addr[1], &mac_addr[2],
 		   &mac_addr[3], &mac_addr[4], &mac_addr[5]) != 6) {
 		nfp_net_vnic_warn(vnic,
-				  "Error converting MAC string (%s). Using default",
+				  "Error converting MAC string (%s). Using default\n",
 				  mac_str);
 		ether_addr_copy(mac_addr, DEFAULT_MAC);
 		default_mac = 1;
@@ -534,7 +534,7 @@ static void nfp_net_vnic_assign_addr(struct net_device *netdev,
 
 	if (is_zero_ether_addr(mac_addr)) {
 		nfp_net_vnic_warn(vnic,
-				  "Management MAC is Zero. Using default");
+				  "Management MAC is Zero. Using default\n");
 		ether_addr_copy(mac_addr, DEFAULT_MAC);
 		default_mac = 1;
 		goto mac_out;
@@ -710,7 +710,7 @@ static int nfp_net_vnic_probe(struct platform_device *pdev)
 	/* Work out our MAC address */
 	if (!mac_str)
 		nfp_net_vnic_warn(vnic,
-				  "Could not determine MAC address from '%s'. Using default",
+				  "Could not determine MAC address from '%s'. Using default\n",
 				  netm_mac);
 	nfp_net_vnic_assign_addr(netdev, vnic_unit, mac_str);
 

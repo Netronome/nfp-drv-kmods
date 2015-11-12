@@ -402,7 +402,7 @@ static void nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_device *nfp_dev)
 		   &mac_addr[0], &mac_addr[1], &mac_addr[2],
 		   &mac_addr[3], &mac_addr[4], &mac_addr[5]) != 6) {
 		dev_warn(&nn->pdev->dev,
-			 "Can't parse MAC address (%s). Generate.", mac_str);
+			 "Can't parse MAC address (%s). Generate.\n", mac_str);
 		eth_hw_addr_random(nn->netdev);
 		return;
 	}
@@ -689,7 +689,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 		dev_cpp = nfp_platform_device_register(cpp, NFP_DEV_CPP_TYPE);
 		if (!dev_cpp)
 			dev_err(&pdev->dev,
-				"Failed to enable user space access. Ignored");
+				"Failed to enable user space access. Ignored\n");
 	}
 
 	interface = nfp_cpp_interface(cpp);
@@ -854,7 +854,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 			return -ENOMEM;
 
 		nn_writeq(nn, NFP_NET_CFG_SPARE_ADDR, nn->spare_dma);
-		nn_info(nn, "Enabled NFP-3200 workaround.");
+		nn_info(nn, "Enabled NFP-3200 workaround.\n");
 	}
 
 	/*

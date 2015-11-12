@@ -430,8 +430,8 @@ static void nfp_net_irqs_assign(struct net_device *netdev)
 	struct nfp_net_r_vector *r_vec;
 	int i, r;
 
-	nn_assert(nn->num_irqs > 0, "num_irqs is zero");
-	nn_assert(nn->num_r_vecs > 0, "num_r_vecs is zero");
+	nn_assert(nn->num_irqs > 0, "num_irqs is zero\n");
+	nn_assert(nn->num_r_vecs > 0, "num_r_vecs is zero\n");
 
 	/* Assumes nn->num_tx_rings == nn->num_rx_rings */
 	if (nn->num_tx_rings > nn->num_r_vecs) {
@@ -478,7 +478,7 @@ static int nfp_net_irqs_request(struct net_device *netdev)
 	struct nfp_net *nn = netdev_priv(netdev);
 	int err;
 
-	nn_assert(nn->num_irqs > 0, "num_irqs is zero");
+	nn_assert(nn->num_irqs > 0, "num_irqs is zero\n");
 
 	lsc_entry = &nn->irq_entries[NFP_NET_IRQ_LSC_IDX];
 
@@ -523,7 +523,7 @@ static void nfp_net_irqs_free(struct net_device *netdev)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
 
-	nn_assert(nn->num_irqs > 0, "num_irqs is 0");
+	nn_assert(nn->num_irqs > 0, "num_irqs is zero\n");
 
 	synchronize_irq(nn->irq_entries[NFP_NET_IRQ_EXN_IDX].vector);
 	free_irq(nn->irq_entries[NFP_NET_IRQ_EXN_IDX].vector, netdev);
@@ -2025,7 +2025,7 @@ static void nfp_net_set_rx_mode(struct net_device *netdev)
 
 	if (netdev->flags & IFF_PROMISC &&
 	    !(nn->cap & NFP_NET_CFG_CTRL_PROMISC)) {
-		nn_warn(nn, "FW does not support promiscuous mode");
+		nn_warn(nn, "FW does not support promiscuous mode\n");
 		return;
 	}
 
@@ -2033,7 +2033,7 @@ static void nfp_net_set_rx_mode(struct net_device *netdev)
 
 	if (netdev->flags & IFF_PROMISC) {
 		if (!(nn->cap & NFP_NET_CFG_CTRL_PROMISC)) {
-			nn_warn(nn, "FW does not support promiscuous mode");
+			nn_warn(nn, "FW does not support promiscuous mode\n");
 			return;
 		}
 		new_ctrl |= NFP_NET_CFG_CTRL_PROMISC;
@@ -2043,7 +2043,7 @@ static void nfp_net_set_rx_mode(struct net_device *netdev)
 
 	if (netdev->flags & IFF_ALLMULTI) {
 		if (!(nn->cap & NFP_NET_CFG_CTRL_L2MC))
-			nn_warn(nn, "FW does not support ALLMULTI");
+			nn_warn(nn, "FW does not support ALLMULTI\n");
 		else
 			new_ctrl |= NFP_NET_CFG_CTRL_L2MC;
 	} else {
@@ -2063,7 +2063,7 @@ static int nfp_net_change_mtu(struct net_device *netdev, int new_mtu)
 	struct nfp_net *nn = netdev_priv(netdev);
 	u32 tmp;
 
-	nn_dbg(nn, "New MTU = %d", new_mtu);
+	nn_dbg(nn, "New MTU = %d\n", new_mtu);
 
 	if (new_mtu < 68 || new_mtu > nn->max_mtu) {
 		nn_err(nn, "New MTU (%d) is not valid\n", new_mtu);
@@ -2177,7 +2177,7 @@ static int nfp_net_set_features(struct net_device *netdev,
 	       (long long)changed);
 
 	if (new_ctrl != nn->ctrl) {
-		nn_dbg(nn, "NIC ctrl: 0x%x -> 0x%x", nn->ctrl, new_ctrl);
+		nn_dbg(nn, "NIC ctrl: 0x%x -> 0x%x\n", nn->ctrl, new_ctrl);
 		update = NFP_NET_CFG_UPDATE_GEN;
 		nn_writel(nn, NFP_NET_CFG_CTRL, new_ctrl);
 		err = nfp_net_reconfig(nn, update);

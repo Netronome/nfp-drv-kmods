@@ -72,7 +72,7 @@ struct platform_device *nfp_platform_device_register_unit(struct nfp_cpp *cpp,
 
 	pdev = platform_device_alloc(type, id);
 	if (!pdev) {
-		dev_err(dev, "Can't create '%s.%d' platform device",
+		dev_err(dev, "Can't create '%s.%d' platform device\n",
 			type, id);
 		return NULL;
 	}
@@ -82,7 +82,7 @@ struct platform_device *nfp_platform_device_register_unit(struct nfp_cpp *cpp,
 
 	err = platform_device_add(pdev);
 	if (err < 0) {
-		dev_err(dev, "Can't register '%s.%d' platform device",
+		dev_err(dev, "Can't register '%s.%d' platform device\n",
 			type, id);
 		platform_device_put(pdev);
 		return NULL;
