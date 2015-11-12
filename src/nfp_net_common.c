@@ -396,7 +396,7 @@ static void nfp_net_irqs_assign(struct net_device *netdev)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
 	struct nfp_net_r_vector *r_vec;
-	int i, r;
+	int r;
 
 	nn_assert(nn->num_irqs > 0, "num_irqs is zero\n");
 	nn_assert(nn->num_r_vecs > 0, "num_r_vecs is zero\n");
@@ -412,11 +412,11 @@ static void nfp_net_irqs_assign(struct net_device *netdev)
 	nn->lsc_handler = nfp_net_irq_lsc;
 	nn->exn_handler = nfp_net_irq_exn;
 
-	for (i = NFP_NET_NON_Q_VECTORS, r = 0; i < nn->num_irqs; i++, r++) {
+	for (r = 0; r < nn->num_r_vecs; r++) {
 		r_vec = &nn->r_vecs[r];
 		r_vec->nfp_net = nn;
 		r_vec->handler = nfp_net_irq_rxtx;
-		r_vec->irq_idx = i;
+		r_vec->irq_idx = NFP_NET_NON_Q_VECTORS + r;
 		clear_bit(NFP_NET_RVEC_IRQ_REQUESTED, &r_vec->flags);
 
 		cpumask_set_cpu(r, &r_vec->affinity_mask);
