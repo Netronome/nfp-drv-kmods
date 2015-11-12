@@ -415,7 +415,6 @@ static void nfp_net_irqs_assign(struct net_device *netdev)
 	for (i = NFP_NET_NON_Q_VECTORS, r = 0; i < nn->num_irqs; i++, r++) {
 		r_vec = &nn->r_vecs[r];
 		r_vec->nfp_net = nn;
-		r_vec->idx = r;
 		r_vec->handler = nfp_net_irq_rxtx;
 		r_vec->irq_idx = i;
 		clear_bit(NFP_NET_RVEC_IRQ_REQUESTED, &r_vec->flags);

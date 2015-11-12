@@ -348,7 +348,6 @@ enum nfp_net_r_vector_flags {
  * @flags:          Flags, see enum nfp_net_r_vector_flags
  * @tx_ring:        Pointer to TX ring
  * @rx_ring:        Pointer to RX ring
- * @idx:            Index of this ring vector
  * @irq_idx:        Index into MSI-X table
  * @rx_sync:	    Seqlock for atomic updates of RX stats
  * @rx_pkts:        Number of received packets
@@ -382,7 +381,6 @@ struct nfp_net_r_vector {
 	struct nfp_net_tx_ring *tx_ring;
 	struct nfp_net_rx_ring *rx_ring;
 
-	int idx;
 	int irq_idx;
 
 	struct u64_stats_sync rx_sync;
