@@ -1939,7 +1939,7 @@ static int nfp_net_netdev_close(struct net_device *netdev)
 static void nfp_net_set_rx_mode(struct net_device *netdev)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
-	u32 new_ctrl, update;
+	u32 new_ctrl;
 
 	new_ctrl = nn->ctrl;
 
@@ -1952,12 +1952,14 @@ static void nfp_net_set_rx_mode(struct net_device *netdev)
 		new_ctrl &= ~NFP_NET_CFG_CTRL_PROMISC;
 	}
 
-	if (new_ctrl != nn->ctrl) {
-		update = NFP_NET_CFG_UPDATE_GEN;
-		nn_writel(nn, NFP_NET_CFG_CTRL, new_ctrl);
-		nfp_net_reconfig(nn, update);
-		nn->ctrl = new_ctrl;
-	}
+	if (new_ctrl == nn->ctrl)
+		return;
+
+	nn_writel(nn, NFP_NET_CFG_CTRL, new_ctrl);
+	if (nfp_net_reconfig(nn, NFP_NET_CFG_UPDATE_GEN))
+		return;
+
+	nn->ctrl = new_ctrl;
 }
 
 static int nfp_net_change_mtu(struct net_device *netdev, int new_mtu)
