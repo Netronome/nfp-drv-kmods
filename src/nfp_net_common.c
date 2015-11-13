@@ -1952,15 +1952,6 @@ static void nfp_net_set_rx_mode(struct net_device *netdev)
 		new_ctrl &= ~NFP_NET_CFG_CTRL_PROMISC;
 	}
 
-	if (netdev->flags & IFF_ALLMULTI) {
-		if (nn->cap & NFP_NET_CFG_CTRL_L2MC)
-			new_ctrl |= NFP_NET_CFG_CTRL_L2MC;
-		else
-			nn_warn(nn, "FW does not support ALLMULTI\n");
-	} else {
-		new_ctrl &= ~NFP_NET_CFG_CTRL_L2MC;
-	}
-
 	if (new_ctrl != nn->ctrl) {
 		update = NFP_NET_CFG_UPDATE_GEN;
 		nn_writel(nn, NFP_NET_CFG_CTRL, new_ctrl);
@@ -2446,9 +2437,11 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	/* Advertise but disable TSO by default. */
 	netdev->features &= ~(NETIF_F_TSO | NETIF_F_TSO6);
 
-	/* Allow L2 Broadcast through by default, if supported */
+	/* Allow L2 Broadcast and Multicast through by default, if supported */
 	if (nn->cap & NFP_NET_CFG_CTRL_L2BC)
 		nn->ctrl |= NFP_NET_CFG_CTRL_L2BC;
+	if (nn->cap & NFP_NET_CFG_CTRL_L2MC)
+		nn->ctrl |= NFP_NET_CFG_CTRL_L2MC;
 
 	/* Allow IRQ moderation, if supported */
 	if (nn->cap & NFP_NET_CFG_CTRL_IRQMOD) {
