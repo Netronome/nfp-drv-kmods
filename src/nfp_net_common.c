@@ -2478,7 +2478,7 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	err = nfp_net_reconfig(nn, NFP_NET_CFG_UPDATE_RING |
 				   NFP_NET_CFG_UPDATE_GEN);
 	if (err)
-		goto err_reconfig;
+		return err;
 
 	/* Finalise the netdev setup */
 	ether_setup(netdev);
@@ -2489,9 +2489,6 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	nfp_net_irqs_assign(netdev);
 
 	return register_netdev(netdev);
-
-err_reconfig:
-	return err;
 }
 
 /**
