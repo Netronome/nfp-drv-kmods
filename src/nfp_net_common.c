@@ -1944,20 +1944,19 @@ static void nfp_net_set_rx_mode(struct net_device *netdev)
 	new_ctrl = nn->ctrl;
 
 	if (netdev->flags & IFF_PROMISC) {
-		if (!(nn->cap & NFP_NET_CFG_CTRL_PROMISC)) {
+		if (nn->cap & NFP_NET_CFG_CTRL_PROMISC)
+			new_ctrl |= NFP_NET_CFG_CTRL_PROMISC;
+		else
 			nn_warn(nn, "FW does not support promiscuous mode\n");
-			return;
-		}
-		new_ctrl |= NFP_NET_CFG_CTRL_PROMISC;
 	} else {
 		new_ctrl &= ~NFP_NET_CFG_CTRL_PROMISC;
 	}
 
 	if (netdev->flags & IFF_ALLMULTI) {
-		if (!(nn->cap & NFP_NET_CFG_CTRL_L2MC))
-			nn_warn(nn, "FW does not support ALLMULTI\n");
-		else
+		if (nn->cap & NFP_NET_CFG_CTRL_L2MC)
 			new_ctrl |= NFP_NET_CFG_CTRL_L2MC;
+		else
+			nn_warn(nn, "FW does not support ALLMULTI\n");
 	} else {
 		new_ctrl &= ~NFP_NET_CFG_CTRL_L2MC;
 	}
