@@ -1941,12 +1941,6 @@ static void nfp_net_set_rx_mode(struct net_device *netdev)
 	struct nfp_net *nn = netdev_priv(netdev);
 	u32 new_ctrl, update;
 
-	if (netdev->flags & IFF_PROMISC &&
-	    !(nn->cap & NFP_NET_CFG_CTRL_PROMISC)) {
-		nn_warn(nn, "FW does not support promiscuous mode\n");
-		return;
-	}
-
 	new_ctrl = nn->ctrl;
 
 	if (netdev->flags & IFF_PROMISC) {
