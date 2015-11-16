@@ -1782,15 +1782,15 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 
 	err = nfp_net_alloc_resources(nn);
 	if (err)
-		goto err_alloc_rings;
+		goto err_free_irqs;
 
 	err = netif_set_real_num_tx_queues(netdev, nn->num_tx_rings);
 	if (err)
-		goto err_set_queues;
+		goto err_free_resources;
 
 	err = netif_set_real_num_rx_queues(netdev, nn->num_rx_rings);
 	if (err)
-		goto err_set_queues;
+		goto err_free_resources;
 
 	if (nn->cap & NFP_NET_CFG_CTRL_RSS) {
 		nfp_net_rss_write_key(nn);
@@ -1835,7 +1835,7 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 	nn_writel(nn, NFP_NET_CFG_CTRL, new_ctrl);
 	err = nfp_net_reconfig(nn, update);
 	if (err)
-		goto err_reconfig;
+		goto err_clear_config;
 
 	nn->ctrl = new_ctrl;
 
@@ -1862,7 +1862,7 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 		 */
 		for (i = 0; i < NFP_NET_FL_KICK_BATCH; i++)
 			if (nfp_net_rx_freelist_alloc_one(r_vec->rx_ring))
-				goto err_reconfig;
+				goto err_clear_config;
 
 		n = nfp_net_rx_fill_freelist(r_vec->rx_ring);
 		nn_dbg(nn, "RV%02d RxQ%02d: Added %d freelist buffers\n",
@@ -1885,11 +1885,11 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 
 	return 0;
 
-err_reconfig:
+err_clear_config:
 	/* Could clean up some of the cfg BAR settings here */
-err_set_queues:
+err_free_resources:
 	nfp_net_free_resources(nn);
-err_alloc_rings:
+err_free_irqs:
 	nfp_net_irqs_free(netdev);
 	return err;
 }
