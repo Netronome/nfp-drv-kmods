@@ -430,6 +430,51 @@ static void nfp_net_irqs_assign(struct net_device *netdev)
 }
 
 /**
+ * nfp_net_aux_irq_request() - Request an auxiliary interrupt (LSC or EXN)
+ * @nn:		NFP Network structure
+ * @ctrl_offset: Control BAR offset where IRQ configuration should be written
+ * @format:	printf-style format to construct the interrupt name
+ * @name:	Pointer to allocated space for interrupt name
+ * @name_sz:	Size of space for interrupt name
+ * @vector_idx:	Index of MSI-X vector used for this interrupt
+ * @handler:	IRQ handler to register for this interrupt
+ */
+static int
+nfp_net_aux_irq_request(struct nfp_net *nn, u32 ctrl_offset,
+			const char *format, char *name, size_t name_sz,
+			unsigned int vector_idx, irq_handler_t handler)
+{
+	struct msix_entry *entry;
+	int err;
+
+	entry = &nn->irq_entries[vector_idx];
+
+	snprintf(name, name_sz, format, netdev_name(nn->netdev));
+	err = request_irq(entry->vector, handler, 0, name, nn);
+	if (err) {
+		nn_err(nn, "Failed to request IRQ %d (err=%d).\n",
+		       entry->vector, err);
+		return err;
+	}
+	nn_writeb(nn, ctrl_offset, vector_idx);
+
+	return 0;
+}
+
+/**
+ * nfp_net_aux_irq_free() - Free an auxiliary interrupt (LSC or EXN)
+ * @nn:		NFP Network structure
+ * @ctrl_offset: Control BAR offset where IRQ configuration should be written
+ * @vector_idx:	Index of MSI-X vector used for this interrupt
+ */
+static void nfp_net_aux_irq_free(struct nfp_net *nn, u32 ctrl_offset,
+				 unsigned int vector_idx)
+{
+	nn_writeb(nn, ctrl_offset, 0xff);
+	free_irq(nn->irq_entries[vector_idx].vector, nn);
+}
+
+/**
  * nfp_net_irqs_request() - Request the common interrupts
  * @netdev:   netdev structure
  *
@@ -437,42 +482,26 @@ static void nfp_net_irqs_assign(struct net_device *netdev)
  */
 static int nfp_net_irqs_request(struct net_device *netdev)
 {
-	struct msix_entry *lsc_entry, *exn_entry;
 	struct nfp_net *nn = netdev_priv(netdev);
 	int err;
 
 	nn_assert(nn->num_irqs > 0, "num_irqs is zero\n");
 
-	lsc_entry = &nn->irq_entries[NFP_NET_IRQ_LSC_IDX];
+	err = nfp_net_aux_irq_request(nn, NFP_NET_CFG_LSC, "%s-lsc",
+				      nn->lsc_name, sizeof(nn->lsc_name),
+				      NFP_NET_IRQ_LSC_IDX, nn->lsc_handler);
+	if (err)
+		return err;
 
-	snprintf(nn->lsc_name, sizeof(nn->lsc_name), "%s-lsc", netdev->name);
-	err = request_irq(lsc_entry->vector,
-			  nn->lsc_handler, 0, nn->lsc_name, nn);
+	err = nfp_net_aux_irq_request(nn, NFP_NET_CFG_EXN, "%s-exn",
+				      nn->exn_name, sizeof(nn->exn_name),
+				      NFP_NET_IRQ_EXN_IDX, nn->exn_handler);
 	if (err) {
-		nn_err(nn, "Failed to request IRQ %d (err=%d).\n",
-		       lsc_entry->vector, err);
+		nfp_net_aux_irq_free(nn, NFP_NET_CFG_LSC, NFP_NET_IRQ_LSC_IDX);
 		return err;
 	}
-	nn_writeb(nn, NFP_NET_CFG_LSC, NFP_NET_IRQ_LSC_IDX);
-
-	exn_entry = &nn->irq_entries[NFP_NET_IRQ_EXN_IDX];
-
-	snprintf(nn->exn_name, sizeof(nn->exn_name), "%s-exn", netdev->name);
-	err = request_irq(exn_entry->vector,
-			  nn->exn_handler, 0, nn->exn_name, nn);
-	if (err) {
-		nn_err(nn, "Failed to request IRQ %d (err=%d).\n",
-		       exn_entry->vector, err);
-		goto err_exn;
-	}
-	nn_writeb(nn, NFP_NET_CFG_EXN, NFP_NET_IRQ_EXN_IDX);
 
 	return 0;
-
-err_exn:
-	nn_writeb(nn, NFP_NET_CFG_LSC, 0xff);
-	free_irq(lsc_entry->vector, nn);
-	return err;
 }
 
 /**
@@ -488,11 +517,8 @@ static void nfp_net_irqs_free(struct net_device *netdev)
 
 	nn_assert(nn->num_irqs > 0, "num_irqs is zero\n");
 
-	nn_writeb(nn, NFP_NET_CFG_EXN, 0xff);
-	free_irq(nn->irq_entries[NFP_NET_IRQ_EXN_IDX].vector, nn);
-
-	nn_writeb(nn, NFP_NET_CFG_LSC, 0xff);
-	free_irq(nn->irq_entries[NFP_NET_IRQ_LSC_IDX].vector, nn);
+	nfp_net_aux_irq_free(nn, NFP_NET_CFG_EXN, NFP_NET_IRQ_EXN_IDX);
+	nfp_net_aux_irq_free(nn, NFP_NET_CFG_LSC, NFP_NET_IRQ_LSC_IDX);
 }
 
 /* Transmit
