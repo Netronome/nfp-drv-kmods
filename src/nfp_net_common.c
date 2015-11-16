@@ -475,36 +475,6 @@ static void nfp_net_aux_irq_free(struct nfp_net *nn, u32 ctrl_offset,
 }
 
 /**
- * nfp_net_irqs_request() - Request the common interrupts
- * @netdev:   netdev structure
- *
- * Interrupts for LSC and EXN (ring vectors are requested elsewhere)
- */
-static int nfp_net_irqs_request(struct net_device *netdev)
-{
-	struct nfp_net *nn = netdev_priv(netdev);
-	int err;
-
-	nn_assert(nn->num_irqs > 0, "num_irqs is zero\n");
-
-	err = nfp_net_aux_irq_request(nn, NFP_NET_CFG_LSC, "%s-lsc",
-				      nn->lsc_name, sizeof(nn->lsc_name),
-				      NFP_NET_IRQ_LSC_IDX, nn->lsc_handler);
-	if (err)
-		return err;
-
-	err = nfp_net_aux_irq_request(nn, NFP_NET_CFG_EXN, "%s-exn",
-				      nn->exn_name, sizeof(nn->exn_name),
-				      NFP_NET_IRQ_EXN_IDX, nn->exn_handler);
-	if (err) {
-		nfp_net_aux_irq_free(nn, NFP_NET_CFG_LSC, NFP_NET_IRQ_LSC_IDX);
-		return err;
-	}
-
-	return 0;
-}
-
-/**
  * nfp_net_irqs_free() - Free the requested common interrupts
  * @netdev:   netdev structure
  *
@@ -1807,13 +1777,15 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 	 * - Allocate RX and TX ring resources
 	 * - Setup initial RSS table
 	 */
-	err = nfp_net_irqs_request(netdev);
+	err = nfp_net_aux_irq_request(nn, NFP_NET_CFG_EXN, "%s-exn",
+				      nn->exn_name, sizeof(nn->exn_name),
+				      NFP_NET_IRQ_EXN_IDX, nn->exn_handler);
 	if (err)
 		return err;
 
 	err = nfp_net_alloc_resources(nn);
 	if (err)
-		goto err_free_irqs;
+		goto err_free_exn;
 
 	err = netif_set_real_num_tx_queues(netdev, nn->num_tx_rings);
 	if (err)
@@ -1922,10 +1894,18 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 		nfp_qcp_wr_ptr_add(nn->r_vecs[r].rx_ring->qcp_fl,
 				   NFP_NET_FL_KICK_BATCH);
 
+	err = nfp_net_aux_irq_request(nn, NFP_NET_CFG_LSC, "%s-lsc",
+				      nn->lsc_name, sizeof(nn->lsc_name),
+				      NFP_NET_IRQ_LSC_IDX, nn->lsc_handler);
+	if (err)
+		goto err_stop_tx;
 	nfp_net_read_link_status(nn);
 
 	return 0;
 
+err_stop_tx:
+	netif_tx_disable(netdev);
+	r = nn->num_r_vecs;
 err_disable_napi:
 	while (r--)
 		napi_disable(&nn->r_vecs[r].napi);
@@ -1933,8 +1913,8 @@ err_clear_config:
 	nfp_net_clear_config_and_disable(nn);
 err_free_resources:
 	nfp_net_free_resources(nn);
-err_free_irqs:
-	nfp_net_irqs_free(netdev);
+err_free_exn:
+	nfp_net_aux_irq_free(nn, NFP_NET_CFG_EXN, NFP_NET_IRQ_EXN_IDX);
 	return err;
 }
 
