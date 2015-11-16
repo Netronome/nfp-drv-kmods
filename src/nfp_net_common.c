@@ -1893,9 +1893,19 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 		 */
 		for (i = 0; i < NFP_NET_FL_KICK_BATCH; i++)
 			if (nfp_net_rx_freelist_alloc_one(r_vec->rx_ring))
-				goto err_clear_config;
+				goto err_disable_napi;
 
 		n = nfp_net_rx_fill_freelist(r_vec->rx_ring);
+		if (n < NFP_NET_FL_KICK_BATCH) {
+			/* FW consumes free list buffers in batches, if there
+			 * is not enough buffers to move internal pointers RX
+			 * will not work.
+			 */
+			nn_err(nn, "RV%02d: couldn't allocate enough buffers\n",
+			       r_vec->irq_idx);
+			err = -ENOMEM;
+			goto err_disable_napi;
+		}
 		nn_dbg(nn, "RV%02d RxQ%02d: Added %d freelist buffers\n",
 		       r, r_vec->rx_ring->idx, n + NFP_NET_FL_KICK_BATCH);
 
@@ -1916,6 +1926,9 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 
 	return 0;
 
+err_disable_napi:
+	while (r--)
+		napi_disable(&nn->r_vecs[r].napi);
 err_clear_config:
 	nfp_net_clear_config_and_disable(nn);
 err_free_resources:
