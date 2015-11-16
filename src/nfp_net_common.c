@@ -489,11 +489,9 @@ static void nfp_net_irqs_free(struct net_device *netdev)
 	nn_assert(nn->num_irqs > 0, "num_irqs is zero\n");
 
 	nn_writeb(nn, NFP_NET_CFG_EXN, 0xff);
-	synchronize_irq(nn->irq_entries[NFP_NET_IRQ_EXN_IDX].vector);
 	free_irq(nn->irq_entries[NFP_NET_IRQ_EXN_IDX].vector, nn);
 
 	nn_writeb(nn, NFP_NET_CFG_LSC, 0xff);
-	synchronize_irq(nn->irq_entries[NFP_NET_IRQ_LSC_IDX].vector);
 	free_irq(nn->irq_entries[NFP_NET_IRQ_LSC_IDX].vector, nn);
 }
 
@@ -1651,7 +1649,6 @@ static void nfp_net_free_resources(struct nfp_net *nn)
 
 		if (test_bit(NFP_NET_RVEC_IRQ_REQUESTED, &r_vec->flags)) {
 			irq_set_affinity_hint(entry->vector, NULL);
-			synchronize_irq(entry->vector);
 			free_irq(entry->vector, r_vec);
 			clear_bit(NFP_NET_RVEC_IRQ_REQUESTED, &r_vec->flags);
 		}
