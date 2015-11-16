@@ -1750,9 +1750,6 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 		return -EBUSY;
 	}
 
-	netif_carrier_off(netdev);
-	nn->link_up = false;
-
 	new_ctrl = nn->ctrl;
 
 	/* Step 1: Allocate resources for rings and the like
