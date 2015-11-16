@@ -295,12 +295,30 @@ static irqreturn_t nfp_net_irq_rxtx(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
-static void nfp_net_print_link(struct nfp_net *nn, bool isup)
+/**
+ * nfp_net_read_link_status() - Reread link status from control BAR
+ * @nn:       NFP Network structure
+ */
+static void nfp_net_read_link_status(struct nfp_net *nn)
 {
-	if (isup)
+	bool link_up;
+	u32 sts;
+
+	sts = nn_readl(nn, NFP_NET_CFG_STS);
+	link_up = !!(sts & NFP_NET_CFG_STS_LINK);
+
+	if (nn->link_up == link_up)
+		return;
+
+	nn->link_up = link_up;
+
+	if (nn->link_up) {
+		netif_carrier_on(nn->netdev);
 		netdev_info(nn->netdev, "NIC Link is Up\n");
-	else
+	} else {
+		netif_carrier_off(nn->netdev);
 		netdev_info(nn->netdev, "NIC Link is Down\n");
+	}
 }
 
 /**
@@ -314,25 +332,9 @@ static irqreturn_t nfp_net_irq_lsc(int irq, void *data)
 {
 	struct net_device *netdev = data;
 	struct nfp_net *nn = netdev_priv(netdev);
-	bool link_up;
-	u32 sts;
 
-	sts = nn_readl(nn, NFP_NET_CFG_STS);
-	link_up = !!(sts & NFP_NET_CFG_STS_LINK);
+	nfp_net_read_link_status(nn);
 
-	if (nn->link_up == link_up)
-		goto unmask_lsc_irq;
-
-	nn->link_up = link_up;
-
-	if (nn->link_up)
-		netif_carrier_on(netdev);
-	else
-		netif_carrier_off(netdev);
-
-	nfp_net_print_link(nn, sts & NFP_NET_CFG_STS_LINK);
-
-unmask_lsc_irq:
 	nfp_net_irq_unmask(nn, NFP_NET_IRQ_LSC_IDX);
 
 	return IRQ_HANDLED;
@@ -1737,7 +1739,6 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 	int err, n, i, r;
 	u32 update = 0;
 	u32 new_ctrl;
-	u32 sts;
 
 	if (nn->ctrl & NFP_NET_CFG_CTRL_ENABLE) {
 		nn_err(nn, "Dev is already enabled: 0x%08x\n", nn->ctrl);
@@ -1745,6 +1746,7 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 	}
 
 	netif_carrier_off(netdev);
+	nn->link_up = false;
 
 	new_ctrl = nn->ctrl;
 
@@ -1858,11 +1860,7 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 		nfp_qcp_wr_ptr_add(nn->r_vecs[r].rx_ring->qcp_fl,
 				   NFP_NET_FL_KICK_BATCH);
 
-	sts = nn_readl(nn, NFP_NET_CFG_STS);
-	nn->link_up = !!(sts & NFP_NET_CFG_STS_LINK);
-	nfp_net_print_link(nn, nn->link_up);
-	if (nn->link_up)
-		netif_carrier_on(netdev);
+	nfp_net_read_link_status(nn);
 
 	return 0;
 
@@ -1893,6 +1891,7 @@ static int nfp_net_netdev_close(struct net_device *netdev)
 	/* Step 1: Disable RX and TX rings from the Linux kernel perspective
 	 */
 	netif_carrier_off(netdev);
+	nn->link_up = false;
 
 	for (r = 0; r < nn->num_r_vecs; r++)
 		napi_disable(&nn->r_vecs[r].napi);
