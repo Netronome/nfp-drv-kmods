@@ -474,23 +474,6 @@ static void nfp_net_aux_irq_free(struct nfp_net *nn, u32 ctrl_offset,
 	free_irq(nn->irq_entries[vector_idx].vector, nn);
 }
 
-/**
- * nfp_net_irqs_free() - Free the requested common interrupts
- * @netdev:   netdev structure
- *
- * This frees the general interrupt (not the ring interrupts). It
- * undoes what @nfp_net_irqs_request set-up.
- */
-static void nfp_net_irqs_free(struct net_device *netdev)
-{
-	struct nfp_net *nn = netdev_priv(netdev);
-
-	nn_assert(nn->num_irqs > 0, "num_irqs is zero\n");
-
-	nfp_net_aux_irq_free(nn, NFP_NET_CFG_EXN, NFP_NET_IRQ_EXN_IDX);
-	nfp_net_aux_irq_free(nn, NFP_NET_CFG_LSC, NFP_NET_IRQ_LSC_IDX);
-}
-
 /* Transmit
  *
  * One queue controller peripheral queue is used for transmit.  The
@@ -1934,6 +1917,7 @@ static int nfp_net_netdev_close(struct net_device *netdev)
 
 	/* Step 1: Disable RX and TX rings from the Linux kernel perspective
 	 */
+	nfp_net_aux_irq_free(nn, NFP_NET_CFG_LSC, NFP_NET_IRQ_LSC_IDX);
 	netif_carrier_off(netdev);
 	nn->link_up = false;
 
@@ -1954,7 +1938,7 @@ static int nfp_net_netdev_close(struct net_device *netdev)
 	}
 
 	nfp_net_free_resources(nn);
-	nfp_net_irqs_free(netdev);
+	nfp_net_aux_irq_free(nn, NFP_NET_CFG_EXN, NFP_NET_IRQ_EXN_IDX);
 
 	nn_dbg(nn, "%s down", netdev->name);
 	return 0;
