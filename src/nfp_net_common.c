@@ -1743,10 +1743,44 @@ static void nfp_net_clear_config_and_disable(struct nfp_net *nn)
 	nn->ctrl = new_ctrl;
 }
 
+/**
+ * nfp_net_start_vec() - Start ring vector
+ * @nn:      NFP Net device structure
+ * @r_vec:   Ring vector to be started
+ */
+static int nfp_net_start_vec(struct nfp_net *nn, struct nfp_net_r_vector *r_vec)
+{
+	unsigned int irq_vec, n;
+	int err = 0;
+
+	irq_vec = nn->irq_entries[r_vec->irq_idx].vector;
+
+	disable_irq(irq_vec);
+
+	n = nfp_net_rx_fill_freelist(r_vec->rx_ring);
+	if (n < NFP_NET_FL_KICK_BATCH) {
+		/* The FW consumes free list buffers in batches. If we can't
+		 * allocate enough buffers return an error as RX won't work.
+		 */
+		nn_err(nn, "RV%02d: couldn't allocate enough buffers\n",
+		       r_vec->irq_idx);
+		err = -ENOMEM;
+		goto out;
+	}
+	nn_dbg(nn, "RV%02d RxQ%02d: Added %u freelist buffers\n",
+	       r_vec->irq_idx, r_vec->rx_ring->idx, n);
+
+	napi_enable(&r_vec->napi);
+out:
+	enable_irq(irq_vec);
+
+	return err;
+}
+
 static int nfp_net_netdev_open(struct net_device *netdev)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
-	int err, n, i, r;
+	int err, r;
 	u32 update = 0;
 	u32 new_ctrl;
 
@@ -1834,50 +1868,12 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 	 * - set link state
 	 */
 	for (r = 0; r < nn->num_r_vecs; r++) {
-		struct nfp_net_r_vector *r_vec = &nn->r_vecs[r];
-
-		/* Because we don't have any "RX enable bit" as soon as we give
-		 * FW buffers it can start consuming them.  Add to that the IRQ
-		 * automasking feature and we can deadlock the RX - FW may
-		 * consume all the buffers before we can take interrupts.
-		 *
-		 * As a workaround we set 32 buffers aside - we put them on the
-		 * ring just don't increment the ring count for FW.  We can then
-		 * give them to FW once IRQs are fully ready without risking any
-		 * races with IRQ/napi handlers.
-		 * We need at least 32 buffers because thats the batch size
-		 * in which FW consumes them.
-		 */
-		for (i = 0; i < NFP_NET_FL_KICK_BATCH; i++)
-			if (nfp_net_rx_freelist_alloc_one(r_vec->rx_ring))
-				goto err_disable_napi;
-
-		n = nfp_net_rx_fill_freelist(r_vec->rx_ring);
-		if (n < NFP_NET_FL_KICK_BATCH) {
-			/* FW consumes free list buffers in batches, if there
-			 * is not enough buffers to move internal pointers RX
-			 * will not work.
-			 */
-			nn_err(nn, "RV%02d: couldn't allocate enough buffers\n",
-			       r_vec->irq_idx);
-			err = -ENOMEM;
+		err = nfp_net_start_vec(nn, &nn->r_vecs[r]);
+		if (err)
 			goto err_disable_napi;
-		}
-		nn_dbg(nn, "RV%02d RxQ%02d: Added %d freelist buffers\n",
-		       r, r_vec->rx_ring->idx, n + NFP_NET_FL_KICK_BATCH);
-
-		napi_enable(&r_vec->napi);
 	}
 
 	netif_tx_wake_all_queues(netdev);
-
-	/* Now we are fully set up - unmask IRQs and release extra buffers */
-	for (r = 0; r < nn->num_r_vecs; r++)
-		nfp_net_irq_unmask(nn, nn->r_vecs[r].irq_idx);
-	msleep(1);
-	for (r = 0; r < nn->num_r_vecs; r++)
-		nfp_qcp_wr_ptr_add(nn->r_vecs[r].rx_ring->qcp_fl,
-				   NFP_NET_FL_KICK_BATCH);
 
 	err = nfp_net_aux_irq_request(nn, NFP_NET_CFG_LSC, "%s-lsc",
 				      nn->lsc_name, sizeof(nn->lsc_name),
