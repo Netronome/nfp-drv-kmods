@@ -1754,6 +1754,37 @@ static void nfp_net_write_mac_addr(struct nfp_net *nn, const u8 *mac)
 		  get_unaligned_be16(nn->netdev->dev_addr + 4) << 16);
 }
 
+/**
+ * nfp_net_clear_config_and_disable() - Clear control BAR and disable NFP
+ * @nn:      NFP Net device to reconfigure
+ */
+static void nfp_net_clear_config_and_disable(struct nfp_net *nn)
+{
+	u32 new_ctrl, update;
+	int err;
+
+	new_ctrl = nn->ctrl;
+	new_ctrl &= ~NFP_NET_CFG_CTRL_ENABLE;
+	update = NFP_NET_CFG_UPDATE_GEN;
+	update |= NFP_NET_CFG_UPDATE_MSIX;
+	update |= NFP_NET_CFG_UPDATE_RING;
+
+	if (nn->cap & NFP_NET_CFG_CTRL_RINGCFG)
+		new_ctrl &= ~NFP_NET_CFG_CTRL_RINGCFG;
+
+	nn_writeq(nn, NFP_NET_CFG_TXRS_ENABLE, 0);
+	nn_writeq(nn, NFP_NET_CFG_RXRS_ENABLE, 0);
+
+	nn_writel(nn, NFP_NET_CFG_CTRL, new_ctrl);
+	err = nfp_net_reconfig(nn, update);
+	if (err) {
+		nn_err(nn, "Could not disable device: %d\n", err);
+		return;
+	}
+
+	nn->ctrl = new_ctrl;
+}
+
 static int nfp_net_netdev_open(struct net_device *netdev)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
@@ -1886,7 +1917,7 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 	return 0;
 
 err_clear_config:
-	/* Could clean up some of the cfg BAR settings here */
+	nfp_net_clear_config_and_disable(nn);
 err_free_resources:
 	nfp_net_free_resources(nn);
 err_free_irqs:
@@ -1901,8 +1932,7 @@ err_free_irqs:
 static int nfp_net_netdev_close(struct net_device *netdev)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
-	unsigned int new_ctrl, update;
-	int err, r, i;
+	int r, i;
 
 	if (!(nn->ctrl & NFP_NET_CFG_CTRL_ENABLE)) {
 		nn_err(nn, "Dev is not up: 0x%08x\n", nn->ctrl);
@@ -1921,28 +1951,9 @@ static int nfp_net_netdev_close(struct net_device *netdev)
 
 	/* Step 2: Tell NFP
 	 */
-	new_ctrl = nn->ctrl;
-	new_ctrl &= ~NFP_NET_CFG_CTRL_ENABLE;
-	update = NFP_NET_CFG_UPDATE_GEN;
-	update |= NFP_NET_CFG_UPDATE_MSIX;
-	update |= NFP_NET_CFG_UPDATE_RING;
+	nfp_net_clear_config_and_disable(nn);
 
-	if (nn->cap & NFP_NET_CFG_CTRL_RINGCFG)
-		new_ctrl &= ~NFP_NET_CFG_CTRL_RINGCFG;
-
-	nn_writeq(nn, NFP_NET_CFG_TXRS_ENABLE, 0);
-	nn_writeq(nn, NFP_NET_CFG_RXRS_ENABLE, 0);
-
-	/* Step 3: Notify NFP
-	 */
-	nn_writel(nn, NFP_NET_CFG_CTRL, new_ctrl);
-	err = nfp_net_reconfig(nn, update);
-	if (err)
-		return err;
-
-	nn->ctrl = new_ctrl;
-
-	/* Step 4: Free resources
+	/* Step 3: Free resources
 	 */
 	for (i = 0; i < nn->num_r_vecs; i++) {
 		nfp_net_rx_flush(nn->r_vecs[i].rx_ring);
