@@ -301,14 +301,17 @@ static irqreturn_t nfp_net_irq_rxtx(int irq, void *data)
  */
 static void nfp_net_read_link_status(struct nfp_net *nn)
 {
+	unsigned long flags;
 	bool link_up;
 	u32 sts;
+
+	spin_lock_irqsave(&nn->link_status_lock, flags);
 
 	sts = nn_readl(nn, NFP_NET_CFG_STS);
 	link_up = !!(sts & NFP_NET_CFG_STS_LINK);
 
 	if (nn->link_up == link_up)
-		return;
+		goto out;
 
 	nn->link_up = link_up;
 
@@ -319,6 +322,8 @@ static void nfp_net_read_link_status(struct nfp_net *nn)
 		netif_carrier_off(nn->netdev);
 		netdev_info(nn->netdev, "NIC Link is Down\n");
 	}
+out:
+	spin_unlock_irqrestore(&nn->link_status_lock, flags);
 }
 
 /**
@@ -2319,6 +2324,7 @@ struct nfp_net *nfp_net_netdev_alloc(struct pci_dev *pdev,
 	nn->rxd_cnt = NFP_NET_RX_DESCS_DEFAULT;
 
 	spin_lock_init(&nn->reconfig_lock);
+	spin_lock_init(&nn->link_status_lock);
 
 	return nn;
 }

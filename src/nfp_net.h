@@ -429,7 +429,6 @@ static inline bool nfp_net_fw_ver_eq(struct nfp_net_fw_version *fw_ver,
  * @nfp_fallback:       Is the driver used in fallback mode?
  * @is_vf:              Is the driver attached to a VF?
  * @is_nfp3200:         Is the driver for a NFP-3200 card?
- * @link_up:            Is the link up?
  * @fw_loaded:          Is the firmware loaded?
  * @ctrl:               Local copy of the control register/word.
  * @fl_bufsz:           Currently configured size of the freelist buffers
@@ -465,6 +464,8 @@ static inline bool nfp_net_fw_ver_eq(struct nfp_net_fw_version *fw_ver,
  * @shared_name:        Name for shared interrupt
  * @me_freq_mhz:        ME clock_freq (MHz)
  * @reconfig_lock:	Protects HW reconfiguration request regs/machinery
+ * @link_up:            Is the link up?
+ * @link_status_lock:	Protects @link_up and ensures atomicity with BAR reading
  * @rx_coalesce_usecs:      RX interrupt moderation usecs delay parameter
  * @rx_coalesce_max_frames: RX interrupt moderation frame count parameter
  * @tx_coalesce_usecs:      TX interrupt moderation usecs delay parameter
@@ -486,7 +487,6 @@ struct nfp_net {
 	unsigned nfp_fallback:1;
 	unsigned is_vf:1;
 	unsigned is_nfp3200:1;
-	unsigned link_up:1;
 	unsigned fw_loaded:1;
 
 	u32 ctrl;
@@ -545,6 +545,9 @@ struct nfp_net {
 	char shared_name[IFNAMSIZ + 8];
 
 	u32 me_freq_mhz;
+
+	bool link_up;
+	spinlock_t link_status_lock;
 
 	spinlock_t reconfig_lock;
 
