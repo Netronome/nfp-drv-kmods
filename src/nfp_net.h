@@ -429,7 +429,6 @@ static inline bool nfp_net_fw_ver_eq(struct nfp_net_fw_version *fw_ver,
  * @nfp_fallback:       Is the driver used in fallback mode?
  * @is_vf:              Is the driver attached to a VF?
  * @is_nfp3200:         Is the driver for a NFP-3200 card?
- * @removing_pdev:      Are we in the process of removing the device driver
  * @link_up:            Is the link up?
  * @fw_loaded:          Is the firmware loaded?
  * @ctrl:               Local copy of the control register/word.
@@ -487,7 +486,6 @@ struct nfp_net {
 	unsigned nfp_fallback:1;
 	unsigned is_vf:1;
 	unsigned is_nfp3200:1;
-	unsigned removing_pdev:1;
 	unsigned link_up:1;
 	unsigned fw_loaded:1;
 

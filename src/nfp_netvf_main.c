@@ -331,7 +331,6 @@ static void nfp_netvf_pci_remove(struct pci_dev *pdev)
 	 */
 	nfp_net_debugfs_adapter_del(nn);
 
-	nn->removing_pdev = 1;
 	nfp_net_netdev_clean(nn->netdev);
 
 	nfp_net_irqs_disable(nn);
