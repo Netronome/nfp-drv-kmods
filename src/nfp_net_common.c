@@ -330,8 +330,7 @@ static void nfp_net_read_link_status(struct nfp_net *nn)
  */
 static irqreturn_t nfp_net_irq_lsc(int irq, void *data)
 {
-	struct net_device *netdev = data;
-	struct nfp_net *nn = netdev_priv(netdev);
+	struct nfp_net *nn = data;
 
 	nfp_net_read_link_status(nn);
 
@@ -349,8 +348,7 @@ static irqreturn_t nfp_net_irq_lsc(int irq, void *data)
  */
 static irqreturn_t nfp_net_irq_exn(int irq, void *data)
 {
-	struct net_device *netdev = data;
-	struct nfp_net *nn = netdev_priv(netdev);
+	struct nfp_net *nn = data;
 
 	nn_err(nn, "%s: UNIMPLEMENTED.\n", __func__);
 	/* XXX TO BE IMPLEMENTED */
@@ -449,7 +447,7 @@ static int nfp_net_irqs_request(struct net_device *netdev)
 
 	snprintf(nn->lsc_name, sizeof(nn->lsc_name), "%s-lsc", netdev->name);
 	err = request_irq(lsc_entry->vector,
-			  nn->lsc_handler, 0, nn->lsc_name, netdev);
+			  nn->lsc_handler, 0, nn->lsc_name, nn);
 	if (err) {
 		nn_err(nn, "Failed to request IRQ %d (err=%d).\n",
 		       lsc_entry->vector, err);
@@ -461,7 +459,7 @@ static int nfp_net_irqs_request(struct net_device *netdev)
 
 	snprintf(nn->exn_name, sizeof(nn->exn_name), "%s-exn", netdev->name);
 	err = request_irq(exn_entry->vector,
-			  nn->exn_handler, 0, nn->exn_name, netdev);
+			  nn->exn_handler, 0, nn->exn_name, nn);
 	if (err) {
 		nn_err(nn, "Failed to request IRQ %d (err=%d).\n",
 		       exn_entry->vector, err);
@@ -472,7 +470,7 @@ static int nfp_net_irqs_request(struct net_device *netdev)
 	return 0;
 
 err_exn:
-	free_irq(lsc_entry->vector, netdev);
+	free_irq(lsc_entry->vector, nn);
 	nn_writeb(nn, NFP_NET_CFG_LSC, 0xff);
 	return err;
 }
@@ -491,11 +489,11 @@ static void nfp_net_irqs_free(struct net_device *netdev)
 	nn_assert(nn->num_irqs > 0, "num_irqs is zero\n");
 
 	synchronize_irq(nn->irq_entries[NFP_NET_IRQ_EXN_IDX].vector);
-	free_irq(nn->irq_entries[NFP_NET_IRQ_EXN_IDX].vector, netdev);
+	free_irq(nn->irq_entries[NFP_NET_IRQ_EXN_IDX].vector, nn);
 	nn_writeb(nn, NFP_NET_CFG_EXN, 0xff);
 
 	synchronize_irq(nn->irq_entries[NFP_NET_IRQ_LSC_IDX].vector);
-	free_irq(nn->irq_entries[NFP_NET_IRQ_LSC_IDX].vector, netdev);
+	free_irq(nn->irq_entries[NFP_NET_IRQ_LSC_IDX].vector, nn);
 	nn_writeb(nn, NFP_NET_CFG_LSC, 0xff);
 }
 
