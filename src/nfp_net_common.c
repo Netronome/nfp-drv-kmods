@@ -470,8 +470,8 @@ static int nfp_net_irqs_request(struct net_device *netdev)
 	return 0;
 
 err_exn:
-	free_irq(lsc_entry->vector, nn);
 	nn_writeb(nn, NFP_NET_CFG_LSC, 0xff);
+	free_irq(lsc_entry->vector, nn);
 	return err;
 }
 
@@ -488,13 +488,13 @@ static void nfp_net_irqs_free(struct net_device *netdev)
 
 	nn_assert(nn->num_irqs > 0, "num_irqs is zero\n");
 
+	nn_writeb(nn, NFP_NET_CFG_EXN, 0xff);
 	synchronize_irq(nn->irq_entries[NFP_NET_IRQ_EXN_IDX].vector);
 	free_irq(nn->irq_entries[NFP_NET_IRQ_EXN_IDX].vector, nn);
-	nn_writeb(nn, NFP_NET_CFG_EXN, 0xff);
 
+	nn_writeb(nn, NFP_NET_CFG_LSC, 0xff);
 	synchronize_irq(nn->irq_entries[NFP_NET_IRQ_LSC_IDX].vector);
 	free_irq(nn->irq_entries[NFP_NET_IRQ_LSC_IDX].vector, nn);
-	nn_writeb(nn, NFP_NET_CFG_LSC, 0xff);
 }
 
 /* Transmit
