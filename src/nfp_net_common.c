@@ -1576,18 +1576,14 @@ static int nfp_net_alloc_rings(struct nfp_net *nn)
 		       r, entry->vector, entry->entry);
 
 		/* Allocate TX ring resources */
-		if (r_vec->tx_ring) {
-			err = nfp_net_tx_ring_alloc(r_vec->tx_ring);
-			if (err)
-				goto err_alloc;
-		}
+		err = nfp_net_tx_ring_alloc(r_vec->tx_ring);
+		if (err)
+			goto err_alloc;
 
 		/* Allocate RX ring resources */
-		if (r_vec->rx_ring) {
-			err = nfp_net_rx_ring_alloc(r_vec->rx_ring);
-			if (err)
-				goto err_alloc;
-		}
+		err = nfp_net_rx_ring_alloc(r_vec->rx_ring);
+		if (err)
+			goto err_alloc;
 	}
 
 	return 0;
@@ -1596,10 +1592,8 @@ err_alloc:
 	while (r--) {
 		r_vec =  &nn->r_vecs[r];
 
-		if (r_vec->rx_ring)
-			nfp_net_rx_ring_free(r_vec->rx_ring);
-		if (r_vec->tx_ring)
-			nfp_net_tx_ring_free(r_vec->tx_ring);
+		nfp_net_rx_ring_free(r_vec->rx_ring);
+		nfp_net_tx_ring_free(r_vec->tx_ring);
 
 		if (test_bit(NFP_NET_RVEC_IRQ_REQUESTED, &r_vec->flags)) {
 			entry = &nn->irq_entries[r_vec->irq_idx];
@@ -1626,10 +1620,8 @@ static void nfp_net_free_rings(struct nfp_net *nn)
 		r_vec = &nn->r_vecs[i];
 		entry = &nn->irq_entries[r_vec->irq_idx];
 
-		if (r_vec->rx_ring)
-			nfp_net_rx_ring_free(r_vec->rx_ring);
-		if (r_vec->tx_ring)
-			nfp_net_tx_ring_free(r_vec->tx_ring);
+		nfp_net_rx_ring_free(r_vec->rx_ring);
+		nfp_net_tx_ring_free(r_vec->tx_ring);
 
 		if (test_bit(NFP_NET_RVEC_IRQ_REQUESTED, &r_vec->flags)) {
 			irq_set_affinity_hint(entry->vector, NULL);
