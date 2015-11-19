@@ -1424,24 +1424,20 @@ static int nfp_net_tx_ring_alloc(struct nfp_net_tx_ring *tx_ring)
 	struct nfp_net_r_vector *r_vec = tx_ring->r_vec;
 	struct nfp_net *nn = r_vec->nfp_net;
 	struct pci_dev *pdev = nn->pdev;
-	int err, sz;
+	int sz;
 
 	tx_ring->cnt = nn->txd_cnt;
 
 	tx_ring->size = sizeof(*tx_ring->txds) * tx_ring->cnt;
 	tx_ring->txds = dma_zalloc_coherent(&pdev->dev, tx_ring->size,
 					    &tx_ring->dma, GFP_KERNEL);
-	if (!tx_ring->txds) {
-		err = -ENOMEM;
+	if (!tx_ring->txds)
 		goto err_alloc;
-	}
 
 	sz = sizeof(*tx_ring->txbufs) * tx_ring->cnt;
 	tx_ring->txbufs = kzalloc(sz, GFP_KERNEL);
-	if (!tx_ring->txbufs) {
-		err = -ENOMEM;
+	if (!tx_ring->txbufs)
 		goto err_alloc;
-	}
 
 	/* Write the DMA address, size and MSI-X info to the device */
 	nn_writeq(nn, NFP_NET_CFG_TXR_ADDR(tx_ring->idx), tx_ring->dma);
@@ -1458,7 +1454,7 @@ static int nfp_net_tx_ring_alloc(struct nfp_net_tx_ring *tx_ring)
 
 err_alloc:
 	nfp_net_tx_ring_free(tx_ring);
-	return err;
+	return -ENOMEM;
 }
 
 /**
@@ -1502,24 +1498,20 @@ static int nfp_net_rx_ring_alloc(struct nfp_net_rx_ring *rx_ring)
 	struct nfp_net_r_vector *r_vec = rx_ring->r_vec;
 	struct nfp_net *nn = r_vec->nfp_net;
 	struct pci_dev *pdev = nn->pdev;
-	int err, sz;
+	int sz;
 
 	rx_ring->cnt = nn->rxd_cnt;
 
 	rx_ring->size = sizeof(*rx_ring->rxds) * rx_ring->cnt;
 	rx_ring->rxds = dma_zalloc_coherent(&pdev->dev, rx_ring->size,
 					    &rx_ring->dma, GFP_KERNEL);
-	if (!rx_ring->rxds) {
-		err = -ENOMEM;
+	if (!rx_ring->rxds)
 		goto err_alloc;
-	}
 
 	sz = sizeof(*rx_ring->rxbufs) * rx_ring->cnt;
 	rx_ring->rxbufs = kzalloc(sz, GFP_KERNEL);
-	if (!rx_ring->rxbufs) {
-		err = -ENOMEM;
+	if (!rx_ring->rxbufs)
 		goto err_alloc;
-	}
 
 	/* Write the DMA address, size and MSI-X info to the device */
 	nn_writeq(nn, NFP_NET_CFG_RXR_ADDR(rx_ring->idx), rx_ring->dma);
@@ -1534,7 +1526,7 @@ static int nfp_net_rx_ring_alloc(struct nfp_net_rx_ring *rx_ring)
 
 err_alloc:
 	nfp_net_rx_ring_free(rx_ring);
-	return err;
+	return -ENOMEM;
 }
 
 /**
