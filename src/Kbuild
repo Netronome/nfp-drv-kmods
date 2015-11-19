@@ -18,13 +18,10 @@ endif
 
 # FIXME: This should be encoded in Kconfig
 ifneq ($(CONFIG_NFP),n)
-  ifeq ($(CONFIG_X86),y)
-    ifneq ($(CONFIG_PCI_MSI),y)
-      $(error NFP: MSI interrupts (CONFIG_PCI_MSI) must be enabled)
-    endif
-    ifneq ($(CONFIG_X86_LOCAL_APIC),y)
-      $(error NFP: the local APIC (CONFIG_X86_LOCAL_APIC) must be enabled, to recieve MSI interrupts)
-    endif
+  ifneq ($(CONFIG_PCI_MSI),y)
+    $(warning NFP: MSI interrupts (CONFIG_PCI_MSI) not be enabled, disabling NFP_NET drivers)
+    CONFIG_NFP_NET = n
+    CONFIG_NFP_NETVF = n
   endif
   ifneq ($(CONFIG_FW_LOADER),y)
     $(warning NFP: The firmware loader (CONFIG_FW_LOADER) should be enabled)
