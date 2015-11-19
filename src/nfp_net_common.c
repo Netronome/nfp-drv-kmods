@@ -1884,7 +1884,7 @@ err_free_exn:
 static int nfp_net_netdev_close(struct net_device *netdev)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
-	int r, i;
+	int r;
 
 	if (!(nn->ctrl & NFP_NET_CFG_CTRL_ENABLE)) {
 		nn_err(nn, "Dev is not up: 0x%08x\n", nn->ctrl);
@@ -1908,9 +1908,9 @@ static int nfp_net_netdev_close(struct net_device *netdev)
 
 	/* Step 3: Free resources
 	 */
-	for (i = 0; i < nn->num_r_vecs; i++) {
-		nfp_net_rx_flush(nn->r_vecs[i].rx_ring);
-		nfp_net_tx_flush(nn->r_vecs[i].tx_ring);
+	for (r = 0; r < nn->num_r_vecs; r++) {
+		nfp_net_rx_flush(nn->r_vecs[r].rx_ring);
+		nfp_net_tx_flush(nn->r_vecs[r].tx_ring);
 	}
 
 	nfp_net_free_rings(nn);
@@ -1977,10 +1977,10 @@ static struct rtnl_link_stats64 *nfp_net_stat64(struct net_device *netdev,
 						struct rtnl_link_stats64 *stats)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
-	int i;
+	int r;
 
-	for (i = 0; i < nn->num_r_vecs; i++) {
-		struct nfp_net_r_vector *r_vec = &nn->r_vecs[i];
+	for (r = 0; r < nn->num_r_vecs; r++) {
+		struct nfp_net_r_vector *r_vec = &nn->r_vecs[r];
 		u64 data[3];
 		unsigned int start;
 
