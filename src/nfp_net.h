@@ -334,18 +334,9 @@ struct nfp_net_rx_ring {
 } ____cacheline_aligned;
 
 /**
- * enum nfp_net_r_vector_flags - Flags for flags field of nfp_net_r_vector
- * @NFP_NET_RVEC_IRQ_REQUESTED:	IRQ vector has been requested
- */
-enum nfp_net_r_vector_flags {
-	NFP_NET_RVEC_IRQ_REQUESTED = 0,
-};
-
-/**
  * struct nfp_net_r_vector - Per ring interrupt vector configuration
  * @nfp_net:        Backpointer to nfp_net structure
  * @napi:           NAPI structure for this ring vec
- * @flags:          Flags, see enum nfp_net_r_vector_flags
  * @tx_ring:        Pointer to TX ring
  * @rx_ring:        Pointer to RX ring
  * @irq_idx:        Index into MSI-X table
@@ -376,7 +367,6 @@ enum nfp_net_r_vector_flags {
 struct nfp_net_r_vector {
 	struct nfp_net *nfp_net;
 	struct napi_struct napi;
-	unsigned long flags;
 
 	struct nfp_net_tx_ring *tx_ring;
 	struct nfp_net_rx_ring *rx_ring;
