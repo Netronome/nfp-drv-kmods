@@ -1588,7 +1588,7 @@ static int nfp_net_alloc_rings(struct nfp_net *nn)
 				  r_vec->name, r_vec);
 		if (err) {
 			nn_dbg(nn, "Error requesting IRQ %d\n", entry->vector);
-			goto err_alloc;
+			goto err_napi_del;
 		}
 
 		set_bit(NFP_NET_RVEC_IRQ_REQUESTED, &r_vec->flags);
@@ -1601,18 +1601,25 @@ static int nfp_net_alloc_rings(struct nfp_net *nn)
 		/* Allocate TX ring resources */
 		err = nfp_net_tx_ring_alloc(r_vec->tx_ring);
 		if (err)
-			goto err_alloc;
+			goto err_free_irq;
 
 		/* Allocate RX ring resources */
 		err = nfp_net_rx_ring_alloc(r_vec->rx_ring);
 		if (err)
-			goto err_alloc;
+			goto err_free_tx;
 	}
 
 	return 0;
 
-err_alloc:
-	__nfp_net_free_rings(nn, r + 1);
+err_free_tx:
+	nfp_net_tx_ring_free(r_vec->tx_ring);
+err_free_irq:
+	irq_set_affinity_hint(entry->vector, NULL);
+	clear_bit(NFP_NET_RVEC_IRQ_REQUESTED, &r_vec->flags);
+	free_irq(entry->vector, r_vec);
+err_napi_del:
+	netif_napi_del(&r_vec->napi);
+	__nfp_net_free_rings(nn, r);
 	return err;
 }
 
