@@ -1571,12 +1571,11 @@ static int nfp_net_alloc_rings(struct nfp_net *nn)
 
 	for (r = 0; r < nn->num_r_vecs; r++) {
 		r_vec = &nn->r_vecs[r];
+		entry = &nn->irq_entries[r_vec->irq_idx];
 
 		/* Setup NAPI */
 		netif_napi_add(nn->netdev, &r_vec->napi,
 			       nfp_net_poll, NAPI_POLL_WEIGHT);
-
-		entry = &nn->irq_entries[r_vec->irq_idx];
 
 		snprintf(r_vec->name, sizeof(r_vec->name),
 			 "%s-rxtx-%d", nn->netdev->name, r);
