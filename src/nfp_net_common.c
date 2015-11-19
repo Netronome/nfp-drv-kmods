@@ -1529,6 +1529,37 @@ err_alloc:
 	return -ENOMEM;
 }
 
+static void __nfp_net_free_rings(struct nfp_net *nn, unsigned int n_free)
+{
+	struct nfp_net_r_vector *r_vec;
+	struct msix_entry *entry;
+
+	while (n_free--) {
+		r_vec = &nn->r_vecs[n_free];
+		entry = &nn->irq_entries[r_vec->irq_idx];
+
+		nfp_net_rx_ring_free(r_vec->rx_ring);
+		nfp_net_tx_ring_free(r_vec->tx_ring);
+
+		if (test_bit(NFP_NET_RVEC_IRQ_REQUESTED, &r_vec->flags)) {
+			irq_set_affinity_hint(entry->vector, NULL);
+			free_irq(entry->vector, r_vec);
+			clear_bit(NFP_NET_RVEC_IRQ_REQUESTED, &r_vec->flags);
+		}
+
+		netif_napi_del(&r_vec->napi);
+	}
+}
+
+/**
+ * nfp_net_free_rings() - Free all ring resources
+ * @nn:      NFP Net device to reconfigure
+ */
+static void nfp_net_free_rings(struct nfp_net *nn)
+{
+	__nfp_net_free_rings(nn, nn->num_r_vecs);
+}
+
 /**
  * nfp_net_alloc_rings() - Allocate resources for RX and TX rings
  * @nn:      NFP Net device to reconfigure
@@ -1581,48 +1612,8 @@ static int nfp_net_alloc_rings(struct nfp_net *nn)
 	return 0;
 
 err_alloc:
-	while (r--) {
-		r_vec =  &nn->r_vecs[r];
-
-		nfp_net_rx_ring_free(r_vec->rx_ring);
-		nfp_net_tx_ring_free(r_vec->tx_ring);
-
-		if (test_bit(NFP_NET_RVEC_IRQ_REQUESTED, &r_vec->flags)) {
-			entry = &nn->irq_entries[r_vec->irq_idx];
-			irq_set_affinity_hint(entry->vector, NULL);
-			free_irq(entry->vector, r_vec);
-			clear_bit(NFP_NET_RVEC_IRQ_REQUESTED, &r_vec->flags);
-		}
-		netif_napi_del(&r_vec->napi);
-	}
+	__nfp_net_free_rings(nn, r + 1);
 	return err;
-}
-
-/**
- * nfp_net_free_rings() - Free all ring resources
- * @nn:      NFP Net device to reconfigure
- */
-static void nfp_net_free_rings(struct nfp_net *nn)
-{
-	struct nfp_net_r_vector *r_vec;
-	struct msix_entry *entry;
-	int i;
-
-	for (i = 0; i < nn->num_r_vecs; i++) {
-		r_vec = &nn->r_vecs[i];
-		entry = &nn->irq_entries[r_vec->irq_idx];
-
-		nfp_net_rx_ring_free(r_vec->rx_ring);
-		nfp_net_tx_ring_free(r_vec->tx_ring);
-
-		if (test_bit(NFP_NET_RVEC_IRQ_REQUESTED, &r_vec->flags)) {
-			irq_set_affinity_hint(entry->vector, NULL);
-			free_irq(entry->vector, r_vec);
-			clear_bit(NFP_NET_RVEC_IRQ_REQUESTED, &r_vec->flags);
-		}
-
-		netif_napi_del(&r_vec->napi);
-	}
 }
 
 /**
