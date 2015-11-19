@@ -1764,6 +1764,7 @@ static int nfp_net_start_vec(struct nfp_net *nn, struct nfp_net_r_vector *r_vec)
 		 */
 		nn_err(nn, "RV%02d: couldn't allocate enough buffers\n",
 		       r_vec->irq_idx);
+		nfp_net_rx_flush(r_vec->rx_ring);
 		err = -ENOMEM;
 		goto out;
 	}
@@ -1886,10 +1887,13 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 
 err_stop_tx:
 	netif_tx_disable(netdev);
-	r = nn->num_r_vecs;
+	for (r = 0; r < nn->num_r_vecs; r++)
+		nfp_net_tx_flush(nn->r_vecs[r].tx_ring);
 err_disable_napi:
-	while (r--)
+	while (r--) {
 		napi_disable(&nn->r_vecs[r].napi);
+		nfp_net_rx_flush(nn->r_vecs[r].rx_ring);
+	}
 err_clear_config:
 	nfp_net_clear_config_and_disable(nn);
 err_free_resources:
