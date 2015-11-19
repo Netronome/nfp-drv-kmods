@@ -1538,12 +1538,12 @@ err_alloc:
 }
 
 /**
- * nfp_net_alloc_resources() - Allocate resources for RX and TX rings
+ * nfp_net_alloc_rings() - Allocate resources for RX and TX rings
  * @nn:      NFP Net device to reconfigure
  *
  * Return: 0 on success or negative errno on error.
  */
-static int nfp_net_alloc_resources(struct nfp_net *nn)
+static int nfp_net_alloc_rings(struct nfp_net *nn)
 {
 	struct nfp_net_r_vector *r_vec;
 	struct msix_entry *entry;
@@ -1613,10 +1613,10 @@ err_alloc:
 }
 
 /**
- * nfp_net_free_resources() - Free all resources
+ * nfp_net_free_rings() - Free all ring resources
  * @nn:      NFP Net device to reconfigure
  */
-static void nfp_net_free_resources(struct nfp_net *nn)
+static void nfp_net_free_rings(struct nfp_net *nn)
 {
 	struct nfp_net_r_vector *r_vec;
 	struct msix_entry *entry;
@@ -1803,17 +1803,17 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 	if (err)
 		return err;
 
-	err = nfp_net_alloc_resources(nn);
+	err = nfp_net_alloc_rings(nn);
 	if (err)
 		goto err_free_exn;
 
 	err = netif_set_real_num_tx_queues(netdev, nn->num_tx_rings);
 	if (err)
-		goto err_free_resources;
+		goto err_free_rings;
 
 	err = netif_set_real_num_rx_queues(netdev, nn->num_rx_rings);
 	if (err)
-		goto err_free_resources;
+		goto err_free_rings;
 
 	if (nn->cap & NFP_NET_CFG_CTRL_RSS) {
 		nfp_net_rss_write_key(nn);
@@ -1896,8 +1896,8 @@ err_disable_napi:
 	}
 err_clear_config:
 	nfp_net_clear_config_and_disable(nn);
-err_free_resources:
-	nfp_net_free_resources(nn);
+err_free_rings:
+	nfp_net_free_rings(nn);
 err_free_exn:
 	nfp_net_aux_irq_free(nn, NFP_NET_CFG_EXN, NFP_NET_IRQ_EXN_IDX);
 	return err;
@@ -1939,7 +1939,7 @@ static int nfp_net_netdev_close(struct net_device *netdev)
 		nfp_net_tx_flush(nn->r_vecs[i].tx_ring);
 	}
 
-	nfp_net_free_resources(nn);
+	nfp_net_free_rings(nn);
 	nfp_net_aux_irq_free(nn, NFP_NET_CFG_EXN, NFP_NET_IRQ_EXN_IDX);
 
 	nn_dbg(nn, "%s down", netdev->name);
