@@ -1836,6 +1836,17 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 
 	nn->ctrl = new_ctrl;
 
+#if COMPAT__HAVE_VXLAN_OFFLOAD
+	/* Since reconfiguration requests while NFP is down are ignored we
+	 * have to wipe the entire VXLAN configuration and reinitialize it.
+	 */
+	if (nn->ctrl & NFP_NET_CFG_CTRL_VXLAN) {
+		memset(&nn->vxlan_ports, 0, sizeof(nn->vxlan_ports));
+		memset(&nn->vxlan_usecnt, 0, sizeof(nn->vxlan_usecnt));
+		vxlan_get_rx_port(netdev);
+	}
+#endif
+
 	/* Step 3: Enable for kernel
 	 * - put some freelist descriptors on each RX ring
 	 * - enable NAPI on each ring

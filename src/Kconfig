@@ -27,6 +27,7 @@ config NFP
 config NFP_NET
 	tristate "Netronome(R) NFP3200/NFP6000 NIC driver"
 	depends on PCI && PCI_MSI && 64BIT
+	depends on VXLAN || VXLAN=n
 	---help---
 	  This driver supports using Netronome(R) NFP3200/NFP6000 cards
 	  as a advanced Ethernet NIC.
@@ -34,6 +35,7 @@ config NFP_NET
 config NFP_NETVF
 	tristate "Netronome(R) NFP4000/NFP6000 VF NIC driver"
 	depends on PCI && PCI_MSI
+	depends on VXLAN || VXLAN=n
 	---help---
 	  This driver supports SR-IOV virtual functions of
 	  the Netronome(R) NFP4000/NFP6000 cards working as
