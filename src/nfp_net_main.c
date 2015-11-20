@@ -290,8 +290,7 @@ static int nfp_net_fw_load(struct pci_dev *pdev, struct nfp_device *nfp)
 	return fw ? 1 : 0;
 
 exit_release_fw:
-	if (fw)
-		release_firmware(fw);
+	release_firmware(fw);
 
 	return fw_stop_on_fail ? err : 0;
 }
