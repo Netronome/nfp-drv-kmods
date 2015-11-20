@@ -19,6 +19,7 @@ if NET_VENDOR_NETRONOME
 
 config NFP
 	tristate "Netronome(R) NFP3200/NFP6000 core driver"
+	select ZLIB_INFLATE
 	depends on PCI && 64BIT
 	---help---
 	  This driver supports basic communication and programming of
@@ -26,6 +27,7 @@ config NFP
 
 config NFP_NET
 	tristate "Netronome(R) NFP3200/NFP6000 NIC driver"
+	select ZLIB_INFLATE
 	depends on PCI && PCI_MSI && 64BIT
 	depends on VXLAN || VXLAN=n
 	---help---
