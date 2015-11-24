@@ -309,6 +309,8 @@ struct nfp_net_rx_buf {
  * @rx_qcidx:   Queue Controller Peripheral (QCP) queue index for the RX queue
  * @qcp_fl:     Pointer to base of the QCP freelist queue
  * @qcp_rx:     Pointer to base of the QCP RX queue
+ * @wr_ptr_add: Accumulated number of buffers to add to QCP write pointer
+ *              (used for free list batching)
  * @rxbufs:     Array of transmitted FL/RX buffers
  * @rxds:       Virtual address of FL/RX ring in host memory
  * @dma:        DMA address of the FL/RX ring
@@ -321,7 +323,9 @@ struct nfp_net_rx_ring {
 	u32 wr_p;
 	u32 rd_p;
 
-	u32 idx;
+	u16 idx;
+	u16 wr_ptr_add;
+
 	int fl_qcidx;
 	int rx_qcidx;
 	u8 __iomem *qcp_fl;
