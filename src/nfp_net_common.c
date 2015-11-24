@@ -2331,11 +2331,10 @@ static void nfp_net_rss_init(struct nfp_net *nn)
  */
 static void nfp_net_irqmod_init(struct nfp_net *nn)
 {
-	/* defaults correspond to no IRQ moderation */
-	nn->rx_coalesce_usecs      = 0;
-	nn->rx_coalesce_max_frames = 1;
-	nn->tx_coalesce_usecs      = 0;
-	nn->tx_coalesce_max_frames = 1;
+	nn->rx_coalesce_usecs      = 50;
+	nn->rx_coalesce_max_frames = 64;
+	nn->tx_coalesce_usecs      = 50;
+	nn->tx_coalesce_max_frames = 64;
 }
 
 /**
