@@ -206,11 +206,11 @@ struct nfp_net_tx_buf {
 struct nfp_net_tx_ring {
 	struct nfp_net_r_vector *r_vec;
 
-	int idx;
+	u32 idx;
 	int qcidx;
 	u8 __iomem *qcp_q;
 
-	int cnt;
+	u32 cnt;
 	u32 wr_p;
 	u32 rd_p;
 	u32 qcp_rd_p;
@@ -307,11 +307,11 @@ struct nfp_net_rx_hash {
 struct nfp_net_rx_ring {
 	struct nfp_net_r_vector *r_vec;
 
-	int cnt;
+	u32 cnt;
 	u32 wr_p;
 	u32 rd_p;
 
-	int idx;
+	u32 idx;
 	int fl_qcidx;
 	int rx_qcidx;
 	u8 __iomem *qcp_fl;
