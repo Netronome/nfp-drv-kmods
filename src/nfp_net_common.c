@@ -1259,13 +1259,6 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 	while (avail > 0 && pkts_polled < budget) {
 		idx = rx_ring->rd_p % rx_ring->cnt;
 
-		skb = rx_ring->rxbufs[idx].skb;
-		if (!skb) {
-			nn_err(nn, "No SKB with RX descriptor %d:%u\n",
-			       rx_ring->idx, idx);
-			break;
-		}
-
 		rxd = &rx_ring->rxds[idx];
 		if (!(rxd->rxd.meta_len_dd & PCIE_DESC_RX_DD)) {
 			if (nn->is_nfp3200)
@@ -1282,6 +1275,8 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 		rx_ring->rd_p++;
 		pkts_polled++;
 		avail--;
+
+		skb = rx_ring->rxbufs[idx].skb;
 
 		new_skb = nfp_net_rx_alloc_one(rx_ring, &new_dma_addr);
 		if (!new_skb) {
