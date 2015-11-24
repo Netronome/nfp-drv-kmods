@@ -246,7 +246,7 @@ static void nfp_net_get_stats(struct net_device *netdev,
 	const struct net_device_stats *netdev_stats;
 #else
 	struct rtnl_link_stats64 *netdev_stats;
-	struct rtnl_link_stats64 temp;
+	struct rtnl_link_stats64 temp = {};
 #endif
 	u64 tmp[NN_ET_RVEC_GATHER_STATS];
 	u64 gathered_stats[NN_ET_RVEC_GATHER_STATS] = {};
