@@ -289,6 +289,16 @@ struct nfp_net_rx_hash {
 };
 
 /**
+ * struct nfp_net_rx_buf - software RX buffer descriptor
+ * @skb:	sk_buff associated with this buffer
+ * @dma_addr:	DMA mapping address of the buffer
+ */
+struct nfp_net_rx_buf {
+	struct sk_buff *skb;
+	dma_addr_t dma_addr;
+};
+
+/**
  * struct nfp_net_rx_ring - RX ring structure
  * @r_vec:      Back pointer to ring vector structure
  * @cnt:        Size of the queue in number of descriptors
@@ -317,12 +327,9 @@ struct nfp_net_rx_ring {
 	u8 __iomem *qcp_fl;
 	u8 __iomem *qcp_rx;
 
-	struct {
-		struct sk_buff *skb;
-		dma_addr_t dma_addr;
-	} *rxbufs;
-
+	struct nfp_net_rx_buf *rxbufs;
 	struct nfp_net_rx_desc *rxds;
+
 	dma_addr_t dma;
 	unsigned int size;
 } ____cacheline_aligned;
