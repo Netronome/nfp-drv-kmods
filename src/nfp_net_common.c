@@ -1100,18 +1100,17 @@ static int nfp_net_rx_fill_freelist(struct nfp_net_rx_ring *rx_ring)
 {
 	struct sk_buff *skb;
 	dma_addr_t dma_addr;
-	int added = 0;
 
 	while (nfp_net_rx_space(rx_ring)) {
 		skb = nfp_net_rx_alloc_one(rx_ring, &dma_addr);
-		if (!skb)
-			break;
+		if (!skb) {
+			nfp_net_rx_flush(rx_ring);
+			return -ENOMEM;
+		}
 		nfp_net_rx_give_one(rx_ring, skb, dma_addr);
-
-		added++;
 	}
 
-	return added;
+	return 0;
 }
 
 /**
@@ -1719,26 +1718,19 @@ static void nfp_net_clear_config_and_disable(struct nfp_net *nn)
  */
 static int nfp_net_start_vec(struct nfp_net *nn, struct nfp_net_r_vector *r_vec)
 {
-	unsigned int irq_vec, n;
+	unsigned int irq_vec;
 	int err = 0;
 
 	irq_vec = nn->irq_entries[r_vec->irq_idx].vector;
 
 	disable_irq(irq_vec);
 
-	n = nfp_net_rx_fill_freelist(r_vec->rx_ring);
-	if (n < NFP_NET_FL_KICK_BATCH) {
-		/* The FW consumes free list buffers in batches. If we can't
-		 * allocate enough buffers return an error as RX won't work.
-		 */
+	err = nfp_net_rx_fill_freelist(r_vec->rx_ring);
+	if (err) {
 		nn_err(nn, "RV%02d: couldn't allocate enough buffers\n",
 		       r_vec->irq_idx);
-		nfp_net_rx_flush(r_vec->rx_ring);
-		err = -ENOMEM;
 		goto out;
 	}
-	nn_dbg(nn, "RV%02d RxQ%02d: Added %u freelist buffers\n",
-	       r_vec->irq_idx, r_vec->rx_ring->idx, n);
 
 	napi_enable(&r_vec->napi);
 out:
