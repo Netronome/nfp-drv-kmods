@@ -814,16 +814,15 @@ err_free:
  *
  * Return: Number of completed TX descriptors
  */
-static int nfp_net_tx_complete(struct nfp_net_tx_ring *tx_ring)
+static void nfp_net_tx_complete(struct nfp_net_tx_ring *tx_ring)
 {
 	struct nfp_net_r_vector *r_vec = tx_ring->r_vec;
 	struct nfp_net *nn = r_vec->nfp_net;
 	const struct skb_frag_struct *frag;
 	struct netdev_queue *nd_q;
 	u32 done_pkts = 0, done_bytes = 0;
-	int todo, completed = 0;
 	struct sk_buff *skb;
-	int nr_frags;
+	int todo, nr_frags;
 	u32 qcp_rd_p;
 	int fidx;
 	int idx;
@@ -836,17 +835,16 @@ static int nfp_net_tx_complete(struct nfp_net_tx_ring *tx_ring)
 	qcp_rd_p = nfp_qcp_rd_ptr_read(tx_ring->qcp_q);
 
 	if (qcp_rd_p == tx_ring->qcp_rd_p)
-		return 0;
+		return;
 
 	if (qcp_rd_p > tx_ring->qcp_rd_p)
 		todo = qcp_rd_p - tx_ring->qcp_rd_p;
 	else
 		todo = qcp_rd_p + tx_ring->cnt - tx_ring->qcp_rd_p;
 
-	while (todo > completed) {
+	while (todo--) {
 		idx = tx_ring->rd_p % tx_ring->cnt;
 		tx_ring->rd_p++;
-		completed++;
 
 		skb = tx_ring->txbufs[idx].skb;
 		if (!skb)
@@ -897,7 +895,7 @@ static int nfp_net_tx_complete(struct nfp_net_tx_ring *tx_ring)
 			netif_tx_wake_queue(nd_q);
 	}
 
-	return completed;
+	return;
 }
 
 /**
@@ -1334,7 +1332,7 @@ static void nfp_net_rx_flush(struct nfp_net_rx_ring *rx_ring)
  * @napi:    NAPI structure
  * @budget:  NAPI budget
  *
- * Return: 0 if done with polling.
+ * Return: number of packets polled.
  */
 static int nfp_net_poll(struct napi_struct *napi, int budget)
 {
@@ -1344,36 +1342,19 @@ static int nfp_net_poll(struct napi_struct *napi, int budget)
 	struct nfp_net_tx_ring *tx_ring = r_vec->tx_ring;
 	struct nfp_net *nn = r_vec->nfp_net;
 	struct netdev_queue *txq;
-	bool complete = true;
-	int pkts_completed;
-	int pkts_polled;
+	unsigned int pkts_polled;
 
-	/* Handle completed TX. If the TX queue was stopped, re-enable it */
 	tx_ring = &nn->tx_rings[rx_ring->idx];
 	txq = netdev_get_tx_queue(nn->netdev, tx_ring->idx);
+	nfp_net_tx_complete(tx_ring);
 
-	pkts_completed = nfp_net_tx_complete(tx_ring);
-	if (pkts_completed)
-		complete = false;
-
-	/* Receive any packets */
 	pkts_polled = nfp_net_rx(rx_ring, budget);
-	if (pkts_polled)
-		complete = false;
-
-	/* refill freelist  */
 	nfp_net_rx_fill_freelist(rx_ring);
 
-	if (!complete)
-		return budget;
-
-	/* If there are no more packets to receive and no more TX
-	 * descriptors to be cleaned, unmask the MSI-X vector and
-	 * switch NAPI back into interrupt mode.
-	 */
-	napi_complete_done(napi, pkts_polled);
-
-	nfp_net_irq_unmask(nn, r_vec->irq_idx);
+	if (pkts_polled < budget) {
+		napi_complete_done(napi, pkts_polled);
+		nfp_net_irq_unmask(nn, r_vec->irq_idx);
+	}
 
 	return pkts_polled;
 }
