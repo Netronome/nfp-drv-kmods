@@ -992,6 +992,115 @@ static inline int nfp_net_rx_space(struct nfp_net_rx_ring *rx_ring)
 }
 
 /**
+ * nfp_net_rx_freelist_alloc_one() - Allocate, map and write descriptors
+ * @rx_ring: RX add the buffer to
+ *
+ * This function will allcate a new skb, map it for DMA and write HW and SW
+ * descriptors.  It will, however, *not* give the buffer to HW.
+ */
+static int nfp_net_rx_freelist_alloc_one(struct nfp_net_rx_ring *rx_ring)
+{
+	struct nfp_net *nn = rx_ring->r_vec->nfp_net;
+	struct nfp_net_rx_desc *rxd;
+	struct sk_buff *skb;
+	dma_addr_t dma_addr;
+	int wr_idx;
+
+	skb = netdev_alloc_skb(nn->netdev, nn->fl_bufsz);
+	if (!skb) {
+		nn_warn_ratelimit(nn, "Failed to alloc receive SKB\n");
+		return -ENOMEM;
+	}
+
+	dma_addr = dma_map_single(&nn->pdev->dev, skb->data,
+				  nn->fl_bufsz, DMA_FROM_DEVICE);
+	if (dma_mapping_error(&nn->pdev->dev, dma_addr)) {
+		dev_kfree_skb_any(skb);
+		nn_warn_ratelimit(nn, "Failed to map DMA RX buffer\n");
+		return -ENOMEM;
+	}
+
+	wr_idx = rx_ring->wr_p % rx_ring->cnt;
+
+	/* Stash SKB and DMA address away */
+	rx_ring->rxbufs[wr_idx].skb = skb;
+	rx_ring->rxbufs[wr_idx].dma_addr = dma_addr;
+
+	/* Fill freelist descriptor */
+	rxd = &rx_ring->rxds[wr_idx];
+	rxd->fld.meta_len_dd = 0;
+	nfp_desc_set_dma_addr(&rxd->fld, dma_addr);
+	rx_ring->wr_p++;
+
+	return 0;
+}
+
+/**
+ * nfp_net_rx_flush() - Free any buffers currently on the RX ring
+ * @rx_ring:  RX ring to remove buffers from
+ *
+ * Assumes that the device is stopped
+ */
+static void nfp_net_rx_flush(struct nfp_net_rx_ring *rx_ring)
+{
+	struct nfp_net *nn = rx_ring->r_vec->nfp_net;
+	struct pci_dev *pdev = nn->pdev;
+	int idx;
+
+	while (rx_ring->rd_p != rx_ring->wr_p) {
+		idx = rx_ring->rd_p % rx_ring->cnt;
+
+		if (rx_ring->rxbufs[idx].skb) {
+			dma_unmap_single(&pdev->dev,
+					 rx_ring->rxbufs[idx].dma_addr,
+					 nn->fl_bufsz, DMA_FROM_DEVICE);
+			dev_kfree_skb_any(rx_ring->rxbufs[idx].skb);
+			rx_ring->rxbufs[idx].dma_addr = 0;
+			rx_ring->rxbufs[idx].skb = NULL;
+		}
+
+		memset(&rx_ring->rxds[idx], 0, sizeof(rx_ring->rxds[idx]));
+
+		rx_ring->rd_p++;
+	}
+}
+
+/**
+ * nfp_net_rx_fill_freelist() - Attempt filling freelist with RX buffers
+ * @rx_ring: RX ring to fill
+ *
+ * Try to fill as many buffers as possible into freelist.  Return
+ * number of buffers added.
+ *
+ * Return: Number of freelist buffers added.
+ */
+static int nfp_net_rx_fill_freelist(struct nfp_net_rx_ring *rx_ring)
+{
+	int added = 0;
+	int i;
+
+	while (nfp_net_rx_space(rx_ring) >= NFP_NET_FL_BATCH) {
+		for (i = 0; i < NFP_NET_FL_BATCH; i++) {
+			if (nfp_net_rx_freelist_alloc_one(rx_ring))
+				break;
+		}
+
+		/* Update write pointer of the freelist queue. Make
+		 * sure all writes are flushed before telling the hardware.
+		 */
+		wmb();
+		nfp_qcp_wr_ptr_add(rx_ring->qcp_fl, i);
+		added += i;
+
+		/* stop on error */
+		if (i < NFP_NET_FL_BATCH)
+			break;
+	}
+
+	return added;
+}
+
+/**
  * nfp_net_rx_csum_has_errors() - group check if rxd has any csum errors
  * @flags: RX descriptor flags field in CPU byte order
  */
@@ -1216,115 +1325,6 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 		nfp_qcp_rd_ptr_add(rx_ring->qcp_rx, pkts_polled);
 
 	return pkts_polled;
-}
-
-/**
- * nfp_net_rx_freelist_alloc_one() - Allocate, map and write descriptors
- * @rx_ring: RX add the buffer to
- *
- * This function will allcate a new skb, map it for DMA and write HW and SW
- * descriptors.  It will, however, *not* give the buffer to HW.
- */
-static int nfp_net_rx_freelist_alloc_one(struct nfp_net_rx_ring *rx_ring)
-{
-	struct nfp_net *nn = rx_ring->r_vec->nfp_net;
-	struct nfp_net_rx_desc *rxd;
-	struct sk_buff *skb;
-	dma_addr_t dma_addr;
-	int wr_idx;
-
-	skb = netdev_alloc_skb(nn->netdev, nn->fl_bufsz);
-	if (!skb) {
-		nn_warn_ratelimit(nn, "Failed to alloc receive SKB\n");
-		return -ENOMEM;
-	}
-
-	dma_addr = dma_map_single(&nn->pdev->dev, skb->data,
-				  nn->fl_bufsz, DMA_FROM_DEVICE);
-	if (dma_mapping_error(&nn->pdev->dev, dma_addr)) {
-		dev_kfree_skb_any(skb);
-		nn_warn_ratelimit(nn, "Failed to map DMA RX buffer\n");
-		return -ENOMEM;
-	}
-
-	wr_idx = rx_ring->wr_p % rx_ring->cnt;
-
-	/* Stash SKB and DMA address away */
-	rx_ring->rxbufs[wr_idx].skb = skb;
-	rx_ring->rxbufs[wr_idx].dma_addr = dma_addr;
-
-	/* Fill freelist descriptor */
-	rxd = &rx_ring->rxds[wr_idx];
-	rxd->fld.meta_len_dd = 0;
-	nfp_desc_set_dma_addr(&rxd->fld, dma_addr);
-	rx_ring->wr_p++;
-
-	return 0;
-}
-
-/**
- * nfp_net_rx_fill_freelist() - Attempt filling freelist with RX buffers
- * @rx_ring: RX ring to fill
- *
- * Try to fill as many buffers as possible into freelist.  Return
- * number of buffers added.
- *
- * Return: Number of freelist buffers added.
- */
-static int nfp_net_rx_fill_freelist(struct nfp_net_rx_ring *rx_ring)
-{
-	int added = 0;
-	int i;
-
-	while (nfp_net_rx_space(rx_ring) >= NFP_NET_FL_BATCH) {
-		for (i = 0; i < NFP_NET_FL_BATCH; i++) {
-			if (nfp_net_rx_freelist_alloc_one(rx_ring))
-				break;
-		}
-
-		/* Update write pointer of the freelist queue. Make
-		 * sure all writes are flushed before telling the hardware.
-		 */
-		wmb();
-		nfp_qcp_wr_ptr_add(rx_ring->qcp_fl, i);
-		added += i;
-
-		/* stop on error */
-		if (i < NFP_NET_FL_BATCH)
-			break;
-	}
-
-	return added;
-}
-
-/**
- * nfp_net_rx_flush() - Free any buffers currently on the RX ring
- * @rx_ring:  RX ring to remove buffers from
- *
- * Assumes that the device is stopped
- */
-static void nfp_net_rx_flush(struct nfp_net_rx_ring *rx_ring)
-{
-	struct nfp_net *nn = rx_ring->r_vec->nfp_net;
-	struct pci_dev *pdev = nn->pdev;
-	int idx;
-
-	while (rx_ring->rd_p != rx_ring->wr_p) {
-		idx = rx_ring->rd_p % rx_ring->cnt;
-
-		if (rx_ring->rxbufs[idx].skb) {
-			dma_unmap_single(&pdev->dev,
-					 rx_ring->rxbufs[idx].dma_addr,
-					 nn->fl_bufsz, DMA_FROM_DEVICE);
-			dev_kfree_skb_any(rx_ring->rxbufs[idx].skb);
-			rx_ring->rxbufs[idx].dma_addr = 0;
-			rx_ring->rxbufs[idx].skb = NULL;
-		}
-
-		memset(&rx_ring->rxds[idx], 0, sizeof(rx_ring->rxds[idx]));
-
-		rx_ring->rd_p++;
-	}
 }
 
 /**
