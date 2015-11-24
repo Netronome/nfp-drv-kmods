@@ -49,13 +49,10 @@
 
 #include "nfp_net_ctrl.h"
 
-#ifdef CONFIG_NFP_NET_DEBUG
-#define DEBUG
-#endif
-
 #define nn_err(nn, fmt, args...)  netdev_err((nn)->netdev, fmt, ## args)
 #define nn_warn(nn, fmt, args...) netdev_warn((nn)->netdev, fmt, ## args)
 #define nn_info(nn, fmt, args...) netdev_info((nn)->netdev, fmt, ## args)
+#define nn_dbg(nn, fmt, args...)  netdev_dbg((nn)->netdev, fmt, ## args)
 #define nn_warn_ratelimit(nn, fmt, args...)				\
 	do {								\
 		if (unlikely(net_ratelimit()))				\
@@ -63,18 +60,15 @@
 	} while (0)
 
 #ifdef CONFIG_NFP_NET_DEBUG
-#define nn_dbg(nn, fmt, args...)  netdev_info((nn)->netdev, fmt, ## args)
 #define nn_assert(cond, fmt, args...)					\
 	do {								\
 		if (unlikely(!(cond))) {				\
-			pr_err("assertion %s failed: %s:%d\n",		\
-			       #cond, __func__, __LINE__);		\
+			pr_err("assertion %s failed\n", #cond);		\
 			pr_err(fmt, ## args);				\
 			BUG();						\
 		}							\
 	} while (0)
 #else
-#define nn_dbg(nn, fmt, args...)	do { } while (0)
 #define nn_assert(cond, fmt, args...)	do { } while (0)
 #endif
 
