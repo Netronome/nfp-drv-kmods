@@ -1233,8 +1233,9 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 	struct nfp_net *nn = r_vec->nfp_net;
 	unsigned int data_len, meta_len;
 	int avail = 0, pkts_polled = 0;
+	struct sk_buff *skb, *new_skb;
 	struct nfp_net_rx_desc *rxd;
-	struct sk_buff *skb;
+	dma_addr_t new_dma_addr;
 	u32 qcp_wr_p;
 	int idx;
 
@@ -1278,6 +1279,20 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 		 */
 		dma_rmb();
 
+		rx_ring->rd_p++;
+		pkts_polled++;
+		avail--;
+
+		new_skb = nfp_net_rx_alloc_one(rx_ring, &new_dma_addr);
+		if (!new_skb) {
+			nfp_net_rx_give_one(rx_ring, rx_ring->rxbufs[idx].skb,
+					    rx_ring->rxbufs[idx].dma_addr);
+			u64_stats_update_begin(&r_vec->rx_sync);
+			r_vec->rx_drops++;
+			u64_stats_update_end(&r_vec->rx_sync);
+			continue;
+		}
+
 		nn_assert(le16_to_cpu(rxd->rxd.data_len) <= nn->fl_bufsz,
 			  "RX data larger than freelist buffer (%u > %u) on %d:%u rxd[0]=%#x rxd[1]=%#x\n",
 			  le16_to_cpu(rxd->rxd.data_len), nn->fl_bufsz,
@@ -1286,6 +1301,8 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 		dma_unmap_single(&nn->pdev->dev,
 				 rx_ring->rxbufs[idx].dma_addr,
 				 nn->fl_bufsz, DMA_FROM_DEVICE);
+
+		nfp_net_rx_give_one(rx_ring, new_skb, new_dma_addr);
 
 		meta_len = rxd->rxd.meta_len_dd & PCIE_DESC_RX_META_LEN_MASK;
 		data_len = le16_to_cpu(rxd->rxd.data_len);
@@ -1323,15 +1340,6 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 					       le16_to_cpu(rxd->rxd.vlan));
 
 		napi_gro_receive(&rx_ring->r_vec->napi, skb);
-
-		/* Clear internal state to be on the safe side */
-		rx_ring->rxbufs[idx].skb = NULL;
-		rx_ring->rxbufs[idx].dma_addr = 0;
-		memset(&rx_ring->rxds[idx], 0, sizeof(rx_ring->rxds[idx]));
-
-		rx_ring->rd_p++;
-		pkts_polled++;
-		avail--;
 	}
 
 	if (nn->is_nfp3200)
@@ -1362,7 +1370,6 @@ static int nfp_net_poll(struct napi_struct *napi, int budget)
 	nfp_net_tx_complete(tx_ring);
 
 	pkts_polled = nfp_net_rx(rx_ring, budget);
-	nfp_net_rx_fill_freelist(rx_ring);
 
 	if (pkts_polled < budget) {
 		napi_complete_done(napi, pkts_polled);
@@ -1986,9 +1993,11 @@ static struct rtnl_link_stats64 *nfp_net_stat64(struct net_device *netdev,
 			start = u64_stats_fetch_begin(&r_vec->rx_sync);
 			data[0] = r_vec->rx_pkts;
 			data[1] = r_vec->rx_bytes;
+			data[2] = r_vec->rx_drops;
 		} while (u64_stats_fetch_retry(&r_vec->rx_sync, start));
 		stats->rx_packets += data[0];
 		stats->rx_bytes += data[1];
+		stats->rx_dropped += data[2];
 
 		do {
 			start = u64_stats_fetch_begin(&r_vec->tx_sync);

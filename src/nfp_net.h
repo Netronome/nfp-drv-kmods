@@ -347,6 +347,7 @@ struct nfp_net_rx_ring {
  * @rx_sync:	    Seqlock for atomic updates of RX stats
  * @rx_pkts:        Number of received packets
  * @rx_bytes:	    Number of received bytes
+ * @rx_drops:	    Number of packets dropped on RX due to lack of resources
  * @hw_csum_rx_ok:  Counter of packets where the HW checksum was OK
  * @hw_csum_rx_inner_ok: Counter of packets where the inner HW checksum was OK
  * @hw_csum_rx_error:	 Counter of packets with bad checksums
@@ -380,6 +381,7 @@ struct nfp_net_r_vector {
 	struct u64_stats_sync rx_sync;
 	u64 rx_pkts;
 	u64 rx_bytes;
+	u64 rx_drops;
 	u64 hw_csum_rx_ok;
 	u64 hw_csum_rx_inner_ok;
 	u64 hw_csum_rx_error;
