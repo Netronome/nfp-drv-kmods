@@ -2322,7 +2322,7 @@ static void nfp_net_rss_init(struct nfp_net *nn)
 {
 	int i;
 
-	get_random_bytes(nn->rss_key, NFP_NET_CFG_RSS_KEY_SZ);
+	netdev_rss_key_fill(nn->rss_key, NFP_NET_CFG_RSS_KEY_SZ);
 
 	for (i = 0; i < sizeof(nn->rss_itbl); i++)
 		nn->rss_itbl[i] =

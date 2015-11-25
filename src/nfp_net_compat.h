@@ -367,6 +367,11 @@ compat_ndo_features_check(struct nfp_net *nn, struct sk_buff *skb)
 }
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0)
+static inline void netdev_rss_key_fill(void *buffer, size_t len)
+{
+	get_random_bytes(buffer, len);
+}
+
 static inline void napi_schedule_irqoff(struct napi_struct *n)
 {
 	napi_schedule(n);
