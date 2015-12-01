@@ -59,19 +59,6 @@
 			netdev_warn((nn)->netdev, fmt, ## args);	\
 	} while (0)
 
-#ifdef CONFIG_NFP_NET_DEBUG
-#define nn_assert(cond, fmt, args...)					\
-	do {								\
-		if (unlikely(!(cond))) {				\
-			pr_err("assertion %s failed\n", #cond);		\
-			pr_err(fmt, ## args);				\
-			BUG();						\
-		}							\
-	} while (0)
-#else
-#define nn_assert(cond, fmt, args...)	do { } while (0)
-#endif
-
 /* Max time to wait for NFP to respond on updates (in ms) */
 #define NFP_NET_POLL_TIMEOUT	5000
 

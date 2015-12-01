@@ -399,9 +399,6 @@ static void nfp_net_irqs_assign(struct net_device *netdev)
 	struct nfp_net_r_vector *r_vec;
 	int r;
 
-	nn_assert(nn->num_irqs > 0, "num_irqs is zero\n");
-	nn_assert(nn->num_r_vecs > 0, "num_r_vecs is zero\n");
-
 	/* Assumes nn->num_tx_rings == nn->num_rx_rings */
 	if (nn->num_tx_rings > nn->num_r_vecs) {
 		nn_warn(nn, "More rings (%d) than vectors (%d).\n",
@@ -669,10 +666,6 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 	r_vec = tx_ring->r_vec;
 	nd_q = netdev_get_tx_queue(nn->netdev, qidx);
 
-	nn_assert((tx_ring->wr_p - tx_ring->rd_p) <= tx_ring->cnt,
-		  "rd_p=%u wr_p=%u cnt=%u\n",
-		  tx_ring->rd_p, tx_ring->wr_p, tx_ring->cnt);
-
 	nr_frags = skb_shinfo(skb)->nr_frags;
 
 	if (unlikely(nfp_net_tx_full(tx_ring, nr_frags + 1))) {
@@ -774,10 +767,6 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 
 	skb_tx_timestamp(skb);
 
-	nn_assert((tx_ring->wr_p - tx_ring->rd_p) <= tx_ring->cnt,
-		  "rd_p=%u wr_p=%u cnt=%u\n",
-		  tx_ring->rd_p, tx_ring->wr_p, tx_ring->cnt);
-
 	return NETDEV_TX_OK;
 
 err_unmap:
@@ -826,10 +815,6 @@ static void nfp_net_tx_complete(struct nfp_net_tx_ring *tx_ring)
 	u32 qcp_rd_p;
 	int fidx;
 	int idx;
-
-	nn_assert((tx_ring->wr_p - tx_ring->rd_p) <= tx_ring->cnt,
-		  "rd_p=%u wr_p=%u cnt=%u\n",
-		  tx_ring->rd_p, tx_ring->wr_p, tx_ring->cnt);
 
 	/* Work out how many descriptors have been transmitted */
 	qcp_rd_p = nfp_qcp_rd_ptr_read(tx_ring->qcp_q);
@@ -895,7 +880,9 @@ static void nfp_net_tx_complete(struct nfp_net_tx_ring *tx_ring)
 			netif_tx_wake_queue(nd_q);
 	}
 
-	return;
+	WARN_ONCE(tx_ring->wr_p - tx_ring->rd_p > tx_ring->cnt,
+		  "TX ring corruption rd_p=%u wr_p=%u cnt=%u\n",
+		  tx_ring->rd_p, tx_ring->wr_p, tx_ring->cnt);
 }
 
 /**
@@ -915,10 +902,6 @@ static void nfp_net_tx_flush(struct nfp_net_tx_ring *tx_ring)
 	int nr_frags;
 	int fidx;
 	int idx;
-
-	nn_assert((tx_ring->wr_p - tx_ring->rd_p) <= tx_ring->cnt,
-		  "rd_p=%u wr_p=%u cnt=%u\n",
-		  tx_ring->rd_p, tx_ring->wr_p, tx_ring->cnt);
 
 	while (tx_ring->rd_p != tx_ring->wr_p) {
 		idx = tx_ring->rd_p % tx_ring->cnt;
@@ -1288,11 +1271,6 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 			continue;
 		}
 
-		nn_assert(le16_to_cpu(rxd->rxd.data_len) <= nn->fl_bufsz,
-			  "RX data larger than freelist buffer (%u > %u) on %d:%u rxd[0]=%#x rxd[1]=%#x\n",
-			  le16_to_cpu(rxd->rxd.data_len), nn->fl_bufsz,
-			  rx_ring->idx, idx, rxd->vals[0], rxd->vals[1]);
-
 		dma_unmap_single(&nn->pdev->dev,
 				 rx_ring->rxbufs[idx].dma_addr,
 				 nn->fl_bufsz, DMA_FROM_DEVICE);
@@ -1301,6 +1279,11 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 
 		meta_len = rxd->rxd.meta_len_dd & PCIE_DESC_RX_META_LEN_MASK;
 		data_len = le16_to_cpu(rxd->rxd.data_len);
+
+		if (WARN_ON_ONCE(data_len > nn->fl_bufsz)) {
+			dev_kfree_skb_any(skb);
+			continue;
+		}
 
 		if (nn->rx_offset == NFP_NET_CFG_RX_OFFSET_DYNAMIC) {
 			/* The packet data starts after the metadata */
