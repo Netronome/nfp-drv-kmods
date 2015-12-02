@@ -132,6 +132,14 @@ int nfp_phymod_write_lanedisable(struct nfp_phymod *phymod,
 int nfp_phymod_read8(struct nfp_phymod *phymod, u32 addr, u8 *data);
 int nfp_phymod_write8(struct nfp_phymod *phymod, u32 addr, u8 data);
 
+int nfp_phymod_verify_sff_checkcode(struct nfp_phymod *phymod, int *cc_status);
+int nfp_phymod_read_vendor(struct nfp_phymod *phymod, char *name,
+			   u32 size, u32 *oui);
+int nfp_phymod_read_product(struct nfp_phymod *phymod, char *product, u32 size);
+int nfp_phymod_read_type(struct nfp_phymod *phymod, int *type);
+int nfp_phymod_read_length(struct nfp_phymod *phymod, int *length);
+int nfp_phymod_get_active_or_passive(struct nfp_phymod *phymod, int *anp);
+
 struct nfp_phymod_eth *nfp_phymod_eth_next(struct nfp_device *dev,
 					   struct nfp_phymod *phy, void **ptr);
 
