@@ -308,7 +308,7 @@ exit_close:
 	nfp_device_close(nfp);
 
 	if (err < 0 && fw_name) {
-		dev_err(&pdev->dev, "Could not %s firmare \"%s\", err %d\n",
+		dev_err(&pdev->dev, "Could not %s firmware \"%s\", err %d\n",
 			fw ? "load" : "request", fw_name, err);
 	}
 
