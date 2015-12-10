@@ -261,6 +261,14 @@ int nfp_net_irqs_alloc(struct nfp_net *nn)
 		nn_warn(nn, "Unable to allocate %d vectors. Got %d instead\n",
 			wanted_irqs, nn->num_irqs);
 
+	/* We assume nn->num_tx_rings == nn->num_rx_rings */
+	if (nn->num_tx_rings > nn->num_r_vecs) {
+		nn_warn(nn, "More rings (%d) than vectors (%d).\n",
+			nn->num_tx_rings, nn->num_r_vecs);
+		nn->num_tx_rings = nn->num_r_vecs;
+		nn->num_rx_rings = nn->num_r_vecs;
+	}
+
 	return nn->num_irqs;
 }
 
@@ -398,14 +406,6 @@ static void nfp_net_irqs_assign(struct net_device *netdev)
 	struct nfp_net *nn = netdev_priv(netdev);
 	struct nfp_net_r_vector *r_vec;
 	int r;
-
-	/* Assumes nn->num_tx_rings == nn->num_rx_rings */
-	if (nn->num_tx_rings > nn->num_r_vecs) {
-		nn_warn(nn, "More rings (%d) than vectors (%d).\n",
-			nn->num_tx_rings, nn->num_r_vecs);
-		nn->num_tx_rings = nn->num_r_vecs;
-		nn->num_rx_rings = nn->num_r_vecs;
-	}
 
 	nn->lsc_handler = nfp_net_irq_lsc;
 	nn->exn_handler = nfp_net_irq_exn;
