@@ -123,6 +123,7 @@
 #define	NFP_NBI_PCX	(NBIX_BASE + 0x180000)
 #define	NFP_NBI_PCX_PE	(NFP_NBI_PCX + 0x00000)
 #define	NFP_NBI_PCX_PE_PICOENGINERUNCONTROL	0x00000008
+#define	NFP_NBI_PCX_CHAR	(NFP_NBI_PCX + 0x10000)
 #define	NFP_NBI_PC	(0x300000)
 #define	NFP_NBI_PC_ALLLOCALSRAM_NBIPRETABLELUT8(_x) \
 	(0x00000000 + (0x8 * ((_x) & 0x7ff)))
@@ -164,6 +165,10 @@
 #define	NFP_QCTLR_CFGSTATUSHIGH	0x0000000c
 #define	NFP_QCTLR_CFGSTATUSHIGH_EMPTY	(1	<< 26)
 #define	NFP_QCTLR_CFGSTATUSHIGH_WRITEPTR(_x)	(((_x) & 0x3ffff) << 0)
+
+#define	NFP_NBI_PCX_CHAR_CreditConfig		0x00000030
+#define	NFP_NBI_PCX_CHAR_CreditConfig_BufCmpCredit(_x)    (((_x) & 0x7) << 0)
+#define	NFP_NBI_PCX_CHAR_CreditConfig_BufCmpCredit_of(_x) (((_x) >> 0) & 0x7)
 
 static const struct {
 	u32 reset_mask;
@@ -868,6 +873,31 @@ static int nfp6000_island_emu_init(struct nfp_cpp *cpp, int island, int unit)
 				       emu_ecc, ARRAY_SIZE(emu_ecc));
 }
 
+static int nfp6000_island_nbi_b0_workarounds(struct nfp_cpp *cpp, int island)
+{
+	u32 val, model;
+	int err;
+
+	model = nfp_cpp_model(cpp);
+
+	/* Apply only to A* and B* stepping silicon */
+	if (!(NFP_CPP_MODEL_IS_6000(model) &&
+	      NFP_CPP_MODEL_STEPPING_of(model) < 0x20))
+		return 0;
+
+	err = nfp_xpb_readl(cpp, NFP_XPB_ISLAND(island) +
+			    NFP_NBI_PCX_CHAR +
+			    NFP_NBI_PCX_CHAR_CreditConfig, &val);
+	if (err < 0)
+		return err;
+
+	val &= ~0x7;
+	val |= NFP_NBI_PCX_CHAR_CreditConfig_BufCmpCredit(2);
+	return nfp_xpb_writel(cpp, NFP_XPB_ISLAND(island) +
+			      NFP_NBI_PCX_CHAR +
+			      NFP_NBI_PCX_CHAR_CreditConfig, val);
+}
+
 static int nfp6000_island_nbi_init(struct nfp_cpp *cpp, int island, int unit)
 {
 	if (unit == 0) {
@@ -980,7 +1010,13 @@ static int nfp6000_island_nbi_init(struct nfp_cpp *cpp, int island, int unit)
 			     16 * 64 * 1024, 0);
 		if (err < 0)
 			return err;
+#endif /* NFP_ECC_FULL_CLEAR */
 
+		err = nfp6000_island_nbi_b0_workarounds(cpp, island);
+		if (err < 0)
+			return err;
+
+#ifdef NFP_ECC_FULL_CLEAR
 		/* Initialize PM */
 		for (i = 0; i < 0x10000; i += 4) {
 			err = nfp_xpb_writel(cpp, NFP_XPB_ISLAND(island) +
