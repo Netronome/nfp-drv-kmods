@@ -116,6 +116,10 @@ static inline u32 ethtool_rxfh_indir_default(u32 index, u32 n_rx_rings)
 #define READ_ONCE(x)	(x)
 #endif
 
+#ifndef NETIF_F_CSUM_MASK
+#define NETIF_F_CSUM_MASK NETIF_F_ALL_CSUM
+#endif
+
 #if (LINUX_VERSION_CODE <= KERNEL_VERSION(3, 6, 0))
 static inline int netif_get_num_default_rss_queues(void)
 {
