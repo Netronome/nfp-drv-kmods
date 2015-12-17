@@ -307,8 +307,8 @@ static void nfp_net_irq_unmask(struct nfp_net *nn, unsigned int entry_nr)
  */
 unsigned int nfp_net_irqs_wanted(struct nfp_net *nn)
 {
+	unsigned int vecs;
 	int ncpus;
-	int vecs;
 
 	ncpus = num_online_cpus();
 
@@ -2763,7 +2763,8 @@ void nfp_net_info(struct nfp_net *nn)
  * Return: NFP Net device structure, or ERR_PTR on error.
  */
 struct nfp_net *nfp_net_netdev_alloc(struct pci_dev *pdev,
-				     int max_tx_rings, int max_rx_rings)
+				     unsigned int max_tx_rings,
+				     unsigned int max_rx_rings)
 {
 	struct net_device *netdev;
 	struct nfp_net *nn;
