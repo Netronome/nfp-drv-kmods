@@ -312,6 +312,37 @@ void compat_incr_checksum_unnecessary(struct sk_buff *skb, bool encap)
 #endif
 }
 
+#if !COMPAT__HAVE_NDO_FEATURES_CHECK
+static inline bool compat_is_vxlan(struct sk_buff *skb, u8 l4_hdr)
+{
+	if (
+/* Note: VXLAN was not setting TEB as inner_protocol before 3.18 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
+	    skb->inner_protocol != htons(ETH_P_TEB) ||
+	    skb->inner_protocol_type != ENCAP_TYPE_ETHER ||
+#endif
+	    l4_hdr != IPPROTO_UDP ||
+	    skb_inner_mac_header(skb) - skb_transport_header(skb) !=
+	     sizeof(struct udphdr) + 8)
+		return false;
+	return true;
+}
+
+static inline bool compat_is_gretap(struct sk_buff *skb, u8 l4_hdr)
+{
+	if (
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0)
+	    skb->inner_protocol != htons(ETH_P_TEB) ||
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
+	    skb->inner_protocol_type != ENCAP_TYPE_ETHER ||
+#endif
+	    l4_hdr != IPPROTO_GRE)
+		return false;
+	return true;
+}
+#endif
+
 static inline int
 compat_ndo_features_check(struct nfp_net *nn, struct sk_buff *skb)
 {
@@ -351,17 +382,7 @@ compat_ndo_features_check(struct nfp_net *nn, struct sk_buff *skb)
 		return 1;
 	}
 
-	if (
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0)
-	    skb->inner_protocol != htons(ETH_P_TEB) ||
-#endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
-	    skb->inner_protocol_type != ENCAP_TYPE_ETHER ||
-#endif
-	    (l4_hdr != IPPROTO_UDP && l4_hdr != IPPROTO_GRE) ||
-	    (l4_hdr == IPPROTO_UDP &&
-	     (skb_inner_mac_header(skb) - skb_transport_header(skb) !=
-	      sizeof(struct udphdr) + 8))) {
+	if (!compat_is_vxlan(skb, l4_hdr) && !compat_is_gretap(skb, l4_hdr)) {
 		nn_warn_ratelimit(nn, "checksum on unsupported tunnel type!\n");
 		return 1;
 	}
