@@ -63,7 +63,6 @@
 
 #include "nfp_mon_err.h"
 #include "nfp_dev_cpp.h"
-#include "nfp_net_null.h"
 #include "nfp_net_vnic.h"
 
 #include "../nfp_main.h"
@@ -89,7 +88,6 @@ struct nfp3200_plat {
 	struct device *dev;
 
 	struct platform_device *nfp_dev_cpp;
-	struct platform_device *nfp_net_null;
 	struct platform_device *nfp_mon_err;
 	struct platform_device *nfp_net_vnic[4];
 	struct nfp_cpp *cpp;
@@ -1261,10 +1259,6 @@ static int nfp3200_plat_probe(struct platform_device *pdev)
 		priv->nfp_net_vnic[i] = pdev;
 	}
 
-	if (nfp_net_null)
-		priv->nfp_net_null = nfp_platform_device_register(priv->cpp,
-							    NFP_NET_NULL_TYPE);
-
 	return 0;
 }
 
@@ -1272,8 +1266,6 @@ static int nfp3200_plat_remove(struct platform_device *pdev)
 {
 	struct nfp3200_plat *priv = platform_get_drvdata(pdev);
 	int i;
-
-	nfp_platform_device_unregister(priv->nfp_net_null);
 
 	for (i = 0; i < ARRAY_SIZE(priv->nfp_net_vnic); i++)
 		nfp_platform_device_unregister(priv->nfp_net_vnic[i]);

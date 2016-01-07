@@ -187,7 +187,6 @@ that a NFP firmware be loaded.
 | --------------- | ------- | ----------------------------------------------- |
 | nfp_mon_err     |   false | ECC Monitor [1]                                 |
 | nfp_dev_cpp     |    true | Enable NFP CPP /dev interface [2]               |
-| nfp_net_null    |   false | Null net devices [3]                            |
 | nfp_net_vnic    |   false | vNIC net devices [4]                            |
 | nfp_net_vnic_pollinterval | 10 | Polling interval for Rx/Tx queues (in ms)  |
 | nfp_net_vnic_debug | false | Enable debug printk messages                   |
@@ -207,7 +206,6 @@ NOTES:
 
 1. The 'ECC Monitor' example is for the NFP3200 hardware only.
 2. The '/dev/nfp-cpp-N' interface is for diagnostic applications.
-3. The Null net device creates a dummy ethN interface for every port.
 4. The vNIC net device creates a pseudo-NIC for NFP ARM Linux systems.
 5. Reset on init will be performed anyway if firmware file is specified.
 
@@ -243,7 +241,6 @@ All sources are in `src/nfpcore/`:
 | nfp_nbi.c           | API       | NFP NBI access                            |
 | nfp_nbi_mac_eth.c   | API       | NFP NBI Ethernet MAC access               |
 | nfp_nbi_phymod.c    | API       | NFP NBI Ethernet PHY access               |
-| nfp_net_null.c      | Example   | Dummy NIC interfaces, one for each port   |
 | nfp_net_vnic.c      | Example   | Pseudo-NIC for interfacing with NFP Linux |
 | nfp_nffw.c          | API       | NFP NFP Flow Firmware interface           |
 | nfp_nsp.c           | API       | NIC Service Processor interface           |

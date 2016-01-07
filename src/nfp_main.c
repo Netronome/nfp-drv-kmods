@@ -55,7 +55,6 @@
 
 #include "nfpcore/nfp_mon_err.h"
 #include "nfpcore/nfp_dev_cpp.h"
-#include "nfpcore/nfp_net_null.h"
 #include "nfpcore/nfp_net_vnic.h"
 
 #include "nfp_main.h"
@@ -67,10 +66,6 @@ MODULE_PARM_DESC(nfp_mon_err, "ECC Monitor (default = false)");
 bool nfp_dev_cpp = true;
 module_param(nfp_dev_cpp, bool, 0444);
 MODULE_PARM_DESC(nfp_dev_cpp, "NFP CPP /dev interface (default = true)");
-
-bool nfp_net_null;
-module_param(nfp_net_null, bool, 0444);
-MODULE_PARM_DESC(nfp_net_null, "Null net devices (default = false)");
 
 bool nfp_net_vnic;
 module_param(nfp_net_vnic, bool, 0444);
@@ -107,7 +102,6 @@ struct nfp_pci {
 
 	struct platform_device *nfp_mon_err;
 	struct platform_device *nfp_dev_cpp;
-	struct platform_device *nfp_net_null;
 	struct platform_device *nfp_net_vnic;
 
 #ifdef CONFIG_PCI_IOV
@@ -433,10 +427,6 @@ static void register_pf(struct nfp_pci *np)
 							   NFP_NET_VNIC_TYPE,
 							   pcie_unit,
 							   NFP_NET_VNIC_UNITS);
-
-	if (nfp_net_null)
-		np->nfp_net_null = nfp_platform_device_register(np->cpp,
-							   NFP_NET_NULL_TYPE);
 }
 
 static int nfp_pci_probe(struct pci_dev *pdev,
@@ -543,7 +533,6 @@ static void nfp_pci_remove(struct pci_dev *pdev)
 {
 	struct nfp_pci *np = pci_get_drvdata(pdev);
 
-	nfp_platform_device_unregister(np->nfp_net_null);
 	nfp_platform_device_unregister(np->nfp_net_vnic);
 	nfp_platform_device_unregister(np->nfp_mon_err);
 
@@ -625,10 +614,6 @@ static int __init nfp_main_init(void)
 	if (err < 0)
 		goto fail_dev_cpp_init;
 
-	err = nfp_net_null_init();
-	if (err < 0)
-		goto fail_net_null_init;
-
 	err = nfp_net_vnic_init();
 	if (err < 0)
 		goto fail_net_vnic_init;
@@ -648,8 +633,6 @@ fail_pci_init:
 fail_plat_init:
 	nfp_net_vnic_exit();
 fail_net_vnic_init:
-	nfp_net_null_exit();
-fail_net_null_init:
 	nfp_dev_cpp_exit();
 fail_dev_cpp_init:
 	nfp_mon_err_exit();
@@ -664,7 +647,6 @@ static void __exit nfp_main_exit(void)
 	pci_unregister_driver(&nfp_pcie_driver);
 	nfp3200_plat_exit();
 	nfp_net_vnic_exit();
-	nfp_net_null_exit();
 	nfp_mon_err_exit();
 	nfp_dev_cpp_exit();
 	nfp_cppcore_exit();

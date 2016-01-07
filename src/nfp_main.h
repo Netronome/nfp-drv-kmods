@@ -45,7 +45,6 @@
 
 extern bool nfp_mon_err;
 extern bool nfp_dev_cpp;
-extern bool nfp_net_null;
 extern bool nfp_net_vnic;
 
 #endif /* NFP_MAIN_H */

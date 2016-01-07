@@ -56,7 +56,6 @@ nfpcore-objs := \
 	    nfpcore/nfp_nbi.o \
 	    nfpcore/nfp_nbi_mac_eth.o \
 	    nfpcore/nfp_nbi_phymod.o \
-	    nfpcore/nfp_net_null.o \
 	    nfpcore/nfp_net_vnic.o \
 	    nfpcore/nfp_nffw.o \
 	    nfpcore/nfp_platform.o \
