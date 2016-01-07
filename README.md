@@ -248,7 +248,6 @@ All sources are in `src/nfpcore/`:
 | nfp_power.c         | API       | NFP subsystem power control               |
 | nfp_reset.c         | API       | NFP controlled soft reset                 |
 | nfp_resource.c      | API       | NFP Resource management                   |
-| nfp_roce.c          | Example   | RoCE interface                            |
 | nfp_rtsym.c         | API       | NFP Firmware Runtime Symbol access        |
 | nfp_spi.c           | API       | NFP SPI access                            |
 | sff_8431.c          | PHY       | PHY driver for SFP/SFP+                   |

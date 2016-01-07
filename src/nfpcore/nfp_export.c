@@ -42,7 +42,6 @@
 #include "nfp_nbi.h"
 #include "nfp_nbi_phymod.h"
 #include "nfp_nffw.h"
-#include "nfp_roce.h"
 
 /* Implemented in nfp_cppcore.c */
 
@@ -171,14 +170,6 @@ EXPORT_SYMBOL(nfp_phymod_eth_get_fail_to_wire);
 EXPORT_SYMBOL(nfp_phymod_eth_set_fail_to_wire);
 EXPORT_SYMBOL(nfp_phymod_eth_read_disable);
 EXPORT_SYMBOL(nfp_phymod_eth_write_disable);
-
-/* Implemented in nfp_roce.c */
-
-EXPORT_SYMBOL(nfp_register_roce_driver);
-EXPORT_SYMBOL(nfp_unregister_roce_driver);
-EXPORT_SYMBOL(nfp_roce_add);
-EXPORT_SYMBOL(nfp_roce_remove);
-EXPORT_SYMBOL(nfp_roce_port_set_state);
 
 /* Implemented in nfp_rtsym.c */
 
