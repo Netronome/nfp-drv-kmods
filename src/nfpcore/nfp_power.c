@@ -977,7 +977,7 @@ static int nfp6000_island_nbi_init(struct nfp_cpp *cpp, int island, int unit)
 		}
 
 #define NBI_PCZAP(x, count) do { \
-	for (i = 0; i < 2048; i++) { \
+	for (i = 0; i < count; i++) { \
 		err = nfp_cpp_writeq(cpp, nbi, addr + NFP_NBI_PC + \
 				     x(i), 0); \
 		if (err < 0)  \
