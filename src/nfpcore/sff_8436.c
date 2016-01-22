@@ -242,6 +242,29 @@ static int sff_8436_write8(struct nfp_phymod *phy, u32 reg, u8 val)
 #define SFF_8436_BIAS_TX_34	12
 #define SFF_8436_DISABLE_TX	86
 
+#define SFF_8436_CONNECTOR		130
+#define SFF_8436_FIBRE_CHAN_COMP_BEG	135
+#define SFF_8436_FIBRE_CHAN_COMP_END	138
+
+#define SFF_8436_LENGTH_SMF	142
+#define SFF_8436_LENGTH_OM3	143
+#define SFF_8436_LENGTH_OM2	144
+#define SFF_8436_LENGTH_OM1	145
+#define SFF_8436_LENGTH_ASSEMBLY	146
+#define SFF_8436_DEVICE_TECH	147
+#define SFF_8436_VENDOR		148
+#define SFF_8436_VENDOR_OUI	165
+#define SFF_8436_VENDOR_PN	168
+#define SFF_8436_CC_BASE	191
+#define  SFF_8436_CC_BASE_START	128
+#define  SFF_8436_CC_BASE_END	190
+
+#define SFF_8436_VENDOR_SN	196
+#define SFF_8436_DATECODE	212
+#define SFF_8436_CC_EXT		223
+#define  SFF_8436_CC_EXT_START	192
+#define  SFF_8436_CC_EXT_END	222
+
 static int sff_8436_status_los(struct nfp_phymod *phy,
 			       u32 *tx_status, u32 *rx_status)
 {
@@ -430,6 +453,121 @@ static int sff_8436_set_lane_dis(struct nfp_phymod *phy,
 	return nfp_phymod_write8(phy, SFF_8436_DISABLE_TX, tx_status & 0xf);
 }
 
+static int sff_8436_read_connector(struct nfp_phymod *phy, int *connector)
+{
+	u8 tmp;
+
+	if (nfp_phymod_read8(phy, SFF_8436_CONNECTOR, &tmp) < 0)
+		return -1;
+	*connector = tmp;
+	return 0;
+}
+
+static int sff_8436_read_vendor(struct nfp_phymod *phy, char *name, u32 sz)
+{
+	return read_sff_string(phy, name, sz, 16, SFF_8436_VENDOR);
+}
+
+static int sff_8436_read_product(struct nfp_phymod *phy, char *prod, u32 sz)
+{
+	return read_sff_string(phy, prod, sz, 16, SFF_8436_VENDOR_PN);
+}
+
+static int sff_8436_read_serial(struct nfp_phymod *phy, char *serial, u32 sz)
+{
+	return read_sff_string(phy, serial, sz, 16, SFF_8436_VENDOR_SN);
+}
+
+static int sff_8436_read_vendor_oui(struct nfp_phymod *phy, u32 *oui)
+{
+	return read_vendor_oui(phy, oui, SFF_8436_VENDOR_OUI);
+}
+
+static int sff_8436_read_length(struct nfp_phymod *phy, int *length)
+{
+	u32 i;
+	u8 tmp;
+
+	static const struct lengthinfo {
+		u8 offs;
+		int mul;
+	} li[] = {
+		{ SFF_8436_LENGTH_SMF, 1000 },
+		{ SFF_8436_LENGTH_OM3, 2 },
+		{ SFF_8436_LENGTH_OM2, 1 },
+		{ SFF_8436_LENGTH_OM1, 1 },
+		{ SFF_8436_LENGTH_ASSEMBLY, 1 },
+	};
+
+	if (!length)
+		return -1;
+
+	for (i = 0; i < ARRAY_SIZE(li); i++) {
+		if (nfp_phymod_read8(phy, li[i].offs, &tmp) < 0)
+			return -1;
+		if (tmp > 0) {
+			*length = li[i].mul * tmp;
+			return 0;
+		}
+	}
+	return -1;
+}
+
+#define SFF_CONNECTOR_MPO			0x0c
+static int sff_8436_get_active_or_passive(struct nfp_phymod *phy, int *anp)
+{
+	int i;
+	u8 tmp;
+
+	if (nfp_phymod_read8(phy, SFF_8436_CONNECTOR, &tmp) < 0)
+		return -1;
+
+	if (tmp == SFF_CONNECTOR_MPO) {
+		*anp = 1;
+		return 0;
+	}
+
+	for (i = SFF_8436_FIBRE_CHAN_COMP_BEG;
+	     i <= SFF_8436_FIBRE_CHAN_COMP_END; i++) {
+		if (nfp_phymod_read8(phy, i, &tmp) < 0)
+			return -1;
+
+		if (tmp != 0) {
+			*anp = 1;
+			return 0;
+		}
+	}
+	*anp = 0;
+	return 0;
+}
+
+static int sff_8436_verify_checkcodes(struct nfp_phymod *phy, int *ccs)
+{
+	int err, cnt;
+	u8 cc;
+
+	if (!ccs)
+		return -1;
+
+	if (nfp_phymod_read8(phy, SFF_8436_CC_BASE, &cc) < 0)
+		return -1;
+	cnt = 1 + SFF_8436_CC_BASE_END - SFF_8436_CC_BASE_START;
+	err = verify_sff_checkcode(phy, SFF_8436_CC_BASE_START, cnt, cc);
+	if (err < 0)
+		return -1;
+	*ccs = (err & 1) << 0;
+
+	if (nfp_phymod_read8(phy, SFF_8436_CC_EXT, &cc) < 0)
+		return -1;
+	cnt = 1 + SFF_8436_CC_EXT_END - SFF_8436_CC_EXT_START;
+	err = verify_sff_checkcode(phy, SFF_8436_CC_EXT_START, cnt, cc);
+	if (err < 0)
+		return -1;
+	*ccs |= (err & 1) << 1;
+
+	return 0;
+}
+
 static const struct sff_ops sff_8436_ops = {
 	.type = 8436,
 	.open = sff_8436_open,
@@ -452,6 +590,15 @@ static const struct sff_ops sff_8436_ops = {
 
 	.get_lane_dis = sff_8436_get_lane_dis,
 	.set_lane_dis = sff_8436_set_lane_dis,
+
+	.read_connector = sff_8436_read_connector,
+	.read_vendor    = sff_8436_read_vendor,
+	.read_vend_oui  = sff_8436_read_vendor_oui,
+	.read_product   = sff_8436_read_product,
+	.read_serial    = sff_8436_read_serial,
+	.read_length    = sff_8436_read_length,
+	.get_active_or_passive = sff_8436_get_active_or_passive,
+	.verify_checkcodes = sff_8436_verify_checkcodes,
 };
 
 #endif /* NFP_NBI_PHYMOD_C */

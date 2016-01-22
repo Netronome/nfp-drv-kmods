@@ -72,6 +72,15 @@ struct sff_ops {
 
 	int (*get_lane_dis)(struct nfp_phymod *phy, u32 *tx, u32 *rx);
 	int (*set_lane_dis)(struct nfp_phymod *phy, u32 tx, u32 rx);
+
+	int (*verify_checkcodes)(struct nfp_phymod *phy, int *cc_status);
+	int (*read_connector)(struct nfp_phymod *phy, int *connector);
+	int (*read_vendor)(struct nfp_phymod *phy, char *name, u32 size);
+	int (*read_vend_oui)(struct nfp_phymod *phy, u32 *oui);
+	int (*read_product)(struct nfp_phymod *phy, char *prod, u32 size);
+	int (*read_serial)(struct nfp_phymod *phy, char *serial, u32 size);
+	int (*read_length)(struct nfp_phymod *phy, int *length);
+	int (*get_active_or_passive)(struct nfp_phymod *phy, int *anp);
 };
 
 struct pin {
@@ -626,6 +635,57 @@ static int pin_get(struct nfp_device *nfp, struct pin *pin)
 	return err;
 }
 
+static int read_sff_string(struct nfp_phymod *phy,
+			   char *str, u32 sz, u32 max_sz, u32 offs)
+{
+	int i, size;
+
+	if (sz == 0)
+		return -1;
+	size = (sz < max_sz) ? sz : max_sz;
+
+	for (i = 0; i < size - 1; i++) {
+		if (nfp_phymod_read8(phy, offs + i, (u8 *)&str[i]) < 0)
+			return -1;
+	}
+	str[size - 1] = '\0';
+	for (size -= 2; size >= 0 && str[size] == ' '; size--)
+		str[size] = '\0';
+	return 0;
+}
+
+static int read_vendor_oui(struct nfp_phymod *phy, u32 *oui, u32 offs)
+{
+	u32 i;
+	u8 tmp;
+
+	if (!oui)
+		return -1;
+
+	*oui = 0;
+	for (i = 0; i < 3; i++) {
+		if (nfp_phymod_read8(phy, offs + i, &tmp) < 0)
+			return -1;
+		*oui <<= 8;
+		*oui  |= tmp;
+	}
+	return 0;
+}
+
+static int verify_sff_checkcode(struct nfp_phymod *phymod,
+				u8 offs, u32 len, u8 expected_cc)
+{
+	u32 i;
+	u8 tmp, calc;
+
+	for (calc = 0, i = 0; i < len; i++) {
+		if (nfp_phymod_read8(phymod, offs + i, &tmp) < 0)
+			return -1;
+		calc += tmp;
+	}
+	return (calc == expected_cc) ? 0 : -1;
+}
+
 #define NFP_NBI_PHYMOD_C
 
 #include "sff_8431.c"
@@ -1021,7 +1081,7 @@ int nfp_phymod_read_status_los(struct nfp_phymod *phymod,
 	if (phymod->sff.op && phymod->sff.op->status_los)
 		return phymod->sff.op->status_los(phymod, txstatus, rxstatus);
 
-	return -EINVAL;
+	return -EOPNOTSUPP;
 }
 
 /**
@@ -1049,7 +1109,7 @@ int nfp_phymod_read_status_fault(struct nfp_phymod *phymod,
 	if (phymod->sff.op && phymod->sff.op->status_fault)
 		return phymod->sff.op->status_fault(phymod, txstatus, rxstatus);
 
-	return -EINVAL;
+	return -EOPNOTSUPP;
 }
 
 /**
@@ -1081,7 +1141,7 @@ int nfp_phymod_read_status_optpower(struct nfp_phymod *phymod,
 	if (phymod->sff.op && phymod->sff.op->status_power)
 		return phymod->sff.op->status_power(phymod, txstatus, rxstatus);
 
-	return -EINVAL;
+	return -EOPNOTSUPP;
 }
 
 /**
@@ -1107,7 +1167,7 @@ int nfp_phymod_read_status_optbias(struct nfp_phymod *phymod,
 	if (phymod->sff.op && phymod->sff.op->status_bias)
 		return phymod->sff.op->status_bias(phymod, txstatus, rxstatus);
 
-	return -EINVAL;
+	return -EOPNOTSUPP;
 }
 
 /**
@@ -1147,7 +1207,7 @@ int nfp_phymod_read_status_voltage(struct nfp_phymod *phymod,
 	if (phymod->sff.op && phymod->sff.op->status_volt)
 		return phymod->sff.op->status_volt(phymod, txstatus, rxstatus);
 
-	return -EINVAL;
+	return -EOPNOTSUPP;
 }
 
 /**
@@ -1181,7 +1241,7 @@ int nfp_phymod_read_status_temp(struct nfp_phymod *phymod,
 	if (phymod->sff.op && phymod->sff.op->status_temp)
 		return phymod->sff.op->status_temp(phymod, txstatus, rxstatus);
 
-	return -EINVAL;
+	return -EOPNOTSUPP;
 }
 
 /**
@@ -1218,7 +1278,7 @@ int nfp_phymod_read_lanedisable(struct nfp_phymod *phymod,
 	if (phymod->sff.op && phymod->sff.op->get_lane_dis)
 		return phymod->sff.op->get_lane_dis(phymod, txstatus, rxstatus);
 
-	return -EINVAL;
+	return -EOPNOTSUPP;
 }
 
 /**
@@ -1254,7 +1314,7 @@ int nfp_phymod_write_lanedisable(struct nfp_phymod *phymod,
 	if (phymod->sff.op && phymod->sff.op->set_lane_dis)
 		return phymod->sff.op->set_lane_dis(phymod, txstate, rxstate);
 
-	return -EINVAL;
+	return -EOPNOTSUPP;
 }
 
 /**
@@ -1272,7 +1332,7 @@ int nfp_phymod_read8(struct nfp_phymod *phymod, u32 addr, u8 *data)
 	if (phymod->sff.op && phymod->sff.op->read8)
 		return phymod->sff.op->read8(phymod, addr, data);
 
-	return -EINVAL;
+	return -EOPNOTSUPP;
 }
 
 /**
@@ -1282,7 +1342,6 @@ int nfp_phymod_read8(struct nfp_phymod *phymod, u32 addr, u8 *data)
  * @data:	value
  *
  * Return: 0, or -ERRNO
- *
  */
 int nfp_phymod_write8(struct nfp_phymod *phymod, u32 addr, u8 data)
 {
@@ -1291,262 +1350,161 @@ int nfp_phymod_write8(struct nfp_phymod *phymod, u32 addr, u8 data)
 	if (phymod->sff.op && phymod->sff.op->write8)
 		return phymod->sff.op->write8(phymod, addr, data);
 
-	return -EINVAL;
-}
-
-static int verify_sff_checkcode(struct nfp_phymod *phymod,
-				u8 offs, u32 len, u8 expected_cc)
-{
-	u8 tmp, calc;
-	int ret;
-	u32 i;
-
-	for (calc = 0, i = 0; i < len; i++) {
-		ret = nfp_phymod_read8(phymod, offs + i, &tmp);
-		if (ret < 0)
-			return ret;
-		calc += tmp;
-	}
-	return calc != expected_cc;
-}
-
-#define CC_BASE_MIN	128
-#define CC_BASE_MAX	190
-#define CC_BASE		191
-static int verify_sff_base_checkcode(struct nfp_phymod *phymod)
-{
-	int ret;
-	u8 cc;
-
-	ret = nfp_phymod_read8(phymod, CC_BASE, &cc);
-	if (ret < 0)
-		return ret;
-	return verify_sff_checkcode(phymod, CC_BASE_MIN,
-				    1 + CC_BASE_MAX - CC_BASE_MIN, cc);
-}
-
-#define CC_EXT_MIN	192
-#define CC_EXT_MAX	222
-#define CC_EXT		223
-static int verify_sff_ext_checkcode(struct nfp_phymod *phymod)
-{
-	int ret;
-	u8 cc;
-
-	ret = nfp_phymod_read8(phymod, CC_EXT, &cc);
-	if (ret < 0)
-		return ret;
-	return verify_sff_checkcode(phymod, CC_EXT_MIN,
-				    1 + CC_EXT_MAX - CC_EXT_MIN, cc);
+	return -EOPNOTSUPP;
 }
 
 /**
- * nfp_phymod_verify_sff_checkcode() - Verify SFF address map check code.
+ * nfp_phymod_verify_sff_checkcode() - Verify check-codes of module mem-map.
  * @phymod:	PHY module
- * @cc_status:	Check code status flags
- *
- * cc_status bit 0 is set if the base check code is incorrect.
- * cc_status bit 1 is set if the extended check code is incorrect.
- * a value of 0 for cc_status indicates all check codes are correct.
+ * @cc_status:	Output, bit mask of check-codes, 0 indicates all passed.
  *
  * Return: 0, or -ERRNO
  */
 int nfp_phymod_verify_sff_checkcode(struct nfp_phymod *phymod, int *cc_status)
 {
-	int ret;
+	_phymod_select(phymod);
 
-	if (!cc_status)
-		return -EINVAL;
+	if (phymod->sff.op && phymod->sff.op->verify_checkcodes)
+		return phymod->sff.op->verify_checkcodes(phymod, cc_status);
 
-	ret = verify_sff_base_checkcode(phymod);
-	if (ret < 0)
-		return ret;
-	*cc_status = (ret & 1) << 0;
-
-	ret = verify_sff_ext_checkcode(phymod);
-	if (ret < 0)
-		return ret;
-	*cc_status |= (ret & 1) << 1;
-	return 0;
+	return -EOPNOTSUPP;
 }
 
-#define SFF_VEND_NAME			148
-#define SFF_VEND_OUI			165
 /**
- * nfp_phymod_read_vendor() - Retrieve ascii vendor name and/or vendor IEEE OUI
+ * nfp_phymod_read_type() - Read SFF defined phy type from memory map.
  * @phymod:	PHY module
- * @name:	location to copy name string to.
- * @size:	size of memory pointed to by name
- * @oui:	location to store 24 bit OUI value
+ * @type:	Output, phy type.
  *
- * Upon success name is guaranteed to be NULL terminated.
+ * Return: 0, or -ERRNO
+ */
+int nfp_phymod_read_type(struct nfp_phymod *phymod, int *type)
+{
+	_phymod_select(phymod);
+
+	return nfp_phymod_get_type(phymod, type);
+}
+
+/**
+ * nfp_phymod_read_connector() - Read SFF defined connector type from mem-map.
+ * @phymod:	PHY module
+ * @connector:	Output, phy connector type.
+ *
+ * Return: 0, or -ERRNO
+ */
+int nfp_phymod_read_connector(struct nfp_phymod *phymod, int *connector)
+{
+	_phymod_select(phymod);
+
+	if (phymod->sff.op && phymod->sff.op->read_connector)
+		return phymod->sff.op->read_connector(phymod, connector);
+
+	return -EOPNOTSUPP;
+}
+
+/**
+ * nfp_phymod_read_vendor() - Read vendor name ascii string from memory map.
+ * @phymod:	PHY module
+ * @name:	Output, destination string.
+ * @size:	Input, size of destination string
+ * @oui:	Output, vendor OUI Id.
  *
  * Return: 0, or -ERRNO
  */
 int nfp_phymod_read_vendor(struct nfp_phymod *phymod, char *name,
 			   u32 size, u32 *oui)
 {
-	int ret;
-	u8 tmp;
-	u32 i;
+	_phymod_select(phymod);
 
 	if (!name && !oui)
-		return -EINVAL;
+		return -1;
 
 	if (name) {
-		if (size == 0)
-			return -EINVAL;
-
-		for (i = 0; i < min(16U, size); i++) {
-			ret = nfp_phymod_read8(phymod, SFF_VEND_NAME + i,
-					       (u8 *)&name[i]);
-			if (ret < 0)
-				return ret;
+		if (phymod->sff.op && phymod->sff.op->read_vendor) {
+			if (phymod->sff.op->read_vendor(phymod, name, size))
+				return -1;
+		} else {
+			return -EOPNOTSUPP;
 		}
-		name[(size > 16) ? (16) : (size - 1)] = '\0';
 	}
 	if (oui) {
-		*oui = 0;
-		for (i = 0; i < 3; i++) {
-			ret = nfp_phymod_read8(phymod, SFF_VEND_OUI + i,
-					       &tmp);
-			if (ret < 0)
-				return ret;
-			*oui <<= 8;
-			*oui  |= tmp;
+		if (phymod->sff.op && phymod->sff.op->read_vend_oui) {
+			if (phymod->sff.op->read_vend_oui(phymod, oui))
+				return -1;
+		} else {
+			return -EOPNOTSUPP;
 		}
 	}
 	return 0;
 }
 
-#define SFF_PRODUCT			168
 /**
- * nfp_phymod_read_product() - Retrieve ascii product name
+ * nfp_phymod_read_product() - Read vendor product ascii string from memory map.
  * @phymod:	PHY module
- * @product:	location to copy product string to.
- * @size:	size of memory pointed to by name
- *
- * Upon success product is guaranteed to be NULL terminated.
+ * @product:	Ouptut, destination string.
+ * @size:	Input, size of destination string
  *
  * Return: 0, or -ERRNO
  */
 int nfp_phymod_read_product(struct nfp_phymod *phymod, char *product, u32 size)
 {
-	int ret;
-	u32 i;
+	_phymod_select(phymod);
 
-	if (!product || size == 0)
-		return -EINVAL;
+	if (phymod->sff.op && phymod->sff.op->read_product)
+		return phymod->sff.op->read_product(phymod, product, size);
 
-	for (i = 0; i < min(16U, size); i++) {
-		ret = nfp_phymod_read8(phymod, SFF_PRODUCT + i,
-				       (u8 *)&product[i]);
-		if (ret < 0)
-			return ret;
-	}
-	product[min(16U, size - 1)] = '\0';
-	return 0;
+	return -EOPNOTSUPP;
 }
 
-#define SFF_ID				128
 /**
- * nfp_phymod_read_type() - Read module type
+ * nfp_phymod_read_serial() - Read vendor serial ascii string from memory map.
  * @phymod:	PHY module
- * @type:	Type of PHY module
+ * @serial:	Output, destination string.
+ * @size:	Input, size of destination string
  *
  * Return: 0, or -ERRNO
  */
-int nfp_phymod_read_type(struct nfp_phymod *phymod, int *type)
+int nfp_phymod_read_serial(struct nfp_phymod *phymod, char *serial, u32 size)
 {
-	u8 tmp = 0;
-	int ret;
+	_phymod_select(phymod);
 
-	if (!type)
-		return -EINVAL;
+	if (phymod->sff.op && phymod->sff.op->read_serial)
+		return phymod->sff.op->read_serial(phymod, serial, size);
 
-	ret = nfp_phymod_read8(phymod, SFF_ID, &tmp);
-	if (ret < 0)
-		return ret;
-	*type = tmp;
-	return 0;
+	return -EOPNOTSUPP;
 }
 
 /**
- * nfp_phymod_read_length() - Retrieve supported link length of the PHY module
+ * nfp_phymod_read_length() - Retrieve length information from memory map.
  * @phymod:	PHY module
- * @length:	Supported length of PHY
+ * @length:	Output
  *
  * Return: 0, or -ERRNO
  */
 int nfp_phymod_read_length(struct nfp_phymod *phymod, int *length)
 {
-	static const struct lengthinfo {
-		u8 offs;
-		int mul;
-	} li[] = {
-		{ 142, 1000 }, /*  SM */
-		{ 143,    2 }, /* OM3 */
-		{ 144,    1 }, /* OM2 */
-		{ 145,    1 }, /* OM1 */
-		{ 146,    1 }, /* Asm */
-	};
-	u8 tmp = 0;
-	int ret;
-	u32 i;
+	_phymod_select(phymod);
 
-	if (!length)
-		return -EINVAL;
+	if (phymod->sff.op && phymod->sff.op->read_length)
+		return phymod->sff.op->read_length(phymod, length);
 
-	for (i = 0; i < ARRAY_SIZE(li); i++) {
-		ret = nfp_phymod_read8(phymod, li[i].offs, &tmp);
-		if (ret < 0)
-			return ret;
-		if (tmp > 0) {
-			*length = li[i].mul * tmp;
-			return 0;
-		}
-	}
 	return -EOPNOTSUPP;
 }
 
-#define SFF_CONNECTOR			130
-#define CONNECTOR_MPO			0x0c
-#define FIBRE_CHAN_COMP_BEG		135
-#define FIBRE_CHAN_COMP_END		138
 /**
- * nfp_phymod_get_active_or_passive() - Determine if PHY is active or passive
+ * nfp_phymod_get_active_or_passive() - Get active or passive phy from mem-map.
  * @phymod:	PHY module
- * @anp:	active
+ * @anp:	Output, active-not-passive boolean
  *
  * Return: 0, or -ERRNO
  */
 int nfp_phymod_get_active_or_passive(struct nfp_phymod *phymod, int *anp)
 {
-	u8 tmp = 0;
-	int ret;
-	int i;
+	_phymod_select(phymod);
 
-	ret = nfp_phymod_read8(phymod, SFF_CONNECTOR, &tmp);
-	if (ret < 0)
-		return ret;
+	if (phymod->sff.op && phymod->sff.op->get_active_or_passive)
+		return phymod->sff.op->get_active_or_passive(phymod, anp);
 
-	if (tmp == CONNECTOR_MPO) {
-		*anp = 1;
-		return 0;
-	}
-
-	for (i = FIBRE_CHAN_COMP_BEG; i <= FIBRE_CHAN_COMP_END; i++) {
-		ret = nfp_phymod_read8(phymod, i, &tmp);
-		if (ret < 0)
-			return ret;
-
-		if (tmp != 0) {
-			*anp = 1;
-			return 0;
-		}
-	}
-	*anp = 0;
-	return 0;
+	return -EOPNOTSUPP;
 }
 
 /**

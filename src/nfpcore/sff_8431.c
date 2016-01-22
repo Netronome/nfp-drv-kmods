@@ -41,6 +41,26 @@
 /* Included from nfp_nbi_phymod.c - not compiled separately! */
 #ifdef NFP_NBI_PHYMOD_C
 
+#define SFF_8431_CONNECTOR           2
+#define SFF_8431_TRANS_COMP          8 /* transceiver compl. codes: 3-10,36 */
+#define SFF_8431_LENGTH_SMF          14
+#define SFF_8431_LENGTH_OM2          16
+#define SFF_8431_LENGTH_OM1          17
+#define SFF_8431_LENGTH_OM4_CU       18
+#define SFF_8431_LENGTH_OM3          19
+#define SFF_8431_VENDOR              20
+#define SFF_8431_VENDOR_OUI          37
+#define SFF_8431_VENDOR_PN           40
+#define SFF_8431_CC_BASE             63
+#define  SFF_8431_CC_BASE_START      0
+#define  SFF_8431_CC_BASE_END        62
+
+#define SFF_8431_VENDOR_SN           68
+#define SFF_8431_DATECODE            84
+#define SFF_8431_CC_EXT              95
+#define  SFF_8431_CC_EXT_START       64
+#define  SFF_8431_CC_EXT_END         94
+
 /* SFF-8431 operations - built off of the SFF-8431 operations */
 struct sff_8431 {
 	struct sff_bus bus[2];
@@ -192,7 +212,7 @@ static int sff_8431_read8(struct nfp_phymod *phy, u32 reg, u8 *val)
 	return bus->op->read8(bus, reg, val);
 }
 
-static int sff_8431_write8(struct nfp_phymod *phy, u32 reg, uint8_t val)
+static int sff_8431_write8(struct nfp_phymod *phy, u32 reg, u8 val)
 {
 	struct sff_8431 *sff = phy->sff.priv;
 	int page = (reg >> 8);
@@ -286,6 +306,103 @@ static int sff_8431_set_lane_dis(struct nfp_phymod *phy,
 	return 0;
 }
 
+static int sff_8431_read_connector(struct nfp_phymod *phy, int *connector)
+{
+	u8 tmp;
+
+	if (nfp_phymod_read8(phy, SFF_8431_CONNECTOR, &tmp) < 0)
+		return -1;
+	*connector = tmp;
+	return 0;
+}
+
+static int sff_8431_read_vendor(struct nfp_phymod *phy, char *name, u32 sz)
+{
+	return read_sff_string(phy, name, sz, 16, SFF_8431_VENDOR);
+}
+
+static int sff_8431_read_vendor_oui(struct nfp_phymod *phy, u32 *oui)
+{
+	return read_vendor_oui(phy, oui, SFF_8431_VENDOR_OUI);
+}
+
+static int sff_8431_read_product(struct nfp_phymod *phy, char *prod, u32 sz)
+{
+	return read_sff_string(phy, prod, sz, 16, SFF_8431_VENDOR_PN);
+}
+
+static int sff_8431_read_serial(struct nfp_phymod *phy, char *serial, u32 sz)
+{
+	return read_sff_string(phy, serial, sz, 16, SFF_8431_VENDOR_SN);
+}
+
+static int sff_8431_read_length(struct nfp_phymod *phy, int *length)
+{
+	u32 i;
+	u8 tmp;
+
+	static const struct lengthinfo {
+		u8 offs;
+		int mul;
+	} li[] = {
+		{ SFF_8431_LENGTH_SMF, 1000 },
+		{ SFF_8431_LENGTH_OM3, 10 },
+		{ SFF_8431_LENGTH_OM2, 10 },
+		{ SFF_8431_LENGTH_OM1, 10 },
+		{ SFF_8431_LENGTH_OM4_CU, 1 },
+	};
+
+	if (!length)
+		return -1;
+
+	for (i = 0; i < ARRAY_SIZE(li); i++) {
+		if (nfp_phymod_read8(phy, li[i].offs, &tmp) < 0)
+			return -1;
+		if (tmp > 0) {
+			*length = li[i].mul * tmp;
+			return 0;
+		}
+	}
+	return -1;
+}
+
+static int sff_8431_get_active_or_passive(struct nfp_phymod *phy, int *anp)
+{
+	u8 tmp;
+
+	if (nfp_phymod_read8(phy, SFF_8431_TRANS_COMP, &tmp) < 0)
+		return -1;
+	*anp = !(tmp & (1 << 2));
+	return 0;
+}
+
+static int sff_8431_verify_checkcodes(struct nfp_phymod *phy, int *ccs)
+{
+	int err, cnt;
+	u8 cc;
+
+	if (!ccs)
+		return -1;
+
+	if (nfp_phymod_read8(phy, SFF_8431_CC_BASE, &cc) < 0)
+		return -1;
+	cnt = 1 + SFF_8431_CC_BASE_END - SFF_8431_CC_BASE_START, cc;
+	err = verify_sff_checkcode(phy, SFF_8431_CC_BASE_START, cnt, cc);
+	if (err < 0)
+		return -1;
+	*ccs = (err & 1) << 0;
+
+	if (nfp_phymod_read8(phy, SFF_8431_CC_EXT, &cc) < 0)
+		return -1;
+	cnt = 1 + SFF_8431_CC_EXT_END - SFF_8431_CC_EXT_START;
+	err = verify_sff_checkcode(phy, SFF_8431_CC_EXT_START, cnt, cc);
+	if (err < 0)
+		return -1;
+	*ccs |= (err & 1) << 1;
+
+	return 0;
+}
+
 static const struct sff_ops sff_8431_ops = {
 	.type = 8431,
 	.open = sff_8431_open,
@@ -301,6 +418,15 @@ static const struct sff_ops sff_8431_ops = {
 
 	.set_lane_dis = sff_8431_set_lane_dis,
 	.get_lane_dis = sff_8431_get_lane_dis,
+
+	.read_connector = sff_8431_read_connector,
+	.read_vendor    = sff_8431_read_vendor,
+	.read_vend_oui  = sff_8431_read_vendor_oui,
+	.read_product   = sff_8431_read_product,
+	.read_serial    = sff_8431_read_serial,
+	.read_length    = sff_8431_read_length,
+	.get_active_or_passive = sff_8431_get_active_or_passive,
+	.verify_checkcodes = sff_8431_verify_checkcodes,
 };
 
 #endif /* NFP_NBI_PHYMOD_C */

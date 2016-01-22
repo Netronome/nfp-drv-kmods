@@ -40,6 +40,19 @@
 /* Included from nfp_nbi_phymod.c - not compiled separately! */
 #ifdef NFP_NBI_PHYMOD_C
 
+#define SFF_8647_EXT_ID                  129
+#define SFF_8647_CONNECTOR               130
+#define SFF_8647_DEVICE_TECH             147
+#define SFF_8647_CABLE_LEN               150
+#define SFF_8647_VENDOR                  152
+#define SFF_8647_VENDOR_OUI              168
+#define SFF_8647_VENDOR_PN               171
+#define SFF_8647_VENDOR_SN               189
+#define SFF_8647_DATECODE                205
+#define SFF_8647_CC                      223
+#define  SFF_8647_CC_START               128
+#define  SFF_8647_CC_END                 222
+
 /* SFF-8647 operations */
 struct sff_8647 {
 	int selected;
@@ -164,7 +177,78 @@ static int sff_8647_reset(struct nfp_phymod *phy, int in_reset)
 	return pin_set(priv->nfp, &sff->out.reset, in_reset ? 1 : 0);
 }
 
-static int sff_8647_read8(struct nfp_phymod *phy, uint32_t reg, uint8_t *val)
+static int sff_8647_read_vendor(struct nfp_phymod *phy, char *name, u32 sz)
+{
+	return read_sff_string(phy, name, sz, 16, SFF_8647_VENDOR);
+}
+
+static int sff_8647_read_product(struct nfp_phymod *phy, char *prod, u32 sz)
+{
+	return read_sff_string(phy, prod, sz, 16, SFF_8647_VENDOR_PN);
+}
+
+static int sff_8647_read_serial(struct nfp_phymod *phy, char *serial, u32 sz)
+{
+	return read_sff_string(phy, serial, sz, 16, SFF_8647_VENDOR_SN);
+}
+
+static int sff_8647_read_vendor_oui(struct nfp_phymod *phy, u32 *oui)
+{
+	return read_vendor_oui(phy, oui, SFF_8647_VENDOR_OUI);
+}
+
+static int sff_8647_read_connector(struct nfp_phymod *phy, int *connector)
+{
+	u8 tmp;
+
+	if (nfp_phymod_read8(phy, SFF_8647_CONNECTOR, &tmp) < 0)
+		return -1;
+	*connector = tmp;
+	return 0;
+}
+
+static int sff_8647_verify_checkcodes(struct nfp_phymod *phy, int *ccs)
+{
+	int err, cnt;
+	u8 cc;
+
+	if (!ccs)
+		return -1;
+
+	if (nfp_phymod_read8(phy, SFF_8647_CC, &cc) < 0)
+		return -1;
+	cnt = 1 + SFF_8647_CC_END - SFF_8647_CC_START;
+	err = verify_sff_checkcode(phy, SFF_8647_CC_START, cnt, cc);
+	if (err < 0)
+		return -1;
+	*ccs = (err & 1) << 0;
+
+	return 0;
+}
+
+static int sff_8647_read_length(struct nfp_phymod *phy, int *length)
+{
+	u8 hi, lo;
+
+	if (nfp_phymod_read8(phy, SFF_8647_CABLE_LEN + 0, &hi) < 0)
+		return -1;
+	if (nfp_phymod_read8(phy, SFF_8647_CABLE_LEN + 1, &lo) < 0)
+		return -1;
+	*length = ((hi << 8) | lo) / 2;
+	return 0;
+}
+
+static int sff_8647_get_active_or_passive(struct nfp_phymod *phy, int *anp)
+{
+	int con;
+
+	if (sff_8647_read_connector(phy, &con))
+		return -1;
+	*anp = (con == 0x31 || con == 0x32) ? 1 : 0;
+	return 0;
+}
+
+static int sff_8647_read8(struct nfp_phymod *phy, u32 reg, u8 *val)
 {
 	struct sff_8647 *sff = phy->sff.priv;
 	int page = (reg >> 8);
@@ -183,7 +267,7 @@ static int sff_8647_read8(struct nfp_phymod *phy, uint32_t reg, uint8_t *val)
 	return sff->bus.op->read8(&sff->bus, reg, val);
 }
 
-static int sff_8647_write8(struct nfp_phymod *phy, uint32_t reg, uint8_t val)
+static int sff_8647_write8(struct nfp_phymod *phy, u32 reg, u8 val)
 {
 	struct sff_8647 *sff = phy->sff.priv;
 	int page = (reg >> 8);
@@ -209,6 +293,15 @@ static const struct sff_ops sff_8647_ops = {
 	.poll_irq = sff_8647_poll_irq,
 	.poll_present = sff_8647_poll_present,
 	.reset = sff_8647_reset,
+
+	.read_connector = sff_8647_read_connector,
+	.read_vendor    = sff_8647_read_vendor,
+	.read_vend_oui  = sff_8647_read_vendor_oui,
+	.read_product   = sff_8647_read_product,
+	.read_serial    = sff_8647_read_serial,
+	.read_length    = sff_8647_read_length,
+	.get_active_or_passive = sff_8647_get_active_or_passive,
+	.verify_checkcodes = sff_8647_verify_checkcodes,
 
 	.read8 = sff_8647_read8,
 	.write8 = sff_8647_write8,

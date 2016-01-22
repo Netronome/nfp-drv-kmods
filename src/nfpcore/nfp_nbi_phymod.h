@@ -136,7 +136,9 @@ int nfp_phymod_verify_sff_checkcode(struct nfp_phymod *phymod, int *cc_status);
 int nfp_phymod_read_vendor(struct nfp_phymod *phymod, char *name,
 			   u32 size, u32 *oui);
 int nfp_phymod_read_product(struct nfp_phymod *phymod, char *product, u32 size);
+int nfp_phymod_read_serial(struct nfp_phymod *phymod, char *serial, u32 size);
 int nfp_phymod_read_type(struct nfp_phymod *phymod, int *type);
+int nfp_phymod_read_connector(struct nfp_phymod *phymod, int *connector);
 int nfp_phymod_read_length(struct nfp_phymod *phymod, int *length);
 int nfp_phymod_get_active_or_passive(struct nfp_phymod *phymod, int *anp);
 
