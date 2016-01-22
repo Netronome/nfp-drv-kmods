@@ -919,7 +919,8 @@ int nfp_cpp_area_writeq(struct nfp_cpp_area *area,
 int nfp_cpp_area_fill(struct nfp_cpp_area *area,
 		      unsigned long offset, u32 value, size_t length)
 {
-	size_t i, k;
+	size_t i;
+	int k;
 
 	value = cpu_to_le32(value);
 
@@ -930,10 +931,10 @@ int nfp_cpp_area_fill(struct nfp_cpp_area *area,
 	for (i = 0; i < length; i += sizeof(value)) {
 		k = nfp_cpp_area_write(area, offset + i, &value, sizeof(value));
 		if (k < 0)
-			return (int)k;
+			return k;
 	}
 
-	return (int)i;
+	return i;
 }
 
 /**
