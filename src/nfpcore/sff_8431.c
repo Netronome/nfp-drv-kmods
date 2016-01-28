@@ -386,7 +386,7 @@ static int sff_8431_verify_checkcodes(struct nfp_phymod *phy, int *ccs)
 
 	if (nfp_phymod_read8(phy, SFF_8431_CC_BASE, &cc) < 0)
 		return -1;
-	cnt = 1 + SFF_8431_CC_BASE_END - SFF_8431_CC_BASE_START, cc;
+	cnt = 1 + SFF_8431_CC_BASE_END - SFF_8431_CC_BASE_START;
 	err = verify_sff_checkcode(phy, SFF_8431_CC_BASE_START, cnt, cc);
 	if (err < 0)
 		return -1;
