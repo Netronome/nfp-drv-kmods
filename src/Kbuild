@@ -11,7 +11,9 @@ CONFIG_NFP_NETVF ?= m
 # un-comment for debug symbols
 # override EXTRA_CFLAGS += -g3
 
-ifneq ($(makecmd),clean)
+# Perform checks only if config was evaluated (some targets e.g. clean don't
+# have CONFIG_* variables set).
+ifdef CONFIG_LOCALVERSION
 ifneq ($(CONFIG_PCI),y)
   $(error NFP: The PCI subsystem (CONFIG_PCI) must be enabled)
 endif

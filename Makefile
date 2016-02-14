@@ -55,8 +55,7 @@ sparse: clean
 	 $(MAKE) $(COMMON_ARGS) C=2 CF="-D__CHECK_ENDIAN__ -Wbitwise -Wcontext" modules
 
 clean:
-# Pass makecmd to disable some config checks
-	$(MAKE) -C $(KSRC) M=`pwd` makecmd=clean clean
+	$(MAKE) -C $(KSRC) M=`pwd` clean
 
 install: build
 	$(MAKE) $(COMMON_ARGS) modules_install
