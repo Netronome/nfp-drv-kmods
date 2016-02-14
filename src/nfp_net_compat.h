@@ -89,13 +89,6 @@
 #define dma_rmb() rmb()
 #endif
 
-#ifndef PCI_MSIX_TABLE_BIR
-#define  PCI_MSIX_TABLE_BIR     0x00000007 /* BAR index */
-#endif
-#ifndef PCI_MSIX_TABLE_OFFSET
-#define  PCI_MSIX_TABLE_OFFSET  0xfffffff8 /* Offset into specified BAR */
-#endif
-
 #ifndef PCI_VENDOR_ID_NETRONOME
 #define PCI_VENDOR_ID_NETRONOME		0x19ee
 #endif
