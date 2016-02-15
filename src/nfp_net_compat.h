@@ -48,6 +48,18 @@
 #define KERNEL_VERSION(a, b, c) (((a) << 16) + ((b) << 8) + (c))
 #endif
 
+#ifndef RHEL_RELEASE_VERSION
+#define RHEL_RELEASE_VERSION(a, b) (((a) << 8) + (b))
+#endif
+#ifndef RHEL_RELEASE_CODE
+#define RHEL_RELEASE_CODE 0
+#endif
+
+#define VER_VANILLA_LT(x, y)						\
+	(!RHEL_RELEASE_CODE && LINUX_VERSION_CODE < KERNEL_VERSION(x, y, 0))
+#define VER_RHEL_LT(x, y)						\
+	(RHEL_RELEASE_CODE && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(x, y))
+
 #ifndef KBUILD_MODNAME
 #define KBUILD_MODNAME "nfp_net_compat"
 #endif
@@ -156,7 +168,7 @@ static inline int skb_xmit_more(struct sk_buff *skb)
 #endif
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0)
+#if VER_VANILLA_LT(3, 19) || VER_RHEL_LT(7, 2)
 static inline int skb_put_padto(struct sk_buff *skb, unsigned int len)
 {
 	unsigned int size = skb->len;
@@ -179,11 +191,7 @@ static inline void eth_hw_addr_random(struct net_device *dev)
 }
 #endif
 
-/* FIXME: Ubuntu 14.04 has this in some of their 3.13 kernels
- *
- * FIXME: Centos 7 has this in their 3.10 kernel.
- */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0))
+#if VER_VANILLA_LT(3, 14)
 enum compat_pkt_hash_types {
 	compat_PKT_HASH_TYPE_NONE,     /* Undefined type */
 	compat_PKT_HASH_TYPE_L2,       /* Input: src_MAC, dest_MAC */
@@ -296,7 +304,7 @@ int compat_dma_set_mask_and_coherent(struct device *dev, u64 mask)
 	compat_dma_set_mask_and_coherent(dev, mask)
 #endif
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 0, 0))
+#if VER_VANILLA_LT(4, 0) || VER_RHEL_LT(7, 2)
 #define skb_vlan_tag_present(skb)	vlan_tx_tag_present(skb)
 #define skb_vlan_tag_get(skb)		vlan_tx_tag_get(skb)
 #endif
@@ -391,7 +399,7 @@ compat_ndo_features_check(struct nfp_net *nn, struct sk_buff *skb)
 	return 0;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0)
+#if VER_VANILLA_LT(3, 19) || VER_RHEL_LT(7, 2)
 static inline void netdev_rss_key_fill(void *buffer, size_t len)
 {
 	get_random_bytes(buffer, len);
@@ -408,7 +416,7 @@ static inline void napi_complete_done(struct napi_struct *n, int work_done)
 }
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0)
+#if VER_VANILLA_LT(4, 1)
 static inline netdev_features_t vlan_features_check(const struct sk_buff *skb,
 						    netdev_features_t features)
 {
