@@ -93,17 +93,6 @@
 #define PCI_VENDOR_ID_NETRONOME		0x19ee
 #endif
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 3, 0))
-typedef u32 netdev_features_t;
-#endif /* KERNEL_VERSION(3, 3, 0) */
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 3, 0)
-static inline u32 ethtool_rxfh_indir_default(u32 index, u32 n_rx_rings)
-{
-	return index % n_rx_rings;
-}
-#endif
-
 #ifndef NETIF_F_HW_VLAN_CTAG_RX
 #define NETIF_F_HW_VLAN_CTAG_RX NETIF_F_HW_VLAN_RX
 #endif
@@ -122,57 +111,15 @@ static inline u32 ethtool_rxfh_indir_default(u32 index, u32 n_rx_rings)
 #endif
 
 #ifndef NETIF_F_CSUM_MASK
-#define NETIF_F_CSUM_MASK NETIF_F_ALL_CSUM
+#define NETIF_F_CSUM_MASK	NETIF_F_ALL_CSUM
 #endif
 
-#if (LINUX_VERSION_CODE <= KERNEL_VERSION(3, 6, 0))
-static inline int netif_get_num_default_rss_queues(void)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 3, 0)
+typedef u32 netdev_features_t;
+
+static inline u32 ethtool_rxfh_indir_default(u32 index, u32 n_rx_rings)
 {
-	return min_t(int, 8, num_online_cpus());
-}
-#endif /* KERNEL_VERSION(3, 6, 0) */
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)
-static inline struct sk_buff *ns___vlan_hwaccel_put_tag(struct sk_buff *skb,
-							__be16 vlan_proto,
-							u16 vlan_tci)
-{
-	return __vlan_hwaccel_put_tag(skb, vlan_tci);
-}
-
-#define __vlan_hwaccel_put_tag ns___vlan_hwaccel_put_tag
-#endif
-
-#if (LINUX_VERSION_CODE <= KERNEL_VERSION(3, 8, 0))
-static inline int netif_set_xps_queue(struct net_device *dev,
-				      const struct cpumask *mask,
-				      u16 index)
-{
-	return 0;
-}
-#endif
-
-static inline int skb_xmit_more(struct sk_buff *skb)
-{
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 18, 0)
-	return false;
-#else
-	return skb->xmit_more;
-#endif
-}
-
-#if VER_VANILLA_LT(3, 19) || VER_RHEL_LT(7, 2)
-static inline int skb_put_padto(struct sk_buff *skb, unsigned int len)
-{
-	unsigned int size = skb->len;
-
-	if (unlikely(size < len)) {
-		len -= size;
-		if (skb_pad(skb, len))
-			return -ENOMEM;
-		__skb_put(skb, len);
-	}
-	return 0;
+	return index % n_rx_rings;
 }
 #endif
 
@@ -184,31 +131,48 @@ static inline void eth_hw_addr_random(struct net_device *dev)
 }
 #endif
 
-#if VER_VANILLA_LT(3, 14)
-enum compat_pkt_hash_types {
-	compat_PKT_HASH_TYPE_NONE,     /* Undefined type */
-	compat_PKT_HASH_TYPE_L2,       /* Input: src_MAC, dest_MAC */
-	compat_PKT_HASH_TYPE_L3,       /* Input: src_IP, dst_IP */
-	compat_PKT_HASH_TYPE_L4,       /* Input: src_IP, dst_IP,
-						 src_port, dst_port */
-};
-
-#define PKT_HASH_TYPE_NONE	compat_PKT_HASH_TYPE_NONE
-#define PKT_HASH_TYPE_L2	compat_PKT_HASH_TYPE_L2
-#define PKT_HASH_TYPE_L3	compat_PKT_HASH_TYPE_L3
-#define PKT_HASH_TYPE_L4	compat_PKT_HASH_TYPE_L4
-
-static inline void compat_skb_set_hash(struct sk_buff *skb, __u32 hash,
-				       enum compat_pkt_hash_types type)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 7, 0)
+static inline int netif_get_num_default_rss_queues(void)
 {
-	skb->l4_rxhash = (type == PKT_HASH_TYPE_L4);
-	skb->rxhash = hash;
+	return min_t(int, 8, num_online_cpus());
 }
-
-#define skb_set_hash(s, h, t)	compat_skb_set_hash(s, h, t)
 #endif
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
+static inline int
+netif_set_xps_queue(struct net_device *d, const struct cpumask *m, u16 i)
+{
+	return 0;
+}
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)
+static inline struct sk_buff *
+ns___vlan_hwaccel_put_tag(struct sk_buff *skb, __be16 vlan_proto,
+			  u16 vlan_tci)
+{
+	return __vlan_hwaccel_put_tag(skb, vlan_tci);
+}
+
+#define __vlan_hwaccel_put_tag ns___vlan_hwaccel_put_tag
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 13, 0)
+static inline
+int compat_dma_set_mask_and_coherent(struct device *dev, u64 mask)
+{
+	int rc = dma_set_mask(dev, mask);
+
+	if (rc == 0)
+		dma_set_coherent_mask(dev, mask);
+
+	return rc;
+}
+#define dma_set_mask_and_coherent(dev, mask) \
+	compat_dma_set_mask_and_coherent(dev, mask)
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0)
 static inline int compat_pci_enable_msix_range(struct pci_dev *dev,
 					       struct msix_entry *entries,
 					       int minvec, int maxvec)
@@ -268,26 +232,87 @@ static inline int compat_pci_enable_msi_range(struct pci_dev *dev,
 #endif
 #endif
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 18, 0))
+#if VER_VANILLA_LT(3, 14)
+enum compat_pkt_hash_types {
+	compat_PKT_HASH_TYPE_NONE,     /* Undefined type */
+	compat_PKT_HASH_TYPE_L2,       /* Input: src_MAC, dest_MAC */
+	compat_PKT_HASH_TYPE_L3,       /* Input: src_IP, dst_IP */
+	compat_PKT_HASH_TYPE_L4,       /* Input: src_IP, dst_IP,
+						 src_port, dst_port */
+};
+
+#define PKT_HASH_TYPE_NONE	compat_PKT_HASH_TYPE_NONE
+#define PKT_HASH_TYPE_L2	compat_PKT_HASH_TYPE_L2
+#define PKT_HASH_TYPE_L3	compat_PKT_HASH_TYPE_L3
+#define PKT_HASH_TYPE_L4	compat_PKT_HASH_TYPE_L4
+
+static inline void compat_skb_set_hash(struct sk_buff *skb, __u32 hash,
+				       enum compat_pkt_hash_types type)
+{
+	skb->l4_rxhash = (type == PKT_HASH_TYPE_L4);
+	skb->rxhash = hash;
+}
+
+#define skb_set_hash(s, h, t)	compat_skb_set_hash(s, h, t)
+#endif
+
+static inline int skb_xmit_more(struct sk_buff *skb)
+{
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 18, 0)
+	return false;
+#else
+	return skb->xmit_more;
+#endif
+}
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 18, 0)
 static inline void pci_msi_unmask_irq(struct irq_data *data)
 {
 	unmask_msi_irq(data);
 }
 #endif
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 13, 0))
-static inline
-int compat_dma_set_mask_and_coherent(struct device *dev, u64 mask)
+static inline void
+compat_incr_checksum_unnecessary(struct sk_buff *skb, bool encap)
 {
-	int rc = dma_set_mask(dev, mask);
-
-	if (rc == 0)
-		dma_set_coherent_mask(dev, mask);
-
-	return rc;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 18, 0)
+	skb->ip_summed = CHECKSUM_UNNECESSARY;
+	skb->encapsulation = encap;
+#else
+	__skb_incr_checksum_unnecessary(skb);
+#endif
 }
-#define dma_set_mask_and_coherent(dev, mask) \
-	compat_dma_set_mask_and_coherent(dev, mask)
+
+#if VER_VANILLA_LT(3, 19) || VER_RHEL_LT(7, 2)
+static inline void netdev_rss_key_fill(void *buffer, size_t len)
+{
+	get_random_bytes(buffer, len);
+}
+
+static inline void napi_schedule_irqoff(struct napi_struct *n)
+{
+	napi_schedule(n);
+}
+
+static inline void napi_complete_done(struct napi_struct *n, int work_done)
+{
+	napi_complete(n);
+}
+#endif
+
+#if VER_VANILLA_LT(3, 19) || VER_RHEL_LT(7, 2)
+static inline int skb_put_padto(struct sk_buff *skb, unsigned int len)
+{
+	unsigned int size = skb->len;
+
+	if (unlikely(size < len)) {
+		len -= size;
+		if (skb_pad(skb, len))
+			return -ENOMEM;
+		__skb_put(skb, len);
+	}
+	return 0;
+}
 #endif
 
 #if VER_VANILLA_LT(4, 0) || VER_RHEL_LT(7, 2)
@@ -295,14 +320,21 @@ int compat_dma_set_mask_and_coherent(struct device *dev, u64 mask)
 #define skb_vlan_tag_get(skb)		vlan_tx_tag_get(skb)
 #endif
 
-static inline
-void compat_incr_checksum_unnecessary(struct sk_buff *skb, bool encap)
+#if VER_VANILLA_LT(4, 1)
+static inline netdev_features_t vlan_features_check(const struct sk_buff *skb,
+						    netdev_features_t features)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 18, 0)
-	skb->ip_summed = CHECKSUM_UNNECESSARY;
-	skb->encapsulation = encap;
+	return features;
+}
+#endif
+
+static inline struct list_head *
+compat_get_msi_list_head(struct pci_dev *pdev)
+{
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 3, 0)
+	return &pdev->msi_list;
 #else
-	__skb_incr_checksum_unnecessary(skb);
+	return &pdev->dev.msi_list;
 #endif
 }
 
@@ -383,41 +415,6 @@ compat_ndo_features_check(struct nfp_net *nn, struct sk_buff *skb)
 
 #endif /* !COMPAT__HAVE_NDO_FEATURES_CHECK */
 	return 0;
-}
-
-#if VER_VANILLA_LT(3, 19) || VER_RHEL_LT(7, 2)
-static inline void netdev_rss_key_fill(void *buffer, size_t len)
-{
-	get_random_bytes(buffer, len);
-}
-
-static inline void napi_schedule_irqoff(struct napi_struct *n)
-{
-	napi_schedule(n);
-}
-
-static inline void napi_complete_done(struct napi_struct *n, int work_done)
-{
-	napi_complete(n);
-}
-#endif
-
-#if VER_VANILLA_LT(4, 1)
-static inline netdev_features_t vlan_features_check(const struct sk_buff *skb,
-						    netdev_features_t features)
-{
-	return features;
-}
-#endif
-
-static inline struct list_head *
-compat_get_msi_list_head(struct pci_dev *pdev)
-{
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 3, 0)
-	return &pdev->msi_list;
-#else
-	return &pdev->dev.msi_list;
-#endif
 }
 
 #endif /* _NFP_NET_COMPAT_H_ */
