@@ -201,15 +201,8 @@ enum compat_pkt_hash_types {
 static inline void compat_skb_set_hash(struct sk_buff *skb, __u32 hash,
 				       enum compat_pkt_hash_types type)
 {
-/* XXX RN: Not entirely sure if this hasn't changed more before */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0))
 	skb->l4_rxhash = (type == PKT_HASH_TYPE_L4);
 	skb->rxhash = hash;
-#else
-	skb->l4_hash = (type == PKT_HASH_TYPE_L4);
-	skb->sw_hash = 0;
-	skb->hash = hash;
-#endif
 }
 
 #define skb_set_hash(s, h, t)	compat_skb_set_hash(s, h, t)
