@@ -725,7 +725,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	ctrl_bar = nfp_net_map_area(cpp, "net.ctrl",
 				    ctrl_sym->domain, ctrl_sym->target,
 				    ctrl_sym->addr, ctrl_sym->size, &ctrl_area);
-	if (IS_ERR_OR_NULL(ctrl_bar)) {
+	if (IS_ERR(ctrl_bar)) {
 		dev_err(&pdev->dev, "Failed to map PF BAR0\n");
 		err = PTR_ERR(ctrl_bar);
 		goto err_fw_kill;
@@ -792,7 +792,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	nn->tx_bar = nfp_net_map_area(cpp, "net.tx", 0, 0,
 				      NFP_PCIE_QUEUE(start_q),
 				      tx_area_sz, &nn->tx_area);
-	if (IS_ERR_OR_NULL(nn->tx_bar)) {
+	if (IS_ERR(nn->tx_bar)) {
 		nn_err(nn, "Failed to map TX area.\n");
 		err = PTR_ERR(nn->tx_bar);
 		goto err_netdev_free;
@@ -803,7 +803,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	nn->rx_bar = nfp_net_map_area(cpp, "net.rx", 0, 0,
 				      NFP_PCIE_QUEUE(start_q),
 				      rx_area_sz, &nn->rx_area);
-	if (IS_ERR_OR_NULL(nn->rx_bar)) {
+	if (IS_ERR(nn->rx_bar)) {
 		nn_err(nn, "Failed to map RX area.\n");
 		err = PTR_ERR(nn->rx_bar);
 		goto err_unmap_tx;
