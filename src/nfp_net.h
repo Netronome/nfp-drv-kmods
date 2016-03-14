@@ -418,18 +418,11 @@ static inline bool nfp_net_fw_ver_eq(struct nfp_net_fw_version *fw_ver,
  * struct nfp_net - NFP network device structure
  * @pdev:               Backpointer to PCI device
  * @netdev:             Backpointer to net_device structure
- * @nfp_fallback:       Is the driver used in fallback mode?
  * @is_vf:              Is the driver attached to a VF?
  * @is_nfp3200:         Is the driver for a NFP-3200 card?
- * @fw_loaded:          Is the firmware loaded?
  * @ctrl:               Local copy of the control register/word.
  * @fl_bufsz:           Currently configured size of the freelist buffers
  * @rx_offset:		Offset in the RX buffers where packet data starts
- * @cpp:                Pointer to the CPP handle
- * @nfp_dev_cpp:        Pointer to the NFP Device handle
- * @ctrl_area:          Pointer to the CPP area for the control BAR
- * @tx_area:            Pointer to the CPP area for the TX queues
- * @rx_area:            Pointer to the CPP area for the FL/RX queues
  * @fw_ver:             Firmware version
  * @cap:                Capabilities advertised by the Firmware
  * @max_mtu:            Maximum support MTU advertised by the Firmware
@@ -475,15 +468,14 @@ static inline bool nfp_net_fw_ver_eq(struct nfp_net_fw_version *fw_ver,
  * @spare_va:           Pointer to a spare mapped area to be used by the NFP
  * @spare_dma:          DMA address for spare area
  * @debugfs_dir:	Device directory in debugfs
+ * @port_list:		Entry on device port list
  */
 struct nfp_net {
 	struct pci_dev *pdev;
 	struct net_device *netdev;
 
-	unsigned nfp_fallback:1;
 	unsigned is_vf:1;
 	unsigned is_nfp3200:1;
-	unsigned fw_loaded:1;
 
 	u32 ctrl;
 	u32 fl_bufsz;
@@ -494,16 +486,9 @@ struct nfp_net {
 	struct nfp_net_rx_ring *rx_rings;
 
 #ifdef CONFIG_PCI_IOV
-	unsigned int num_vfs;
 	struct vf_data_storage *vfinfo;
 	int vf_rate_link_speed;
 #endif
-
-	struct nfp_cpp *cpp;
-	struct platform_device *nfp_dev_cpp;
-	struct nfp_cpp_area *ctrl_area;
-	struct nfp_cpp_area *tx_area;
-	struct nfp_cpp_area *rx_area;
 
 	struct nfp_net_fw_version fw_ver;
 	u32 cap;
@@ -570,6 +555,8 @@ struct nfp_net {
 	dma_addr_t spare_dma;
 
 	struct dentry *debugfs_dir;
+
+	struct list_head port_list;
 };
 
 /* Functions to read/write from/to a BAR
