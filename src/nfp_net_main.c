@@ -78,6 +78,7 @@
  * @fw_loaded:		Is the firmware loaded?
  * @nfp_fallback:	Is the driver used in fallback mode?
  * @is_nfp3200:		Is PF for a NFP-3200 card?
+ * @ddir:		Per-device debugfs directory
  * @ports:		Linked list of port structures (struct nfp_net)
  */
 struct nfp_net_pf {
@@ -95,6 +96,8 @@ struct nfp_net_pf {
 	bool fw_loaded;
 	bool nfp_fallback;
 	bool is_nfp3200;
+
+	struct dentry *ddir;
 
 	struct list_head ports;
 };
@@ -860,7 +863,8 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	nfp_device_close(nfp_dev);
 
 	nfp_net_info(nn);
-	nfp_net_debugfs_adapter_add(nn);
+	pf->ddir = nfp_net_debugfs_device_add(pdev);
+	nfp_net_debugfs_port_add(nn, pf->ddir, 0);
 
 	return 0;
 
@@ -919,7 +923,8 @@ static void nfp_net_pci_remove(struct pci_dev *pdev)
 
 	nn = list_first_entry(&pf->ports, struct nfp_net, port_list);
 
-	nfp_net_debugfs_adapter_del(nn);
+	nfp_net_debugfs_dir_clean(&nn->debugfs_dir);
+	nfp_net_debugfs_dir_clean(&pf->ddir);
 
 #ifdef CONFIG_PCI_IOV
 	/* TODO Need to better handle the case where the PF netdev

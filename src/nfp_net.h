@@ -731,7 +731,8 @@ int nfp_net_set_ring_size(struct nfp_net *nn, u32 rxd_cnt, u32 txd_cnt);
 
 void nfp_net_debugfs_create(void);
 void nfp_net_debugfs_destroy(void);
-void nfp_net_debugfs_adapter_add(struct nfp_net *nn);
-void nfp_net_debugfs_adapter_del(struct nfp_net *nn);
+struct dentry *nfp_net_debugfs_device_add(struct pci_dev *pdev);
+void nfp_net_debugfs_port_add(struct nfp_net *nn, struct dentry *ddir, int id);
+void nfp_net_debugfs_dir_clean(struct dentry **dir);
 
 #endif /* _NFP_NET_H_ */
