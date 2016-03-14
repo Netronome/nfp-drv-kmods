@@ -588,6 +588,41 @@ static void nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_device *nfp_dev)
 	ether_addr_copy(nn->netdev->perm_addr, mac_addr);
 }
 
+static u8 __iomem *
+nfp_net_pf_map_ctrl_bar(struct pci_dev *pdev, struct nfp_cpp *cpp,
+			struct nfp_device *nfp_dev,
+			struct nfp_cpp_area **ctrl_area)
+{
+	const struct nfp_rtsym *ctrl_sym;
+	u8 __iomem *ctrl_bar;
+	char pf_symbol[256];
+	u16 interface;
+	int pcie_pf;
+
+	interface = nfp_cpp_interface(cpp);
+	pcie_pf = NFP_CPP_INTERFACE_UNIT_of(interface);
+
+	snprintf(pf_symbol, sizeof(pf_symbol), "_pf%d_net_bar0", pcie_pf);
+
+	ctrl_sym = nfp_rtsym_lookup(nfp_dev, pf_symbol);
+	if (!ctrl_sym) {
+		dev_err(&pdev->dev,
+			"Failed to find PF BAR0 symbol %s\n", pf_symbol);
+		return NULL;
+	}
+
+	ctrl_bar = nfp_net_map_area(cpp, "net.ctrl",
+				    ctrl_sym->domain, ctrl_sym->target,
+				    ctrl_sym->addr, ctrl_sym->size, ctrl_area);
+	if (IS_ERR(ctrl_bar)) {
+		dev_err(&pdev->dev, "Failed to map PF BAR0: %ld\n",
+			PTR_ERR(ctrl_bar));
+		return NULL;
+	}
+
+	return ctrl_bar;
+}
+
 /*
  * PCI device functions
  */
@@ -595,7 +630,6 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 			     const struct pci_device_id *pci_id)
 {
 	struct platform_device *dev_cpp = NULL;
-	const struct nfp_rtsym *ctrl_sym;
 	struct nfp_net_fw_version fw_ver;
 	int max_tx_rings, max_rx_rings;
 	struct nfp_cpp_area *ctrl_area;
@@ -603,13 +637,10 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	struct nfp_device *nfp_dev;
 	u8 __iomem *ctrl_bar;
 	struct nfp_cpp *cpp;
-	char pf_symbol[256];
 	struct nfp_net *nn;
 	int is_nfp3200;
-	u16 interface;
 	int fw_loaded;
 	u32 start_q;
-	int pcie_pf;
 	int stride;
 	int err;
 
@@ -681,26 +712,17 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 				"Failed to enable user space access. Ignored\n");
 	}
 
-	interface = nfp_cpp_interface(cpp);
-	pcie_pf = NFP_CPP_INTERFACE_UNIT_of(interface);
-
 	/* Verify that the board has completed initialization */
 	if ((fw_loaded || !nfp_reset) && nfp_is_ready(nfp_dev)) {
-		snprintf(pf_symbol, sizeof(pf_symbol),
-			 "_pf%d_net_bar0", pcie_pf);
-
-		ctrl_sym = nfp_rtsym_lookup(nfp_dev, pf_symbol);
-		if (!ctrl_sym)
-			dev_err(&pdev->dev,
-				"Failed to find PF BAR0 symbol %s\n",
-				pf_symbol);
+		ctrl_bar = nfp_net_pf_map_ctrl_bar(pdev, cpp, nfp_dev,
+						   &ctrl_area);
 	} else {
 		dev_err(&pdev->dev,
 			"NFP is not ready for NIC operation.\n");
-		ctrl_sym = NULL;
+		ctrl_bar = NULL;
 	}
 
-	if (!ctrl_sym) {
+	if (!ctrl_bar) {
 		if (!nfp_fallback) {
 			err = -ENOENT;
 			goto err_fw_kill;
@@ -720,15 +742,6 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 				 "Netronome NFP Fallback driver\n");
 			return 0;
 		}
-	}
-
-	ctrl_bar = nfp_net_map_area(cpp, "net.ctrl",
-				    ctrl_sym->domain, ctrl_sym->target,
-				    ctrl_sym->addr, ctrl_sym->size, &ctrl_area);
-	if (IS_ERR(ctrl_bar)) {
-		dev_err(&pdev->dev, "Failed to map PF BAR0\n");
-		err = PTR_ERR(ctrl_bar);
-		goto err_fw_kill;
 	}
 
 	nfp_net_get_fw_version(&fw_ver, ctrl_bar);
