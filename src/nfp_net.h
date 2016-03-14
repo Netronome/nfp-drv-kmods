@@ -485,11 +485,6 @@ struct nfp_net {
 	struct nfp_net_tx_ring *tx_rings;
 	struct nfp_net_rx_ring *rx_rings;
 
-#ifdef CONFIG_PCI_IOV
-	struct vf_data_storage *vfinfo;
-	int vf_rate_link_speed;
-#endif
-
 	struct nfp_net_fw_version fw_ver;
 	u32 cap;
 	u32 max_mtu;
