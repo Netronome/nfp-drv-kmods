@@ -331,6 +331,27 @@ exit_release_fw:
 	return fw_stop_on_fail ? err : 0;
 }
 
+static void nfp_net_fw_unload(struct nfp_net_pf *pf)
+{
+	struct nfp_device *nfp_dev;
+	int err;
+
+	nfp_dev = nfp_device_from_cpp(pf->cpp);
+	if (!nfp_dev) {
+		dev_warn(&pf->pdev->dev,
+			 "Firmware was not unloaded (can't get nfp_dev)\n");
+		return;
+	}
+
+	err = nfp_reset_soft(nfp_dev);
+	if (err < 0)
+		dev_warn(&pf->pdev->dev, "Couldn't unload firmware: %d\n", err);
+	else
+		dev_info(&pf->pdev->dev, "Firmware safely unloaded\n");
+
+	nfp_device_close(nfp_dev);
+}
+
 /*
  * SR-IOV support
  */
@@ -919,9 +940,7 @@ err_free_pf:
 static void nfp_net_pci_remove(struct pci_dev *pdev)
 {
 	struct nfp_net_pf *pf = pci_get_drvdata(pdev);
-	struct nfp_device *nfp_dev;
 	struct nfp_net *nn;
-	int err;
 
 	nn = list_first_entry(&pf->ports, struct nfp_net, port_list);
 
@@ -957,22 +976,8 @@ static void nfp_net_pci_remove(struct pci_dev *pdev)
 		nfp_cpp_area_release_free(pf->ctrl_area);
 	}
 
-	if (pf->fw_loaded) {
-		nfp_dev = nfp_device_from_cpp(pf->cpp);
-
-		if (nfp_dev) {
-			err = nfp_reset_soft(nfp_dev);
-			if (err < 0)
-				nn_warn(nn,
-					"Couldn't unload firmware: %d\n", err);
-			else
-				nn_info(nn, "Firmware safely unloaded\n");
-		} else {
-			nn_warn(nn, "Firmware was not unloaded (nfp_dev=0)\n");
-		}
-		if (nfp_dev)
-			nfp_device_close(nfp_dev);
-	}
+	if (pf->fw_loaded)
+		nfp_net_fw_unload(pf);
 
 	if (pf->nfp_dev_cpp)
 		nfp_platform_device_unregister(pf->nfp_dev_cpp);
