@@ -948,20 +948,13 @@ static void nfp_net_pci_remove(struct pci_dev *pdev)
 	nfp_net_debugfs_dir_clean(&pf->ddir);
 
 #ifdef CONFIG_PCI_IOV
-	/* TODO Need to better handle the case where the PF netdev
-	 * gets disabled but the VFs are still around, because they
-	 * are assigned.
-	 */
-	if (!pf->is_nfp3200)
-		(void)nfp_pcie_sriov_disable(pdev);
-
+	if (!pf->is_nfp3200) {
+		nfp_pcie_sriov_disable(pdev);
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0))
-	if (!pf->is_nfp3200)
 		nfp_sriov_attr_remove(&pdev->dev);
 #endif
-
+	}
 #endif
-
 	if (!pf->nfp_fallback) {
 		nfp_net_netdev_clean(nn->netdev);
 
