@@ -500,10 +500,7 @@ static int nfp_is_ready(struct nfp_device *nfp)
 	if (err < 0)
 		return 0;
 
-	if (state != 15)
-		return 0;
-
-	return 1;
+	return state == 15;
 }
 
 /**
