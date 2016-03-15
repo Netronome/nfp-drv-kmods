@@ -726,25 +726,17 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	}
 
 	/* Verify that the board has completed initialization */
-	if ((pf->fw_loaded || !nfp_reset) && nfp_is_ready(nfp_dev)) {
-		ctrl_bar = nfp_net_pf_map_ctrl_bar(pf, nfp_dev);
-	} else {
-		dev_err(&pdev->dev,
-			"NFP is not ready for NIC operation.\n");
+	if ((!pf->fw_loaded && nfp_reset) || !nfp_is_ready(nfp_dev)) {
+		dev_err(&pdev->dev, "NFP is not ready for NIC operation.\n");
 		ctrl_bar = NULL;
+		err = -ENOENT;
+		goto err_register_fallback;
 	}
 
+	ctrl_bar = nfp_net_pf_map_ctrl_bar(pf, nfp_dev);
 	if (!ctrl_bar) {
-		if (!nfp_fallback) {
-			err = -ENOENT;
-			goto err_fw_kill;
-		} else {
-			pf->nfp_fallback = true;
-			dev_info(&pdev->dev, "Netronome NFP Fallback driver\n");
-
-			nfp_device_close(nfp_dev);
-			return 0;
-		}
+		err = -EIO;
+		goto err_register_fallback;
 	}
 
 	nfp_net_get_fw_version(&fw_ver, ctrl_bar);
@@ -882,7 +874,17 @@ err_netdev_free:
 	nfp_net_netdev_free(nn);
 err_ctrl_unmap:
 	nfp_cpp_area_release_free(pf->ctrl_area);
-err_fw_kill:
+err_register_fallback:
+	/* Register fallback only if there are problems with finding ctrl_bar
+	 * or FW is not operational.
+	 */
+	if (!ctrl_bar && nfp_fallback) {
+		pf->nfp_fallback = true;
+		dev_info(&pdev->dev, "Netronome NFP Fallback driver\n");
+
+		nfp_device_close(nfp_dev);
+		return 0;
+	}
 	if (pf->fw_loaded) {
 		int ret = nfp_reset_soft(nfp_dev);
 
