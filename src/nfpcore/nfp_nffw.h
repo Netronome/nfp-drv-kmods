@@ -93,5 +93,6 @@ int nfp_rtsym_count(struct nfp_device *dev);
 const struct nfp_rtsym *nfp_rtsym_get(struct nfp_device *nfp, int idx);
 const struct nfp_rtsym *nfp_rtsym_lookup(struct nfp_device *nfp,
 					 const char *name);
+u64 nfp_rtsym_read_le(struct nfp_device *nfp, const char *name, int *error);
 
 #endif /* NFP_NFFW_H */

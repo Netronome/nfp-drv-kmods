@@ -44,6 +44,13 @@
 #include <linux/module.h>
 #include <linux/slab.h>
 
+#include <linux/version.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0)
+#include <asm-generic/io-64-nonatomic-hi-lo.h>
+#else
+#include <linux/io-64-nonatomic-hi-lo.h>
+#endif
+
 #include "nfp.h"
 #include "nfp_cpp.h"
 #include "nfp_nffw.h"
@@ -361,6 +368,79 @@ const struct nfp_rtsym *nfp_rtsym_lookup(struct nfp_device *dev,
 	}
 
 	return NULL;
+}
+
+/**
+ * nfp_rtsym_read_le() - Read a simple unsigned scalar value from symbol
+ * @nfp:	NFP Device handle
+ * @name:	Symbol name
+ * @error:	Poniter to error code (optional)
+ *
+ * Lookup a symbol, map, read it and return it's value. Value of the symbol
+ * will be interpreted as a simple little-endian unsigned value. Symbol can
+ * be 1, 2, 4 or 8 bytes in size.
+ *
+ * Return: value read, on error sets the error and returns ~0ULL.
+ */
+u64 nfp_rtsym_read_le(struct nfp_device *nfp, const char *name, int *error)
+{
+	const struct nfp_rtsym *sym;
+	struct nfp_cpp_area *area;
+	void __iomem *ptr;
+	int err;
+	u64 val;
+	u32 id;
+
+	sym = nfp_rtsym_lookup(nfp, name);
+	if (!sym) {
+		err = -ENOENT;
+		goto err;
+	}
+
+	id = NFP_CPP_ISLAND_ID(sym->target, NFP_CPP_ACTION_RW, 0, sym->domain);
+	area = nfp_cpp_area_alloc_acquire(nfp_device_cpp(nfp), id, sym->addr,
+					  sym->size);
+	if (IS_ERR_OR_NULL(area)) {
+		err = area ? PTR_ERR(area) : -ENOMEM;
+		goto err;
+	}
+
+	ptr = nfp_cpp_area_iomem(area);
+	if (IS_ERR_OR_NULL(ptr)) {
+		err = ptr ? PTR_ERR(ptr) : -ENOMEM;
+		goto err_release_free;
+	}
+
+	switch (sym->size) {
+	case 1:
+		val = readb(ptr);
+		break;
+	case 2:
+		val = readw(ptr);
+		break;
+	case 4:
+		val = readl(ptr);
+		break;
+	case 8:
+		val = readq(ptr);
+		break;
+	default:
+		nfp_err(nfp, "rtsym '%s' non-scalar size: %lld\n",
+			name, sym->size);
+		err = -EINVAL;
+		goto err_release_free;
+	}
+
+	nfp_cpp_area_release_free(area);
+
+	return val;
+
+err_release_free:
+	nfp_cpp_area_release_free(area);
+err:
+	if (error)
+		*error = err;
+	return ~0ULL;
 }
 
 /**
