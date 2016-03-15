@@ -68,6 +68,7 @@
 
 /**
  * struct nfp_net_pf - NFP PF-specific device structure
+ * @pdev:		Backpointer to PCI device
  * @cpp:		Pointer to the CPP handle
  * @nfp_dev_cpp:	Pointer to the NFP Device handle
  * @ctrl_area:		Pointer to the CPP area for the control BAR
@@ -79,6 +80,8 @@
  * @ports:		Linked list of port structures (struct nfp_net)
  */
 struct nfp_net_pf {
+	struct pci_dev *pdev;
+
 	struct nfp_cpp *cpp;
 	struct platform_device *nfp_dev_cpp;
 
@@ -591,8 +594,7 @@ static void nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_device *nfp_dev)
 }
 
 static u8 __iomem *
-nfp_net_pf_map_ctrl_bar(struct nfp_net_pf *pf, struct pci_dev *pdev,
-			struct nfp_device *nfp_dev)
+nfp_net_pf_map_ctrl_bar(struct nfp_net_pf *pf, struct nfp_device *nfp_dev)
 {
 	const struct nfp_rtsym *ctrl_sym;
 	u8 __iomem *ctrl_bar;
@@ -607,7 +609,7 @@ nfp_net_pf_map_ctrl_bar(struct nfp_net_pf *pf, struct pci_dev *pdev,
 
 	ctrl_sym = nfp_rtsym_lookup(nfp_dev, pf_symbol);
 	if (!ctrl_sym) {
-		dev_err(&pdev->dev,
+		dev_err(&pf->pdev->dev,
 			"Failed to find PF BAR0 symbol %s\n", pf_symbol);
 		return NULL;
 	}
@@ -617,7 +619,7 @@ nfp_net_pf_map_ctrl_bar(struct nfp_net_pf *pf, struct pci_dev *pdev,
 				    ctrl_sym->addr, ctrl_sym->size,
 				    &pf->ctrl_area);
 	if (IS_ERR(ctrl_bar)) {
-		dev_err(&pdev->dev, "Failed to map PF BAR0: %ld\n",
+		dev_err(&pf->pdev->dev, "Failed to map PF BAR0: %ld\n",
 			PTR_ERR(ctrl_bar));
 		return NULL;
 	}
@@ -648,6 +650,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 		return -ENOMEM;
 	INIT_LIST_HEAD(&pf->ports);
 	pci_set_drvdata(pdev, pf);
+	pf->pdev = pdev;
 
 	err = pci_enable_device(pdev);
 	if (err < 0)
@@ -720,7 +723,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 
 	/* Verify that the board has completed initialization */
 	if ((pf->fw_loaded || !nfp_reset) && nfp_is_ready(nfp_dev)) {
-		ctrl_bar = nfp_net_pf_map_ctrl_bar(pf, pdev, nfp_dev);
+		ctrl_bar = nfp_net_pf_map_ctrl_bar(pf, nfp_dev);
 	} else {
 		dev_err(&pdev->dev,
 			"NFP is not ready for NIC operation.\n");
