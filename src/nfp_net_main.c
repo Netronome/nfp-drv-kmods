@@ -720,6 +720,89 @@ nfp_net_pf_map_ctrl_bar(struct nfp_net_pf *pf, struct nfp_device *nfp_dev)
 	return ctrl_bar;
 }
 
+static int
+nfp_net_pf_spawn_port_netdev(struct nfp_net_pf *pf, struct nfp_device *nfp_dev,
+			     void __iomem *ctrl_bar, void __iomem *tx_bar,
+			     void __iomem *rx_bar, unsigned int id, int stride,
+			     struct nfp_net_fw_version *fw_ver)
+{
+	u32 n_tx_rings, n_rx_rings;
+	struct nfp_net *nn;
+	int err;
+
+	n_tx_rings = readl(ctrl_bar + NFP_NET_CFG_MAX_TXRINGS);
+	n_rx_rings = readl(ctrl_bar + NFP_NET_CFG_MAX_RXRINGS);
+
+	/* Allocate and initialise the netdev */
+	nn = nfp_net_netdev_alloc(pf->pdev, n_tx_rings, n_rx_rings);
+	if (IS_ERR(nn))
+		return PTR_ERR(nn);
+
+	nn->fw_ver = *fw_ver;
+	nn->ctrl_bar = ctrl_bar;
+	nn->tx_bar = tx_bar;
+	nn->rx_bar = rx_bar;
+	nn->is_vf = 0;
+	nn->is_nfp3200 = pf->is_nfp3200;
+	nn->stride_rx = stride;
+	nn->stride_tx = stride;
+
+	if (pf->is_nfp3200) {
+		/* YDS-155 workaround - FW will issue DMA reads of this mem */
+		nn->spare_va = dma_zalloc_coherent(&pf->pdev->dev,
+						   NFP3200_SPARE_DMA_SIZE,
+						   &nn->spare_dma, GFP_KERNEL);
+		if (!nn->spare_va) {
+			err = -ENOMEM;
+			goto err_netdev_free;
+		}
+
+		nn_writeq(nn, NFP_NET_CFG_SPARE_ADDR, nn->spare_dma);
+		nn_info(nn, "Enabled NFP-3200 workaround.\n");
+	}
+
+	/* Get MSI-X vectors */
+	err = nfp_net_irqs_alloc(nn);
+	if (!err) {
+		nn_warn(nn, "Unable to allocate MSI-X Vectors. Exiting\n");
+		err = -EIO;
+		goto err_free_spare;
+	}
+
+	/* Get MAC address */
+	nfp_net_get_mac_addr(nn, nfp_dev, id);
+
+	/* Get ME clock frequency from ctrl BAR
+	 * XXX for now frequency is hardcoded until we figure out how
+	 * to get the value from nfp-hwinfo into ctrl bar
+	 */
+	nn->me_freq_mhz = 1200;
+
+	/*
+	 * Finalise
+	 */
+	err = nfp_net_netdev_init(nn->netdev);
+	if (err)
+		goto err_irqs_disable;
+
+	nfp_net_debugfs_port_add(nn, pf->ddir, id);
+
+	nfp_net_info(nn);
+	list_add_tail(&nn->port_list, &pf->ports);
+
+	return 0;
+
+err_irqs_disable:
+	nfp_net_irqs_disable(nn);
+err_free_spare:
+	if (pf->is_nfp3200)
+		dma_free_coherent(&pf->pdev->dev, NFP3200_SPARE_DMA_SIZE,
+				  nn->spare_va, nn->spare_dma);
+err_netdev_free:
+	nfp_net_netdev_free(nn);
+	return err;
+}
+
 /*
  * PCI device functions
  */
@@ -729,11 +812,9 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	u8 __iomem *ctrl_bar, *tx_bar, *rx_bar;
 	u32 total_tx_qcs, total_rx_qcs;
 	struct nfp_net_fw_version fw_ver;
-	int max_tx_rings, max_rx_rings;
 	u32 tx_area_sz, rx_area_sz;
 	struct nfp_device *nfp_dev;
 	struct nfp_net_pf *pf;
-	struct nfp_net *nn;
 	u32 start_q;
 	int stride;
 	int err;
@@ -900,81 +981,19 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 		goto err_unmap_tx;
 	}
 
-	max_tx_rings = readl(ctrl_bar + NFP_NET_CFG_MAX_TXRINGS);
-	max_rx_rings = readl(ctrl_bar + NFP_NET_CFG_MAX_RXRINGS);
+	pf->ddir = nfp_net_debugfs_device_add(pdev);
 
-	/* Allocate and initialise the netdev */
-	nn = nfp_net_netdev_alloc(pdev, max_tx_rings, max_rx_rings);
-	if (IS_ERR(nn)) {
-		err = PTR_ERR(nn);
-		goto err_unmap_rx;
-	}
-	list_add_tail(&nn->port_list, &pf->ports);
-
-	nn->fw_ver = fw_ver;
-	nn->ctrl_bar = ctrl_bar;
-	nn->tx_bar = tx_bar;
-	nn->rx_bar = rx_bar;
-	nn->is_vf = 0;
-	nn->is_nfp3200 = pf->is_nfp3200;
-	nn->stride_rx = stride;
-	nn->stride_tx = stride;
-
-	/* Get MSI-X vectors */
-	err = nfp_net_irqs_alloc(nn);
-	if (!err) {
-		nn_warn(nn, "Unable to allocate MSI-X Vectors. Exiting\n");
-		err = -EIO;
-		goto err_netdev_free;
-	}
-
-	/* Get MAC address */
-	nfp_net_get_mac_addr(nn, nfp_dev, 0);
-
-	/* Get ME clock frequency from ctrl BAR
-	 * XXX for now frequency is hardcoded until we figure out how
-	 * to get the value from nfp-hwinfo into ctrl bar
-	 */
-	nn->me_freq_mhz = 1200;
-
-	if (nn->is_nfp3200) {
-		/* YDS-155 workaround - FW will issue DMA reads of this mem */
-		nn->spare_va = dma_zalloc_coherent(&pdev->dev,
-						   NFP3200_SPARE_DMA_SIZE,
-						   &nn->spare_dma, GFP_KERNEL);
-		if (!nn->spare_va) {
-			err = -ENOMEM;
-			goto err_irqs_disable;
-		}
-
-		nn_writeq(nn, NFP_NET_CFG_SPARE_ADDR, nn->spare_dma);
-		nn_info(nn, "Enabled NFP-3200 workaround.\n");
-	}
-
-	/*
-	 * Finalise
-	 */
-	err = nfp_net_netdev_init(nn->netdev);
+	err = nfp_net_pf_spawn_port_netdev(pf, nfp_dev, ctrl_bar,
+					   tx_bar, rx_bar, 0, stride, &fw_ver);
 	if (err)
-		goto err_free_spare;
+		goto err_clean_ddir;
 
 	nfp_device_close(nfp_dev);
 
-	nfp_net_info(nn);
-	pf->ddir = nfp_net_debugfs_device_add(pdev);
-	nfp_net_debugfs_port_add(nn, pf->ddir, 0);
-
 	return 0;
 
-err_free_spare:
-	if (pf->is_nfp3200)
-		dma_free_coherent(&pdev->dev, NFP3200_SPARE_DMA_SIZE,
-				  nn->spare_va, nn->spare_dma);
-err_irqs_disable:
-	nfp_net_irqs_disable(nn);
-err_netdev_free:
-	nfp_net_netdev_free(nn);
-err_unmap_rx:
+err_clean_ddir:
+	nfp_net_debugfs_dir_clean(&pf->ddir);
 	nfp_cpp_area_release_free(pf->rx_area);
 err_unmap_tx:
 	nfp_cpp_area_release_free(pf->tx_area);
