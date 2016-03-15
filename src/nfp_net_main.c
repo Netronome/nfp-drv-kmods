@@ -648,6 +648,31 @@ nfp_net_pf_get_num_ports(struct nfp_net_pf *pf, struct nfp_device *nfp_dev)
 	return val;
 }
 
+static unsigned int
+nfp_net_pf_total_qcs(struct nfp_net_pf *pf, void __iomem *ctrl_bar,
+		     unsigned int stride, u32 start_off, u32 num_off)
+{
+	unsigned int i, min_qc, max_qc;
+
+	min_qc = readl(ctrl_bar + start_off);
+	max_qc = min_qc;
+
+	for (i = 0; i < pf->num_ports; i++) {
+		/* To make our lives simpler only accept configuration where
+		 * queues are allocated to PFs in order (queues of PFn all have
+		 * indexes lower than PFn+1).
+		 */
+		if (max_qc > readl(ctrl_bar + start_off))
+			return 0;
+
+		max_qc = readl(ctrl_bar + start_off);
+		max_qc += readl(ctrl_bar + num_off) * stride;
+		ctrl_bar += NFP_PF_CSR_SLICE_SIZE;
+	}
+
+	return max_qc - min_qc;
+}
+
 static u8 __iomem *
 nfp_net_pf_map_ctrl_bar(struct nfp_net_pf *pf, struct nfp_device *nfp_dev)
 {
@@ -695,6 +720,7 @@ nfp_net_pf_map_ctrl_bar(struct nfp_net_pf *pf, struct nfp_device *nfp_dev)
 static int nfp_net_pci_probe(struct pci_dev *pdev,
 			     const struct pci_device_id *pci_id)
 {
+	u32 total_tx_qcs, total_rx_qcs;
 	struct nfp_net_fw_version fw_ver;
 	int max_tx_rings, max_rx_rings;
 	u32 tx_area_sz, rx_area_sz;
@@ -829,12 +855,25 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 		}
 	}
 
-	/* Find how many rings are supported */
+	/* Find how many QC structs need to be mapped */
+	total_tx_qcs = nfp_net_pf_total_qcs(pf, ctrl_bar, stride,
+					    NFP_NET_CFG_START_TXQ,
+					    NFP_NET_CFG_MAX_TXRINGS);
+	total_rx_qcs = nfp_net_pf_total_qcs(pf, ctrl_bar, stride,
+					    NFP_NET_CFG_START_RXQ,
+					    NFP_NET_CFG_MAX_RXRINGS);
+	if (!total_tx_qcs || !total_rx_qcs) {
+		dev_err(&pdev->dev, "Invalid PF QC configuration [%d,%d]\n",
+			total_tx_qcs, total_rx_qcs);
+		err = -EINVAL;
+		goto err_ctrl_unmap;
+	}
+
+	tx_area_sz = NFP_QCP_QUEUE_ADDR_SZ * total_tx_qcs;
+	rx_area_sz = NFP_QCP_QUEUE_ADDR_SZ * total_rx_qcs;
+
 	max_tx_rings = readl(ctrl_bar + NFP_NET_CFG_MAX_TXRINGS);
 	max_rx_rings = readl(ctrl_bar + NFP_NET_CFG_MAX_RXRINGS);
-
-	tx_area_sz = NFP_QCP_QUEUE_ADDR_SZ * max_tx_rings * stride;
-	rx_area_sz = NFP_QCP_QUEUE_ADDR_SZ * max_rx_rings * stride;
 
 	/* Allocate and initialise the netdev */
 	nn = nfp_net_netdev_alloc(pdev, max_tx_rings, max_rx_rings);
