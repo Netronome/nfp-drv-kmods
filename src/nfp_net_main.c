@@ -322,95 +322,6 @@ static struct nfp_net *nfp_net_fallback_alloc(struct pci_dev *pdev)
 }
 
 /*
- * Helper functions
- */
-
-/**
- * nfp_net_map_area() - Help function to map an area
- * @cpp:    NFP CPP handler
- * @name:   Name for the area
- * @target: CPP target
- * @addr:   CPP address
- * @size:   Size of the area
- * @area:   Area handle (returned).
- *
- * This function is primarily to simplify the code in the main probe
- * function. To undo the effect of this functions call
- * @nfp_cpp_area_release_free(*area);
- *
- * Return: Pointer to memory mapped area or ERR_PTR
- */
-static u8 __iomem *nfp_net_map_area(struct nfp_cpp *cpp,
-				    const char *name, int isl, int target,
-				    unsigned long long addr, unsigned long size,
-				    struct nfp_cpp_area **area)
-{
-	u8 __iomem *res;
-	int err;
-
-	*area = nfp_cpp_area_alloc_with_name(
-		cpp, NFP_CPP_ISLAND_ID(target, NFP_CPP_ACTION_RW, 0, isl),
-		name, addr, size);
-	if (!*area) {
-		err = -EIO;
-		goto err_area;
-	}
-
-	err = nfp_cpp_area_acquire(*area);
-	if (err < 0)
-		goto err_acquire;
-
-	res = nfp_cpp_area_iomem(*area);
-	if (!res) {
-		err = -EIO;
-		goto err_map;
-	}
-
-	return res;
-
-err_map:
-	nfp_cpp_area_release(*area);
-err_acquire:
-	nfp_cpp_area_free(*area);
-err_area:
-	return (u8 __iomem *)ERR_PTR(err);
-}
-
-/**
- * nfp_net_get_mac_addr() - Get the MAC address.
- * @nn:       NFP Network structure
- * @nfp_dev:  NFP Device structure
- *
- * First try to look up the MAC address in the HWINFO table. If that
- * fails generate a random address.
- */
-static void nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_device *nfp_dev)
-{
-	u8 mac_addr[ETH_ALEN];
-	const char *mac_str;
-
-	mac_str = nfp_hwinfo_lookup(nfp_dev, "eth0.mac");
-	if (!mac_str) {
-		dev_warn(&nn->pdev->dev,
-			 "Can't lookup MAC address. Generate\n");
-		eth_hw_addr_random(nn->netdev);
-		return;
-	}
-
-	if (sscanf(mac_str, "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
-		   &mac_addr[0], &mac_addr[1], &mac_addr[2],
-		   &mac_addr[3], &mac_addr[4], &mac_addr[5]) != 6) {
-		dev_warn(&nn->pdev->dev,
-			 "Can't parse MAC address (%s). Generate.\n", mac_str);
-		eth_hw_addr_random(nn->netdev);
-		return;
-	}
-
-	ether_addr_copy(nn->netdev->dev_addr, mac_addr);
-	ether_addr_copy(nn->netdev->perm_addr, mac_addr);
-}
-
-/*
  * SR-IOV support
  */
 static int nfp_pcie_sriov_enable(struct pci_dev *pdev, int num_vfs)
@@ -571,6 +482,10 @@ static void nfp_sriov_attr_remove(struct device *dev)
 #endif /* CONFIG_PCI_IOV */
 #endif /* Linux kernel version */
 
+/*
+ * Helper functions
+ */
+
 static int nfp_is_ready(struct nfp_device *nfp)
 {
 	const char *cp;
@@ -589,6 +504,91 @@ static int nfp_is_ready(struct nfp_device *nfp)
 		return 0;
 
 	return 1;
+}
+
+/**
+ * nfp_net_map_area() - Help function to map an area
+ * @cpp:    NFP CPP handler
+ * @name:   Name for the area
+ * @target: CPP target
+ * @addr:   CPP address
+ * @size:   Size of the area
+ * @area:   Area handle (returned).
+ *
+ * This function is primarily to simplify the code in the main probe
+ * function. To undo the effect of this functions call
+ * @nfp_cpp_area_release_free(*area);
+ *
+ * Return: Pointer to memory mapped area or ERR_PTR
+ */
+static u8 __iomem *nfp_net_map_area(struct nfp_cpp *cpp,
+				    const char *name, int isl, int target,
+				    unsigned long long addr, unsigned long size,
+				    struct nfp_cpp_area **area)
+{
+	u8 __iomem *res;
+	int err;
+
+	*area = nfp_cpp_area_alloc_with_name(
+		cpp, NFP_CPP_ISLAND_ID(target, NFP_CPP_ACTION_RW, 0, isl),
+		name, addr, size);
+	if (!*area) {
+		err = -EIO;
+		goto err_area;
+	}
+
+	err = nfp_cpp_area_acquire(*area);
+	if (err < 0)
+		goto err_acquire;
+
+	res = nfp_cpp_area_iomem(*area);
+	if (!res) {
+		err = -EIO;
+		goto err_map;
+	}
+
+	return res;
+
+err_map:
+	nfp_cpp_area_release(*area);
+err_acquire:
+	nfp_cpp_area_free(*area);
+err_area:
+	return (u8 __iomem *)ERR_PTR(err);
+}
+
+/**
+ * nfp_net_get_mac_addr() - Get the MAC address.
+ * @nn:       NFP Network structure
+ * @nfp_dev:  NFP Device structure
+ *
+ * First try to look up the MAC address in the HWINFO table. If that
+ * fails generate a random address.
+ */
+static void nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_device *nfp_dev)
+{
+	u8 mac_addr[ETH_ALEN];
+	const char *mac_str;
+
+	mac_str = nfp_hwinfo_lookup(nfp_dev, "eth0.mac");
+	if (!mac_str) {
+		dev_warn(&nn->pdev->dev,
+			 "Can't lookup MAC address. Generate\n");
+		eth_hw_addr_random(nn->netdev);
+		return;
+	}
+
+	if (sscanf(mac_str, "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
+		   &mac_addr[0], &mac_addr[1], &mac_addr[2],
+		   &mac_addr[3], &mac_addr[4], &mac_addr[5]) != 6) {
+		dev_warn(&nn->pdev->dev,
+			 "Can't parse MAC address (%s). Generate.\n", mac_str);
+		eth_hw_addr_random(nn->netdev);
+		return;
+	}
+
+	ether_addr_copy(nn->netdev->dev_addr, mac_addr);
+	ether_addr_copy(nn->netdev->perm_addr, mac_addr);
 }
 
 /*
