@@ -77,6 +77,7 @@
  * @num_vfs:		Number of SR-IOV VFs enabled
  * @fw_loaded:		Is the firmware loaded?
  * @nfp_fallback:	Is the driver used in fallback mode?
+ * @is_nfp3200:		Is PF for a NFP-3200 card?
  * @ports:		Linked list of port structures (struct nfp_net)
  */
 struct nfp_net_pf {
@@ -93,6 +94,7 @@ struct nfp_net_pf {
 
 	bool fw_loaded;
 	bool nfp_fallback;
+	bool is_nfp3200;
 
 	struct list_head ports;
 };
@@ -640,7 +642,6 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	struct nfp_net_pf *pf;
 	u8 __iomem *ctrl_bar;
 	struct nfp_net *nn;
-	int is_nfp3200;
 	u32 start_q;
 	int stride;
 	int err;
@@ -672,12 +673,12 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	switch (pdev->device) {
 	case PCI_DEVICE_NFP3200:
 		pf->cpp = nfp_cpp_from_nfp3200_pcie(pdev, -1);
-		is_nfp3200 = 1;
+		pf->is_nfp3200 = true;
 		break;
 	case PCI_DEVICE_NFP4000:
 	case PCI_DEVICE_NFP6000:
 		pf->cpp = nfp_cpp_from_nfp6000_pcie(pdev, -1);
-		is_nfp3200 = 0;
+		pf->is_nfp3200 = false;
 		break;
 	default:
 		err = -ENODEV;
@@ -692,7 +693,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	}
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
-	if (!is_nfp3200) {
+	if (!pf->is_nfp3200) {
 		err = nfp_sriov_attr_add(&pdev->dev);
 		if (err < 0)
 			goto err_sriov;
@@ -760,7 +761,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	} else {
 		switch (fw_ver.major) {
 		case 1 ... 3:
-			if (is_nfp3200)
+			if (pf->is_nfp3200)
 				stride = 2;
 			else
 				stride = 4;
@@ -792,7 +793,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	nn->fw_ver = fw_ver;
 	nn->ctrl_bar = ctrl_bar;
 	nn->is_vf = 0;
-	nn->is_nfp3200 = is_nfp3200;
+	nn->is_nfp3200 = pf->is_nfp3200;
 	nn->stride_rx = stride;
 	nn->stride_tx = stride;
 
@@ -864,7 +865,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	return 0;
 
 err_free_spare:
-	if (nn->is_nfp3200)
+	if (pf->is_nfp3200)
 		dma_free_coherent(&pdev->dev, NFP3200_SPARE_DMA_SIZE,
 				  nn->spare_va, nn->spare_dma);
 err_irqs_disable:
@@ -894,7 +895,7 @@ err_cpp_free:
 	if (pf->nfp_dev_cpp)
 		nfp_platform_device_unregister(pf->nfp_dev_cpp);
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
-	if (!is_nfp3200)
+	if (!pf->is_nfp3200)
 		nfp_sriov_attr_remove(&pdev->dev);
 err_sriov:
 #endif
@@ -925,11 +926,11 @@ static void nfp_net_pci_remove(struct pci_dev *pdev)
 	 * gets disabled but the VFs are still around, because they
 	 * are assigned.
 	 */
-	if (!nn->is_nfp3200)
+	if (!pf->is_nfp3200)
 		(void)nfp_pcie_sriov_disable(pdev);
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0))
-	if (!nn->is_nfp3200)
+	if (!pf->is_nfp3200)
 		nfp_sriov_attr_remove(&pdev->dev);
 #endif
 
@@ -938,7 +939,7 @@ static void nfp_net_pci_remove(struct pci_dev *pdev)
 	if (!pf->nfp_fallback) {
 		nfp_net_netdev_clean(nn->netdev);
 
-		if (nn->is_nfp3200)
+		if (pf->is_nfp3200)
 			dma_free_coherent(&pdev->dev, NFP3200_SPARE_DMA_SIZE,
 					  nn->spare_va, nn->spare_dma);
 
