@@ -66,6 +66,8 @@
 
 #include "nfp_modinfo.h"
 
+#define NFP_PF_CSR_SLICE_SIZE	(32 * 1024)
+
 /**
  * struct nfp_net_pf - NFP PF-specific device structure
  * @pdev:		Backpointer to PCI device
@@ -79,6 +81,7 @@
  * @nfp_fallback:	Is the driver used in fallback mode?
  * @is_nfp3200:		Is PF for a NFP-3200 card?
  * @ddir:		Per-device debugfs directory
+ * @num_ports:		Number of adapter ports
  * @ports:		Linked list of port structures (struct nfp_net)
  */
 struct nfp_net_pf {
@@ -99,6 +102,7 @@ struct nfp_net_pf {
 
 	struct dentry *ddir;
 
+	unsigned int num_ports;
 	struct list_head ports;
 };
 
@@ -619,6 +623,31 @@ static void nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_device *nfp_dev)
 	ether_addr_copy(nn->netdev->perm_addr, mac_addr);
 }
 
+static unsigned int
+nfp_net_pf_get_num_ports(struct nfp_net_pf *pf, struct nfp_device *nfp_dev)
+{
+	char name[256];
+	u16 interface;
+	int pcie_pf;
+	int err = 0;
+	u64 val;
+
+	interface = nfp_cpp_interface(pf->cpp);
+	pcie_pf = NFP_CPP_INTERFACE_UNIT_of(interface);
+
+	snprintf(name, sizeof(name), "nfd_cfg_pf%d_num_ports", pcie_pf);
+
+	val = nfp_rtsym_read_le(nfp_dev, name, &err);
+	/* Default to one port */
+	if (err) {
+		if (err != -ENOENT)
+			nfp_err(nfp_dev, "Unable to read adapter port count\n");
+		val = 1;
+	}
+
+	return val;
+}
+
 static u8 __iomem *
 nfp_net_pf_map_ctrl_bar(struct nfp_net_pf *pf, struct nfp_device *nfp_dev)
 {
@@ -637,6 +666,13 @@ nfp_net_pf_map_ctrl_bar(struct nfp_net_pf *pf, struct nfp_device *nfp_dev)
 	if (!ctrl_sym) {
 		dev_err(&pf->pdev->dev,
 			"Failed to find PF BAR0 symbol %s\n", pf_symbol);
+		return NULL;
+	}
+
+	if (ctrl_sym->size < pf->num_ports * NFP_PF_CSR_SLICE_SIZE) {
+		dev_err(&pf->pdev->dev,
+			"PF BAR0 too small to contain %d ports\n",
+			pf->num_ports);
 		return NULL;
 	}
 
@@ -753,6 +789,8 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 		err = -ENOENT;
 		goto err_register_fallback;
 	}
+
+	pf->num_ports = nfp_net_pf_get_num_ports(pf, nfp_dev);
 
 	ctrl_bar = nfp_net_pf_map_ctrl_bar(pf, nfp_dev);
 	if (!ctrl_bar) {
