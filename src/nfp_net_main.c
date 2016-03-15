@@ -726,13 +726,13 @@ nfp_net_pf_map_ctrl_bar(struct nfp_net_pf *pf, struct nfp_device *nfp_dev)
 static int nfp_net_pci_probe(struct pci_dev *pdev,
 			     const struct pci_device_id *pci_id)
 {
+	u8 __iomem *ctrl_bar, *tx_bar, *rx_bar;
 	u32 total_tx_qcs, total_rx_qcs;
 	struct nfp_net_fw_version fw_ver;
 	int max_tx_rings, max_rx_rings;
 	u32 tx_area_sz, rx_area_sz;
 	struct nfp_device *nfp_dev;
 	struct nfp_net_pf *pf;
-	u8 __iomem *ctrl_bar;
 	struct nfp_net *nn;
 	u32 start_q;
 	int stride;
@@ -878,6 +878,28 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	tx_area_sz = NFP_QCP_QUEUE_ADDR_SZ * total_tx_qcs;
 	rx_area_sz = NFP_QCP_QUEUE_ADDR_SZ * total_rx_qcs;
 
+	/* Map TX queues */
+	start_q = readl(ctrl_bar + NFP_NET_CFG_START_TXQ);
+	tx_bar = nfp_net_map_area(pf->cpp, "net.tx", 0, 0,
+				  NFP_PCIE_QUEUE(start_q),
+				  tx_area_sz, &pf->tx_area);
+	if (IS_ERR(tx_bar)) {
+		dev_err(&pdev->dev, "Failed to map TX area.\n");
+		err = PTR_ERR(tx_bar);
+		goto err_ctrl_unmap;
+	}
+
+	/* Map RX queues */
+	start_q = readl(ctrl_bar + NFP_NET_CFG_START_RXQ);
+	rx_bar = nfp_net_map_area(pf->cpp, "net.rx", 0, 0,
+				  NFP_PCIE_QUEUE(start_q),
+				  rx_area_sz, &pf->rx_area);
+	if (IS_ERR(rx_bar)) {
+		dev_err(&pdev->dev, "Failed to map RX area.\n");
+		err = PTR_ERR(rx_bar);
+		goto err_unmap_tx;
+	}
+
 	max_tx_rings = readl(ctrl_bar + NFP_NET_CFG_MAX_TXRINGS);
 	max_rx_rings = readl(ctrl_bar + NFP_NET_CFG_MAX_RXRINGS);
 
@@ -885,45 +907,25 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	nn = nfp_net_netdev_alloc(pdev, max_tx_rings, max_rx_rings);
 	if (IS_ERR(nn)) {
 		err = PTR_ERR(nn);
-		goto err_ctrl_unmap;
+		goto err_unmap_rx;
 	}
 	list_add_tail(&nn->port_list, &pf->ports);
 
 	nn->fw_ver = fw_ver;
 	nn->ctrl_bar = ctrl_bar;
+	nn->tx_bar = tx_bar;
+	nn->rx_bar = rx_bar;
 	nn->is_vf = 0;
 	nn->is_nfp3200 = pf->is_nfp3200;
 	nn->stride_rx = stride;
 	nn->stride_tx = stride;
-
-	/* Map TX queues */
-	start_q = readl(ctrl_bar + NFP_NET_CFG_START_TXQ);
-	nn->tx_bar = nfp_net_map_area(pf->cpp, "net.tx", 0, 0,
-				      NFP_PCIE_QUEUE(start_q),
-				      tx_area_sz, &pf->tx_area);
-	if (IS_ERR(nn->tx_bar)) {
-		nn_err(nn, "Failed to map TX area.\n");
-		err = PTR_ERR(nn->tx_bar);
-		goto err_netdev_free;
-	}
-
-	/* Map RX queues */
-	start_q = readl(ctrl_bar + NFP_NET_CFG_START_RXQ);
-	nn->rx_bar = nfp_net_map_area(pf->cpp, "net.rx", 0, 0,
-				      NFP_PCIE_QUEUE(start_q),
-				      rx_area_sz, &pf->rx_area);
-	if (IS_ERR(nn->rx_bar)) {
-		nn_err(nn, "Failed to map RX area.\n");
-		err = PTR_ERR(nn->rx_bar);
-		goto err_unmap_tx;
-	}
 
 	/* Get MSI-X vectors */
 	err = nfp_net_irqs_alloc(nn);
 	if (!err) {
 		nn_warn(nn, "Unable to allocate MSI-X Vectors. Exiting\n");
 		err = -EIO;
-		goto err_unmap_rx;
+		goto err_netdev_free;
 	}
 
 	/* Get MAC address */
@@ -970,12 +972,12 @@ err_free_spare:
 				  nn->spare_va, nn->spare_dma);
 err_irqs_disable:
 	nfp_net_irqs_disable(nn);
+err_netdev_free:
+	nfp_net_netdev_free(nn);
 err_unmap_rx:
 	nfp_cpp_area_release_free(pf->rx_area);
 err_unmap_tx:
 	nfp_cpp_area_release_free(pf->tx_area);
-err_netdev_free:
-	nfp_net_netdev_free(nn);
 err_ctrl_unmap:
 	nfp_cpp_area_release_free(pf->ctrl_area);
 err_register_fallback:
