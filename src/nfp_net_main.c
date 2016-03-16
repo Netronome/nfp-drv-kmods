@@ -593,16 +593,22 @@ err_area:
  * nfp_net_get_mac_addr() - Get the MAC address.
  * @nn:       NFP Network structure
  * @nfp_dev:  NFP Device structure
+ * @id:	      NFP port id
  *
  * First try to look up the MAC address in the HWINFO table. If that
  * fails generate a random address.
  */
-static void nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_device *nfp_dev)
+static void
+nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_device *nfp_dev,
+		     unsigned int id)
 {
 	u8 mac_addr[ETH_ALEN];
 	const char *mac_str;
+	char name[32];
 
-	mac_str = nfp_hwinfo_lookup(nfp_dev, "eth0.mac");
+	snprintf(name, sizeof(name), "eth%d.mac", id);
+
+	mac_str = nfp_hwinfo_lookup(nfp_dev, name);
 	if (!mac_str) {
 		dev_warn(&nn->pdev->dev,
 			 "Can't lookup MAC address. Generate\n");
@@ -921,7 +927,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	}
 
 	/* Get MAC address */
-	nfp_net_get_mac_addr(nn, nfp_dev);
+	nfp_net_get_mac_addr(nn, nfp_dev, 0);
 
 	/* Get ME clock frequency from ctrl BAR
 	 * XXX for now frequency is hardcoded until we figure out how
