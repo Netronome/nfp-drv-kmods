@@ -91,7 +91,6 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 	int tx_bar_no, rx_bar_no;
 	u8 __iomem *ctrl_bar;
 	struct nfp_net *nn;
-	int is_nfp3200;
 	u32 startq;
 	int stride;
 	int err;
@@ -104,15 +103,6 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 	if (err) {
 		dev_err(&pdev->dev, "Unable to allocate device memory.\n");
 		goto err_pci_disable;
-	}
-
-	switch (pdev->device) {
-	case PCI_DEVICE_NFP6000VF:
-		is_nfp3200 = 0;
-		break;
-	default:
-		err = -ENODEV;
-		goto err_pci_regions;
 	}
 
 	pci_set_master(pdev);
@@ -156,15 +146,9 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 	} else {
 		switch (fw_ver.major) {
 		case 1 ... 3:
-			if (is_nfp3200) {
-				stride = 2;
-				tx_bar_no = NFP_NET_Q0_BAR;
-				rx_bar_no = NFP_NET_Q1_BAR;
-			} else {
-				stride = 4;
-				tx_bar_no = NFP_NET_Q0_BAR;
-				rx_bar_no = tx_bar_no;
-			}
+			stride = 4;
+			tx_bar_no = NFP_NET_Q0_BAR;
+			rx_bar_no = tx_bar_no;
 			break;
 		default:
 			dev_err(&pdev->dev, "Unsupported Firmware ABI %d.%d.%d.%d\n",
@@ -221,7 +205,7 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 	nn->fw_ver = fw_ver;
 	nn->ctrl_bar = ctrl_bar;
 	nn->is_vf = 1;
-	nn->is_nfp3200 = is_nfp3200;
+	nn->is_nfp3200 = 0;
 	nn->stride_tx = stride;
 	nn->stride_rx = stride;
 
