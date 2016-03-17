@@ -724,12 +724,20 @@ nfp_net_pf_map_ctrl_bar(struct nfp_net_pf *pf, struct nfp_device *nfp_dev)
 }
 
 static void
-nfp_net_pf_free_netdev(struct nfp_net *nn)
+nfp_net_pf_free_netdevs(struct nfp_net_pf *pf)
 {
-	if (nn->is_nfp3200)
-		dma_free_coherent(&nn->pdev->dev, NFP3200_SPARE_DMA_SIZE,
-				  nn->spare_va, nn->spare_dma);
-	nfp_net_netdev_free(nn);
+	struct nfp_net *nn;
+
+	while (!list_empty(&pf->ports)) {
+		nn = list_first_entry(&pf->ports, struct nfp_net, port_list);
+		list_del(&nn->port_list);
+
+		if (nn->is_nfp3200)
+			dma_free_coherent(&nn->pdev->dev,
+					  NFP3200_SPARE_DMA_SIZE,
+					  nn->spare_va, nn->spare_dma);
+		nfp_net_netdev_free(nn);
+	}
 }
 
 static struct nfp_net *
@@ -809,22 +817,64 @@ nfp_net_pf_init_port_netdev(struct nfp_net_pf *pf, struct nfp_net *nn,
 }
 
 static int
-nfp_net_pf_spawn_port_netdev(struct nfp_net_pf *pf, struct nfp_device *nfp_dev,
-			     void __iomem *ctrl_bar, void __iomem *tx_bar,
-			     void __iomem *rx_bar, unsigned int id, int stride,
-			     struct nfp_net_fw_version *fw_ver)
+nfp_net_pf_alloc_netdevs(struct nfp_net_pf *pf, void __iomem *ctrl_bar,
+			 void __iomem *tx_bar, void __iomem *rx_bar,
+			 int stride, struct nfp_net_fw_version *fw_ver)
 {
-	unsigned int wanted_irqs, num_irqs;
+	u32 prev_tx_base, prev_rx_base, tgt_tx_base, tgt_rx_base;
+	struct nfp_net *nn;
+	unsigned int i;
+	int err;
+
+	prev_tx_base = readl(ctrl_bar + NFP_NET_CFG_START_TXQ);
+	prev_rx_base = readl(ctrl_bar + NFP_NET_CFG_START_RXQ);
+
+	for (i = 0; i < pf->num_ports; i++) {
+		tgt_tx_base = readl(ctrl_bar + NFP_NET_CFG_START_TXQ);
+		tgt_rx_base = readl(ctrl_bar + NFP_NET_CFG_START_RXQ);
+		tx_bar += (tgt_tx_base - prev_tx_base) * NFP_QCP_QUEUE_ADDR_SZ;
+		rx_bar += (tgt_rx_base - prev_rx_base) * NFP_QCP_QUEUE_ADDR_SZ;
+		prev_tx_base = tgt_tx_base;
+		prev_rx_base = tgt_rx_base;
+
+		nn = nfp_net_pf_alloc_port_netdev(pf, ctrl_bar, tx_bar, rx_bar,
+						  stride, fw_ver);
+		if (IS_ERR(nn)) {
+			err = PTR_ERR(nn);
+			goto err_free_prev;
+		}
+		list_add_tail(&nn->port_list, &pf->ports);
+
+		ctrl_bar += NFP_PF_CSR_SLICE_SIZE;
+	}
+
+	return 0;
+
+err_free_prev:
+	nfp_net_pf_free_netdevs(pf);
+	return err;
+}
+
+static int
+nfp_net_pf_spawn_netdevs(struct nfp_net_pf *pf, struct nfp_device *nfp_dev,
+			 void __iomem *ctrl_bar, void __iomem *tx_bar,
+			 void __iomem *rx_bar, int stride,
+			 struct nfp_net_fw_version *fw_ver)
+{
+	unsigned int id, wanted_irqs, num_irqs, ports_left, irqs_left;
 	struct nfp_net *nn;
 	int err;
 
-	nn = nfp_net_pf_alloc_port_netdev(pf, ctrl_bar, tx_bar, rx_bar,
-					  stride, fw_ver);
-	if (IS_ERR(nn))
-		return PTR_ERR(nn);
+	/* Allocate the netdevs and do basic init */
+	err = nfp_net_pf_alloc_netdevs(pf, ctrl_bar, tx_bar, rx_bar,
+				       stride, fw_ver);
+	if (err)
+		return err;
 
 	/* Get MSI-X vectors */
-	wanted_irqs = nfp_net_irqs_wanted(nn);
+	wanted_irqs = 0;
+	list_for_each_entry(nn, &pf->ports, port_list)
+		wanted_irqs += nfp_net_irqs_wanted(nn);
 	pf->irq_entries = kcalloc(wanted_irqs, sizeof(*pf->irq_entries),
 				  GFP_KERNEL);
 	if (!pf->irq_entries) {
@@ -833,28 +883,49 @@ nfp_net_pf_spawn_port_netdev(struct nfp_net_pf *pf, struct nfp_device *nfp_dev,
 	}
 
 	num_irqs = nfp_net_irqs_alloc(pf->pdev, pf->irq_entries,
-				      NFP_NET_MIN_PORT_IRQS, wanted_irqs);
+				      NFP_NET_MIN_PORT_IRQS * pf->num_ports,
+				      wanted_irqs);
 	if (!num_irqs) {
 		nn_warn(nn, "Unable to allocate MSI-X Vectors. Exiting\n");
 		err = -ENOMEM;
 		goto err_vec_free;
 	}
-	nfp_net_irqs_assign(nn, pf->irq_entries, num_irqs);
 
-	err = nfp_net_pf_init_port_netdev(pf, nn, nfp_dev, id);
-	if (err)
-		goto err_irq_free;
+	/* Distribute IRQs to ports */
+	irqs_left = num_irqs;
+	ports_left = pf->num_ports;
+	list_for_each_entry(nn, &pf->ports, port_list) {
+		unsigned int n;
 
-	list_add_tail(&nn->port_list, &pf->ports);
+		n = DIV_ROUND_UP(irqs_left, ports_left);
+		nfp_net_irqs_assign(nn, &pf->irq_entries[num_irqs - irqs_left],
+				    n);
+		irqs_left -= n;
+		ports_left--;
+	}
+
+	/* Finish netdev init and register */
+	id = 0;
+	list_for_each_entry(nn, &pf->ports, port_list) {
+		err = nfp_net_pf_init_port_netdev(pf, nn, nfp_dev, id);
+		if (err)
+			goto err_prev_deinit;
+
+		id++;
+	}
 
 	return 0;
 
-err_irq_free:
+err_prev_deinit:
+	list_for_each_entry_continue_reverse(nn, &pf->ports, port_list) {
+		nfp_net_debugfs_dir_clean(&nn->debugfs_dir);
+		nfp_net_netdev_clean(nn->netdev);
+	}
 	nfp_net_irqs_disable(pf->pdev);
 err_vec_free:
 	kfree(pf->irq_entries);
 err_nn_free:
-	nfp_net_pf_free_netdev(nn);
+	nfp_net_pf_free_netdevs(pf);
 	return err;
 }
 
@@ -1038,8 +1109,8 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 
 	pf->ddir = nfp_net_debugfs_device_add(pdev);
 
-	err = nfp_net_pf_spawn_port_netdev(pf, nfp_dev, ctrl_bar,
-					   tx_bar, rx_bar, 0, stride, &fw_ver);
+	err = nfp_net_pf_spawn_netdevs(pf, nfp_dev, ctrl_bar, tx_bar, rx_bar,
+				       stride, &fw_ver);
 	if (err)
 		goto err_clean_ddir;
 
@@ -1101,9 +1172,14 @@ static void nfp_net_pci_remove(struct pci_dev *pdev)
 	struct nfp_net_pf *pf = pci_get_drvdata(pdev);
 	struct nfp_net *nn;
 
-	nn = list_first_entry(&pf->ports, struct nfp_net, port_list);
+	list_for_each_entry(nn, &pf->ports, port_list) {
+		nfp_net_debugfs_dir_clean(&nn->debugfs_dir);
 
-	nfp_net_debugfs_dir_clean(&nn->debugfs_dir);
+		nfp_net_netdev_clean(nn->netdev);
+	}
+
+	nfp_net_pf_free_netdevs(pf);
+
 	nfp_net_debugfs_dir_clean(&pf->ddir);
 
 #ifdef CONFIG_PCI_IOV
@@ -1115,12 +1191,6 @@ static void nfp_net_pci_remove(struct pci_dev *pdev)
 	}
 #endif
 	if (!pf->nfp_fallback) {
-		nfp_net_netdev_clean(nn->netdev);
-
-		if (pf->is_nfp3200)
-			dma_free_coherent(&pdev->dev, NFP3200_SPARE_DMA_SIZE,
-					  nn->spare_va, nn->spare_dma);
-
 		nfp_net_irqs_disable(pf->pdev);
 		kfree(pf->irq_entries);
 
@@ -1136,9 +1206,6 @@ static void nfp_net_pci_remove(struct pci_dev *pdev)
 		nfp_platform_device_unregister(pf->nfp_dev_cpp);
 
 	nfp_cpp_free(pf->cpp);
-
-	if (!pf->nfp_fallback)
-		nfp_net_netdev_free(nn);
 
 	pci_release_regions(pdev);
 	pci_disable_device(pdev);
