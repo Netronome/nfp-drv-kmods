@@ -51,6 +51,17 @@
 
 #include "nfp_modinfo.h"
 
+/**
+ * struct nfp_net_vf - NFP VF-specific device structure
+ * @nn:		NFP Net structure for this device
+ * @q_bar:	Pointer to mapped QC memory (NULL if TX/RX mapped directly)
+ */
+struct nfp_net_vf {
+	struct nfp_net *nn;
+
+	u8 __iomem *q_bar;
+};
+
 const char nfp_net_driver_name[] = "nfp_netvf";
 const char nfp_net_driver_version[] = "0.1";
 #define PCI_DEVICE_NFP6000VF		0x6003
@@ -89,15 +100,21 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 	u32 tx_bar_off, rx_bar_off;
 	u32 tx_bar_sz, rx_bar_sz;
 	int tx_bar_no, rx_bar_no;
+	struct nfp_net_vf *vf;
 	u8 __iomem *ctrl_bar;
 	struct nfp_net *nn;
 	u32 startq;
 	int stride;
 	int err;
 
+	vf = kzalloc(sizeof(*vf), GFP_KERNEL);
+	if (!vf)
+		return -ENOMEM;
+	pci_set_drvdata(pdev, vf);
+
 	err = pci_enable_device_mem(pdev);
 	if (err)
-		return err;
+		goto err_free_vf;
 
 	err = pci_request_regions(pdev, nfp_net_driver_name);
 	if (err) {
@@ -225,17 +242,17 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 			bar_sz = (rx_bar_off + rx_bar_sz) - bar_off;
 
 		map_addr = pci_resource_start(pdev, tx_bar_no) + bar_off;
-		nn->q_bar = ioremap_nocache(map_addr, bar_sz);
-		if (!nn->q_bar) {
+		vf->q_bar = ioremap_nocache(map_addr, bar_sz);
+		if (!vf->q_bar) {
 			nn_err(nn, "Failed to map resource %d\n", tx_bar_no);
 			err = -EIO;
 			goto err_netdev_free;
 		}
 
 		/* TX queues */
-		nn->tx_bar = nn->q_bar + (tx_bar_off - bar_off);
+		nn->tx_bar = vf->q_bar + (tx_bar_off - bar_off);
 		/* RX queues */
-		nn->rx_bar = nn->q_bar + (rx_bar_off - bar_off);
+		nn->rx_bar = vf->q_bar + (rx_bar_off - bar_off);
 	} else {
 		resource_size_t map_addr;
 
@@ -277,8 +294,6 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 	if (err)
 		goto err_irqs_disable;
 
-	pci_set_drvdata(pdev, nn);
-
 	nfp_net_info(nn);
 	nfp_net_debugfs_adapter_add(nn);
 
@@ -287,15 +302,14 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 err_irqs_disable:
 	nfp_net_irqs_disable(nn);
 err_unmap_rx:
-	if (!nn->q_bar)
+	if (!vf->q_bar)
 		iounmap(nn->rx_bar);
 err_unmap_tx:
-	if (!nn->q_bar)
+	if (!vf->q_bar)
 		iounmap(nn->tx_bar);
 	else
-		iounmap(nn->q_bar);
+		iounmap(vf->q_bar);
 err_netdev_free:
-	pci_set_drvdata(pdev, NULL);
 	nfp_net_netdev_free(nn);
 err_ctrl_unmap:
 	iounmap(ctrl_bar);
@@ -303,12 +317,16 @@ err_pci_regions:
 	pci_release_regions(pdev);
 err_pci_disable:
 	pci_disable_device(pdev);
+err_free_vf:
+	pci_set_drvdata(pdev, NULL);
+	kfree(vf);
 	return err;
 }
 
 static void nfp_netvf_pci_remove(struct pci_dev *pdev)
 {
-	struct nfp_net *nn = pci_get_drvdata(pdev);
+	struct nfp_net_vf *vf = pci_get_drvdata(pdev);
+	struct nfp_net *nn = vf->nn;
 
 	/* Note, the order is slightly different from above as we need
 	 * to keep the nn pointer around till we have freed everything.
@@ -319,20 +337,21 @@ static void nfp_netvf_pci_remove(struct pci_dev *pdev)
 
 	nfp_net_irqs_disable(nn);
 
-	if (!nn->q_bar) {
+	if (!vf->q_bar) {
 		iounmap(nn->rx_bar);
 		iounmap(nn->tx_bar);
 	} else {
-		iounmap(nn->q_bar);
+		iounmap(vf->q_bar);
 	}
 	iounmap(nn->ctrl_bar);
-
-	pci_set_drvdata(pdev, NULL);
 
 	nfp_net_netdev_free(nn);
 
 	pci_release_regions(pdev);
 	pci_disable_device(pdev);
+
+	pci_set_drvdata(pdev, NULL);
+	kfree(vf);
 }
 
 static struct pci_driver nfp_netvf_pci_driver = {

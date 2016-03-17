@@ -542,7 +542,6 @@ struct nfp_net {
 	u8 __iomem *qcp_cfg;
 
 	u8 __iomem *ctrl_bar;
-	u8 __iomem *q_bar;
 	u8 __iomem *tx_bar;
 	u8 __iomem *rx_bar;
 
