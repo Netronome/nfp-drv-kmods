@@ -87,6 +87,7 @@
 #define NFP_NET_NON_Q_VECTORS		2
 #define NFP_NET_IRQ_LSC_IDX		0
 #define NFP_NET_IRQ_EXN_IDX		1
+#define NFP_NET_MIN_PORT_IRQS		(NFP_NET_NON_Q_VECTORS + 1)
 
 /* Queue/Ring definitions */
 #define NFP_NET_MAX_TX_RINGS	64	/* Max. # of Tx rings per device */
@@ -725,8 +726,15 @@ int nfp_net_reconfig(struct nfp_net *nn, u32 update);
 void nfp_net_rss_write_itbl(struct nfp_net *nn);
 void nfp_net_rss_write_key(struct nfp_net *nn);
 void nfp_net_coalesce_write_cfg(struct nfp_net *nn);
-int nfp_net_irqs_alloc(struct nfp_net *nn);
-void nfp_net_irqs_disable(struct nfp_net *nn);
+
+unsigned int nfp_net_irqs_wanted(struct nfp_net *nn);
+unsigned int
+nfp_net_irqs_alloc(struct pci_dev *pdev, struct msix_entry *irq_entries,
+		   unsigned int min_irqs, unsigned int want_irqs);
+void nfp_net_irqs_disable(struct pci_dev *pdev);
+void
+nfp_net_irqs_assign(struct nfp_net *nn, struct msix_entry *irq_entries,
+		    unsigned int n);
 int nfp_net_set_ring_size(struct nfp_net *nn, u32 rxd_cnt, u32 txd_cnt);
 
 void nfp_net_debugfs_create(void);

@@ -76,6 +76,7 @@
  * @ctrl_area:		Pointer to the CPP area for the control BAR
  * @tx_area:		Pointer to the CPP area for the TX queues
  * @rx_area:		Pointer to the CPP area for the FL/RX queues
+ * @irq_entries:	Array of MSI-X entries for all ports
  * @num_vfs:		Number of SR-IOV VFs enabled
  * @fw_loaded:		Is the firmware loaded?
  * @nfp_fallback:	Is the driver used in fallback mode?
@@ -93,6 +94,8 @@ struct nfp_net_pf {
 	struct nfp_cpp_area *ctrl_area;
 	struct nfp_cpp_area *tx_area;
 	struct nfp_cpp_area *rx_area;
+
+	struct msix_entry *irq_entries;
 
 	unsigned int num_vfs;
 
@@ -723,7 +726,6 @@ nfp_net_pf_map_ctrl_bar(struct nfp_net_pf *pf, struct nfp_device *nfp_dev)
 static void
 nfp_net_pf_free_netdev(struct nfp_net *nn)
 {
-	nfp_net_irqs_disable(nn);
 	if (nn->is_nfp3200)
 		dma_free_coherent(&nn->pdev->dev, NFP3200_SPARE_DMA_SIZE,
 				  nn->spare_va, nn->spare_dma);
@@ -770,20 +772,8 @@ nfp_net_pf_alloc_port_netdev(struct nfp_net_pf *pf, void __iomem *ctrl_bar,
 		nn_info(nn, "Enabled NFP-3200 workaround.\n");
 	}
 
-	/* Get MSI-X vectors */
-	err = nfp_net_irqs_alloc(nn);
-	if (!err) {
-		nn_warn(nn, "Unable to allocate MSI-X Vectors. Exiting\n");
-		err = -EIO;
-		goto err_free_spare;
-	}
-
 	return nn;
 
-err_free_spare:
-	if (nn->is_nfp3200)
-		dma_free_coherent(&pf->pdev->dev, NFP3200_SPARE_DMA_SIZE,
-				  nn->spare_va, nn->spare_dma);
 err_netdev_free:
 	nfp_net_netdev_free(nn);
 	return ERR_PTR(err);
@@ -824,6 +814,7 @@ nfp_net_pf_spawn_port_netdev(struct nfp_net_pf *pf, struct nfp_device *nfp_dev,
 			     void __iomem *rx_bar, unsigned int id, int stride,
 			     struct nfp_net_fw_version *fw_ver)
 {
+	unsigned int wanted_irqs, num_irqs;
 	struct nfp_net *nn;
 	int err;
 
@@ -832,14 +823,36 @@ nfp_net_pf_spawn_port_netdev(struct nfp_net_pf *pf, struct nfp_device *nfp_dev,
 	if (IS_ERR(nn))
 		return PTR_ERR(nn);
 
+	/* Get MSI-X vectors */
+	wanted_irqs = nfp_net_irqs_wanted(nn);
+	pf->irq_entries = kcalloc(wanted_irqs, sizeof(*pf->irq_entries),
+				  GFP_KERNEL);
+	if (!pf->irq_entries) {
+		err = -ENOMEM;
+		goto err_nn_free;
+	}
+
+	num_irqs = nfp_net_irqs_alloc(pf->pdev, pf->irq_entries,
+				      NFP_NET_MIN_PORT_IRQS, wanted_irqs);
+	if (!num_irqs) {
+		nn_warn(nn, "Unable to allocate MSI-X Vectors. Exiting\n");
+		err = -ENOMEM;
+		goto err_vec_free;
+	}
+	nfp_net_irqs_assign(nn, pf->irq_entries, num_irqs);
+
 	err = nfp_net_pf_init_port_netdev(pf, nn, nfp_dev, id);
 	if (err)
-		goto err_nn_free;
+		goto err_irq_free;
 
 	list_add_tail(&nn->port_list, &pf->ports);
 
 	return 0;
 
+err_irq_free:
+	nfp_net_irqs_disable(pf->pdev);
+err_vec_free:
+	kfree(pf->irq_entries);
 err_nn_free:
 	nfp_net_pf_free_netdev(nn);
 	return err;
@@ -1108,7 +1121,8 @@ static void nfp_net_pci_remove(struct pci_dev *pdev)
 			dma_free_coherent(&pdev->dev, NFP3200_SPARE_DMA_SIZE,
 					  nn->spare_va, nn->spare_dma);
 
-		nfp_net_irqs_disable(nn);
+		nfp_net_irqs_disable(pf->pdev);
+		kfree(pf->irq_entries);
 
 		nfp_cpp_area_release_free(pf->rx_area);
 		nfp_cpp_area_release_free(pf->tx_area);

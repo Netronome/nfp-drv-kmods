@@ -315,7 +315,7 @@ static void nfp_net_irq_unmask(struct nfp_net *nn, unsigned int entry_nr)
  *
  * Return: Number of interrupts wanted
  */
-static int nfp_net_irqs_wanted(struct nfp_net *nn)
+unsigned int nfp_net_irqs_wanted(struct nfp_net *nn)
 {
 	int ncpus;
 	int vecs;
@@ -330,35 +330,55 @@ static int nfp_net_irqs_wanted(struct nfp_net *nn)
 
 /**
  * nfp_net_irqs_alloc() - allocates MSI-X irqs
- * @nn:       NFP Network structure
+ * @pdev:        PCI device structure
+ * @irq_entries: Array to be initialized and used to hold the irq entries
+ * @min_irqs:    Minimal acceptable number of interrupts
+ * @wanted_irqs: Target number of interrupts to allocate
  *
  * Return: Number of irqs obtained or 0 on error.
  */
-int nfp_net_irqs_alloc(struct nfp_net *nn)
+unsigned int
+nfp_net_irqs_alloc(struct pci_dev *pdev, struct msix_entry *irq_entries,
+		   unsigned int min_irqs, unsigned int wanted_irqs)
 {
-	unsigned int i, wanted_irqs;
+	unsigned int i;
 	int got_irqs;
 
-	wanted_irqs = nfp_net_irqs_wanted(nn);
-
 	for (i = 0; i < wanted_irqs; i++)
-		nn->irq_entries[i].entry = i;
+		irq_entries[i].entry = i;
 
-	got_irqs = pci_enable_msix_range(nn->pdev, nn->irq_entries,
-					 NFP_NET_NON_Q_VECTORS + 1,
-					 wanted_irqs);
+	got_irqs = pci_enable_msix_range(pdev, irq_entries,
+					 min_irqs, wanted_irqs);
 	if (got_irqs < 0) {
-		nn_err(nn, "Failed to enable MSI-X. Wanted %d-%d (err=%d)\n",
-		       NFP_NET_NON_Q_VECTORS + 1, wanted_irqs, got_irqs);
+		dev_err(&pdev->dev, "Failed to enable %d-%d MSI-X (err=%d)\n",
+			min_irqs, wanted_irqs, got_irqs);
 		return 0;
 	}
 
-	nn->num_irqs = got_irqs;
+	if (got_irqs < wanted_irqs)
+		dev_warn(&pdev->dev, "Unable to allocate %d IRQs got only %d\n",
+			 wanted_irqs, got_irqs);
+
+	return got_irqs;
+}
+
+/**
+ * nfp_net_irqs_assign() - Assign interrupts allocated externally to netdev
+ * @nn:		 NFP Network structure
+ * @irq_entries: Table of allocated interrupts
+ * @n:		 Size of @irq_entries (number of entries to grab)
+ *
+ * After interrupts are allocated with nfp_net_irqs_alloc() this function
+ * should be called to assign them to a specific netdev (port).
+ */
+void
+nfp_net_irqs_assign(struct nfp_net *nn, struct msix_entry *irq_entries,
+		    unsigned int n)
+{
+	nn->num_irqs = n;
 	nn->num_r_vecs = nn->num_irqs - NFP_NET_NON_Q_VECTORS;
 
-	if (nn->num_irqs < wanted_irqs)
-		nn_warn(nn, "Unable to allocate %d vectors. Got %d instead\n",
-			wanted_irqs, nn->num_irqs);
+	memcpy(&nn->irq_entries, irq_entries, sizeof(*irq_entries) * n);
 
 	/* We assume nn->num_tx_rings == nn->num_rx_rings */
 	if (nn->num_tx_rings > nn->num_r_vecs) {
@@ -367,19 +387,17 @@ int nfp_net_irqs_alloc(struct nfp_net *nn)
 		nn->num_tx_rings = nn->num_r_vecs;
 		nn->num_rx_rings = nn->num_r_vecs;
 	}
-
-	return nn->num_irqs;
 }
 
 /**
  * nfp_net_irqs_disable() - Disable interrupts
- * @nn:       NFP Network structure
+ * @pdev:        PCI device structure
  *
  * Undoes what @nfp_net_irqs_alloc() does.
  */
-void nfp_net_irqs_disable(struct nfp_net *nn)
+void nfp_net_irqs_disable(struct pci_dev *pdev)
 {
-	pci_disable_msix(nn->pdev);
+	pci_disable_msix(pdev);
 }
 
 /**
@@ -509,10 +527,10 @@ nfp_net_rx_ring_init(struct nfp_net_rx_ring *rx_ring,
 }
 
 /**
- * nfp_net_irqs_assign() - Assign IRQs and setup rvecs.
+ * nfp_net_vecs_init() - Assign IRQs and setup rvecs.
  * @netdev:   netdev structure
  */
-static void nfp_net_irqs_assign(struct net_device *netdev)
+static void nfp_net_vecs_init(struct net_device *netdev)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
 	struct nfp_net_r_vector *r_vec;
@@ -2850,7 +2868,7 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	netif_carrier_off(netdev);
 
 	nfp_net_set_ethtool_ops(netdev);
-	nfp_net_irqs_assign(netdev);
+	nfp_net_vecs_init(netdev);
 
 	return register_netdev(netdev);
 }

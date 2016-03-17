@@ -54,12 +54,15 @@
 /**
  * struct nfp_net_vf - NFP VF-specific device structure
  * @nn:		NFP Net structure for this device
+ * @irq_entries: Pre-allocated array of MSI-X entries
  * @q_bar:	Pointer to mapped QC memory (NULL if TX/RX mapped directly)
  * @ddir:	Per-device debugfs directory
  */
 struct nfp_net_vf {
 	struct nfp_net *nn;
 
+	struct msix_entry irq_entries[NFP_NET_NON_Q_VECTORS +
+				      NFP_NET_MAX_TX_RINGS];
 	u8 __iomem *q_bar;
 
 	struct dentry *ddir;
@@ -98,6 +101,7 @@ static void nfp_netvf_get_mac_addr(struct nfp_net *nn)
 static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 			       const struct pci_device_id *pci_id)
 {
+	unsigned int wanted_irqs, num_irqs;
 	struct nfp_net_fw_version fw_ver;
 	int max_tx_rings, max_rx_rings;
 	u32 tx_bar_off, rx_bar_off;
@@ -280,12 +284,15 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 
 	nfp_netvf_get_mac_addr(nn);
 
-	err = nfp_net_irqs_alloc(nn);
-	if (!err) {
+	wanted_irqs = nfp_net_irqs_wanted(nn);
+	num_irqs = nfp_net_irqs_alloc(pdev, vf->irq_entries,
+				      NFP_NET_MIN_PORT_IRQS, wanted_irqs);
+	if (!num_irqs) {
 		nn_warn(nn, "Unable to allocate MSI-X Vectors. Exiting\n");
 		err = -EIO;
 		goto err_unmap_rx;
 	}
+	nfp_net_irqs_assign(nn, vf->irq_entries, num_irqs);
 
 	/* Get ME clock frequency from ctrl BAR
 	 * XXX for now frequency is hardcoded until we figure out how
@@ -304,7 +311,7 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 	return 0;
 
 err_irqs_disable:
-	nfp_net_irqs_disable(nn);
+	nfp_net_irqs_disable(pdev);
 err_unmap_rx:
 	if (!vf->q_bar)
 		iounmap(nn->rx_bar);
@@ -340,7 +347,7 @@ static void nfp_netvf_pci_remove(struct pci_dev *pdev)
 
 	nfp_net_netdev_clean(nn->netdev);
 
-	nfp_net_irqs_disable(nn);
+	nfp_net_irqs_disable(pdev);
 
 	if (!vf->q_bar) {
 		iounmap(nn->rx_bar);
