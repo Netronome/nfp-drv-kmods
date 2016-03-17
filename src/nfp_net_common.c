@@ -307,35 +307,6 @@ static void nfp_net_irq_unmask(struct nfp_net *nn, unsigned int entry_nr)
 }
 
 /**
- * nfp_net_msix_alloc() - Try to allocate MSI-X irqs
- * @nn:       NFP Network structure
- * @nr_vecs:  Number of MSI-X vectors to allocate
- *
- * For MSI-X we want at least NFP_NET_NON_Q_VECTORS + 1 vectors.
- *
- * Return: Number of MSI-X vectors obtained or 0 on error.
- */
-static int nfp_net_msix_alloc(struct nfp_net *nn, int nr_vecs)
-{
-	struct pci_dev *pdev = nn->pdev;
-	int nvecs;
-	int i;
-
-	for (i = 0; i < nr_vecs; i++)
-		nn->irq_entries[i].entry = i;
-
-	nvecs = pci_enable_msix_range(pdev, nn->irq_entries,
-				      NFP_NET_NON_Q_VECTORS + 1, nr_vecs);
-	if (nvecs < 0) {
-		nn_warn(nn, "Failed to enable MSI-X. Wanted %d-%d (err=%d)\n",
-			NFP_NET_NON_Q_VECTORS + 1, nr_vecs, nvecs);
-		return 0;
-	}
-
-	return nvecs;
-}
-
-/**
  * nfp_net_irqs_wanted() - Work out how many interrupt vectors we want
  * @nn:       NFP Network structure
  *
@@ -365,16 +336,24 @@ static int nfp_net_irqs_wanted(struct nfp_net *nn)
  */
 int nfp_net_irqs_alloc(struct nfp_net *nn)
 {
-	int wanted_irqs;
+	unsigned int i, wanted_irqs;
+	int got_irqs;
 
 	wanted_irqs = nfp_net_irqs_wanted(nn);
 
-	nn->num_irqs = nfp_net_msix_alloc(nn, wanted_irqs);
-	if (nn->num_irqs == 0) {
-		nn_err(nn, "Failed to allocate MSI-X IRQs\n");
+	for (i = 0; i < wanted_irqs; i++)
+		nn->irq_entries[i].entry = i;
+
+	got_irqs = pci_enable_msix_range(nn->pdev, nn->irq_entries,
+					 NFP_NET_NON_Q_VECTORS + 1,
+					 wanted_irqs);
+	if (got_irqs < 0) {
+		nn_err(nn, "Failed to enable MSI-X. Wanted %d-%d (err=%d)\n",
+		       NFP_NET_NON_Q_VECTORS + 1, wanted_irqs, got_irqs);
 		return 0;
 	}
 
+	nn->num_irqs = got_irqs;
 	nn->num_r_vecs = nn->num_irqs - NFP_NET_NON_Q_VECTORS;
 
 	if (nn->num_irqs < wanted_irqs)
