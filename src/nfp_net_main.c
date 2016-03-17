@@ -720,11 +720,20 @@ nfp_net_pf_map_ctrl_bar(struct nfp_net_pf *pf, struct nfp_device *nfp_dev)
 	return ctrl_bar;
 }
 
-static int
-nfp_net_pf_spawn_port_netdev(struct nfp_net_pf *pf, struct nfp_device *nfp_dev,
-			     void __iomem *ctrl_bar, void __iomem *tx_bar,
-			     void __iomem *rx_bar, unsigned int id, int stride,
-			     struct nfp_net_fw_version *fw_ver)
+static void
+nfp_net_pf_free_netdev(struct nfp_net *nn)
+{
+	nfp_net_irqs_disable(nn);
+	if (nn->is_nfp3200)
+		dma_free_coherent(&nn->pdev->dev, NFP3200_SPARE_DMA_SIZE,
+				  nn->spare_va, nn->spare_dma);
+	nfp_net_netdev_free(nn);
+}
+
+static struct nfp_net *
+nfp_net_pf_alloc_port_netdev(struct nfp_net_pf *pf, void __iomem *ctrl_bar,
+			     void __iomem *tx_bar, void __iomem *rx_bar,
+			     int stride, struct nfp_net_fw_version *fw_ver)
 {
 	u32 n_tx_rings, n_rx_rings;
 	struct nfp_net *nn;
@@ -736,7 +745,7 @@ nfp_net_pf_spawn_port_netdev(struct nfp_net_pf *pf, struct nfp_device *nfp_dev,
 	/* Allocate and initialise the netdev */
 	nn = nfp_net_netdev_alloc(pf->pdev, n_tx_rings, n_rx_rings);
 	if (IS_ERR(nn))
-		return PTR_ERR(nn);
+		return nn;
 
 	nn->fw_ver = *fw_ver;
 	nn->ctrl_bar = ctrl_bar;
@@ -769,6 +778,23 @@ nfp_net_pf_spawn_port_netdev(struct nfp_net_pf *pf, struct nfp_device *nfp_dev,
 		goto err_free_spare;
 	}
 
+	return nn;
+
+err_free_spare:
+	if (nn->is_nfp3200)
+		dma_free_coherent(&pf->pdev->dev, NFP3200_SPARE_DMA_SIZE,
+				  nn->spare_va, nn->spare_dma);
+err_netdev_free:
+	nfp_net_netdev_free(nn);
+	return ERR_PTR(err);
+}
+
+static int
+nfp_net_pf_init_port_netdev(struct nfp_net_pf *pf, struct nfp_net *nn,
+			    struct nfp_device *nfp_dev, unsigned int id)
+{
+	int err;
+
 	/* Get MAC address */
 	nfp_net_get_mac_addr(nn, nfp_dev, id);
 
@@ -783,23 +809,39 @@ nfp_net_pf_spawn_port_netdev(struct nfp_net_pf *pf, struct nfp_device *nfp_dev,
 	 */
 	err = nfp_net_netdev_init(nn->netdev);
 	if (err)
-		goto err_irqs_disable;
+		return err;
 
 	nfp_net_debugfs_port_add(nn, pf->ddir, id);
 
 	nfp_net_info(nn);
+
+	return 0;
+}
+
+static int
+nfp_net_pf_spawn_port_netdev(struct nfp_net_pf *pf, struct nfp_device *nfp_dev,
+			     void __iomem *ctrl_bar, void __iomem *tx_bar,
+			     void __iomem *rx_bar, unsigned int id, int stride,
+			     struct nfp_net_fw_version *fw_ver)
+{
+	struct nfp_net *nn;
+	int err;
+
+	nn = nfp_net_pf_alloc_port_netdev(pf, ctrl_bar, tx_bar, rx_bar,
+					  stride, fw_ver);
+	if (IS_ERR(nn))
+		return PTR_ERR(nn);
+
+	err = nfp_net_pf_init_port_netdev(pf, nn, nfp_dev, id);
+	if (err)
+		goto err_nn_free;
+
 	list_add_tail(&nn->port_list, &pf->ports);
 
 	return 0;
 
-err_irqs_disable:
-	nfp_net_irqs_disable(nn);
-err_free_spare:
-	if (pf->is_nfp3200)
-		dma_free_coherent(&pf->pdev->dev, NFP3200_SPARE_DMA_SIZE,
-				  nn->spare_va, nn->spare_dma);
-err_netdev_free:
-	nfp_net_netdev_free(nn);
+err_nn_free:
+	nfp_net_pf_free_netdev(nn);
 	return err;
 }
 
