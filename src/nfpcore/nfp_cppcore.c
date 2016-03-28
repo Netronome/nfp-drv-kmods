@@ -1010,8 +1010,8 @@ static struct nfp_cpp_area_cache *area_cache_get(struct nfp_cpp *cpp,
 			   struct nfp_cpp_area_cache, entry);
 
 	/* Can we fit in the cache entry? */
-	if (rounddown(addr + length - 1, cache->size) !=
-	    rounddown(addr, cache->size)) {
+	if (round_down(addr + length - 1, cache->size) !=
+	    round_down(addr, cache->size)) {
 		mutex_unlock(&cpp->area_cache_mutex);
 		return NULL;
 	}
