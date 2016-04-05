@@ -1950,6 +1950,7 @@ int nfp_cpp_mutex_lock(struct nfp_cpp_mutex *mutex)
 {
 	int err;
 	unsigned int timeout_ms = 1;	/* Sleep for 1ms */
+	unsigned long warn_at = jiffies + 15 * HZ;
 
 	/* We can't use a waitqueue here, because the unlocker
 	 * might be on a separate CPU.
@@ -1964,6 +1965,14 @@ int nfp_cpp_mutex_lock(struct nfp_cpp_mutex *mutex)
 		err = msleep_interruptible(timeout_ms);
 		if (err != 0)
 			return -ERESTARTSYS;
+
+		if (time_is_before_eq_jiffies(warn_at)) {
+			warn_at = jiffies + 60 * HZ;
+			dev_warn(mutex->cpp->op->parent,
+				 "Warning: waiting for NFP mutex [usage:%hd depth:%hd target:%d addr:%llx key:%08x]\n",
+				 mutex->usage, mutex->depth,
+				 mutex->target, mutex->address, mutex->key);
+		}
 	}
 
 	return 0;
