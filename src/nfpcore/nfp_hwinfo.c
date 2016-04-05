@@ -283,7 +283,7 @@ static int hwinfo_fetch_nowait(struct nfp_device *nfp,
 
 		if (cpp_size < HWINFO_SIZE_MIN)
 			return -ENOENT;
-	} else {
+	} else if (PTR_ERR(res) == -ENOENT) {
 		u32 model = nfp_cpp_model(cpp);
 
 		/* Try getting the HWInfo table from the 'classic' location
@@ -301,6 +301,8 @@ static int hwinfo_fetch_nowait(struct nfp_device *nfp,
 		} else {
 			return -ENODEV;
 		}
+	} else {
+		return PTR_ERR(res);
 	}
 
 	/* Fetch the hardware table from the ARM's SRAM (scratch).  It
