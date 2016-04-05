@@ -373,7 +373,11 @@ static int hwinfo_fetch(struct nfp_device *nfp, void **hwdb, size_t *hwdb_size)
 		if (r >= 0)
 			break;
 
-		msleep(100);	/* Sleep for 1/10 second. */
+		r = msleep_interruptible(100);
+		if (r != 0) {
+			r = -EIO;
+			break;
+		}
 	}
 
 	if (r < 0) {
