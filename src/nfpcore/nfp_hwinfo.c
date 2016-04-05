@@ -365,28 +365,25 @@ exit_area_free:
 
 static int hwinfo_fetch(struct nfp_device *nfp, void **hwdb, size_t *hwdb_size)
 {
-	int timeout;
-	int r = -ENODEV;
+	const unsigned long wait_until = jiffies + hwinfo_wait * HZ;
+	int r;
 
-	for (timeout = (hwinfo_wait * 10); timeout >= 0; timeout--) {
+	for (;;) {
+		const unsigned long start_time = jiffies;
+
 		r = hwinfo_fetch_nowait(nfp, hwdb, hwdb_size);
 		if (r >= 0)
 			break;
 
 		r = msleep_interruptible(100);
-		if (r != 0) {
+		if (r != 0 || time_after(start_time, wait_until)) {
 			r = -EIO;
 			break;
 		}
 	}
 
-	if (r < 0) {
+	if (r < 0)
 		nfp_err(nfp, "NFP access error detected\n");
-	} else if (hwinfo_wait >= 0 && timeout < 0) {
-		nfp_err(nfp, "Timed out after %d seconds, waiting for HWInfo\n",
-			hwinfo_wait);
-		r = -EIO;
-	}
 
 	return r;
 }
