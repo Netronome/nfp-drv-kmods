@@ -662,7 +662,7 @@ static int nfp_net_vnic_probe(struct platform_device *pdev)
 	}
 
 	res = nfp_resource_acquire(nfp, res_name);
-	if (!res) {
+	if (IS_ERR(res)) {
 		dev_err(&pdev->dev, "No '%s' resource present\n",
 			res_name);
 		err = -ENOENT;

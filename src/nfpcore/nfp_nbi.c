@@ -156,7 +156,7 @@ struct nfp_nbi_dev *nfp_nbi_open(struct nfp_device *nfp, int nbi_id)
 	nbi->nbi = nbi_id;
 
 	res = nfp_resource_acquire(nfp, NFP_RESOURCE_MAC_STATISTICS);
-	if (!res) {
+	if (IS_ERR(res)) {
 		kfree(nbi);
 		nbi = NULL;
 	} else {

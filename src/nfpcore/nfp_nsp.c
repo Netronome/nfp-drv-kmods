@@ -96,7 +96,7 @@ static void *nfp_nsp_con(struct nfp_device *nfp)
 	struct nfp_nsp *priv;
 
 	res = nfp_resource_acquire(nfp, NSP_RESOURCE);
-	if (!res)
+	if (IS_ERR(res))
 		return NULL;
 
 	priv = nfp_device_private_alloc(nfp, sizeof(*priv), nfp_nsp_des);

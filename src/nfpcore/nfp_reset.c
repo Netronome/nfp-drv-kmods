@@ -1023,7 +1023,7 @@ int nfp_reset_soft(struct nfp_device *nfp)
 
 	/* Claim the nfp.nffw resource page */
 	res = nfp_resource_acquire(nfp, NFP_RESOURCE_NFP_NFFW);
-	if (!res) {
+	if (IS_ERR(res)) {
 		nfp_err(nfp, "Can't aquire %s resource\n",
 			NFP_RESOURCE_NFP_NFFW);
 		return -EBUSY;

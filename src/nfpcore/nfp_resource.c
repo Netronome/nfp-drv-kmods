@@ -387,7 +387,7 @@ static int nfp_cpp_resource_acquire(struct nfp_cpp *cpp, const char *name,
  *
  * NOTE: This function implictly locks the acquired resource
  *
- * Return: NFP Resource handle, or NULL
+ * Return: NFP Resource handle, or ERR_PTR()
  */
 struct nfp_resource *nfp_resource_acquire(struct nfp_device *nfp,
 					  const char *name)
@@ -402,18 +402,18 @@ struct nfp_resource *nfp_resource_acquire(struct nfp_device *nfp,
 	err = nfp_cpp_resource_acquire(cpp, name, &cpp_id, &addr,
 				       &size, &mutex);
 	if (err < 0)
-		return NULL;
+		return ERR_PTR(err);
 
 	err = nfp_cpp_mutex_lock(mutex);
 	if (err < 0) {
 		nfp_cpp_mutex_free(mutex);
-		return NULL;
+		return ERR_PTR(err);
 	}
 
 	res = kzalloc(sizeof(*res), GFP_KERNEL);
 	if (!res) {
 		nfp_cpp_mutex_free(mutex);
-		return NULL;
+		return ERR_PTR(-ENOMEM);
 	}
 
 	strncpy(res->name, name, NFP_RESOURCE_ENTRY_NAME_SZ);

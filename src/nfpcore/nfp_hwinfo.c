@@ -274,7 +274,7 @@ static int hwinfo_fetch_nowait(struct nfp_device *nfp,
 	u32 ver;
 
 	res = nfp_resource_acquire(nfp, NFP_RESOURCE_NFP_HWINFO);
-	if (res) {
+	if (!IS_ERR(res)) {
 		cpp_id = nfp_resource_cpp_id(res);
 		cpp_addr = nfp_resource_address(res);
 		cpp_size = nfp_resource_size(res);
