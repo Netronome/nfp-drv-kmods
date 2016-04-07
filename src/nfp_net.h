@@ -340,7 +340,7 @@ struct nfp_net_rx_ring {
  * @napi:           NAPI structure for this ring vec
  * @tx_ring:        Pointer to TX ring
  * @rx_ring:        Pointer to RX ring
- * @irq_idx:        Index into MSI-X table
+ * @irq_entry:      MSI-X table entry (use for talking to the device)
  * @rx_sync:	    Seqlock for atomic updates of RX stats
  * @rx_pkts:        Number of received packets
  * @rx_bytes:	    Number of received bytes
@@ -357,6 +357,7 @@ struct nfp_net_rx_ring {
  * @tx_lso:	    Counter of LSO packets sent
  * @tx_errors:	    How many TX errors were encountered
  * @tx_busy:        How often was TX busy (no space)?
+ * @irq_vector:     Interrupt vector number (use for talking to the OS)
  * @handler:        Interrupt handler for this ring vector
  * @name:           Name of the interrupt vector
  * @affinity_mask:  SMP affinity mask for this vector
@@ -373,7 +374,7 @@ struct nfp_net_r_vector {
 	struct nfp_net_tx_ring *tx_ring;
 	struct nfp_net_rx_ring *rx_ring;
 
-	int irq_idx;
+	u16 irq_entry;
 
 	struct u64_stats_sync rx_sync;
 	u64 rx_pkts;
@@ -393,6 +394,7 @@ struct nfp_net_r_vector {
 	u64 tx_errors;
 	u64 tx_busy;
 
+	u32 irq_vector;
 	irq_handler_t handler;
 	char name[IFNAMSIZ + 8];
 	cpumask_t affinity_mask;

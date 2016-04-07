@@ -461,10 +461,13 @@ out:
 static irqreturn_t nfp_net_irq_lsc(int irq, void *data)
 {
 	struct nfp_net *nn = data;
+	struct msix_entry *entry;
+
+	entry = &nn->irq_entries[NFP_NET_IRQ_LSC_IDX];
 
 	nfp_net_read_link_status(nn);
 
-	nfp_net_irq_unmask(nn, NFP_NET_IRQ_LSC_IDX);
+	nfp_net_irq_unmask(nn, entry->entry);
 
 	return IRQ_HANDLED;
 }
@@ -540,10 +543,15 @@ static void nfp_net_vecs_init(struct net_device *netdev)
 	nn->exn_handler = nfp_net_irq_exn;
 
 	for (r = 0; r < nn->num_r_vecs; r++) {
+		struct msix_entry *entry;
+
+		entry = &nn->irq_entries[NFP_NET_NON_Q_VECTORS + r];
+
 		r_vec = &nn->r_vecs[r];
 		r_vec->nfp_net = nn;
 		r_vec->handler = nfp_net_irq_rxtx;
-		r_vec->irq_idx = NFP_NET_NON_Q_VECTORS + r;
+		r_vec->irq_entry = entry->entry;
+		r_vec->irq_vector = entry->vector;
 
 		cpumask_set_cpu(r, &r_vec->affinity_mask);
 	}
@@ -576,7 +584,7 @@ nfp_net_aux_irq_request(struct nfp_net *nn, u32 ctrl_offset,
 		       entry->vector, err);
 		return err;
 	}
-	nn_writeb(nn, ctrl_offset, vector_idx);
+	nn_writeb(nn, ctrl_offset, entry->entry);
 
 	return 0;
 }
@@ -1512,7 +1520,7 @@ static int nfp_net_poll(struct napi_struct *napi, int budget)
 
 	if (pkts_polled < budget) {
 		napi_complete_done(napi, pkts_polled);
-		nfp_net_irq_unmask(nn, r_vec->irq_idx);
+		nfp_net_irq_unmask(nn, r_vec->irq_entry);
 	}
 
 	return pkts_polled;
@@ -1768,7 +1776,6 @@ static int
 nfp_net_prepare_vector(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 		       int idx)
 {
-	struct msix_entry *entry = &nn->irq_entries[r_vec->irq_idx];
 	int err;
 
 	r_vec->tx_ring = &nn->tx_rings[idx];
@@ -1779,20 +1786,22 @@ nfp_net_prepare_vector(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 
 	snprintf(r_vec->name, sizeof(r_vec->name),
 		 "%s-rxtx-%d", nn->netdev->name, idx);
-	err = request_irq(entry->vector, r_vec->handler, 0, r_vec->name, r_vec);
+	err = request_irq(r_vec->irq_vector, r_vec->handler, 0, r_vec->name,
+			  r_vec);
 	if (err) {
-		nn_err(nn, "Error requesting IRQ %d\n", entry->vector);
+		nn_err(nn, "Error requesting IRQ %d\n", r_vec->irq_vector);
 		return err;
 	}
-	disable_irq(entry->vector);
+	disable_irq(r_vec->irq_vector);
 
 	/* Setup NAPI */
 	netif_napi_add(nn->netdev, &r_vec->napi,
 		       nfp_net_poll, NAPI_POLL_WEIGHT);
 
-	irq_set_affinity_hint(entry->vector, &r_vec->affinity_mask);
+	irq_set_affinity_hint(r_vec->irq_vector, &r_vec->affinity_mask);
 
-	nn_dbg(nn, "RV%02d: irq=%03d/%03d\n", idx, entry->vector, entry->entry);
+	nn_dbg(nn, "RV%02d: irq=%03d/%03d\n", idx, r_vec->irq_vector,
+	       r_vec->irq_entry);
 
 	return 0;
 }
@@ -1800,11 +1809,9 @@ nfp_net_prepare_vector(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 static void
 nfp_net_cleanup_vector(struct nfp_net *nn, struct nfp_net_r_vector *r_vec)
 {
-	struct msix_entry *entry = &nn->irq_entries[r_vec->irq_idx];
-
-	irq_set_affinity_hint(entry->vector, NULL);
+	irq_set_affinity_hint(r_vec->irq_vector, NULL);
 	netif_napi_del(&r_vec->napi);
-	free_irq(entry->vector, r_vec);
+	free_irq(r_vec->irq_vector, r_vec);
 }
 
 /**
@@ -1932,11 +1939,11 @@ nfp_net_vec_write_ring_data(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 	/* Write the DMA address, size and MSI-X info to the device */
 	nn_writeq(nn, NFP_NET_CFG_RXR_ADDR(idx), r_vec->rx_ring->dma);
 	nn_writeb(nn, NFP_NET_CFG_RXR_SZ(idx), ilog2(r_vec->rx_ring->cnt));
-	nn_writeb(nn, NFP_NET_CFG_RXR_VEC(idx), r_vec->irq_idx);
+	nn_writeb(nn, NFP_NET_CFG_RXR_VEC(idx), r_vec->irq_entry);
 
 	nn_writeq(nn, NFP_NET_CFG_TXR_ADDR(idx), r_vec->tx_ring->dma);
 	nn_writeb(nn, NFP_NET_CFG_TXR_SZ(idx), ilog2(r_vec->tx_ring->cnt));
-	nn_writeb(nn, NFP_NET_CFG_TXR_VEC(idx), r_vec->irq_idx);
+	nn_writeb(nn, NFP_NET_CFG_TXR_VEC(idx), r_vec->irq_entry);
 }
 
 static int __nfp_net_set_config_and_enable(struct nfp_net *nn)
@@ -2029,7 +2036,7 @@ static void nfp_net_open_stack(struct nfp_net *nn)
 
 	for (r = 0; r < nn->num_r_vecs; r++) {
 		napi_enable(&nn->r_vecs[r].napi);
-		enable_irq(nn->irq_entries[nn->r_vecs[r].irq_idx].vector);
+		enable_irq(nn->r_vecs[r].irq_vector);
 	}
 
 	netif_tx_wake_all_queues(nn->netdev);
@@ -2157,7 +2164,7 @@ static void nfp_net_close_stack(struct nfp_net *nn)
 	nn->link_up = false;
 
 	for (r = 0; r < nn->num_r_vecs; r++) {
-		disable_irq(nn->irq_entries[nn->r_vecs[r].irq_idx].vector);
+		disable_irq(nn->r_vecs[r].irq_vector);
 		napi_disable(&nn->r_vecs[r].napi);
 	}
 
