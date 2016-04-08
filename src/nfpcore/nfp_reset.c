@@ -692,7 +692,7 @@ static int nfp6000_pcie_monitor_set(struct nfp_cpp *cpp, int pci, u32 flags)
 static int nfp6000_reset_soft(struct nfp_device *nfp)
 {
 	struct nfp_cpp *cpp = nfp_device_cpp(nfp);
-	struct nfp_nbi_dev *nbi[2];
+	struct nfp_nbi_dev *nbi[2] = {};
 	int mac_enable[2];
 	int i, p, err, nbi_mask = 0;
 	u32 bpe[2][32];
@@ -976,12 +976,6 @@ static int nfp6000_reset_soft(struct nfp_device *nfp)
 			goto exit;
 	}
 
-	/* No need for NBI access anymore.. */
-	for (i = 0; i < 2; i++) {
-		if (nbi[i])
-			nfp_nbi_close(nbi[i]);
-	}
-
 	/* Soft reset subcomponents relevant to this model */
 	err = nfp6000_island_reset(nfp, nbi_mask);
 	if (err < 0)
@@ -992,6 +986,12 @@ static int nfp6000_reset_soft(struct nfp_device *nfp)
 		goto exit;
 
 exit:
+	/* No need for NBI access anymore.. */
+	for (i = 0; i < 2; i++) {
+		if (nbi[i])
+			nfp_nbi_close(nbi[i]);
+	}
+
 	return err;
 }
 
