@@ -25,6 +25,9 @@ KERNEL_SEARCH_PATH := \
 # prune list to those containing a configured kernel source tree
 test_dir = $(shell [ -e $(dir)/include/config ] && echo $(dir))
 KERNEL_SEARCH_PATH := $(foreach dir, $(KERNEL_SEARCH_PATH), $(test_dir))
+ifneq (,$(INSTALL_MOD_PATH))
+  DEPMOD_PATH=--basedir=$(INSTALL_MOD_PATH)
+endif
 
 # Use first one
 ifeq (,$(KSRC))
@@ -60,5 +63,8 @@ clean:
 install: build
 	$(MAKE) $(COMMON_ARGS) modules_install
 
-
-
+uninstall:
+	rm -f $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/extra/nfp.ko
+	rm -f $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/extra/nfp_net.ko
+	rm -f $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/extra/nfp_netvf.ko
+	depmod $(DEPMOD_PATH) $(KVER)
