@@ -1,6 +1,6 @@
 ######################################################
 # Work out driver version if not build from repository
-ifeq (,$(wildcard .git))
+ifeq (.revision,$(wildcard .git)$(wildcard .revision))
   NFPVER := $(shell cat .revision)
 else
   NFPVER := 
