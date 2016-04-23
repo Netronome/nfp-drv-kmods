@@ -42,7 +42,7 @@ EXTRA_CFLAGS += $(CFLAGS_EXTRA)
 
 COMMON_ARGS := nfp_src_ver:=$(NFPVER) ccflags-y:="$(CFLAGS_EXTRA)" -C $(KSRC) M=`pwd`/src
 
-build: clean
+build:
 	$(MAKE) $(COMMON_ARGS) modules
 
 noisy: clean
