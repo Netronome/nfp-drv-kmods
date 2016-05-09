@@ -114,6 +114,12 @@
 #define NETIF_F_CSUM_MASK	NETIF_F_ALL_CSUM
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)
+#define NAPI_POLL_WEIGHT	64
+#define NETIF_F_GSO_GRE		0
+#define NETIF_F_GSO_UDP_TUNNEL	0
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 3, 0)
 typedef u32 netdev_features_t;
 
@@ -348,8 +354,11 @@ static inline bool compat_is_vxlan(struct sk_buff *skb, u8 l4_hdr)
 	    skb->inner_protocol_type != ENCAP_TYPE_ETHER ||
 #endif
 	    l4_hdr != IPPROTO_UDP ||
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
 	    skb_inner_mac_header(skb) - skb_transport_header(skb) !=
-	     sizeof(struct udphdr) + 8)
+	    sizeof(struct udphdr) + 8 ||
+#endif
+	    0)
 		return false;
 	return true;
 }
