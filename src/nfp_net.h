@@ -50,7 +50,7 @@
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0)
 #include <asm-generic/io-64-nonatomic-hi-lo.h>
 #else
-#include <linux/io-64-nonatomic-lo-hi.h>
+#include <linux/io-64-nonatomic-hi-lo.h>
 #endif
 
 #include "nfp_net_ctrl.h"
