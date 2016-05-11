@@ -533,4 +533,12 @@ struct net_device *compat_alloc_netdev(int sizeof_priv,
 	list_for_each_entry((_desc), &(_dev)->dev.msi_list, list)
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 7, 0)
+static inline void
+netif_trans_update(struct net_device *netdev)
+{
+	netdev->trans_start = jiffies;
+}
+#endif
+
 #endif /* __KERNEL__NFP_COMPAT_H__ */

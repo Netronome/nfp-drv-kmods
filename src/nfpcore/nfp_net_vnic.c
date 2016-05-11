@@ -258,7 +258,7 @@ static int nfp_net_vnic_tx(struct sk_buff *skb, struct net_device *netdev)
 	wmb();
 
 	dev_kfree_skb_any(skb);
-	netdev->trans_start = jiffies;
+	netif_trans_update(netdev);
 	vnic->stats.tx_packets++;
 	vnic->stats.tx_bytes += skb->len;
 
