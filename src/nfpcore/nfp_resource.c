@@ -187,10 +187,11 @@ int nfp_cpp_resource_init(struct nfp_cpp *cpp, struct nfp_cpp_mutex **mutexp)
 	entries = size / sizeof(struct nfp_resource_entry);
 
 	/* We have a lock, initialize entires after 0.*/
-	for (i = sizeof(struct nfp_resource_entry); i < size; i += 4)
+	for (i = sizeof(struct nfp_resource_entry); i < size; i += 4) {
 		err = nfp_cpp_writel(cpp, cpp_id, base + i, 0);
 		if (err < 0)
 			return err;
+	}
 
 	if (mutexp) {
 		*mutexp = mutex;
