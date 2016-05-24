@@ -225,6 +225,7 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 		err = PTR_ERR(nn);
 		goto err_ctrl_unmap;
 	}
+	vf->nn = nn;
 
 	nn->fw_ver = fw_ver;
 	nn->ctrl_bar = ctrl_bar;
