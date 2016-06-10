@@ -132,6 +132,14 @@
 #define NFP_NBI_MAC_ETHCMDCONFIG_ETHRXENA_FALSE 0x40
 #define NFP_MAC_ILK_LKRXALIGNSTATUS_FALSE 0x80
 #define NFP_MAC_ILK_LKRXSTATUSMESSAGE_FALSE 0x100
+#define NFP_NBI_MAC_MACEQINH 0x00000278
+#define NFP_NBI_MAC_MACEQINHDONE 0x0000027c
+#define NFP_NBI_MAC_HYD0BLOCKRESET 0x00000004
+#define NFP_NBI_MAC_HYD1BLOCKRESET 0x00000008
+#define NFP_NBI_MAC_MACHYDBLKRESET_MAC_HYD_RX_SERDES_RST(_x)	\
+		(((_x) & 0xfff) << 20)
+#define NFP_NBI_MAC_MACHYDBLKRESET_MAC_HYD_TX_SERDES_RST(_x)	\
+		(((_x) & 0xfff) << 4)
 
 /**
  * nfp_nbi_mac_eth_ifdown() - Disable an Ethernet port.
@@ -139,8 +147,9 @@
  * @core:	MAC ethernet core: [0-1]
  * @port:	MAC ethernet port: [0-11]
  *
- * This function disables Rx & Tx, initiates a PCS reset and
- * deactivates the specified port.
+ * This function disables packet enqueue to the port, waits for
+ * packets in progress to complete, disables Rx & Tx, and deactivates
+ * the serdes lanes for the specified port.
  *
  * Return: 0, or -ERRNO
  */
@@ -149,7 +158,9 @@ int nfp_nbi_mac_eth_ifdown(struct nfp_nbi_dev *nbi, int core, int port)
 	u64 r;
 	u32 d = 0;
 	u32 m = 0;
+	int ret;
 	int mode = 0;
+	int timeout = 100;
 
 	if (!nbi)
 		return -ENODEV;
@@ -160,6 +171,37 @@ int nfp_nbi_mac_eth_ifdown(struct nfp_nbi_dev *nbi, int core, int port)
 	if ((port < 0) || (port > 11))
 		return -EINVAL;
 
+	/* Disable port enqueue at packet boundary */
+	m = 0x1 << (port + core * 12);
+	ret = nfp_nbi_mac_regw(nbi, NFP_MAC, NFP_NBI_MAC_MACEQINH, m, m);
+	if (ret < 0)
+		return ret;
+	d = 0;
+	while ((d == 0) && (timeout-- > 0)) {
+		ret = nfp_nbi_mac_regr(nbi,
+				       NFP_MAC, NFP_NBI_MAC_MACEQINHDONE, &d);
+		if (ret < 0) {
+			nfp_nbi_mac_regw(nbi,
+					 NFP_MAC, NFP_NBI_MAC_MACEQINH, m, 0);
+			return ret;
+		}
+		d &= m;
+		usleep_range(100, 200);
+	}
+
+	/* Disable transmit & receive paths */
+	r = NFP_MAC_ETH_MACETHSEG_ETHCMDCONFIG(port);
+	d = NFP_MAC_ETH_MACETHSEG_ETHCMDCONFIG_ETHRXENA |
+		NFP_MAC_ETH_MACETHSEG_ETHCMDCONFIG_ETHTXENA;
+	ret = nfp_nbi_mac_regw(nbi, NFP_MAC_ETH(core), r, d, 0);
+	if (ret < 0)
+		return ret;
+
+	/* Reenable enqueue */
+	ret = nfp_nbi_mac_regw(nbi, NFP_MAC, NFP_NBI_MAC_MACEQINH, m, 0);
+	if (ret < 0)
+		return ret;
+
 	/* Disable the serdes lanes */
 	mode = nfp_nbi_mac_eth_read_mode(nbi, core, port);
 	if (mode < 0)
@@ -169,17 +211,29 @@ int nfp_nbi_mac_eth_ifdown(struct nfp_nbi_dev *nbi, int core, int port)
 		m = 0x3ff << (core * 12);
 		break;
 	case (NFP_NBI_MAC_ENET_40G):
-		m = (0xf << (port + core * 12));
+		m = 0xf << (port + core * 12);
 		break;
 	default:
-		m = (0x1 << (port + core * 12));
+		m = 0x1 << (port + core * 12);
 		break;
 	}
-	r = NFP_MAC_MACSERDESEN;
-	m = NFP_MAC_MACSERDESEN_SERDESENABLE(m);
-	d = 0;
+	d = NFP_NBI_MAC_MACHYDBLKRESET_MAC_HYD_RX_SERDES_RST(m) |
+		NFP_NBI_MAC_MACHYDBLKRESET_MAC_HYD_TX_SERDES_RST(m);
+	if (core)
+		r = NFP_NBI_MAC_HYD1BLOCKRESET;
+	else
+		r = NFP_NBI_MAC_HYD0BLOCKRESET;
 
-	return nfp_nbi_mac_regw(nbi, NFP_MAC, r, m, d);
+	ret = nfp_nbi_mac_regw(nbi, NFP_MAC, r, d, d);
+	if (ret < 0)
+		return ret;
+
+	m = NFP_MAC_MACSERDESEN_SERDESENABLE(m);
+	ret = nfp_nbi_mac_regw(nbi, NFP_MAC, NFP_MAC_MACSERDESEN, m, 0);
+	if (ret < 0)
+		return ret;
+
+	return nfp_nbi_mac_regw(nbi, NFP_MAC, r, d, 0);
 }
 
 /**
@@ -212,13 +266,9 @@ int nfp_nbi_mac_eth_ifup(struct nfp_nbi_dev *nbi, int core, int port)
 	if ((port < 0) || (port > 11))
 		return -EINVAL;
 
-	/* Activate the segment */
-	r = NFP_MAC_ETH_MACETHGLOBAL_ETHACTCTLSEG;
-	d = NFP_MAC_ETH_MACETHGLOBAL_ETHACTCTLSEG_ETHACTIVATESEGMENT(port);
-	m = d;
-	ret = nfp_nbi_mac_regw(nbi, NFP_MAC_ETH(core), r, m, d);
-	if (ret < 0)
-		return ret;
+	/* Ensure enqueue is enabled */
+	m = 0x1 << (port + core * 12);
+	nfp_nbi_mac_regw(nbi, NFP_MAC, NFP_NBI_MAC_MACEQINH, m, 0);
 
 	/* Enable transmit & receive paths */
 	r = NFP_MAC_ETH_MACETHSEG_ETHCMDCONFIG(port);
@@ -238,10 +288,10 @@ int nfp_nbi_mac_eth_ifup(struct nfp_nbi_dev *nbi, int core, int port)
 		m = 0x3ff << (core * 12);
 		break;
 	case (NFP_NBI_MAC_ENET_40G):
-		m = (0xf << (port + core * 12));
+		m = 0xf << (port + core * 12);
 		break;
 	default:
-		m = (0x1 << (port + core * 12));
+		m = 0x1 << (port + core * 12);
 		break;
 	}
 	r = NFP_MAC_MACSERDESEN;
