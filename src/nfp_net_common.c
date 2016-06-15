@@ -378,7 +378,7 @@ nfp_net_irqs_assign(struct nfp_net *nn, struct msix_entry *irq_entries,
 	nn->num_irqs = n;
 	nn->num_r_vecs = nn->num_irqs - NFP_NET_NON_Q_VECTORS;
 
-	memcpy(&nn->irq_entries, irq_entries, sizeof(*irq_entries) * n);
+	memcpy(nn->irq_entries, irq_entries, sizeof(*irq_entries) * n);
 
 	/* We assume nn->num_tx_rings == nn->num_rx_rings */
 	if (nn->num_tx_rings > nn->num_r_vecs) {
