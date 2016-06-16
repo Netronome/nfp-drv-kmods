@@ -77,6 +77,8 @@
 
 #define COMPAT__HAVE_VXLAN_OFFLOAD \
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0))
+#define COMPAT__HAVE_UDP_OFFLOAD \
+	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0))
 #define COMPAT__HAVE_NDO_FEATURES_CHECK \
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0))
 
@@ -425,5 +427,23 @@ compat_ndo_features_check(struct nfp_net *nn, struct sk_buff *skb)
 #endif /* !COMPAT__HAVE_NDO_FEATURES_CHECK */
 	return 0;
 }
+
+#if COMPAT__HAVE_VXLAN_OFFLOAD && !COMPAT__HAVE_UDP_OFFLOAD
+#include <net/vxlan.h>
+
+enum udp_parsable_tunnel_type {
+	UDP_TUNNEL_TYPE_VXLAN,
+};
+
+struct udp_tunnel_info {
+	unsigned short type;
+	__be16 port;
+};
+
+static inline void udp_tunnel_get_rx_info(struct net_device *netdev)
+{
+	vxlan_get_rx_port(netdev);
+}
+#endif
 
 #endif /* _NFP_NET_COMPAT_H_ */
