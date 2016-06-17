@@ -1,10 +1,14 @@
 ######################################################
 # Work out driver version if not build from repository
 ifeq (.revision,$(wildcard .git)$(wildcard .revision))
-  NFPVER := $(shell cat .revision)
-else
-  NFPVER := 
+  ifneq (,$(shell cat .revision))
+    NFPVER := $(shell cat .revision)
+  endif
 endif
+ifeq (.git,$(wildcard .git))
+  NFPVER :=
+endif
+NFPVER ?= no-src-ver
 
 #####################################
 # Work out where the kernel source is
