@@ -42,18 +42,23 @@
 #include <linux/ethtool.h>
 #include <linux/module.h>
 
+#include "nfp.h"
 #include "nfp_nbi.h"
 
 #include "nfp6000/nfp_xpb.h"
 
-struct nfp_nbi_dev {
-	struct nfp_device *nfp;
-	struct nfp_cpp *cpp;
+struct nfp_nbi_priv {
 	struct {
 		u32 cpp_id;
 		u64 cpp_addr;
 	} stats;
+};
+
+struct nfp_nbi_dev {
+	struct nfp_device *nfp;
+	struct nfp_cpp *cpp;
 	int nbi;
+	struct nfp_nbi_priv *priv;
 };
 
 /*
@@ -133,6 +138,36 @@ struct nfp_nbi_mac_allstats {
 };
 
 /**
+ * Construct device global data, common for both NBI interfaces,
+ * that are persistient throughout the lifetime of the device
+ * handle.
+ */
+static void *nfp_nbi_priv_con(struct nfp_device *dev)
+{
+	struct nfp_nbi_priv *priv;
+	struct nfp_resource *res;
+	u64 cpp_addr;
+	u32 cpp_id;
+
+	res = nfp_resource_acquire(dev, NFP_RESOURCE_MAC_STATISTICS);
+	if (IS_ERR(res))
+		return NULL;
+
+	cpp_id = nfp_resource_cpp_id(res);
+	cpp_addr = nfp_resource_address(res);
+	nfp_resource_release(res);
+
+	priv = nfp_device_private_alloc(dev, sizeof(*priv), NULL);
+	if (!priv)
+		return NULL;
+
+	priv->stats.cpp_id = cpp_id;
+	priv->stats.cpp_addr = cpp_addr;
+
+	return priv;
+}
+
+/**
  * nfp_nbi_open() - Acquire NFP NBI device handle
  * @nfp:	NFP Device handle
  * @nbi_id:	NFP NBI index to open (0..1)
@@ -141,10 +176,14 @@ struct nfp_nbi_mac_allstats {
  */
 struct nfp_nbi_dev *nfp_nbi_open(struct nfp_device *nfp, int nbi_id)
 {
+	struct nfp_nbi_priv *priv;
 	struct nfp_nbi_dev *nbi;
-	struct nfp_resource *res;
 
 	if (nbi_id < 0 || nbi_id >= 2)
+		return NULL;
+
+	priv = nfp_device_private(nfp, nfp_nbi_priv_con);
+	if (!priv)
 		return NULL;
 
 	nbi = kzalloc(sizeof(*nbi), GFP_KERNEL);
@@ -154,16 +193,7 @@ struct nfp_nbi_dev *nfp_nbi_open(struct nfp_device *nfp, int nbi_id)
 	nbi->nfp = nfp;
 	nbi->cpp = nfp_device_cpp(nfp);
 	nbi->nbi = nbi_id;
-
-	res = nfp_resource_acquire(nfp, NFP_RESOURCE_MAC_STATISTICS);
-	if (IS_ERR(res)) {
-		kfree(nbi);
-		nbi = NULL;
-	} else {
-		nbi->stats.cpp_id = nfp_resource_cpp_id(res);
-		nbi->stats.cpp_addr = nfp_resource_address(res);
-		nfp_resource_release(res);
-	}
+	nbi->priv = priv;
 
 	return nbi;
 }
@@ -199,17 +229,19 @@ int nfp_nbi_index(struct nfp_nbi_dev *nbi)
 int nfp_nbi_mac_stats_read_port(struct nfp_nbi_dev *nbi, int port,
 				struct nfp_nbi_mac_portstats *stats)
 {
+	struct nfp_nbi_priv *priv = nbi->priv;
 	u64 magic = 0;
 
 	if (port < 0 || port >= 24)
 		return -EINVAL;
 
 	/* Check magic */
-	nfp_cpp_readq(nbi->cpp, nbi->stats.cpp_id, nbi->stats.cpp_addr, &magic);
+	nfp_cpp_readq(nbi->cpp, priv->stats.cpp_id, priv->stats.cpp_addr,
+		      &magic);
 	if (magic != NFP_NBI_MAC_STATS_MAGIC)
 		return -EINVAL;
 
-	return nfp_cpp_read(nbi->cpp, nbi->stats.cpp_id, nbi->stats.cpp_addr +
+	return nfp_cpp_read(nbi->cpp, priv->stats.cpp_id, priv->stats.cpp_addr +
 			    offsetof(struct nfp_nbi_mac_allstats,
 				     mac[nbi->nbi].portstats[port]),
 			    stats, sizeof(*stats));
@@ -226,17 +258,19 @@ int nfp_nbi_mac_stats_read_port(struct nfp_nbi_dev *nbi, int port,
 int nfp_nbi_mac_stats_read_chan(struct nfp_nbi_dev *nbi, int chan,
 				struct nfp_nbi_mac_chanstats *stats)
 {
+	struct nfp_nbi_priv *priv = nbi->priv;
 	u64 magic = 0;
 
 	if (chan < 0 || chan >= 128)
 		return -EINVAL;
 
 	/* Check magic */
-	nfp_cpp_readq(nbi->cpp, nbi->stats.cpp_id, nbi->stats.cpp_addr, &magic);
+	nfp_cpp_readq(nbi->cpp, priv->stats.cpp_id, priv->stats.cpp_addr,
+		      &magic);
 	if (magic != NFP_NBI_MAC_STATS_MAGIC)
 		return -EINVAL;
 
-	return nfp_cpp_read(nbi->cpp, nbi->stats.cpp_id, nbi->stats.cpp_addr +
+	return nfp_cpp_read(nbi->cpp, priv->stats.cpp_id, priv->stats.cpp_addr +
 			    offsetof(struct nfp_nbi_mac_allstats,
 				     mac[nbi->nbi].chanstats[chan]),
 			    stats, sizeof(*stats));
@@ -253,17 +287,19 @@ int nfp_nbi_mac_stats_read_chan(struct nfp_nbi_dev *nbi, int chan,
 int nfp_nbi_mac_stats_read_ilks(struct nfp_nbi_dev *nbi, int ilk,
 				struct nfp_nbi_mac_ilkstats *stats)
 {
+	struct nfp_nbi_priv *priv = nbi->priv;
 	u64 magic = 0;
 
 	if (ilk < 0 || ilk >= 2)
 		return -EINVAL;
 
 	/* Check magic */
-	nfp_cpp_readq(nbi->cpp, nbi->stats.cpp_id, nbi->stats.cpp_addr, &magic);
+	nfp_cpp_readq(nbi->cpp, priv->stats.cpp_id, priv->stats.cpp_addr,
+		      &magic);
 	if (magic != NFP_NBI_MAC_STATS_MAGIC)
 		return -EINVAL;
 
-	return nfp_cpp_read(nbi->cpp, nbi->stats.cpp_id, nbi->stats.cpp_addr +
+	return nfp_cpp_read(nbi->cpp, priv->stats.cpp_id, priv->stats.cpp_addr +
 			    offsetof(struct nfp_nbi_mac_allstats,
 				     mac[nbi->nbi].ilkstats[ilk]),
 			    stats, sizeof(*stats));
