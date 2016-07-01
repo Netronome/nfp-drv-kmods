@@ -239,6 +239,9 @@ int nfp_nbi_mac_stats_read_ilks(struct nfp_nbi_dev *nbi, int core,
 			      (l == NFP_NBI_MAC_ENET_100M) || \
 			      (l == NFP_NBI_MAC_ENET_1G))
 
+int nfp_nbi_mac_acquire(struct nfp_nbi_dev *nbi);
+int nfp_nbi_mac_release(struct nfp_nbi_dev *nbi);
+
 int nfp_nbi_mac_eth_ifdown(struct nfp_nbi_dev *nbi, int core, int port);
 int nfp_nbi_mac_eth_ifup(struct nfp_nbi_dev *nbi, int core, int port);
 int nfp_nbi_mac_eth_read_linkstate(struct nfp_nbi_dev *nbi,

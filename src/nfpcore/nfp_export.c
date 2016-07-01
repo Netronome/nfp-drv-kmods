@@ -121,6 +121,8 @@ EXPORT_SYMBOL(nfp_device_private_alloc);
 EXPORT_SYMBOL(nfp_nbi_open);
 EXPORT_SYMBOL(nfp_nbi_close);
 EXPORT_SYMBOL(nfp_nbi_index);
+EXPORT_SYMBOL(nfp_nbi_mac_acquire);
+EXPORT_SYMBOL(nfp_nbi_mac_release);
 
 /* Implemented in nfp_nbi_mac_eth.c */
 

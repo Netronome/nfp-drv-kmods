@@ -141,19 +141,7 @@
 #define NFP_NBI_MAC_MACHYDBLKRESET_MAC_HYD_TX_SERDES_RST(_x)	\
 		(((_x) & 0xfff) << 4)
 
-/**
- * nfp_nbi_mac_eth_ifdown() - Disable an Ethernet port.
- * @nbi:	NBI device handle
- * @core:	MAC ethernet core: [0-1]
- * @port:	MAC ethernet port: [0-11]
- *
- * This function disables packet enqueue to the port, waits for
- * packets in progress to complete, disables Rx & Tx, and deactivates
- * the serdes lanes for the specified port.
- *
- * Return: 0, or -ERRNO
- */
-int nfp_nbi_mac_eth_ifdown(struct nfp_nbi_dev *nbi, int core, int port)
+static int __nfp_nbi_mac_eth_ifdown(struct nfp_nbi_dev *nbi, int core, int port)
 {
 	u64 r;
 	u32 d = 0;
@@ -237,19 +225,35 @@ int nfp_nbi_mac_eth_ifdown(struct nfp_nbi_dev *nbi, int core, int port)
 }
 
 /**
- * nfp_nbi_mac_eth_ifup() - Enable an Ethernet port.
+ * nfp_nbi_mac_eth_ifdown() - Disable an Ethernet port.
  * @nbi:	NBI device handle
  * @core:	MAC ethernet core: [0-1]
  * @port:	MAC ethernet port: [0-11]
  *
- * This function enables Rx & Tx, and initiates a PCS reset and
- * activates the specified port. It assumes that the port speed and
- * all other configuration parameters for the port have been
- * initialized elsewhere.
+ * This function disables packet enqueue to the port, waits for
+ * packets in progress to complete, disables Rx & Tx, and deactivates
+ * the serdes lanes for the specified port.
  *
  * Return: 0, or -ERRNO
  */
-int nfp_nbi_mac_eth_ifup(struct nfp_nbi_dev *nbi, int core, int port)
+int nfp_nbi_mac_eth_ifdown(struct nfp_nbi_dev *nbi, int core, int port)
+{
+	int rc, err;
+
+	err = nfp_nbi_mac_acquire(nbi);
+	if (err < 0)
+		return err;
+
+	rc = __nfp_nbi_mac_eth_ifdown(nbi, core, port);
+
+	err = nfp_nbi_mac_release(nbi);
+	if (err < 0)
+		return err;
+
+	return rc;
+}
+
+static int __nfp_nbi_mac_eth_ifup(struct nfp_nbi_dev *nbi, int core, int port)
 {
 	int ret;
 	u64 r;
@@ -299,6 +303,36 @@ int nfp_nbi_mac_eth_ifup(struct nfp_nbi_dev *nbi, int core, int port)
 	d = m;
 
 	return nfp_nbi_mac_regw(nbi, NFP_MAC, r, m, d);
+}
+
+/**
+ * nfp_nbi_mac_eth_ifup() - Enable an Ethernet port.
+ * @nbi:	NBI device handle
+ * @core:	MAC ethernet core: [0-1]
+ * @port:	MAC ethernet port: [0-11]
+ *
+ * This function enables Rx & Tx, and initiates a PCS reset and
+ * activates the specified port. It assumes that the port speed and
+ * all other configuration parameters for the port have been
+ * initialized elsewhere.
+ *
+ * Return: 0, or -ERRNO
+ */
+int nfp_nbi_mac_eth_ifup(struct nfp_nbi_dev *nbi, int core, int port)
+{
+	int rc, err;
+
+	err = nfp_nbi_mac_acquire(nbi);
+	if (err < 0)
+		return err;
+
+	rc = __nfp_nbi_mac_eth_ifup(nbi, core, port);
+
+	err = nfp_nbi_mac_release(nbi);
+	if (err < 0)
+		return err;
+
+	return rc;
 }
 
 /**
@@ -526,17 +560,8 @@ int nfp_nbi_mac_eth_read_mode(struct nfp_nbi_dev *nbi, int core, int port)
 	return -EINVAL;
 }
 
-/**
- * nfp_nbi_mac_eth_write_mac_addr() - Write the MAC address for a port
- * @nbi:	NBI device
- * @core:	MAC ethernet core: [0-1]
- * @port:	MAC ethernet port: [0-11]
- * @hwaddr:	MAC address (48-bits)
- *
- * Return: 0, or -ERRNO
- */
-int nfp_nbi_mac_eth_write_mac_addr(struct nfp_nbi_dev *nbi, int core,
-				   int port, u64 hwaddr)
+static int nfp_nbi_mac_eth_write_mac_addr_(struct nfp_nbi_dev *nbi, int core,
+					   int port, u64 hwaddr)
 {
 	int ret;
 	u64 r;
@@ -568,6 +593,33 @@ int nfp_nbi_mac_eth_write_mac_addr(struct nfp_nbi_dev *nbi, int core,
 	d = NFP_MAC_ETH_MACETHSEG_ETHMACADDR1_ETHMACADDR1(hwaddr >> 32);
 
 	return nfp_nbi_mac_regw(nbi, NFP_MAC_ETH(core), r, m, d);
+}
+
+/**
+ * nfp_nbi_mac_eth_write_mac_addr() - Write the MAC address for a port
+ * @nbi:	NBI device
+ * @core:	MAC ethernet core: [0-1]
+ * @port:	MAC ethernet port: [0-11]
+ * @hwaddr:	MAC address (48-bits)
+ *
+ * Return: 0, or -ERRNO
+ */
+int nfp_nbi_mac_eth_write_mac_addr(struct nfp_nbi_dev *nbi, int core,
+				   int port, u64 hwaddr)
+{
+	int rc, err;
+
+	err = nfp_nbi_mac_acquire(nbi);
+	if (err < 0)
+		return err;
+
+	rc = nfp_nbi_mac_eth_write_mac_addr_(nbi, core, port, hwaddr);
+
+	err = nfp_nbi_mac_release(nbi);
+	if (err < 0)
+		return err;
+
+	return rc;
 }
 
 /**
