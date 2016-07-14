@@ -150,7 +150,7 @@ static int nfp_ca_null(void *priv, enum nfp_ca_action action,
 	return 0;
 }
 
-#define CA_CPP_AREA_SIZE   ((u64)(64 * 1024))
+#define CA_CPP_AREA_SIZE   (64ULL * 1024)
 
 struct ca_cpp {
 	struct nfp_cpp *cpp;
@@ -212,7 +212,7 @@ static int ca6000_cpp_write_ustore(struct ca_cpp *ca, u32 id,
 	u32 csr_base = (iid << 24) | (1 << 16) | ((menum + 4) << 10);
 
 	/* Clear top control bits */
-	uw &= ~((u64)7 << 61);
+	uw &= ~(7ULL << 61);
 
 	if (enable_cs) {
 		/* Set UstorAddr */
@@ -440,8 +440,8 @@ static int nfp_ca_parse(const void *buff, size_t bytes,
 	size_t loc, usize;
 	u8 ca;
 	int err = -EINVAL;
-	u32 mask32 = ~(u32)0;
-	u64 mask64 = ~(u64)0;
+	u32 mask32 = ~0U;
+	u64 mask64 = ~0ULL;
 
 	/* File too small? */
 	if (bytes < (NFP_CA_SZ(NFP_CA_START) + NFP_CA_SZ(NFP_CA_END)))

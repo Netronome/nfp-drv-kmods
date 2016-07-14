@@ -541,12 +541,12 @@ static u64 _nic_mask64(int msb, int lsb, int at0)
 	int w = msb - lsb + 1;
 
 	if (w == 64)
-		return ~(u64)0;
+		return ~0ULL;
 
 	if ((lsb + w) > 64)
 		return 0;
 
-	v = ((u64)(1) << w) - 1;
+	v = (1ULL << w) - 1;
 
 	if (at0)
 		return v;
@@ -732,7 +732,7 @@ static inline int _nfp6000_encode_basic(u64 *addr, int dest_island, int cpp_tgt,
 
 		if (dest_island == isld1) {
 			/* Only need to set the Index bit */
-			*addr |= ((u64)(1) << idx_lsb);
+			*addr |= (1ULL << idx_lsb);
 			return 0;
 		}
 
@@ -866,7 +866,7 @@ static inline int _nfp6000_encode_mu(u64 *addr, int dest_island, int mode,
 		}
 
 		if (dest_island == isld1) {
-			*addr |= ((u64)(1) << idx_lsb);
+			*addr |= (1ULL << idx_lsb);
 			return 0;
 		}
 

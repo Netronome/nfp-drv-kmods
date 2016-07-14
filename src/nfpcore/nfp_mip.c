@@ -300,10 +300,10 @@ static int __nfp_mip_location(struct nfp_device *dev,
 			(NFP_CPP_ID_TARGET_of(mip_cppid) ==
 						NFP_CPP_TARGET_MU)) {
 			if ((mip_off >> 63) & 1) {
-				mip_off &= ~((u64)1) << 63;
-				mip_off &= ~((u64)0x3) << mu_lsb;
+				mip_off &= ~1ULL << 63;
+				mip_off &= ~3ULL << mu_lsb;
 				/* Direct Access */
-				mip_off |= ((u64)2) << mu_lsb;
+				mip_off |= 2ULL << mu_lsb;
 			}
 		}
 		nfp_nffw_info_release(dev);
