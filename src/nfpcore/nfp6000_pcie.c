@@ -72,6 +72,7 @@
 #define CONFIG_NFP_PCI32
 #endif
 
+#define NFP_PCIE_BAR	0x30000
 #define NFP_PCIE_BAR_EXPLICIT_BAR0(_x, _y) \
 	(0x00000080 + (0x40 * ((_x) & 0x3)) + (0x10 * ((_y) & 0x3)))
 #define   NFP_PCIE_BAR_EXPLICIT_BAR0_SignalType(_x)     (((_x) & 0x3) << 30)
@@ -137,7 +138,7 @@
 	(0x400 + ((bar) * 8 + (slot)) * 4)
 
 #define NFP_PCIE_CPP_BAR_PCIETOCPPEXPANSIONBAR(bar, slot) \
-	(0x30000 + ((bar) * 8 + (slot)) * 4)
+	(((bar) * 8 + (slot)) * 4)
 
 /* The number of explicit BARs to reserve.
  * Minimum is 0, maximum is 4.
@@ -198,7 +199,8 @@ struct nfp6000_pcie {
 
 	/* Reserved BAR access */
 	struct {
-		void __iomem *general;
+		void __iomem *csr;
+		void __iomem *em;
 		void __iomem *expl[4];
 	} iomem;
 
@@ -382,11 +384,11 @@ static int nfp6000_bar_write(struct nfp6000_pcie *nfp, struct nfp_bar *bar,
 	base = bar->index >> 3;
 	slot = bar->index & 7;
 
-	if (nfp->iomem.general) {
+	if (nfp->iomem.csr) {
 		xbar = NFP_PCIE_CPP_BAR_PCIETOCPPEXPANSIONBAR(base, slot);
-		writel(newcfg, nfp->iomem.general + xbar);
+		writel(newcfg, nfp->iomem.csr + xbar);
 		/* Readback to ensure BAR is flushed */
-		(void)readl(nfp->iomem.general + xbar);
+		(void)readl(nfp->iomem.csr + xbar);
 	} else {
 		xbar = NFP_PCIE_CFG_BAR_PCIETOCPPEXPANSIONBAR(base, slot);
 		pci_write_config_dword(nfp->pdev, xbar, newcfg);
@@ -880,7 +882,9 @@ static int enable_bars(struct nfp6000_pcie *nfp)
 
 		nfp->expl.data = bar->iomem + NFP_PCIE_SRAM + 0x1000;
 	}
-	nfp->iomem.general = bar->iomem;
+
+	nfp->iomem.csr = bar->iomem + NFP_PCIE_BAR;
+	nfp->iomem.em = bar->iomem + NFP_PCIE_EM;
 
 	/* Configure, and lock, BAR0.1 for PCIe XPB (MSI-X PBA) */
 	bar = &nfp->bar[1];
@@ -1423,24 +1427,24 @@ static int nfp6000_explicit_do(struct nfp_cpp_explicit *expl,
 		}
 	}
 
-	if (nfp->iomem.general) {
-		writel(csr[0], nfp->iomem.general + 0x30000 +
+	if (nfp->iomem.csr) {
+		writel(csr[0], nfp->iomem.csr +
 		       NFP_PCIE_BAR_EXPLICIT_BAR0(priv->bar.group,
 						  priv->bar.area));
-		writel(csr[1], nfp->iomem.general + 0x30000 +
+		writel(csr[1], nfp->iomem.csr +
 		       NFP_PCIE_BAR_EXPLICIT_BAR1(priv->bar.group,
 						  priv->bar.area));
-		writel(csr[2], nfp->iomem.general + 0x30000 +
+		writel(csr[2], nfp->iomem.csr +
 		       NFP_PCIE_BAR_EXPLICIT_BAR2(priv->bar.group,
 						  priv->bar.area));
 		/* Readback to ensure BAR is flushed */
-		(void)readl(nfp->iomem.general + 0x30000 +
+		(void)readl(nfp->iomem.csr +
 			    NFP_PCIE_BAR_EXPLICIT_BAR0(priv->bar.group,
 						       priv->bar.area));
-		(void)readl(nfp->iomem.general + 0x30000 +
+		(void)readl(nfp->iomem.csr +
 			    NFP_PCIE_BAR_EXPLICIT_BAR1(priv->bar.group,
 						       priv->bar.area));
-		(void)readl(nfp->iomem.general + 0x30000 +
+		(void)readl(nfp->iomem.csr +
 			    NFP_PCIE_BAR_EXPLICIT_BAR2(priv->bar.group,
 						       priv->bar.area));
 	} else {
@@ -1652,9 +1656,9 @@ struct nfp_cpp *nfp_cpp_from_nfp6000_pcie(struct pci_dev *pdev, int event_irq)
 	if (err)
 		goto err_enable_bars;
 
-	if (nfp->iomem.general && event_irq >= 0) {
+	if (nfp->iomem.em && event_irq >= 0) {
 		nfp->event = nfp_em_manager_create(
-				nfp->iomem.general + NFP_PCIE_EM, event_irq);
+				nfp->iomem.em, event_irq);
 		if (IS_ERR_OR_NULL(nfp->event)) {
 			err = nfp->event ? PTR_ERR(nfp->event) : -ENOMEM;
 			goto err_em_init;
