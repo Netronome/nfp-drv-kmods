@@ -113,11 +113,15 @@ struct nfp_pci {
 static const char nfp_driver_name[] = "nfp";
 
 static const struct pci_device_id nfp_pci_device_ids[] = {
-	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_NFP4000,
+	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_NFP6010,
 	  PCI_VENDOR_ID_NETRONOME, PCI_ANY_ID,
 	  PCI_ANY_ID, 0,
 	},
 	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_NFP6000,
+	  PCI_VENDOR_ID_NETRONOME, PCI_ANY_ID,
+	  PCI_ANY_ID, 0,
+	},
+	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_NFP4000,
 	  PCI_VENDOR_ID_NETRONOME, PCI_ANY_ID,
 	  PCI_ANY_ID, 0,
 	},
@@ -481,6 +485,7 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 		break;
 	case PCI_DEVICE_NFP4000:
 	case PCI_DEVICE_NFP6000:
+	case PCI_DEVICE_NFP6010:
 		np->cpp = nfp_cpp_from_nfp6000_pcie(pdev, irq);
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
 		if (!IS_ERR_OR_NULL(np->cpp)) {
@@ -540,7 +545,8 @@ static void nfp_pci_remove(struct pci_dev *pdev)
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0))
 #ifdef CONFIG_PCI_IOV
-	if (pdev->device == PCI_DEVICE_NFP6000 ||
+	if (pdev->device == PCI_DEVICE_NFP6010 ||
+	    pdev->device == PCI_DEVICE_NFP6000 ||
 	    pdev->device == PCI_DEVICE_NFP4000)
 		nfp_sriov_attr_remove(&pdev->dev);
 #endif

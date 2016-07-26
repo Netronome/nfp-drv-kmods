@@ -72,7 +72,7 @@
 #define CONFIG_NFP_PCI32
 #endif
 
-#define NFP_PCIE_BAR	0x30000
+#define NFP_PCIE_BAR(_pf)	(0x30000 + (_pf & 7) * 0xc0)
 #define NFP_PCIE_BAR_EXPLICIT_BAR0(_x, _y) \
 	(0x00000080 + (0x40 * ((_x) & 0x3)) + (0x10 * ((_y) & 0x3)))
 #define   NFP_PCIE_BAR_EXPLICIT_BAR0_SignalType(_x)     (((_x) & 0x3) << 30)
@@ -141,7 +141,8 @@
 	(((bar) * 8 + (slot)) * 4)
 
 /* The number of explicit BARs to reserve.
- * Minimum is 0, maximum is 4.
+ * Minimum is 0, maximum is 4 on the NFP6000.
+ * The NFP6010 can have only one per PF.
  */
 static int nfp6000_explicit_bars = 2;
 module_param(nfp6000_explicit_bars, int, 0444);
@@ -803,6 +804,7 @@ static inline int bar_cmp(const void *aptr, const void *bptr)
  */
 static int enable_bars(struct nfp6000_pcie *nfp)
 {
+	int expl_groups;
 	const u32 barcfg_msix_general =
 		NFP_PCIE_BAR_PCIE2CPP_MapType(
 		NFP_PCIE_BAR_PCIE2CPP_MapType_GENERAL) |
@@ -883,7 +885,16 @@ static int enable_bars(struct nfp6000_pcie *nfp)
 		nfp->expl.data = bar->iomem + NFP_PCIE_SRAM + 0x1000;
 	}
 
-	nfp->iomem.csr = bar->iomem + NFP_PCIE_BAR;
+	if (nfp->pdev->device == PCI_DEVICE_NFP6000 ||
+	    nfp->pdev->device == PCI_DEVICE_NFP4000) {
+		nfp->iomem.csr = bar->iomem + NFP_PCIE_BAR(0);
+		expl_groups = 4;
+	} else {
+		int pf = nfp->pdev->devfn & 7;
+
+		nfp->iomem.csr = bar->iomem + NFP_PCIE_BAR(pf);
+		expl_groups = 1;
+	}
 	nfp->iomem.em = bar->iomem + NFP_PCIE_EM;
 
 	/* Configure, and lock, BAR0.1 for PCIe XPB (MSI-X PBA) */
@@ -898,7 +909,7 @@ static int enable_bars(struct nfp6000_pcie *nfp)
 	for (i = 0; i < 4; i++) {
 		int j;
 
-		if (i >= NFP_PCIE_EXPLICIT_BARS) {
+		if (i >= NFP_PCIE_EXPLICIT_BARS || i >= expl_groups) {
 			nfp->expl.group[i].bitsize = 0;
 			continue;
 		}
