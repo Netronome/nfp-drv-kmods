@@ -44,6 +44,8 @@
 
 #include "nfp6000/nfp6000.h"
 
+#include "kcompat.h"
+
 struct nfp_spi {
 	struct nfp_cpp *cpp;
 	struct nfp_cpp_area *csr;

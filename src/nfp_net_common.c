@@ -49,7 +49,6 @@
 #define KBUILD_MODNAME "nfp_net_common"
 #endif
 
-#include <linux/version.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/init.h>

@@ -48,7 +48,6 @@
 
 #include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/version.h>
 #include <linux/kref.h>
 #include <linux/io.h>
 #include <linux/delay.h>

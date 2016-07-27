@@ -41,7 +41,6 @@
  * PCIe interface to the NFP's ARM core.
  */
 
-#include <linux/version.h>
 #include <linux/module.h>
 #include <linux/netdevice.h>
 #include <linux/etherdevice.h>
