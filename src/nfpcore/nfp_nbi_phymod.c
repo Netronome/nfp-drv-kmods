@@ -112,6 +112,8 @@ struct nfp_phymod_priv {
 	struct nfp_device *nfp;
 	int selected;
 	int phymods;
+	struct nfp_resource *res;
+	int res_depth;
 	struct nfp_phymod {
 		struct nfp_phymod_priv *priv;
 		int index;
@@ -831,15 +833,12 @@ static void *_phymod_private(struct nfp_device *nfp)
 	return priv;
 }
 
-static int _phymod_select(struct nfp_phymod *phy)
+static int phymod_select(struct nfp_phymod *phy)
 {
 	struct nfp_phymod_priv *priv;
 	int i, err = 0;
 
 	priv = phy->priv;
-
-	if (priv->selected == phy->index)
-		return 0;
 
 	for (i = 0; i < priv->phymods; i++) {
 		if (phy->index == priv->phymod[i].index)
@@ -856,6 +855,38 @@ static int _phymod_select(struct nfp_phymod *phy)
 		priv->selected = phy->index;
 
 	return err;
+}
+
+static void phymod_unlock(struct nfp_phymod *phy)
+{
+	struct nfp_phymod_priv *priv;
+
+	priv = phy->priv;
+	if (priv->res_depth > 0)
+		priv->res_depth--;
+	if (priv->res_depth == 0)
+		nfp_resource_release(priv->res);
+}
+
+static int phymod_lock_and_select(struct nfp_phymod *phy)
+{
+	struct nfp_phymod_priv *priv;
+
+	priv = phy->priv;
+
+	if (priv->res_depth > 0) {
+		priv->res_depth++;
+		return 0;
+	}
+
+	priv->res = nfp_resource_acquire(priv->nfp, "phymod");
+	if (!priv->res)
+		return -1;
+
+	priv->res_depth = 1;
+	phymod_select(phy);
+
+	return 0;
 }
 
 /**
@@ -1055,6 +1086,21 @@ int nfp_phymod_read_status(struct nfp_phymod *phymod,
 	return 0;
 }
 
+#define UNSUPPORTED_OP(PHY, OP)	(!PHY->sff.op || !PHY->sff.op->OP)
+
+#define PHY_OP(PHY, OP, OP_ARGS...)				\
+	({							\
+		int rv;						\
+		if (UNSUPPORTED_OP(PHY, OP))	{		\
+			rv = -EOPNOTSUPP;			\
+		} else {					\
+			phymod_lock_and_select(PHY);		\
+			rv = PHY->sff.op->OP(PHY, ## OP_ARGS);	\
+			phymod_unlock(PHY);			\
+		}						\
+		rv;						\
+	})
+
 /**
  * nfp_phymod_read_status_los() - Report Loss Of Signal status
  * @phymod:	PHY module
@@ -1076,12 +1122,7 @@ int nfp_phymod_read_status(struct nfp_phymod *phymod,
 int nfp_phymod_read_status_los(struct nfp_phymod *phymod,
 			       u32 *txstatus, u32 *rxstatus)
 {
-	_phymod_select(phymod);
-
-	if (phymod->sff.op && phymod->sff.op->status_los)
-		return phymod->sff.op->status_los(phymod, txstatus, rxstatus);
-
-	return -EOPNOTSUPP;
+	return PHY_OP(phymod, status_los, txstatus, rxstatus);
 }
 
 /**
@@ -1104,12 +1145,7 @@ int nfp_phymod_read_status_los(struct nfp_phymod *phymod,
 int nfp_phymod_read_status_fault(struct nfp_phymod *phymod,
 				 u32 *txstatus, u32 *rxstatus)
 {
-	_phymod_select(phymod);
-
-	if (phymod->sff.op && phymod->sff.op->status_fault)
-		return phymod->sff.op->status_fault(phymod, txstatus, rxstatus);
-
-	return -EOPNOTSUPP;
+	return PHY_OP(phymod, status_fault, txstatus, rxstatus);
 }
 
 /**
@@ -1136,12 +1172,7 @@ int nfp_phymod_read_status_fault(struct nfp_phymod *phymod,
 int nfp_phymod_read_status_optpower(struct nfp_phymod *phymod,
 				    u32 *txstatus, u32 *rxstatus)
 {
-	_phymod_select(phymod);
-
-	if (phymod->sff.op && phymod->sff.op->status_power)
-		return phymod->sff.op->status_power(phymod, txstatus, rxstatus);
-
-	return -EOPNOTSUPP;
+	return PHY_OP(phymod, status_power, txstatus, rxstatus);
 }
 
 /**
@@ -1162,12 +1193,7 @@ int nfp_phymod_read_status_optpower(struct nfp_phymod *phymod,
 int nfp_phymod_read_status_optbias(struct nfp_phymod *phymod,
 				   u32 *txstatus, u32 *rxstatus)
 {
-	_phymod_select(phymod);
-
-	if (phymod->sff.op && phymod->sff.op->status_bias)
-		return phymod->sff.op->status_bias(phymod, txstatus, rxstatus);
-
-	return -EOPNOTSUPP;
+	return PHY_OP(phymod, status_bias, txstatus, rxstatus);
 }
 
 /**
@@ -1202,12 +1228,7 @@ int nfp_phymod_read_status_optbias(struct nfp_phymod *phymod,
 int nfp_phymod_read_status_voltage(struct nfp_phymod *phymod,
 				   u32 *txstatus, u32 *rxstatus)
 {
-	_phymod_select(phymod);
-
-	if (phymod->sff.op && phymod->sff.op->status_volt)
-		return phymod->sff.op->status_volt(phymod, txstatus, rxstatus);
-
-	return -EOPNOTSUPP;
+	return PHY_OP(phymod, status_volt, txstatus, rxstatus);
 }
 
 /**
@@ -1236,12 +1257,7 @@ int nfp_phymod_read_status_voltage(struct nfp_phymod *phymod,
 int nfp_phymod_read_status_temp(struct nfp_phymod *phymod,
 				u32 *txstatus, u32 *rxstatus)
 {
-	_phymod_select(phymod);
-
-	if (phymod->sff.op && phymod->sff.op->status_temp)
-		return phymod->sff.op->status_temp(phymod, txstatus, rxstatus);
-
-	return -EOPNOTSUPP;
+	return PHY_OP(phymod, status_temp, txstatus, rxstatus);
 }
 
 /**
@@ -1273,12 +1289,7 @@ int nfp_phymod_read_status_temp(struct nfp_phymod *phymod,
 int nfp_phymod_read_lanedisable(struct nfp_phymod *phymod,
 				u32 *txstatus, u32 *rxstatus)
 {
-	_phymod_select(phymod);
-
-	if (phymod->sff.op && phymod->sff.op->get_lane_dis)
-		return phymod->sff.op->get_lane_dis(phymod, txstatus, rxstatus);
-
-	return -EOPNOTSUPP;
+	return PHY_OP(phymod, get_lane_dis, txstatus, rxstatus);
 }
 
 /**
@@ -1309,12 +1320,7 @@ int nfp_phymod_read_lanedisable(struct nfp_phymod *phymod,
 int nfp_phymod_write_lanedisable(struct nfp_phymod *phymod,
 				 u32 txstate, u32 rxstate)
 {
-	_phymod_select(phymod);
-
-	if (phymod->sff.op && phymod->sff.op->set_lane_dis)
-		return phymod->sff.op->set_lane_dis(phymod, txstate, rxstate);
-
-	return -EOPNOTSUPP;
+	return PHY_OP(phymod, set_lane_dis, txstate, rxstate);
 }
 
 /**
@@ -1327,12 +1333,7 @@ int nfp_phymod_write_lanedisable(struct nfp_phymod *phymod,
  */
 int nfp_phymod_read8(struct nfp_phymod *phymod, u32 addr, u8 *data)
 {
-	_phymod_select(phymod);
-
-	if (phymod->sff.op && phymod->sff.op->read8)
-		return phymod->sff.op->read8(phymod, addr, data);
-
-	return -EOPNOTSUPP;
+	return PHY_OP(phymod, read8, addr, data);
 }
 
 /**
@@ -1345,12 +1346,7 @@ int nfp_phymod_read8(struct nfp_phymod *phymod, u32 addr, u8 *data)
  */
 int nfp_phymod_write8(struct nfp_phymod *phymod, u32 addr, u8 data)
 {
-	_phymod_select(phymod);
-
-	if (phymod->sff.op && phymod->sff.op->write8)
-		return phymod->sff.op->write8(phymod, addr, data);
-
-	return -EOPNOTSUPP;
+	return PHY_OP(phymod, write8, addr, data);
 }
 
 /**
@@ -1362,12 +1358,7 @@ int nfp_phymod_write8(struct nfp_phymod *phymod, u32 addr, u8 data)
  */
 int nfp_phymod_verify_sff_checkcode(struct nfp_phymod *phymod, int *cc_status)
 {
-	_phymod_select(phymod);
-
-	if (phymod->sff.op && phymod->sff.op->verify_checkcodes)
-		return phymod->sff.op->verify_checkcodes(phymod, cc_status);
-
-	return -EOPNOTSUPP;
+	return PHY_OP(phymod, verify_checkcodes, cc_status);
 }
 
 /**
@@ -1379,8 +1370,6 @@ int nfp_phymod_verify_sff_checkcode(struct nfp_phymod *phymod, int *cc_status)
  */
 int nfp_phymod_read_type(struct nfp_phymod *phymod, int *type)
 {
-	_phymod_select(phymod);
-
 	return nfp_phymod_get_type(phymod, type);
 }
 
@@ -1393,12 +1382,7 @@ int nfp_phymod_read_type(struct nfp_phymod *phymod, int *type)
  */
 int nfp_phymod_read_connector(struct nfp_phymod *phymod, int *connector)
 {
-	_phymod_select(phymod);
-
-	if (phymod->sff.op && phymod->sff.op->read_connector)
-		return phymod->sff.op->read_connector(phymod, connector);
-
-	return -EOPNOTSUPP;
+	return PHY_OP(phymod, read_connector, connector);
 }
 
 /**
@@ -1406,35 +1390,24 @@ int nfp_phymod_read_connector(struct nfp_phymod *phymod, int *connector)
  * @phymod:	PHY module
  * @name:	Output, destination string.
  * @size:	Input, size of destination string
+ *
+ * Return: 0, or -ERRNO
+ */
+int nfp_phymod_read_vendor(struct nfp_phymod *phymod, char *name, u32 size)
+{
+	return PHY_OP(phymod, read_vendor, name, size);
+}
+
+/**
+ * nfp_phymod_read_oui() - Read vendor OUI from memory map.
+ * @phymod:	PHY module
  * @oui:	Output, vendor OUI Id.
  *
  * Return: 0, or -ERRNO
  */
-int nfp_phymod_read_vendor(struct nfp_phymod *phymod, char *name,
-			   u32 size, u32 *oui)
+int nfp_phymod_read_oui(struct nfp_phymod *phymod, u32 *oui)
 {
-	_phymod_select(phymod);
-
-	if (!name && !oui)
-		return -1;
-
-	if (name) {
-		if (phymod->sff.op && phymod->sff.op->read_vendor) {
-			if (phymod->sff.op->read_vendor(phymod, name, size))
-				return -1;
-		} else {
-			return -EOPNOTSUPP;
-		}
-	}
-	if (oui) {
-		if (phymod->sff.op && phymod->sff.op->read_vend_oui) {
-			if (phymod->sff.op->read_vend_oui(phymod, oui))
-				return -1;
-		} else {
-			return -EOPNOTSUPP;
-		}
-	}
-	return 0;
+	return PHY_OP(phymod, read_vend_oui, oui);
 }
 
 /**
@@ -1447,12 +1420,7 @@ int nfp_phymod_read_vendor(struct nfp_phymod *phymod, char *name,
  */
 int nfp_phymod_read_product(struct nfp_phymod *phymod, char *product, u32 size)
 {
-	_phymod_select(phymod);
-
-	if (phymod->sff.op && phymod->sff.op->read_product)
-		return phymod->sff.op->read_product(phymod, product, size);
-
-	return -EOPNOTSUPP;
+	return PHY_OP(phymod, read_product, product, size);
 }
 
 /**
@@ -1465,12 +1433,7 @@ int nfp_phymod_read_product(struct nfp_phymod *phymod, char *product, u32 size)
  */
 int nfp_phymod_read_serial(struct nfp_phymod *phymod, char *serial, u32 size)
 {
-	_phymod_select(phymod);
-
-	if (phymod->sff.op && phymod->sff.op->read_serial)
-		return phymod->sff.op->read_serial(phymod, serial, size);
-
-	return -EOPNOTSUPP;
+	return PHY_OP(phymod, read_serial, serial, size);
 }
 
 /**
@@ -1482,12 +1445,7 @@ int nfp_phymod_read_serial(struct nfp_phymod *phymod, char *serial, u32 size)
  */
 int nfp_phymod_read_length(struct nfp_phymod *phymod, int *length)
 {
-	_phymod_select(phymod);
-
-	if (phymod->sff.op && phymod->sff.op->read_length)
-		return phymod->sff.op->read_length(phymod, length);
-
-	return -EOPNOTSUPP;
+	return PHY_OP(phymod, read_length, length);
 }
 
 /**
@@ -1499,12 +1457,7 @@ int nfp_phymod_read_length(struct nfp_phymod *phymod, int *length)
  */
 int nfp_phymod_get_active_or_passive(struct nfp_phymod *phymod, int *anp)
 {
-	_phymod_select(phymod);
-
-	if (phymod->sff.op && phymod->sff.op->get_active_or_passive)
-		return phymod->sff.op->get_active_or_passive(phymod, anp);
-
-	return -EOPNOTSUPP;
+	return PHY_OP(phymod, get_active_or_passive, anp);
 }
 
 /**
