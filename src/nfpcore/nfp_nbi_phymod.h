@@ -57,6 +57,11 @@
 #define NFP_PHYMOD_TYPE_SFPP 10
 
 /**
+ * SFP28  module
+ */
+#define NFP_PHYMOD_TYPE_SFP28 25
+
+/**
  * QSFP  module
  */
 #define NFP_PHYMOD_TYPE_QSFP 40
@@ -141,6 +146,8 @@ int nfp_phymod_read_type(struct nfp_phymod *phymod, int *type);
 int nfp_phymod_read_connector(struct nfp_phymod *phymod, int *connector);
 int nfp_phymod_read_length(struct nfp_phymod *phymod, int *length);
 int nfp_phymod_get_active_or_passive(struct nfp_phymod *phymod, int *anp);
+int nfp_phymod_read_extended_compliance_code(struct nfp_phymod *phymod,
+					     u32 *val);
 
 struct nfp_phymod_eth *nfp_phymod_eth_next(struct nfp_device *dev,
 					   struct nfp_phymod *phy, void **ptr);

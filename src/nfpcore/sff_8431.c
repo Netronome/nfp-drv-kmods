@@ -42,7 +42,8 @@
 #ifdef NFP_NBI_PHYMOD_C
 
 #define SFF_8431_CONNECTOR           2
-#define SFF_8431_TRANS_COMP          8 /* transceiver compl. codes: 3-10,36 */
+#define SFF_8431_TRANS_COMP          8 /* transceiver compl. codes: 3-10 */
+#define SFF_8431_EXT_TRANS_COMP      36
 #define SFF_8431_LENGTH_SMF          14
 #define SFF_8431_LENGTH_OM2          16
 #define SFF_8431_LENGTH_OM1          17
@@ -376,6 +377,17 @@ static int sff_8431_get_active_or_passive(struct nfp_phymod *phy, int *anp)
 	return 0;
 }
 
+static int sff_8431_read_extended_compliance_code(struct nfp_phymod *phy,
+						  u32 *val)
+{
+	u8 tmp;
+
+	if (nfp_phymod_read8(phy, SFF_8431_EXT_TRANS_COMP, &tmp) < 0)
+		return -1;
+	*val = tmp;
+	return 0;
+}
+
 static int sff_8431_verify_checkcodes(struct nfp_phymod *phy, int *ccs)
 {
 	int err, cnt;
@@ -426,6 +438,34 @@ static const struct sff_ops sff_8431_ops = {
 	.read_serial    = sff_8431_read_serial,
 	.read_length    = sff_8431_read_length,
 	.get_active_or_passive = sff_8431_get_active_or_passive,
+	.read_extended_compliance_code = sff_8431_read_extended_compliance_code,
+	.verify_checkcodes = sff_8431_verify_checkcodes,
+};
+
+static const struct sff_ops sff_8402_ops = {
+	.type = 8402,
+	.open = sff_8431_open,
+	.close = sff_8431_close,
+	.select = sff_8431_select,
+
+	.poll_present = sff_8431_poll_present,
+	.status_los = sff_8431_status_los,
+	.status_fault = sff_8431_status_fault,
+
+	.read8 = sff_8431_read8,
+	.write8 = sff_8431_write8,
+
+	.set_lane_dis = sff_8431_set_lane_dis,
+	.get_lane_dis = sff_8431_get_lane_dis,
+
+	.read_connector = sff_8431_read_connector,
+	.read_vendor    = sff_8431_read_vendor,
+	.read_vend_oui  = sff_8431_read_vendor_oui,
+	.read_product   = sff_8431_read_product,
+	.read_serial    = sff_8431_read_serial,
+	.read_length    = sff_8431_read_length,
+	.get_active_or_passive = sff_8431_get_active_or_passive,
+	.read_extended_compliance_code = sff_8431_read_extended_compliance_code,
 	.verify_checkcodes = sff_8431_verify_checkcodes,
 };
 

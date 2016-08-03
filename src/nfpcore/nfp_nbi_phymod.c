@@ -80,6 +80,7 @@ struct sff_ops {
 	int (*read_product)(struct nfp_phymod *phy, char *prod, u32 size);
 	int (*read_serial)(struct nfp_phymod *phy, char *serial, u32 size);
 	int (*read_length)(struct nfp_phymod *phy, int *length);
+	int (*read_extended_compliance_code)(struct nfp_phymod *phy, u32 *val);
 	int (*get_active_or_passive)(struct nfp_phymod *phy, int *anp);
 };
 
@@ -174,6 +175,7 @@ static const struct {
 } typemap[] = {
 	{ "SFP", NFP_PHYMOD_TYPE_SFP },
 	{ "SFP+", NFP_PHYMOD_TYPE_SFPP },
+	{ "SFP28", NFP_PHYMOD_TYPE_SFP28 },
 	{ "QSFP", NFP_PHYMOD_TYPE_QSFP },
 	{ "CXP", NFP_PHYMOD_TYPE_CXP },
 };
@@ -1449,6 +1451,19 @@ int nfp_phymod_read_length(struct nfp_phymod *phymod, int *length)
 }
 
 /**
+ * nfp_phymod_read_extended_compliance_code() - mem-map compliance code info.
+ * @phymod:	PHY module
+ * @val:	Output
+ *
+ * Return: 0, or -ERRNO
+ */
+int nfp_phymod_read_extended_compliance_code(struct nfp_phymod *phymod,
+					     u32 *val)
+{
+	return PHY_OP(phymod, read_extended_compliance_code, val);
+}
+
+/**
  * nfp_phymod_get_active_or_passive() - Get active or passive phy from mem-map.
  * @phymod:	PHY module
  * @anp:	Output, active-not-passive boolean
@@ -1638,6 +1653,9 @@ int nfp_phymod_eth_get_speed(struct nfp_phymod_eth *eth, int *speed)
 	case NFP_PHYMOD_TYPE_QSFP:
 	case NFP_PHYMOD_TYPE_CXP:
 		per_lane = 10000;
+		break;
+	case NFP_PHYMOD_TYPE_SFP28:
+		per_lane = 25000;
 		break;
 	default:
 		return -EINVAL;
