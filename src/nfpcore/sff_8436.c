@@ -168,7 +168,7 @@ static int sff_8436_select(struct nfp_phymod *phy, bool is_selected)
 			return err;
 	}
 
-	err = pin_set(priv->nfp, &sff->out.modsel, !is_selected);
+	err = pin_set(priv->nfp, &sff->out.modsel, is_selected);
 	if (err < 0)
 		return err;
 
