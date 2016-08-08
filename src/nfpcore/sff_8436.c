@@ -156,7 +156,7 @@ static int sff_8436_poll_present(struct nfp_phymod *phy)
 	return err ? 0 : 1;
 }
 
-static int sff_8436_select(struct nfp_phymod *phy, int is_selected)
+static int sff_8436_select(struct nfp_phymod *phy, bool is_selected)
 {
 	struct nfp_phymod_priv *priv = phy->priv;
 	struct sff_8436 *sff = phy->sff.priv;
@@ -168,7 +168,7 @@ static int sff_8436_select(struct nfp_phymod *phy, int is_selected)
 			return err;
 	}
 
-	err = pin_set(priv->nfp, &sff->out.modsel, is_selected ? 0 : 1);
+	err = pin_set(priv->nfp, &sff->out.modsel, !is_selected);
 	if (err < 0)
 		return err;
 
@@ -177,20 +177,20 @@ static int sff_8436_select(struct nfp_phymod *phy, int is_selected)
 	return 0;
 }
 
-static int sff_8436_reset(struct nfp_phymod *phy, int in_reset)
+static int sff_8436_reset(struct nfp_phymod *phy, bool in_reset)
 {
 	struct nfp_phymod_priv *priv = phy->priv;
 	struct sff_8436 *sff = phy->sff.priv;
 
-	return pin_set(priv->nfp, &sff->out.reset, in_reset ? 1 : 0);
+	return pin_set(priv->nfp, &sff->out.reset, in_reset);
 }
 
-static int sff_8436_power(struct nfp_phymod *phy, int is_full_power)
+static int sff_8436_power(struct nfp_phymod *phy, bool is_full_power)
 {
 	struct nfp_phymod_priv *priv = phy->priv;
 	struct sff_8436 *sff = phy->sff.priv;
 
-	return pin_set(priv->nfp, &sff->out.lp_mode, is_full_power ? 0 : 1);
+	return pin_set(priv->nfp, &sff->out.lp_mode, !is_full_power);
 }
 
 static int sff_8436_read8(struct nfp_phymod *phy, u32 reg, u8 *val)

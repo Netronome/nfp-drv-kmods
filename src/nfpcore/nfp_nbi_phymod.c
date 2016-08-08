@@ -56,9 +56,9 @@ struct sff_ops {
 	int (*poll_present)(struct nfp_phymod *phy);
 	int (*poll_irq)(struct nfp_phymod *phy);
 
-	int (*select)(struct nfp_phymod *phy, int is_selected);
-	int (*reset)(struct nfp_phymod *phy, int in_reset);
-	int (*power)(struct nfp_phymod *phy, int is_full_power);
+	int (*select)(struct nfp_phymod *phy, bool is_selected);
+	int (*reset)(struct nfp_phymod *phy, bool in_reset);
+	int (*power)(struct nfp_phymod *phy, bool is_full_power);
 
 	int (*read8)(struct nfp_phymod *phy, u32 reg, u8 *val);
 	int (*write8)(struct nfp_phymod *phy, u32 reg, u8 val);

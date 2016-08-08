@@ -153,7 +153,7 @@ static int sff_8647_poll_present(struct nfp_phymod *phy)
 	return err ? 0 : 1;
 }
 
-static int sff_8647_select(struct nfp_phymod *phy, int is_selected)
+static int sff_8647_select(struct nfp_phymod *phy, bool is_selected)
 {
 	struct sff_8647 *sff = phy->sff.priv;
 	int err;
@@ -169,12 +169,12 @@ static int sff_8647_select(struct nfp_phymod *phy, int is_selected)
 	return 0;
 }
 
-static int sff_8647_reset(struct nfp_phymod *phy, int in_reset)
+static int sff_8647_reset(struct nfp_phymod *phy, bool in_reset)
 {
 	struct nfp_phymod_priv *priv = phy->priv;
 	struct sff_8647 *sff = phy->sff.priv;
 
-	return pin_set(priv->nfp, &sff->out.reset, in_reset ? 1 : 0);
+	return pin_set(priv->nfp, &sff->out.reset, in_reset);
 }
 
 static int sff_8647_read_vendor(struct nfp_phymod *phy, char *name, u32 sz)

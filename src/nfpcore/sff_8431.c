@@ -171,7 +171,7 @@ static int sff_8431_poll_present(struct nfp_phymod *phy)
 	return err ? 0 : 1;
 }
 
-static int sff_8431_select(struct nfp_phymod *phy, int is_selected)
+static int sff_8431_select(struct nfp_phymod *phy, bool is_selected)
 {
 	struct sff_8431 *sff = phy->sff.priv;
 	struct sff_bus *bus = &sff->bus[sff->page];
