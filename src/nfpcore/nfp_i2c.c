@@ -59,14 +59,9 @@ struct i2c_driver {
 	void *priv;
 };
 
-static inline void i2c_set_scl(struct i2c_driver *bus, int bit)
+static inline void i2c_clock_delay(struct i2c_driver *bus)
 {
-	bus->set_scl(bus->priv, bit);
-}
-
-static inline int i2c_get_scl(struct i2c_driver *bus)
-{
-	return bus->get_scl(bus->priv);
+	udelay(bus->delay);
 }
 
 static inline void i2c_set_sda(struct i2c_driver *bus, int bit)
@@ -79,32 +74,36 @@ static inline int i2c_get_sda(struct i2c_driver *bus)
 	return bus->get_sda(bus->priv);
 }
 
-static inline void i2c_clock_delay(struct i2c_driver *bus)
+static inline int i2c_get_scl(struct i2c_driver *bus)
 {
-	udelay(bus->delay);
+	return bus->get_scl(bus->priv);
 }
 
-static inline int i2c_start(struct i2c_driver *bus)
+static inline int i2c_set_scl(struct i2c_driver *bus, int bit)
 {
 	int timeout = 100;
 
-	i2c_set_scl(bus, 1);
-
-	/* Check for clock stretched by the slave
-	 */
+	/* Check for clock stretched by the slave */
 	while ((timeout-- > 0) && (i2c_get_scl(bus) == 0))
 		i2c_clock_delay(bus);
 
 	if (timeout <= 0)
 		return -EAGAIN;
 
+	bus->set_scl(bus->priv, bit);
+	return 0;
+}
+
+static inline int i2c_start(struct i2c_driver *bus)
+{
+	if (i2c_set_scl(bus, 1))
+		return -1;
 	i2c_set_sda(bus, 1);
-	i2c_clock_delay(bus);
-	i2c_clock_delay(bus);
 	i2c_clock_delay(bus);
 	i2c_set_sda(bus, 0);
 	i2c_clock_delay(bus);
 	i2c_set_scl(bus, 0);
+	i2c_clock_delay(bus);
 
 	return 0;
 }
@@ -116,51 +115,52 @@ static inline void i2c_stop(struct i2c_driver *bus)
 	i2c_clock_delay(bus);
 	i2c_set_scl(bus, 1);
 	i2c_clock_delay(bus);
-	i2c_clock_delay(bus);
 	i2c_set_sda(bus, 1);
 	i2c_clock_delay(bus);
+
 	i2c_set_sda(bus, -1);
 	i2c_set_scl(bus, -1);
 }
 
-static inline void i2c_ack(struct i2c_driver *bus, int ack)
+static inline void i2c_writebit(struct i2c_driver *bus, bool bit)
 {
-	i2c_set_scl(bus, 0);
-	i2c_clock_delay(bus);
-	i2c_set_sda(bus, ack);
+	i2c_set_sda(bus, bit);
 	i2c_clock_delay(bus);
 	i2c_set_scl(bus, 1);
 	i2c_clock_delay(bus);
 	i2c_clock_delay(bus);
 	i2c_set_scl(bus, 0);
 	i2c_clock_delay(bus);
+}
+
+static inline bool i2c_readbit(struct i2c_driver *bus)
+{
+	bool bit;
+
+	i2c_set_sda(bus, -1);
+	i2c_clock_delay(bus);
+	i2c_set_scl(bus, 1);
+	i2c_clock_delay(bus);
+	bit = i2c_get_sda(bus);
+	i2c_clock_delay(bus);
+	i2c_set_scl(bus, 0);
+	i2c_clock_delay(bus);
+	return bit;
+}
+
+static inline void i2c_ack(struct i2c_driver *bus, bool ack)
+{
+	i2c_writebit(bus, ack);
 }
 
 static inline int i2c_writeb(struct i2c_driver *bus, u8 data)
 {
 	int i, nack;
 
-	for (i = 0; i < 8; i++) {
-		i2c_set_scl(bus, 0);
-		i2c_clock_delay(bus);
-		i2c_set_sda(bus, (data >> (7 - i)) & 1);
-		i2c_clock_delay(bus);
-		i2c_set_scl(bus, 1);
-		i2c_clock_delay(bus);
-		i2c_clock_delay(bus);
-	}
+	for (i = 0; i < 8; i++)
+		i2c_writebit(bus, (data >> (7 - i)) & 1);
 
-	i2c_set_scl(bus, 0);
-	i2c_set_sda(bus, -1);
-	i2c_clock_delay(bus);
-	i2c_clock_delay(bus);
-	i2c_set_scl(bus, 1);
-	i2c_clock_delay(bus);
-	nack = i2c_get_sda(bus);
-	i2c_set_scl(bus, 0);
-	i2c_clock_delay(bus);
-	i2c_set_sda(bus, -1);
-
+	nack = i2c_readbit(bus);
 	if (nack)
 		return -ENODEV;
 
@@ -169,20 +169,10 @@ static inline int i2c_writeb(struct i2c_driver *bus, u8 data)
 
 static inline u8 i2c_readb(struct i2c_driver *bus, int ack)
 {
-	u8 tmp;
-	int i;
+	u8 i, tmp;
 
-	tmp = 0;
-	i2c_set_sda(bus, -1);
-	for (i = 0; i < 8; i++) {
-		i2c_set_scl(bus, 0);
-		i2c_clock_delay(bus);
-		i2c_clock_delay(bus);
-		i2c_set_scl(bus, 1);
-		i2c_clock_delay(bus);
-		tmp |= i2c_get_sda(bus) << (7 - i);
-		i2c_clock_delay(bus);
-	}
+	for (i = tmp = 0; i < 8; i++)
+		tmp |= i2c_readbit(bus) << (7 - i);
 
 	i2c_ack(bus, ack);
 
