@@ -1023,7 +1023,7 @@ int nfp_phymod_get_type(struct nfp_phymod *phymod, int *type)
 	int present = 1;
 
 	if (phymod->sff.op && phymod->sff.op->poll_present)
-		present = phymod->sff.op->poll_present(phymod);
+		present = !phymod->sff.op->poll_present(phymod);
 
 	if (type)
 		*type = present ? phymod->type : NFP_PHYMOD_TYPE_NONE;
