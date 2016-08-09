@@ -189,32 +189,10 @@ static inline u8 i2c_readb(struct i2c_driver *bus, int ack)
 	return tmp;
 }
 
-static inline void i2c_reset(struct i2c_driver *bus)
-{
-	int i;
-
-	i2c_set_scl(bus, 1);
-	i2c_set_sda(bus, 1);
-	i2c_set_sda(bus, -1);
-
-	/* Clock out 9 ticks, to drain (hopefully) any I2C device */
-	for (i = 0; i < 9; i++) {
-		i2c_set_scl(bus, 0);
-		i2c_clock_delay(bus);
-		i2c_set_scl(bus, 1);
-		i2c_clock_delay(bus);
-	}
-
-	i2c_stop(bus);
-}
-
 static int i2c_init(struct i2c_driver *bus, unsigned clock_rate)
 {
 	/* Convert from freq to usec */
 	bus->delay = (1000000 / clock_rate);
-
-	i2c_reset(bus);
-
 	return 0;
 }
 
