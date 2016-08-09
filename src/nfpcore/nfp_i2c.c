@@ -419,25 +419,25 @@ static void i2c_gpio_set_scl(void *priv, int bit)
 
 static int i2c_gpio_get_scl(void *priv)
 {
+	u32 model;
 	struct i2c_gpio_priv *i2c = priv;
-	int val;
 
-	/* On the NFP, detection of SCL clock
-	 * stretching by slave is not possible
-	 * on Bus 0, since GPIO0 may have a
-	 * pull-up/pull-down to force the ARM/PCIE
-	 * boot selection. In this case, always
-	 * return 1, so that the SCL clock
-	 * stretching logic is not used.
-	 */
-	if (i2c->gpio_scl == 0)
-		return 1;
+	model = nfp_cpp_model(nfp_device_cpp(i2c->dev));
+	if (NFP_CPP_MODEL_IS_3200(model)) {
+		/* On the NFP, detection of SCL clock
+		 * stretching by slave is not possible
+		 * on Bus 0, since GPIO0 may have a
+		 * pull-up/pull-down to force the ARM/PCIE
+		 * boot selection. In this case, always
+		 * return 1, so that the SCL clock
+		 * stretching logic is not used.
+		 */
+		if (i2c->gpio_scl == 0)
+			return 1;
+	}
 
 	nfp_gpio_direction(i2c->dev, i2c->gpio_scl, 0);
-	val = nfp_gpio_get(i2c->dev, i2c->gpio_scl);
-	nfp_gpio_direction(i2c->dev, i2c->gpio_scl, 1);
-
-	return val;
+	return nfp_gpio_get(i2c->dev, i2c->gpio_scl);
 }
 
 static void i2c_gpio_set_sda(void *priv, int bit)
