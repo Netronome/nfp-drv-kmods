@@ -40,6 +40,42 @@
 /* Included from nfp_nbi_phymod.c - not compiled separately! */
 #ifdef NFP_NBI_PHYMOD_C
 
+#define SFF_8436_ID			0
+#define SFF_8436_STATUS			2
+#define SFF_8436_LOS			3
+#define SFF_8436_FAULT_TX		4
+#define SFF_8436_TEMP			6
+#define SFF_8436_VCC			7
+#define SFF_8436_POWER_RX_12		9
+#define SFF_8436_POWER_RX_34		10
+#define SFF_8436_BIAS_TX_12		11
+#define SFF_8436_BIAS_TX_34		12
+#define SFF_8436_DISABLE_TX		86
+#define SFF_8436_PAGESELECT		127
+
+#define SFF_8436_CONNECTOR		130
+#define SFF_8436_FIBRE_CHAN_COMP_BEG	135
+#define SFF_8436_FIBRE_CHAN_COMP_END	138
+
+#define SFF_8436_LENGTH_SMF		142
+#define SFF_8436_LENGTH_OM3		143
+#define SFF_8436_LENGTH_OM2		144
+#define SFF_8436_LENGTH_OM1		145
+#define SFF_8436_LENGTH_ASSEMBLY	146
+#define SFF_8436_DEVICE_TECH		147
+#define SFF_8436_VENDOR			148
+#define SFF_8436_VENDOR_OUI		165
+#define SFF_8436_VENDOR_PN		168
+#define SFF_8436_CC_BASE		191
+#define  SFF_8436_CC_BASE_START		128
+#define  SFF_8436_CC_BASE_END		190
+
+#define SFF_8436_VENDOR_SN		196
+#define SFF_8436_DATECODE		212
+#define SFF_8436_CC_EXT			223
+#define  SFF_8436_CC_EXT_START		192
+#define  SFF_8436_CC_EXT_END		222
+
 /* SFF-8436 operations */
 struct sff_8436 {
 	int selected;
@@ -193,77 +229,45 @@ static int sff_8436_power(struct nfp_phymod *phy, bool is_full_power)
 	return pin_set(priv->nfp, &sff->out.lp_mode, !is_full_power);
 }
 
+static int sff_8436_set_page(struct sff_8436 *sff, int page)
+{
+	int err;
+
+	err = sff->bus.op->write8(&sff->bus, SFF_8436_PAGESELECT, page);
+	if (err < 0)
+		return err;
+	sff->page = page;
+	return 0;
+}
+
 static int sff_8436_read8(struct nfp_phymod *phy, u32 reg, u8 *val)
 {
 	struct sff_8436 *sff = phy->sff.priv;
-	int page = (reg >> 8);
+	int page = reg >> 8;
 
 	if (!sff->selected ||
 	    !sff->bus.op || !sff->bus.op->read8 || !sff->bus.op->write8)
 		return -EINVAL;
 
-	reg &= 0xff;
+	if (page != sff->page)
+		sff_8436_set_page(sff, page);
 
-	if (page != sff->page) {
-		sff->bus.op->write8(&sff->bus, reg, page);
-		sff->page = page;
-	}
-
-	return sff->bus.op->read8(&sff->bus, reg, val);
+	return sff->bus.op->read8(&sff->bus, reg & 0xff, val);
 }
 
 static int sff_8436_write8(struct nfp_phymod *phy, u32 reg, u8 val)
 {
 	struct sff_8436 *sff = phy->sff.priv;
-	int page = (reg >> 8);
+	int page = reg >> 8;
 
 	if (!sff->selected || !sff->bus.op || !sff->bus.op->write8)
 		return -EINVAL;
 
-	reg &= 0xff;
+	if (page != sff->page)
+		sff_8436_set_page(sff, page);
 
-	if (page != sff->page) {
-		sff->bus.op->write8(&sff->bus, reg, page);
-		sff->page = page;
-	}
-
-	return sff->bus.op->write8(&sff->bus, reg, val);
+	return sff->bus.op->write8(&sff->bus, reg & 0xff, val);
 }
-
-#define SFF_8436_ID		0
-#define SFF_8436_STATUS		2
-#define SFF_8436_LOS		3
-#define SFF_8436_FAULT_TX	4
-#define SFF_8436_TEMP		6
-#define SFF_8436_VCC		7
-#define SFF_8436_POWER_RX_12	9
-#define SFF_8436_POWER_RX_34	10
-#define SFF_8436_BIAS_TX_12	11
-#define SFF_8436_BIAS_TX_34	12
-#define SFF_8436_DISABLE_TX	86
-
-#define SFF_8436_CONNECTOR		130
-#define SFF_8436_FIBRE_CHAN_COMP_BEG	135
-#define SFF_8436_FIBRE_CHAN_COMP_END	138
-
-#define SFF_8436_LENGTH_SMF	142
-#define SFF_8436_LENGTH_OM3	143
-#define SFF_8436_LENGTH_OM2	144
-#define SFF_8436_LENGTH_OM1	145
-#define SFF_8436_LENGTH_ASSEMBLY	146
-#define SFF_8436_DEVICE_TECH	147
-#define SFF_8436_VENDOR		148
-#define SFF_8436_VENDOR_OUI	165
-#define SFF_8436_VENDOR_PN	168
-#define SFF_8436_CC_BASE	191
-#define  SFF_8436_CC_BASE_START	128
-#define  SFF_8436_CC_BASE_END	190
-
-#define SFF_8436_VENDOR_SN	196
-#define SFF_8436_DATECODE	212
-#define SFF_8436_CC_EXT		223
-#define  SFF_8436_CC_EXT_START	192
-#define  SFF_8436_CC_EXT_END	222
 
 static int sff_8436_status_los(struct nfp_phymod *phy,
 			       u32 *tx_status, u32 *rx_status)
