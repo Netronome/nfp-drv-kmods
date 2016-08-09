@@ -697,6 +697,7 @@ static int verify_sff_checkcode(struct nfp_phymod *phymod,
 #include "sff_8647.c"
 
 static const struct sff_ops *sff_op_table[]  = {
+	&sff_8402_ops,
 	&sff_8431_ops,
 	&sff_8436_ops,
 	&sff_8647_ops,
