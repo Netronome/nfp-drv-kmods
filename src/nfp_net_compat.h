@@ -446,4 +446,8 @@ static inline void udp_tunnel_get_rx_info(struct net_device *netdev)
 }
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0)
+#define NETIF_F_HW_TC	NETDEV_FEATURE_COUNT
+#endif
+
 #endif /* _NFP_NET_COMPAT_H_ */

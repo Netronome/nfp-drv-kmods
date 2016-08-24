@@ -84,6 +84,9 @@ nfp_net_common-objs := \
 KERNEL_GE_4_9 := $(shell [ $(VERSION) -gt 4 -o \( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 9 \) ] && echo y)
 
 ifeq ($(KERNEL_GE_4_9),y)
+nfp_net_common-objs += \
+	    nfp_net_offload.o
+
 ifeq ($(CONFIG_BPF_SYSCALL),y)
 nfp_net_common-objs += \
 	    nfp_bpf_verifier.o \
