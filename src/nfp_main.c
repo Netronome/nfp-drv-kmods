@@ -146,8 +146,21 @@ static int nfp6000_pcie_sriov_enable(struct pci_dev *pdev, int num_vfs)
 #ifdef CONFIG_PCI_IOV
 	struct nfp_pci *nfp = pci_get_drvdata(pdev);
 	int err = 0;
+	int max_vfs;
 
-	if (num_vfs > 64) {
+	switch (pdev->device) {
+	case (PCI_DEVICE_NFP4000):
+	case (PCI_DEVICE_NFP6000):
+		max_vfs = 64;
+		break;
+	case (PCI_DEVICE_NFP6010):
+		max_vfs = 248;
+		break;
+	default:
+		return -ENOTSUPP;
+	}
+
+	if (num_vfs > max_vfs) {
 		err = -EPERM;
 		goto err_out;
 	}
