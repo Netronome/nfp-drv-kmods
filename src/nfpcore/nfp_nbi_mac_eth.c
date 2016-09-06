@@ -195,10 +195,10 @@ static int __nfp_nbi_mac_eth_ifdown(struct nfp_nbi_dev *nbi, int core, int port)
 	if (mode < 0)
 		return mode;
 	switch (mode) {
-	case (NFP_NBI_MAC_ENET_100G):
+	case NFP_NBI_MAC_ENET_100G:
 		m = 0x3ff << (core * 12);
 		break;
-	case (NFP_NBI_MAC_ENET_40G):
+	case NFP_NBI_MAC_ENET_40G:
 		m = 0xf << (port + core * 12);
 		break;
 	default:
@@ -288,10 +288,10 @@ static int __nfp_nbi_mac_eth_ifup(struct nfp_nbi_dev *nbi, int core, int port)
 	if (mode < 0)
 		return mode;
 	switch (mode) {
-	case (NFP_NBI_MAC_ENET_100G):
+	case NFP_NBI_MAC_ENET_100G:
 		m = 0x3ff << (core * 12);
 		break;
-	case (NFP_NBI_MAC_ENET_40G):
+	case NFP_NBI_MAC_ENET_40G:
 		m = 0xf << (port + core * 12);
 		break;
 	default:
@@ -511,7 +511,7 @@ int nfp_nbi_mac_eth_read_mode(struct nfp_nbi_dev *nbi, int core, int port)
 		return ret;
 
 	switch (d & NFP_NBI_MAC_ETHCHPCSCTL1_MODE_MASK) {
-	case (NFP_NBI_MAC_ETHCHPCSCTL1_MODE_10GE):
+	case NFP_NBI_MAC_ETHCHPCSCTL1_MODE_10GE:
 		/* check if < 10G AE */
 		r = NFP_MAC_ETH_ETHSGMIIIFMODE(port);
 		ret = nfp_nbi_mac_regr(nbi, NFP_MAC_ETH(core), r, &d);
@@ -525,13 +525,13 @@ int nfp_nbi_mac_eth_read_mode(struct nfp_nbi_dev *nbi, int core, int port)
 				s = NFP_MAC_ETH_ETHSGMIIIFMODE_SPEED_of(d);
 				/* SGMII */
 				switch (s) {
-				case (NFP_MAC_ETH_ETHSGMIIIFMODE_SPEED_10MBPS):
+				case NFP_MAC_ETH_ETHSGMIIIFMODE_SPEED_10MBPS:
 					mode = NFP_NBI_MAC_ENET_10M;
 					break;
-				case (NFP_MAC_ETH_ETHSGMIIIFMODE_SPEED_100MBPS):
+				case NFP_MAC_ETH_ETHSGMIIIFMODE_SPEED_100MBPS:
 					mode = NFP_NBI_MAC_ENET_100M;
 					break;
-				case (0x2):
+				case 0x2:
 					/* AE case */
 					mode = NFP_NBI_MAC_ENET_1G;
 					break;
@@ -549,9 +549,9 @@ int nfp_nbi_mac_eth_read_mode(struct nfp_nbi_dev *nbi, int core, int port)
 		}
 
 		break;
-	case (NFP_NBI_MAC_ETHCHPCSCTL1_MODE_8023AV):
+	case NFP_NBI_MAC_ETHCHPCSCTL1_MODE_8023AV:
 		break;
-	case (NFP_NBI_MAC_ETHCHPCSCTL1_MODE_10PASSTS):
+	case NFP_NBI_MAC_ETHCHPCSCTL1_MODE_10PASSTS:
 		break;
 	default:
 		break;

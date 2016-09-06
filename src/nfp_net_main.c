@@ -370,11 +370,11 @@ static int nfp_pcie_sriov_enable(struct pci_dev *pdev, int num_vfs)
 	int max_vfs;
 
 	switch (pdev->device) {
-	case (PCI_DEVICE_NFP4000):
-	case (PCI_DEVICE_NFP6000):
+	case PCI_DEVICE_NFP4000:
+	case PCI_DEVICE_NFP6000:
 		max_vfs = 64;
 		break;
-	case (PCI_DEVICE_NFP6010):
+	case PCI_DEVICE_NFP6010:
 		max_vfs = 248;
 		break;
 	default:
