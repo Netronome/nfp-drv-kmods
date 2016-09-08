@@ -1504,11 +1504,9 @@ static int nfp_net_poll(struct napi_struct *napi, int budget)
 	struct nfp_net_rx_ring *rx_ring = r_vec->rx_ring;
 	struct nfp_net_tx_ring *tx_ring = r_vec->tx_ring;
 	struct nfp_net *nn = r_vec->nfp_net;
-	struct netdev_queue *txq;
 	unsigned int pkts_polled;
 
 	tx_ring = &nn->tx_rings[rx_ring->idx];
-	txq = netdev_get_tx_queue(nn->netdev, tx_ring->idx);
 	nfp_net_tx_complete(tx_ring);
 
 	pkts_polled = nfp_net_rx(rx_ring, budget);

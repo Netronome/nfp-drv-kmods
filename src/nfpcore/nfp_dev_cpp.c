@@ -661,7 +661,6 @@ static int do_cpp_event_release(struct nfp_dev_cpp *cdev, u16 interface,
 				struct nfp_cpp_event_request *event_req)
 {
 	struct nfp_dev_cpp_event *event, *etmp;
-	int err = -ENOENT;
 
 	mutex_lock(&cdev->event.lock);
 	list_for_each_entry_safe(event, etmp,
@@ -675,7 +674,6 @@ static int do_cpp_event_release(struct nfp_dev_cpp *cdev, u16 interface,
 			nfp_cpp_event_free(event->cpp_event);
 			list_del(&event->list);
 			kfree(event);
-			err = 0;
 		}
 	}
 	mutex_unlock(&cdev->event.lock);

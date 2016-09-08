@@ -88,23 +88,17 @@ struct nfp_cpp *nfp_device_cpp(struct nfp_device *nfp)
  */
 struct nfp_device *nfp_device_from_cpp(struct nfp_cpp *cpp)
 {
-	int err = -ENODEV;
 	struct nfp_device *nfp;
 
 	nfp = kzalloc(sizeof(*nfp), GFP_KERNEL);
-	if (!nfp) {
-		err = -ENOMEM;
-		goto err_nfp_alloc;
-	}
+	if (!nfp)
+		return NULL;
 	nfp->cpp = cpp;
 
 	spin_lock_init(&nfp->private_lock);
 	INIT_LIST_HEAD(&nfp->private_list);
 
 	return nfp;
-
-err_nfp_alloc:
-	return NULL;
 }
 
 /**
