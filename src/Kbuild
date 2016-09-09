@@ -35,6 +35,10 @@ override EXTRA_CFLAGS += -DCONFIG_NFP_NET_DEBUG
 override EXTRA_CFLAGS += $(call cc-option, -Wenum-compare,)
 override EXTRA_CFLAGS += -I$(src)
 
+ifneq ($(W),)
+override EXTRA_CFLAGS += $(call cc-option, -Wno-missing-include-dirs,)
+endif
+
 obj-$(CONFIG_NFP)	+= nfp.o
 obj-$(CONFIG_NFP_NET)	+= nfp_net.o
 obj-$(CONFIG_NFP_NETVF)	+= nfp_netvf.o
