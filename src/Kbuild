@@ -32,7 +32,7 @@ endif
 endif
 
 override EXTRA_CFLAGS += -DCONFIG_NFP_NET_DEBUG
-override EXTRA_CFLAGS += -Werror -Wenum-compare
+override EXTRA_CFLAGS += -Wenum-compare
 override EXTRA_CFLAGS += -I$(src)
 
 obj-$(CONFIG_NFP)	+= nfp.o
