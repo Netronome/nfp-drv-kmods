@@ -109,18 +109,19 @@ static void *nfp_rtsym_priv_con(struct nfp_device *dev)
 	return priv;
 }
 
-#define NFP3200_MEID(cluster_num, menum) \
-	((((cluster_num) >= 0) && ((cluster_num) < 5) && \
-	(((menum) & 0x7) == (menum))) ? \
-	(((cluster_num) << 4) | (menum) | (0x8)) : -1)
+static int nfp3200_melin2meid(u8 melinnum)
+{
+	u8 cluster_num = melinnum >> 3;
+	u8 menum = melinnum & 0x7;
 
-#define NFP3200_MELIN2MEID(melinnum) \
-	NFP3200_MEID(((melinnum) >> 3), ((melinnum) & 0x7))
+	return cluster_num < 5 ? (cluster_num << 4) | menum | 0x8 : -1;
+}
 
-#define NFP6000_MEID(island_id, menum) \
-	(((((island_id) & 0x3F) == (island_id)) && \
-	(((menum) >= 0) && ((menum) < 12))) ? \
-	(((island_id) << 4) | ((menum) + 4)) : -1)
+static int nfp6000_meid(u8 island_id, u8 menum)
+{
+	return (island_id & 0x3F) == island_id && menum < 12 ?
+		(island_id << 4) | (menum + 4) : -1;
+}
 
 static int __nfp_rtsymtab_probe(struct nfp_device *dev,
 				struct nfp_rtsym_priv *priv)
@@ -206,13 +207,13 @@ static int __nfp_rtsymtab_probe(struct nfp_device *dev,
 			case _SYM_TGT_LMEM:
 				priv->rtsymtab[n].target =
 					NFP_RTSYM_TARGET_LMEM;
-				priv->rtsymtab[n].domain = NFP3200_MELIN2MEID(
+				priv->rtsymtab[n].domain = nfp3200_melin2meid(
 					rtsymtab[n].domain1.nfp3200_domain);
 				break;
 			case _SYM_TGT_UMEM:
 				priv->rtsymtab[n].target =
 					NFP_RTSYM_TARGET_USTORE;
-				priv->rtsymtab[n].domain = NFP3200_MELIN2MEID(
+				priv->rtsymtab[n].domain = nfp3200_melin2meid(
 					rtsymtab[n].domain1.nfp3200_domain);
 				break;
 			default:
@@ -266,7 +267,7 @@ static int __nfp_rtsymtab_probe(struct nfp_device *dev,
 			}
 
 			if (rtsymtab[n].domain2.nfp6000_menum != 0xff)
-				priv->rtsymtab[n].domain = NFP6000_MEID(
+				priv->rtsymtab[n].domain = nfp6000_meid(
 					rtsymtab[n].domain1.nfp6000_island,
 					rtsymtab[n].domain2.nfp6000_menum);
 			else if (rtsymtab[n].domain1.nfp6000_island != 0xff)
