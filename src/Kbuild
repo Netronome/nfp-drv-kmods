@@ -76,16 +76,17 @@ nfp-objs := $(nfpcore-objs) \
 	    nfpcore/nfp_export.o \
 	    nfp_main.o
 
-nfp_net-objs := $(nfpcore-objs) \
+nfp_net_common-objs := \
 	    nfp_net_common.o \
 	    nfp_net_ethtool.o \
-	    nfp_net_debugfs.o \
+	    nfp_net_debugfs.o
+
+nfp_net-objs := $(nfpcore-objs) \
+	    $(nfp_net_common-objs) \
 	    nfp_net_main.o
 
 nfp_netvf-objs := \
-	    nfp_net_common.o \
-	    nfp_net_ethtool.o \
-	    nfp_net_debugfs.o \
+	    $(nfp_net_common-objs) \
 	    nfp_netvf_main.o
 
 ####################
