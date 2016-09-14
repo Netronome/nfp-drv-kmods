@@ -342,6 +342,10 @@ static inline int skb_put_padto(struct sk_buff *skb, unsigned int len)
 }
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0)
+#define napi_alloc_frag(x) netdev_alloc_frag(x)
+#endif
+
 #if VER_VANILLA_LT(4, 0) || VER_RHEL_LT(7, 2)
 #define skb_vlan_tag_present(skb)	vlan_tx_tag_present(skb)
 #define skb_vlan_tag_get(skb)		vlan_tx_tag_get(skb)
