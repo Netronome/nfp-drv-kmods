@@ -45,8 +45,8 @@ static int nfp_net_debugfs_rx_q_read(struct seq_file *file, void *data)
 	struct nfp_net_r_vector *r_vec = file->private;
 	struct nfp_net_rx_ring *rx_ring;
 	struct nfp_net_rx_desc *rxd;
-	struct sk_buff *skb;
 	struct nfp_net *nn;
+	void *frag;
 	int i;
 
 	rtnl_lock();
@@ -74,10 +74,9 @@ static int nfp_net_debugfs_rx_q_read(struct seq_file *file, void *data)
 		seq_printf(file, "%04d: 0x%08x 0x%08x", i,
 			   rxd->vals[0], rxd->vals[1]);
 
-		skb = READ_ONCE(rx_ring->rxbufs[i].skb);
-		if (skb)
-			seq_printf(file, " skb->head=%p skb->data=%p",
-				   skb->head, skb->data);
+		frag = READ_ONCE(rx_ring->rxbufs[i].frag);
+		if (frag)
+			seq_printf(file, " frag=%p", frag);
 
 		if (rx_ring->rxbufs[i].dma_addr)
 			seq_printf(file, " dma_addr=%pad",

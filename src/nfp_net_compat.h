@@ -389,6 +389,13 @@ static inline bool compat_is_gretap(struct sk_buff *skb, u8 l4_hdr)
 }
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 2, 0)
+static inline void skb_free_frag(void *addr)
+{
+	put_page(virt_to_head_page(addr));
+}
+#endif
+
 static inline int
 compat_ndo_features_check(struct nfp_net *nn, struct sk_buff *skb)
 {
@@ -452,6 +459,13 @@ struct udp_tunnel_info {
 static inline void udp_tunnel_get_rx_info(struct net_device *netdev)
 {
 	vxlan_get_rx_port(netdev);
+}
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0)
+static inline void page_ref_inc(struct page *page)
+{
+	atomic_inc(&page->_count);
 }
 #endif
 
