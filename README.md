@@ -122,7 +122,6 @@ NOTES:
 | ~~fw_noload~~   |  ~~false~~ | ~~Do not load firmware~~ [1]                 |
 | fw_stop_on_fail |   false | Fail init if no suitable FW is present          |
 | nfp_reset       |   false | Reset the NFP on init [2]                       |
-| num_rings       |       1 | Number of RX/TX rings to use [3]                |
 | hwinfo_debug    |   false | Enable to log hwinfo contents on load           |
 | board_state     |      15 | HWInfo board.state to wait for. (range: 0..15)  |
 | hwinfo_wait     |      10 | Wait N sec for board.state match, -1 = forever  |
@@ -134,7 +133,6 @@ NOTES:
 
 1. Please simply remove the firmware file from `/lib/firmware` if you don't want it loaded.
 2. Reset on init will be performed anyway if firmware file is found.
-3. The valid range for this value is firmware dependent.
 
 ## nfp_netvf.ko
 
@@ -153,16 +151,6 @@ NIC style interface to the flows that match that rule.
 | nfp_netvf_main.c    | NFP Virtual Function NIC driver                       |
 | nfp_net_common.c    | NFP NIC common interface functions                    |
 | nfp_net_ethtool.c   | NFP NIC ethtool interface support                     |
-
-### Parameters
-
-| Parameter       | Default | Comment                                         |
-| --------------- | ------- | ----------------------------------------------- |
-| num_rings       |       1 | Number of RX/TX rings to use [1]                |
-
-NOTES:
-
-1. This is not adjustable on current firmwares.
 
 ## nfp.ko
 
