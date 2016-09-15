@@ -573,6 +573,12 @@ struct nfp_net {
 	struct list_head port_list;
 };
 
+struct nfp_net_ring_set {
+	unsigned int mtu;
+	unsigned int dcnt;
+	void *rings;
+};
+
 /* Functions to read/write from/to a BAR
  * Performs any endian conversion necessary.
  */
@@ -767,7 +773,9 @@ void nfp_net_irqs_disable(struct pci_dev *pdev);
 void
 nfp_net_irqs_assign(struct nfp_net *nn, struct msix_entry *irq_entries,
 		    unsigned int n);
-int nfp_net_set_ring_size(struct nfp_net *nn, u32 rxd_cnt, u32 txd_cnt);
+int
+nfp_net_ring_reconfig(struct nfp_net *nn, struct nfp_net_ring_set *rx,
+		      struct nfp_net_ring_set *tx);
 
 void nfp_net_debugfs_create(void);
 void nfp_net_debugfs_destroy(void);
