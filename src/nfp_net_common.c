@@ -506,7 +506,7 @@ static void nfp_net_vecs_init(struct net_device *netdev)
 	nn->lsc_handler = nfp_net_irq_lsc;
 	nn->exn_handler = nfp_net_irq_exn;
 
-	for (r = 0; r < nn->num_r_vecs; r++) {
+	for (r = 0; r < nn->max_r_vecs; r++) {
 		struct msix_entry *entry;
 
 		entry = &nn->irq_entries[NFP_NET_NON_Q_VECTORS + r];
@@ -1600,12 +1600,12 @@ nfp_net_tx_ring_set_prepare(struct nfp_net *nn, struct nfp_net_ring_set *s)
 	struct nfp_net_tx_ring *rings;
 	unsigned int r;
 
-	rings = kcalloc(nn->num_tx_rings, sizeof(*rings), GFP_KERNEL);
+	rings = kcalloc(s->n_rings, sizeof(*rings), GFP_KERNEL);
 	if (!rings)
 		return NULL;
 
-	for (r = 0; r < nn->num_tx_rings; r++) {
-		nfp_net_tx_ring_init(&rings[r], nn->tx_rings[r].r_vec, r);
+	for (r = 0; r < s->n_rings; r++) {
+		nfp_net_tx_ring_init(&rings[r], &nn->r_vecs[r], r);
 
 		if (nfp_net_tx_ring_alloc(&rings[r], s->dcnt))
 			goto err_free_prev;
@@ -1627,9 +1627,11 @@ nfp_net_tx_ring_set_swap(struct nfp_net *nn, struct nfp_net_ring_set *s)
 
 	s->dcnt = nn->txd_cnt;
 	s->rings = nn->tx_rings;
+	s->n_rings = nn->num_tx_rings;
 
 	nn->txd_cnt = new.dcnt;
 	nn->tx_rings = new.rings;
+	nn->num_tx_rings = new.n_rings;
 }
 
 static void
@@ -1638,7 +1640,7 @@ nfp_net_tx_ring_set_free(struct nfp_net *nn, struct nfp_net_ring_set *s)
 	struct nfp_net_tx_ring *rings = s->rings;
 	unsigned int r;
 
-	for (r = 0; r < nn->num_tx_rings; r++)
+	for (r = 0; r < s->n_rings; r++)
 		nfp_net_tx_ring_free(&rings[r]);
 
 	kfree(rings);
@@ -1716,12 +1718,12 @@ nfp_net_rx_ring_set_prepare(struct nfp_net *nn, struct nfp_net_ring_set *s)
 	struct nfp_net_rx_ring *rings;
 	unsigned int r;
 
-	rings = kcalloc(nn->num_rx_rings, sizeof(*rings), GFP_KERNEL);
+	rings = kcalloc(s->n_rings, sizeof(*rings), GFP_KERNEL);
 	if (!rings)
 		return NULL;
 
-	for (r = 0; r < nn->num_rx_rings; r++) {
-		nfp_net_rx_ring_init(&rings[r], nn->rx_rings[r].r_vec, r);
+	for (r = 0; r < s->n_rings; r++) {
+		nfp_net_rx_ring_init(&rings[r], &nn->r_vecs[r], r);
 
 		if (nfp_net_rx_ring_alloc(&rings[r], fl_bufsz, s->dcnt))
 			goto err_free_prev;
@@ -1750,11 +1752,13 @@ nfp_net_rx_ring_set_swap(struct nfp_net *nn, struct nfp_net_ring_set *s)
 	s->mtu = nn->netdev->mtu;
 	s->dcnt = nn->rxd_cnt;
 	s->rings = nn->rx_rings;
+	s->n_rings = nn->num_rx_rings;
 
 	nn->netdev->mtu = new.mtu;
 	nn->fl_bufsz = nfp_net_calc_fl_bufsz(nn, new.mtu);
 	nn->rxd_cnt = new.dcnt;
 	nn->rx_rings = new.rings;
+	nn->num_rx_rings = new.n_rings;
 }
 
 static void
@@ -1763,7 +1767,7 @@ nfp_net_rx_ring_set_free(struct nfp_net *nn, struct nfp_net_ring_set *s)
 	struct nfp_net_rx_ring *rings = s->rings;
 	unsigned int r;
 
-	for (r = 0; r < nn->num_rx_rings; r++) {
+	for (r = 0; r < s->n_rings; r++) {
 		nfp_net_rx_ring_bufs_free(nn, &rings[r]);
 		nfp_net_rx_ring_free(&rings[r]);
 	}
@@ -1785,19 +1789,20 @@ nfp_net_prepare_vector(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 {
 	int err;
 
+	/* Setup NAPI */
+	netif_napi_add(nn->netdev, &r_vec->napi,
+		       nfp_net_poll, NAPI_POLL_WEIGHT);
+
 	snprintf(r_vec->name, sizeof(r_vec->name),
 		 "%s-rxtx-%d", nn->netdev->name, idx);
 	err = request_irq(r_vec->irq_vector, r_vec->handler, 0, r_vec->name,
 			  r_vec);
 	if (err) {
+		netif_napi_del(&r_vec->napi);
 		nn_err(nn, "Error requesting IRQ %d\n", r_vec->irq_vector);
 		return err;
 	}
 	disable_irq(r_vec->irq_vector);
-
-	/* Setup NAPI */
-	netif_napi_add(nn->netdev, &r_vec->napi,
-		       nfp_net_poll, NAPI_POLL_WEIGHT);
 
 	irq_set_affinity_hint(r_vec->irq_vector, &r_vec->affinity_mask);
 
@@ -2058,10 +2063,12 @@ static int nfp_net_netdev_open(struct net_device *netdev)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
 	struct nfp_net_ring_set rx = {
+		.n_rings = nn->num_rx_rings,
 		.mtu = nn->netdev->mtu,
 		.dcnt = nn->rxd_cnt,
 	};
 	struct nfp_net_ring_set tx = {
+		.n_rings = nn->num_tx_rings,
 		.dcnt = nn->txd_cnt,
 	};
 	int err, r;
@@ -2261,19 +2268,39 @@ static void nfp_net_rss_init_itbl(struct nfp_net *nn)
 }
 
 static int
-nfp_net_ring_swap_enable(struct nfp_net *nn,
+nfp_net_ring_swap_enable(struct nfp_net *nn, unsigned int *num_vecs,
 			 struct nfp_net_ring_set *rx,
 			 struct nfp_net_ring_set *tx)
 {
 	unsigned int r;
+	int err;
 
 	if (rx)
 		nfp_net_rx_ring_set_swap(nn, rx);
 	if (tx)
 		nfp_net_tx_ring_set_swap(nn, tx);
 
+	swap(*num_vecs, nn->num_r_vecs);
+
 	for (r = 0; r <	nn->max_r_vecs; r++)
 		nfp_net_vector_assign_rings(nn, &nn->r_vecs[r], r);
+
+	if (nn->netdev->real_num_rx_queues != nn->num_rx_rings) {
+		if (!netif_is_rxfh_configured(nn->netdev))
+			nfp_net_rss_init_itbl(nn);
+
+		err = netif_set_real_num_rx_queues(nn->netdev,
+						   nn->num_rx_rings);
+		if (err)
+			return err;
+	}
+
+	if (nn->netdev->real_num_tx_queues != nn->num_tx_rings) {
+		err = netif_set_real_num_tx_queues(nn->netdev,
+						   nn->num_tx_rings);
+		if (err)
+			return err;
+	}
 
 	return __nfp_net_set_config_and_enable(nn);
 }
@@ -2281,29 +2308,49 @@ nfp_net_ring_swap_enable(struct nfp_net *nn,
 static void
 nfp_net_ring_reconfig_down(struct nfp_net *nn,
 			   struct nfp_net_ring_set *rx,
-			   struct nfp_net_ring_set *tx)
+			   struct nfp_net_ring_set *tx,
+			   unsigned int num_vecs)
 {
 	nn->netdev->mtu = rx ? rx->mtu : nn->netdev->mtu;
 	nn->fl_bufsz = nfp_net_calc_fl_bufsz(nn, nn->netdev->mtu);
 	nn->rxd_cnt = rx ? rx->dcnt : nn->rxd_cnt;
 	nn->txd_cnt = tx ? tx->dcnt : nn->txd_cnt;
+	nn->num_rx_rings = rx ? rx->n_rings : nn->num_rx_rings;
+	nn->num_tx_rings = tx ? tx->n_rings : nn->num_tx_rings;
+	nn->num_r_vecs = num_vecs;
+
+	if (!netif_is_rxfh_configured(nn->netdev))
+		nfp_net_rss_init_itbl(nn);
 }
 
 int
 nfp_net_ring_reconfig(struct nfp_net *nn, struct nfp_net_ring_set *rx,
 		      struct nfp_net_ring_set *tx)
 {
+	unsigned int num_vecs, r;
 	int err;
 
+	num_vecs = max(rx ? rx->n_rings : nn->num_rx_rings,
+		       tx ? tx->n_rings : nn->num_tx_rings);
+
 	if (!netif_running(nn->netdev)) {
-		nfp_net_ring_reconfig_down(nn, rx, tx);
+		nfp_net_ring_reconfig_down(nn, rx, tx, num_vecs);
 		return 0;
 	}
 
 	/* Prepare new rings */
+	for (r = nn->num_r_vecs; r < num_vecs; r++) {
+		err = nfp_net_prepare_vector(nn, &nn->r_vecs[r], r);
+		if (err) {
+			num_vecs = r;
+			goto err_cleanup_vecs;
+		}
+	}
 	if (rx) {
-		if (!nfp_net_rx_ring_set_prepare(nn, rx))
-			return -ENOMEM;
+		if (!nfp_net_rx_ring_set_prepare(nn, rx)) {
+			err = -ENOMEM;
+			goto err_cleanup_vecs;
+		}
 	}
 	if (tx) {
 		if (!nfp_net_tx_ring_set_prepare(nn, tx)) {
@@ -2316,18 +2363,20 @@ nfp_net_ring_reconfig(struct nfp_net *nn, struct nfp_net_ring_set *rx,
 	nfp_net_close_stack(nn);
 	nfp_net_clear_config_and_disable(nn);
 
-	err = nfp_net_ring_swap_enable(nn, rx, tx);
+	err = nfp_net_ring_swap_enable(nn, &num_vecs, rx, tx);
 	if (err) {
 		int err2;
 
 		nfp_net_clear_config_and_disable(nn);
 
 		/* Try with old configuration and old rings */
-		err2 = nfp_net_ring_swap_enable(nn, rx, tx);
+		err2 = nfp_net_ring_swap_enable(nn, &num_vecs, rx, tx);
 		if (err2)
 			nn_err(nn, "Can't restore ring config - FW communication failed (%d,%d)\n",
 			       err, err2);
 	}
+	for (r = num_vecs - 1; r >= nn->num_r_vecs; r--)
+		nfp_net_cleanup_vector(nn, &nn->r_vecs[r]);
 
 	if (rx)
 		nfp_net_rx_ring_set_free(nn, rx);
@@ -2341,6 +2390,9 @@ nfp_net_ring_reconfig(struct nfp_net *nn, struct nfp_net_ring_set *rx,
 err_free_rx:
 	if (rx)
 		nfp_net_rx_ring_set_free(nn, rx);
+err_cleanup_vecs:
+	for (r = num_vecs - 1; r >= nn->num_r_vecs; r--)
+		nfp_net_cleanup_vector(nn, &nn->r_vecs[r]);
 	return err;
 }
 
@@ -2348,6 +2400,7 @@ static int nfp_net_change_mtu(struct net_device *netdev, int new_mtu)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
 	struct nfp_net_ring_set rx = {
+		.n_rings = nn->num_rx_rings,
 		.mtu = new_mtu,
 		.dcnt = nn->rxd_cnt,
 	};
