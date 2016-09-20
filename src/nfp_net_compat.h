@@ -77,10 +77,12 @@
 
 #define COMPAT__HAVE_VXLAN_OFFLOAD \
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0))
-#define COMPAT__HAVE_UDP_OFFLOAD \
-	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0))
 #define COMPAT__HAVE_NDO_FEATURES_CHECK \
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0))
+#define COMPAT__HAVE_UDP_OFFLOAD \
+	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0))
+#define COMPAT__HAVE_XDP \
+	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0))
 
 #ifndef GENMASK
 #define GENMASK(h, l) \
@@ -482,6 +484,16 @@ static inline void page_ref_inc(struct page *page)
 
 #ifndef ETH_MIN_MTU /* TODO: change to < 4.10 when released */
 #define is_tcf_mirred_egress_redirect is_tcf_mirred_redirect
+
+#if COMPAT__HAVE_XDP
+static inline const struct file_operations *
+debugfs_real_fops(const struct file *file)
+{
+	return file->f_path.dentry->d_fsdata;
+}
+#else
+#define debugfs_real_fops(x) (void *)1 /* Can't do NULL b/c of -Waddress */
+#endif /* COMPAT__HAVE_XDP */
 #endif
 
 #endif /* _NFP_NET_COMPAT_H_ */
