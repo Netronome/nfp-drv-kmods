@@ -442,6 +442,7 @@ struct nfp_stat_pair {
  * @netdev:             Backpointer to net_device structure
  * @is_vf:              Is the driver attached to a VF?
  * @bpf_offload_skip_sw:  Offloaded BPF program will not be rerun by cls_bpf
+ * @bpf_offload_xdp:	Offloaded BPF program is XDP
  * @ctrl:               Local copy of the control register/word.
  * @fl_bufsz:           Currently configured size of the freelist buffers
  * @rx_offset:		Offset in the RX buffers where packet data starts
@@ -503,6 +504,7 @@ struct nfp_net {
 
 	unsigned is_vf:1;
 	unsigned bpf_offload_skip_sw:1;
+	unsigned bpf_offload_xdp:1;
 
 	u32 ctrl;
 	u32 fl_bufsz;

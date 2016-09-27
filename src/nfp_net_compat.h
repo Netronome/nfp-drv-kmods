@@ -482,6 +482,13 @@ static inline void page_ref_inc(struct page *page)
 }
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 0)
+static inline int nfp_net_xdp_offload(struct nfp_net *nn, struct bpf_prog *prog)
+{
+	return -EINVAL;
+}
+#endif
+
 #ifndef ETH_MIN_MTU /* TODO: change to < 4.10 when released */
 #define is_tcf_mirred_egress_redirect is_tcf_mirred_redirect
 
