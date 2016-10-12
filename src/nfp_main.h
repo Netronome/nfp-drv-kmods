@@ -41,9 +41,6 @@
 
 #include <linux/types.h>
 
-/* Parameters visible to nfp3200_plat.c */
-
-extern bool nfp_mon_err;
 extern bool nfp_dev_cpp;
 extern bool nfp_net_vnic;
 

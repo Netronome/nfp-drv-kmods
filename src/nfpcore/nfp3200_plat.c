@@ -67,6 +67,8 @@
 
 #include "../nfp_main.h"
 
+bool nfp_mon_err;
+
 #define NFP_EXPL_START		(0xde000000)
 #define NFP_ARM_EM_START	(0xd6000000 + NFP_ARM_EM)
 

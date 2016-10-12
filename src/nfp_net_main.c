@@ -55,7 +55,6 @@
 #include "nfpcore/nfp.h"
 #include "nfpcore/nfp_cpp.h"
 #include "nfpcore/nfp_nffw.h"
-#include "nfpcore/nfp3200_pcie.h"
 #include "nfpcore/nfp6000_pcie.h"
 #include "nfpcore/nfp_dev_cpp.h"
 
@@ -79,7 +78,6 @@
  * @num_vfs:		Number of SR-IOV VFs enabled
  * @fw_loaded:		Is the firmware loaded?
  * @nfp_fallback:	Is the driver used in fallback mode?
- * @is_nfp3200:		Is PF for a NFP-3200 card?
  * @ddir:		Per-device debugfs directory
  * @num_ports:		Number of adapter ports
  * @ports:		Linked list of port structures (struct nfp_net)
@@ -100,7 +98,6 @@ struct nfp_net_pf {
 
 	bool fw_loaded;
 	bool nfp_fallback;
-	bool is_nfp3200;
 
 	struct dentry *ddir;
 
@@ -114,10 +111,8 @@ MODULE_PARM_DESC(nfp_dev_cpp,
 		 "Enable NFP CPP user-space access (default = true)");
 
 /* Default FW names */
-static char *nfp3200_net_fw = "nfp3200_net";
-static char *nfp6000_net_fw = "nfp6000_net";
-MODULE_FIRMWARE("netronome/nfp3200_net.cat");
-MODULE_FIRMWARE("netronome/nfp6000_net.cat");
+#define NFP_NET_FW_DEFAULT	"nfp6000_net"
+MODULE_FIRMWARE("netronome/" NFP_NET_FW_DEFAULT ".cat");
 
 static bool fw_stop_on_fail;
 module_param(fw_stop_on_fail, bool, 0444);
@@ -145,53 +140,11 @@ static const struct pci_device_id nfp_net_pci_device_ids[] = {
 	  PCI_VENDOR_ID_NETRONOME, PCI_ANY_ID,
 	  PCI_ANY_ID, 0,
 	},
-	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_NFP3200,
-	  PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_NFP3200,
-	  PCI_ANY_ID, 0,
-	},
-	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_NFP3200,
-	  PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_NFP3240,
-	  PCI_ANY_ID, 0,
-	},
 	{ 0, } /* Required last entry. */
 };
 MODULE_DEVICE_TABLE(pci, nfp_net_pci_device_ids);
 
 /* Firmware loading functions */
-
-/**
- * nfp_net_fw_select() - Select a FW image for a given device
- * @pdev:       PCI Device structure
- * @nfp:	NFP Device
- * @specific:	Model specific firmware
- *
- * Return: Default firmware image to load
- */
-static const char *nfp_net_fw_select(struct pci_dev *pdev,
-				     struct nfp_device *nfp,
-				     const char **specific)
-{
-	const char *partno;
-
-	partno = nfp_hwinfo_lookup(nfp, "assembly.partno");
-	if (partno)
-		*specific = partno;
-	else
-		*specific = NULL;
-
-	/* If no model,  now we simply use the default values defined
-	 * above.  However, in the future we should provide module
-	 * parameters allowing a user to change the default.  This
-	 * should also allow for overriding the default for individual
-	 * cards only.  We may have a per device no load option too,
-	 * in which case, nn->fw_name should be set to Null
-	 */
-
-	if (pdev->device == PCI_DEVICE_NFP3200)
-		return nfp3200_net_fw;
-	else
-		return nfp6000_net_fw;
-}
 
 /**
  * nfp_net_fw_find() - Find the correct firmware image
@@ -205,29 +158,22 @@ static int nfp_net_fw_find(struct pci_dev *pdev, struct nfp_device *nfp,
 			   const struct firmware **fwp)
 {
 	const struct firmware *fw = NULL;
-	const char *fw_default, *fw_model;
+	const char *fw_model;
 	char fw_name[128];
 	int err;
 
-	fw_default = nfp_net_fw_select(pdev, nfp, &fw_model);
-
-	if (!fw_default)
-		return -EINVAL;
+	fw_model = nfp_hwinfo_lookup(nfp, "assembly.partno");
 
 	if (fw_model) {
 		snprintf(fw_name,
 			 sizeof(fw_name), "netronome/%s.cat", fw_model);
-		fw_name[sizeof(fw_name)-1] = 0;
+		fw_name[sizeof(fw_name) - 1] = 0;
 		err = request_firmware(&fw, fw_name, &pdev->dev);
-	} else {
-		/* Use the default firmware if no model detected */
-		err = -1;
 	}
-
-	if (err < 0) {
-		snprintf(fw_name,
-			 sizeof(fw_name), "netronome/%s.cat", fw_default);
-		fw_name[sizeof(fw_name)-1] = 0;
+	if (!fw_model || err < 0) {
+		snprintf(fw_name, sizeof(fw_name),
+			 "netronome/%s.cat", NFP_NET_FW_DEFAULT);
+		fw_name[sizeof(fw_name) - 1] = 0;
 		err = request_firmware(&fw, fw_name, &pdev->dev);
 	}
 
@@ -273,7 +219,7 @@ static int nfp_net_fw_load(struct pci_dev *pdev, struct nfp_device *nfp)
 		err = 0;
 	}
 
-	if (fw && NFP_CPP_MODEL_IS_6000(nfp_cpp_model(cpp))) {
+	if (fw) {
 		/* Make sure we have the ARM service processor */
 		dev_info(&pdev->dev,
 			 "Waiting for NSP to respond (%d sec max).\n", timeout);
@@ -744,10 +690,6 @@ nfp_net_pf_free_netdevs(struct nfp_net_pf *pf)
 		nn = list_first_entry(&pf->ports, struct nfp_net, port_list);
 		list_del(&nn->port_list);
 
-		if (nn->is_nfp3200)
-			dma_free_coherent(&nn->pdev->dev,
-					  NFP3200_SPARE_DMA_SIZE,
-					  nn->spare_va, nn->spare_dma);
 		nfp_net_netdev_free(nn);
 	}
 }
@@ -759,7 +701,6 @@ nfp_net_pf_alloc_port_netdev(struct nfp_net_pf *pf, void __iomem *ctrl_bar,
 {
 	u32 n_tx_rings, n_rx_rings;
 	struct nfp_net *nn;
-	int err;
 
 	n_tx_rings = readl(ctrl_bar + NFP_NET_CFG_MAX_TXRINGS);
 	n_rx_rings = readl(ctrl_bar + NFP_NET_CFG_MAX_RXRINGS);
@@ -774,29 +715,10 @@ nfp_net_pf_alloc_port_netdev(struct nfp_net_pf *pf, void __iomem *ctrl_bar,
 	nn->tx_bar = tx_bar;
 	nn->rx_bar = rx_bar;
 	nn->is_vf = 0;
-	nn->is_nfp3200 = pf->is_nfp3200;
 	nn->stride_rx = stride;
 	nn->stride_tx = stride;
 
-	if (pf->is_nfp3200) {
-		/* YDS-155 workaround - FW will issue DMA reads of this mem */
-		nn->spare_va = dma_zalloc_coherent(&pf->pdev->dev,
-						   NFP3200_SPARE_DMA_SIZE,
-						   &nn->spare_dma, GFP_KERNEL);
-		if (!nn->spare_va) {
-			err = -ENOMEM;
-			goto err_netdev_free;
-		}
-
-		nn_writeq(nn, NFP_NET_CFG_SPARE_ADDR, nn->spare_dma);
-		nn_info(nn, "Enabled NFP-3200 workaround.\n");
-	}
-
 	return nn;
-
-err_netdev_free:
-	nfp_net_netdev_free(nn);
-	return ERR_PTR(err);
 }
 
 static int
@@ -981,20 +903,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	if (err)
 		goto err_pci_regions;
 
-	switch (pdev->device) {
-	case PCI_DEVICE_NFP3200:
-		pf->cpp = nfp_cpp_from_nfp3200_pcie(pdev, -1);
-		pf->is_nfp3200 = true;
-		break;
-	case PCI_DEVICE_NFP4000:
-	case PCI_DEVICE_NFP6000:
-		pf->cpp = nfp_cpp_from_nfp6000_pcie(pdev, -1);
-		pf->is_nfp3200 = false;
-		break;
-	default:
-		err = -ENODEV;
-		goto err_pci_regions;
-	}
+	pf->cpp = nfp_cpp_from_nfp6000_pcie(pdev, -1);
 
 	if (IS_ERR_OR_NULL(pf->cpp)) {
 		err = PTR_ERR(pf->cpp);
@@ -1004,11 +913,9 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	}
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
-	if (!pf->is_nfp3200) {
-		err = nfp_sriov_attr_add(&pdev->dev);
-		if (err < 0)
-			goto err_sriov;
-	}
+	err = nfp_sriov_attr_add(&pdev->dev);
+	if (err < 0)
+		goto err_sriov;
 #endif
 
 	nfp_dev = nfp_device_from_cpp(pf->cpp);
@@ -1064,10 +971,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	} else {
 		switch (fw_ver.major) {
 		case 1 ... 4:
-			if (pf->is_nfp3200)
-				stride = 2;
-			else
-				stride = 4;
+			stride = 4;
 			break;
 		default:
 			dev_err(&pdev->dev, "Unsupported Firmware ABI %d.%d.%d.%d\n",
@@ -1162,8 +1066,7 @@ err_cpp_free:
 	if (pf->nfp_dev_cpp)
 		nfp_platform_device_unregister(pf->nfp_dev_cpp);
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
-	if (!pf->is_nfp3200)
-		nfp_sriov_attr_remove(&pdev->dev);
+	nfp_sriov_attr_remove(&pdev->dev);
 err_sriov:
 #endif
 	nfp_cpp_free(pf->cpp);
@@ -1193,12 +1096,10 @@ static void nfp_net_pci_remove(struct pci_dev *pdev)
 	nfp_net_debugfs_dir_clean(&pf->ddir);
 
 #ifdef CONFIG_PCI_IOV
-	if (!pf->is_nfp3200) {
-		nfp_pcie_sriov_disable(pdev);
+	nfp_pcie_sriov_disable(pdev);
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0))
-		nfp_sriov_attr_remove(&pdev->dev);
+	nfp_sriov_attr_remove(&pdev->dev);
 #endif
-	}
 #endif
 	if (!pf->nfp_fallback) {
 		nfp_net_irqs_disable(pf->pdev);

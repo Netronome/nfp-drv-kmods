@@ -49,19 +49,12 @@
 #include "nfpcore/nfp.h"
 #include "nfpcore/nfp_cpp.h"
 
-#include "nfpcore/nfp3200_plat.h"
-#include "nfpcore/nfp3200_pcie.h"
 #include "nfpcore/nfp6000_pcie.h"
 
-#include "nfpcore/nfp_mon_err.h"
 #include "nfpcore/nfp_dev_cpp.h"
 #include "nfpcore/nfp_net_vnic.h"
 
 #include "nfp_main.h"
-
-bool nfp_mon_err;
-module_param(nfp_mon_err, bool, 0444);
-MODULE_PARM_DESC(nfp_mon_err, "ECC Monitor (default = false)");
 
 bool nfp_dev_cpp = true;
 module_param(nfp_dev_cpp, bool, 0444);
@@ -85,11 +78,6 @@ module_param(nfp_reset_on_exit, bool, 0444);
 MODULE_PARM_DESC(nfp_reset_on_exit,
 		 "Soft reset the NFP on exit (default = false)");
 
-static char *nfp3200_firmware;
-module_param(nfp3200_firmware, charp, 0444);
-MODULE_PARM_DESC(nfp3200_firmware,
-		 "NFP3200 firmware to load from /lib/firmware/ (optional)");
-
 static char *nfp6000_firmware;
 module_param(nfp6000_firmware, charp, 0444);
 MODULE_PARM_DESC(nfp6000_firmware,
@@ -100,7 +88,6 @@ struct nfp_pci {
 	struct msix_entry msix;
 	int fw_loaded;
 
-	struct platform_device *nfp_mon_err;
 	struct platform_device *nfp_dev_cpp;
 	struct platform_device *nfp_net_vnic;
 
@@ -125,14 +112,6 @@ static const struct pci_device_id nfp_pci_device_ids[] = {
 	  PCI_VENDOR_ID_NETRONOME, PCI_ANY_ID,
 	  PCI_ANY_ID, 0,
 	},
-	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_NFP3200,
-	  PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_NFP3200,
-	  PCI_ANY_ID, 0,
-	},
-	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_NFP3200,
-	  PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_NFP3240,
-	  PCI_ANY_ID, 0,
-	},
 	{ 0, } /* Required last entry. */
 };
 MODULE_DEVICE_TABLE(pci, nfp_pci_device_ids);
@@ -141,7 +120,7 @@ MODULE_DEVICE_TABLE(pci, nfp_pci_device_ids);
  * SR-IOV support
  */
 
-static int nfp6000_pcie_sriov_enable(struct pci_dev *pdev, int num_vfs)
+static int nfp_pcie_sriov_enable(struct pci_dev *pdev, int num_vfs)
 {
 #ifdef CONFIG_PCI_IOV
 	struct nfp_pci *nfp = pci_get_drvdata(pdev);
@@ -185,7 +164,7 @@ err_out:
 	return 0;
 }
 
-static int nfp6000_pcie_sriov_disable(struct pci_dev *pdev)
+static int nfp_pcie_sriov_disable(struct pci_dev *pdev)
 {
 #ifdef CONFIG_PCI_IOV
 	struct nfp_pci *nfp = pci_get_drvdata(pdev);
@@ -210,12 +189,12 @@ static int nfp6000_pcie_sriov_disable(struct pci_dev *pdev)
 	return 0;
 }
 
-static int nfp6000_pcie_sriov_configure(struct pci_dev *pdev, int num_vfs)
+static int nfp_pcie_sriov_configure(struct pci_dev *pdev, int num_vfs)
 {
 	if (num_vfs == 0)
-		return nfp6000_pcie_sriov_disable(pdev);
+		return nfp_pcie_sriov_disable(pdev);
 	else
-		return nfp6000_pcie_sriov_enable(pdev, num_vfs);
+		return nfp_pcie_sriov_enable(pdev, num_vfs);
 }
 
 /**
@@ -226,37 +205,24 @@ static int nfp6000_pcie_sriov_configure(struct pci_dev *pdev, int num_vfs)
 static int nfp_pcie_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
 {
 	const struct firmware *fw = NULL;
-	const char *fw_name;
-	u32 model = nfp_cpp_model(cpp);
 	int err, timeout = 30; /* Seconds */
 	struct nfp_device *nfp;
-	int need_armsp;
 
-	if (NFP_CPP_MODEL_IS_3200(model)) {
-		fw_name = nfp3200_firmware;
-		need_armsp = 0;
-	} else if (NFP_CPP_MODEL_IS_6000(model)) {
-		fw_name = nfp6000_firmware;
-		need_armsp = 1;
-	} else {
-		return 0;
-	}
-
-	if (!fw_name && !nfp_reset)
+	if (!nfp6000_firmware && !nfp_reset)
 		return 0;
 
 	nfp = nfp_device_from_cpp(cpp);
 	if (!nfp)
 		return 0;
 
-	if (fw_name) {
-		err = request_firmware(&fw, fw_name, &pdev->dev);
+	if (nfp6000_firmware) {
+		err = request_firmware(&fw, nfp6000_firmware, &pdev->dev);
 		if (err < 0)
 			goto exit_close;
 	}
 
 	/* Make sure we have the ARM service processor */
-	if (fw && need_armsp) {
+	if (fw) {
 		dev_info(&pdev->dev,
 			 "Waiting for NSP to respond (%d sec max).\n", timeout);
 		for (; timeout > 0; timeout--) {
@@ -274,18 +240,14 @@ static int nfp_pcie_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
 		}
 	}
 
-	if (fw || nfp_reset) {
-		dev_info(&pdev->dev, "NFP soft-reset %s.\n",
-			 nfp_reset ? "requested"
-				   : "implied by firmware request");
-		err = nfp_reset_soft(nfp);
-		if (err < 0) {
-			dev_warn(&pdev->dev,
-				 "Could not soft-reset, err = %d\n", err);
-			goto exit_release_fw;
-		}
-		dev_info(&pdev->dev, "NFP soft-reset completed\n");
+	dev_info(&pdev->dev, "NFP soft-reset %s.\n",
+		 nfp_reset ? "requested" : "implied by firmware request");
+	err = nfp_reset_soft(nfp);
+	if (err < 0) {
+		dev_warn(&pdev->dev, "Could not soft-reset, err = %d\n", err);
+		goto exit_release_fw;
 	}
+	dev_info(&pdev->dev, "NFP soft-reset completed\n");
 
 	if (fw) {
 		err = nfp_device_lock(nfp);
@@ -306,10 +268,10 @@ static int nfp_pcie_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
 
 	nfp_device_close(nfp);
 
-	if (fw_name)
-		dev_info(&pdev->dev, "Loaded FW image: %s\n", fw_name);
+	if (nfp6000_firmware)
+		dev_info(&pdev->dev, "Loaded FW image: %s\n", nfp6000_firmware);
 
-	return fw_name ? 1 : 0;
+	return nfp6000_firmware ? 1 : 0;
 
 exit_unlock:
 	nfp_device_unlock(nfp);
@@ -318,9 +280,9 @@ exit_release_fw:
 exit_close:
 	nfp_device_close(nfp);
 
-	if (err < 0 && fw_name) {
+	if (err < 0 && nfp6000_firmware) {
 		dev_err(&pdev->dev, "Could not %s firmware \"%s\", err %d\n",
-			fw ? "load" : "request", fw_name, err);
+			fw ? "load" : "request", nfp6000_firmware, err);
 	}
 
 	return err;
@@ -377,7 +339,7 @@ static ssize_t store_sriov_numvfs(struct device *dev,
 
 	if (num_vfs == 0) {
 		/* disable VFs */
-		ret = nfp6000_pcie_sriov_configure(pdev, 0);
+		ret = nfp_pcie_sriov_configure(pdev, 0);
 		if (ret < 0)
 			return ret;
 		return count;
@@ -390,7 +352,7 @@ static ssize_t store_sriov_numvfs(struct device *dev,
 		return -EBUSY;
 	}
 
-	ret = nfp6000_pcie_sriov_configure(pdev, num_vfs);
+	ret = nfp_pcie_sriov_configure(pdev, num_vfs);
 	if (ret < 0)
 		return ret;
 
@@ -427,13 +389,8 @@ static void nfp_sriov_attr_remove(struct device *dev)
 static void register_pf(struct nfp_pci *np)
 {
 	int pcie_unit;
-	u32 model = nfp_cpp_model(np->cpp);
 
 	pcie_unit = NFP_CPP_INTERFACE_UNIT_of(nfp_cpp_interface(np->cpp));
-
-	if (nfp_mon_err && NFP_CPP_MODEL_IS_3200(model))
-		np->nfp_mon_err = nfp_platform_device_register(np->cpp,
-				NFP_MON_ERR_TYPE);
 
 	if (nfp_dev_cpp)
 		np->nfp_dev_cpp = nfp_platform_device_register(np->cpp,
@@ -492,27 +449,14 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 		irq = -1;
 	}
 
-	switch (pdev->device) {
-	case PCI_DEVICE_NFP3200:
-		np->cpp = nfp_cpp_from_nfp3200_pcie(pdev, irq);
-		break;
-	case PCI_DEVICE_NFP4000:
-	case PCI_DEVICE_NFP6000:
-	case PCI_DEVICE_NFP6010:
-		np->cpp = nfp_cpp_from_nfp6000_pcie(pdev, irq);
+	np->cpp = nfp_cpp_from_nfp6000_pcie(pdev, irq);
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
-		if (!IS_ERR_OR_NULL(np->cpp)) {
-			err = nfp_sriov_attr_add(&pdev->dev);
-			if (err < 0)
-				goto err_nfp_cpp;
-		}
-#endif
-		break;
-	default:
-		err = -ENODEV;
-		goto err_nfp_cpp;
+	if (!IS_ERR_OR_NULL(np->cpp)) {
+		err = nfp_sriov_attr_add(&pdev->dev);
+		if (err < 0)
+			goto err_nfp_cpp;
 	}
-
+#endif
 	if (IS_ERR_OR_NULL(np->cpp)) {
 		err = PTR_ERR(np->cpp);
 		if (err >= 0)
@@ -552,17 +496,11 @@ static void nfp_pci_remove(struct pci_dev *pdev)
 	struct nfp_pci *np = pci_get_drvdata(pdev);
 
 	nfp_platform_device_unregister(np->nfp_net_vnic);
-	nfp_platform_device_unregister(np->nfp_mon_err);
 
-	nfp6000_pcie_sriov_disable(pdev);
+	nfp_pcie_sriov_disable(pdev);
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0))
-#ifdef CONFIG_PCI_IOV
-	if (pdev->device == PCI_DEVICE_NFP6010 ||
-	    pdev->device == PCI_DEVICE_NFP6000 ||
-	    pdev->device == PCI_DEVICE_NFP4000)
-		nfp_sriov_attr_remove(&pdev->dev);
-#endif
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
+	nfp_sriov_attr_remove(&pdev->dev);
 #endif
 
 	if (nfp_reset_on_exit) {
@@ -600,7 +538,7 @@ static struct pci_driver nfp_pcie_driver = {
 	.probe       = nfp_pci_probe,
 	.remove      = nfp_pci_remove,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
-	.sriov_configure = nfp6000_pcie_sriov_configure,
+	.sriov_configure = nfp_pcie_sriov_configure,
 #endif
 };
 
@@ -625,10 +563,6 @@ static int __init nfp_main_init(void)
 	if (err < 0)
 		goto fail_cppcore_init;
 
-	err = nfp_mon_err_init();
-	if (err < 0)
-		goto fail_mon_err_init;
-
 	err = nfp_dev_cpp_init();
 	if (err < 0)
 		goto fail_dev_cpp_init;
@@ -637,10 +571,6 @@ static int __init nfp_main_init(void)
 	if (err < 0)
 		goto fail_net_vnic_init;
 
-	err = nfp3200_plat_init();
-	if (err < 0)
-		goto fail_plat_init;
-
 	err = pci_register_driver(&nfp_pcie_driver);
 	if (err < 0)
 		goto fail_pci_init;
@@ -648,14 +578,10 @@ static int __init nfp_main_init(void)
 	return err;
 
 fail_pci_init:
-	nfp3200_plat_exit();
-fail_plat_init:
 	nfp_net_vnic_exit();
 fail_net_vnic_init:
 	nfp_dev_cpp_exit();
 fail_dev_cpp_init:
-	nfp_mon_err_exit();
-fail_mon_err_init:
 	nfp_cppcore_exit();
 fail_cppcore_init:
 	return err;
@@ -664,9 +590,7 @@ fail_cppcore_init:
 static void __exit nfp_main_exit(void)
 {
 	pci_unregister_driver(&nfp_pcie_driver);
-	nfp3200_plat_exit();
 	nfp_net_vnic_exit();
-	nfp_mon_err_exit();
 	nfp_dev_cpp_exit();
 	nfp_cppcore_exit();
 }

@@ -84,9 +84,7 @@ static void nfp_netvf_get_mac_addr(struct nfp_net *nn)
 	u8 mac_addr[ETH_ALEN];
 
 	put_unaligned_be32(nn_readl(nn, NFP_NET_CFG_MACADDR + 0), &mac_addr[0]);
-	/* We can't do readw for NFP-3200 compatibility */
-	put_unaligned_be16(nn_readl(nn, NFP_NET_CFG_MACADDR + 4) >> 16,
-			   &mac_addr[4]);
+	put_unaligned_be16(nn_readw(nn, NFP_NET_CFG_MACADDR + 6), &mac_addr[4]);
 
 	if (!is_valid_ether_addr(mac_addr)) {
 		eth_hw_addr_random(nn->netdev);
@@ -201,20 +199,10 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 		max_rx_rings = (rx_bar_sz / NFP_QCP_QUEUE_ADDR_SZ) / 2;
 	}
 
-	/* XXX Implement a workaround for THB-350 here.  Ideally, we
-	 * have a different PCI ID for A rev VFs.
-	 */
-	switch (pdev->device) {
-	case PCI_DEVICE_NFP6000VF:
-		startq = readl(ctrl_bar + NFP_NET_CFG_START_TXQ);
-		tx_bar_off = NFP_PCIE_QUEUE(startq);
-		startq = readl(ctrl_bar + NFP_NET_CFG_START_RXQ);
-		rx_bar_off = NFP_PCIE_QUEUE(startq);
-		break;
-	default:
-		err = -ENODEV;
-		goto err_ctrl_unmap;
-	}
+	startq = readl(ctrl_bar + NFP_NET_CFG_START_TXQ);
+	tx_bar_off = NFP_PCIE_QUEUE(startq);
+	startq = readl(ctrl_bar + NFP_NET_CFG_START_RXQ);
+	rx_bar_off = NFP_PCIE_QUEUE(startq);
 
 	/* Allocate and initialise the netdev */
 	nn = nfp_net_netdev_alloc(pdev, max_tx_rings, max_rx_rings);
@@ -227,7 +215,6 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 	nn->fw_ver = fw_ver;
 	nn->ctrl_bar = ctrl_bar;
 	nn->is_vf = 1;
-	nn->is_nfp3200 = 0;
 	nn->stride_tx = stride;
 	nn->stride_rx = stride;
 

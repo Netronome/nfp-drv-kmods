@@ -109,9 +109,6 @@
 /* Offload definitions */
 #define NFP_NET_N_VXLAN_PORTS	(NFP_NET_CFG_VXLAN_SZ / sizeof(__be16))
 
-/* Workaround definitions */
-#define NFP3200_SPARE_DMA_SIZE	128
-
 /* Forward declarations */
 struct nfp_net;
 struct nfp_net_r_vector;
@@ -432,7 +429,6 @@ struct nfp_stat_pair {
  * @pdev:               Backpointer to PCI device
  * @netdev:             Backpointer to net_device structure
  * @is_vf:              Is the driver attached to a VF?
- * @is_nfp3200:         Is the driver for a NFP-3200 card?
  * @bpf_offload_skip_sw:  Offloaded BPF program will not be rerun by cls_bpf
  * @ctrl:               Local copy of the control register/word.
  * @fl_bufsz:           Currently configured size of the freelist buffers
@@ -484,8 +480,6 @@ struct nfp_stat_pair {
  * @ctrl_bar:           Pointer to mapped control BAR
  * @tx_bar:             Pointer to mapped TX queues
  * @rx_bar:             Pointer to mapped FL/RX queues
- * @spare_va:           Pointer to a spare mapped area to be used by the NFP
- * @spare_dma:          DMA address for spare area
  * @debugfs_dir:	Device directory in debugfs
  * @port_list:		Entry on device port list
  */
@@ -494,7 +488,6 @@ struct nfp_net {
 	struct net_device *netdev;
 
 	unsigned is_vf:1;
-	unsigned is_nfp3200:1;
 	unsigned bpf_offload_skip_sw:1;
 
 	u32 ctrl;
@@ -570,9 +563,6 @@ struct nfp_net {
 	u8 __iomem *tx_bar;
 	u8 __iomem *rx_bar;
 
-	void *spare_va;
-	dma_addr_t spare_dma;
-
 	struct dentry *debugfs_dir;
 
 	struct list_head port_list;
@@ -591,16 +581,13 @@ static inline void nn_writeb(struct nfp_net *nn, int off, u8 val)
 	writeb(val, nn->ctrl_bar + off);
 }
 
-/* NFP-3200 can't handle 16-bit accesses too well */
 static inline u16 nn_readw(struct nfp_net *nn, int off)
 {
-	WARN_ON_ONCE(nn->is_nfp3200);
 	return readw(nn->ctrl_bar + off);
 }
 
 static inline void nn_writew(struct nfp_net *nn, int off, u16 val)
 {
-	WARN_ON_ONCE(nn->is_nfp3200);
 	writew(val, nn->ctrl_bar + off);
 }
 
@@ -648,7 +635,7 @@ static inline void nn_pci_flush(struct nfp_net *nn)
 #define NFP_QCP_QUEUE_STS_HI			0x000c
 #define NFP_QCP_QUEUE_STS_HI_WRITEPTR_mask	0x3ffff
 
-/* The offset of a QCP queues in the PCIe Target (same on NFP3200 and NFP6000 */
+/* The offset of a QCP queues in the PCIe Target */
 #define NFP_PCIE_QUEUE(_q) (0x80000 + (NFP_QCP_QUEUE_ADDR_SZ * ((_q) & 0xff)))
 
 /* nfp_qcp_ptr - Read or Write Pointer of a queue */

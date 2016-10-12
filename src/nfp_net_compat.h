@@ -355,16 +355,6 @@ static inline netdev_features_t vlan_features_check(const struct sk_buff *skb,
 }
 #endif
 
-static inline struct list_head *
-compat_get_msi_list_head(struct pci_dev *pdev)
-{
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 3, 0)
-	return &pdev->msi_list;
-#else
-	return &pdev->dev.msi_list;
-#endif
-}
-
 #if !COMPAT__HAVE_NDO_FEATURES_CHECK
 static inline bool compat_is_vxlan(struct sk_buff *skb, u8 l4_hdr)
 {
