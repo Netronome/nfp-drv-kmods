@@ -119,6 +119,22 @@
 #define NETIF_F_CSUM_MASK	NETIF_F_ALL_CSUM
 #endif
 
+#ifndef SPEED_5000
+#define SPEED_5000		5000
+#endif
+#ifndef SPEED_25000
+#define SPEED_25000		25000
+#endif
+#ifndef SPEED_40000
+#define SPEED_40000		40000
+#endif
+#ifndef SPEED_50000
+#define SPEED_50000		50000
+#endif
+#ifndef SPEED_100000
+#define SPEED_100000		100000
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)
 #define NAPI_POLL_WEIGHT	64
 #define NETIF_F_GSO_GRE		0

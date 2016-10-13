@@ -148,6 +148,56 @@ static void nfp_net_get_drvinfo(struct net_device *netdev,
 	drvinfo->regdump_len = NFP_NET_CFG_BAR_SZ;
 }
 
+/**
+ * nfp_get_settings - Get Link Speed settings
+ * @netdev:	network interface device structure
+ * @ecmd:	ethtool command
+ *
+ * Reports speed settings based on info in the BAR provided by the fw.
+ */
+static int nfp_net_get_settings(struct net_device *netdev,
+				struct ethtool_cmd *ecmd)
+{
+	static const u32 ls_to_ethtool[] = {
+		[NFP_NET_CFG_STS_LINK_RATE_UNSUPPORTED]	= 0,
+		[NFP_NET_CFG_STS_LINK_RATE_UNKNOWN]	= SPEED_UNKNOWN,
+		[NFP_NET_CFG_STS_LINK_RATE_1G]		= SPEED_1000,
+		[NFP_NET_CFG_STS_LINK_RATE_10G]		= SPEED_10000,
+		[NFP_NET_CFG_STS_LINK_RATE_25G]		= SPEED_25000,
+		[NFP_NET_CFG_STS_LINK_RATE_40G]		= SPEED_40000,
+		[NFP_NET_CFG_STS_LINK_RATE_50G]		= SPEED_50000,
+		[NFP_NET_CFG_STS_LINK_RATE_100G]	= SPEED_100000,
+	};
+	struct nfp_net *nn = netdev_priv(netdev);
+	u32 sts, ls;
+
+	if (nn->fw_ver.major < 4 ||
+	    (nn->fw_ver.major == 4 && nn->fw_ver.minor < 1))
+		return -EOPNOTSUPP;
+
+	sts = nn_readl(nn, NFP_NET_CFG_STS);
+
+	ls = (sts >> NFP_NET_CFG_STS_LINK_RATE_SHIFT) &
+		NFP_NET_CFG_STS_LINK_RATE_MASK;
+
+	if (ls == NFP_NET_CFG_STS_LINK_RATE_UNSUPPORTED)
+		return -EOPNOTSUPP;
+
+	if (ls == NFP_NET_CFG_STS_LINK_RATE_UNKNOWN ||
+	    ls >= ARRAY_SIZE(ls_to_ethtool)) {
+		ethtool_cmd_speed_set(ecmd, SPEED_UNKNOWN);
+		ecmd->duplex = DUPLEX_UNKNOWN;
+		return 0;
+	}
+
+	ethtool_cmd_speed_set(ecmd, ls_to_ethtool[ls]);
+
+	/* only support full duplex */
+	ecmd->duplex = DUPLEX_FULL;
+
+	return 0;
+}
+
 static void nfp_net_get_ringparam(struct net_device *netdev,
 				  struct ethtool_ringparam *ring)
 {
@@ -693,6 +743,7 @@ static int nfp_net_set_coalesce(struct net_device *netdev,
 static const struct ethtool_ops nfp_net_ethtool_ops = {
 	.get_drvinfo		= nfp_net_get_drvinfo,
 	.get_link		= ethtool_op_get_link,
+	.get_settings		= nfp_net_get_settings,
 	.get_ringparam		= nfp_net_get_ringparam,
 	.set_ringparam		= nfp_net_set_ringparam,
 	.get_strings		= nfp_net_get_strings,
