@@ -449,4 +449,8 @@ static inline void udp_tunnel_get_rx_info(struct net_device *netdev)
 }
 #endif
 
+#ifndef ETH_MIN_MTU /* TODO: change to < 4.10 when released */
+#define is_tcf_mirred_egress_redirect is_tcf_mirred_redirect
+#endif
+
 #endif /* _NFP_NET_COMPAT_H_ */
