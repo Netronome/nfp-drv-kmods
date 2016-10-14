@@ -101,6 +101,9 @@
 #ifndef NETIF_F_HW_VLAN_CTAG_TX
 #define NETIF_F_HW_VLAN_CTAG_TX NETIF_F_HW_VLAN_TX
 #endif
+#ifndef NETIF_F_HW_TC
+#define NETIF_F_HW_TC	NETDEV_FEATURE_COUNT
+#endif
 #ifndef ETH_RSS_HASH_NO_CHANGE
 #define ETH_RSS_HASH_NO_CHANGE	0
 #endif
@@ -444,10 +447,6 @@ static inline void udp_tunnel_get_rx_info(struct net_device *netdev)
 {
 	vxlan_get_rx_port(netdev);
 }
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0)
-#define NETIF_F_HW_TC	NETDEV_FEATURE_COUNT
 #endif
 
 #endif /* _NFP_NET_COMPAT_H_ */
