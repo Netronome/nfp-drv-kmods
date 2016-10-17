@@ -3314,6 +3314,13 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	/* Finalise the netdev setup */
 	netdev->netdev_ops = &nfp_net_netdev_ops;
 	netdev->watchdog_timeo = msecs_to_jiffies(5 * 1000);
+
+#if LINUX_RELEASE_4_10
+	/* MTU range: 68 - hw-specific max */
+	netdev->min_mtu = ETH_MIN_MTU;
+	netdev->max_mtu = nn->max_mtu;
+#endif
+
 	netif_carrier_off(netdev);
 
 	nfp_net_set_ethtool_ops(netdev);
