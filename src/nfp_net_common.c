@@ -343,8 +343,8 @@ void
 nfp_net_irqs_assign(struct nfp_net *nn, struct msix_entry *irq_entries,
 		    unsigned int n)
 {
-	nn->num_irqs = n;
-	nn->num_r_vecs = nn->num_irqs - NFP_NET_NON_Q_VECTORS;
+	nn->max_r_vecs = n - NFP_NET_NON_Q_VECTORS;
+	nn->num_r_vecs = nn->max_r_vecs;
 
 	memcpy(nn->irq_entries, irq_entries, sizeof(*irq_entries) * n);
 
