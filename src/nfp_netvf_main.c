@@ -98,13 +98,13 @@ static void nfp_netvf_get_mac_addr(struct nfp_net *nn)
 static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 			       const struct pci_device_id *pci_id)
 {
-	unsigned int wanted_irqs, num_irqs;
 	struct nfp_net_fw_version fw_ver;
 	int max_tx_rings, max_rx_rings;
 	u32 tx_bar_off, rx_bar_off;
 	u32 tx_bar_sz, rx_bar_sz;
 	int tx_bar_no, rx_bar_no;
 	struct nfp_net_vf *vf;
+	unsigned int num_irqs;
 	u8 __iomem *ctrl_bar;
 	struct nfp_net *nn;
 	u32 startq;
@@ -269,9 +269,9 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 
 	nfp_netvf_get_mac_addr(nn);
 
-	wanted_irqs = nfp_net_irqs_wanted(nn);
 	num_irqs = nfp_net_irqs_alloc(pdev, vf->irq_entries,
-				      NFP_NET_MIN_PORT_IRQS, wanted_irqs);
+				      NFP_NET_MIN_PORT_IRQS,
+				      NFP_NET_NON_Q_VECTORS + nn->num_r_vecs);
 	if (!num_irqs) {
 		nn_warn(nn, "Unable to allocate MSI-X Vectors. Exiting\n");
 		err = -EIO;

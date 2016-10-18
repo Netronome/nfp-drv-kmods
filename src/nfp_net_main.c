@@ -808,7 +808,7 @@ nfp_net_pf_spawn_netdevs(struct nfp_net_pf *pf, struct nfp_device *nfp_dev,
 	/* Get MSI-X vectors */
 	wanted_irqs = 0;
 	list_for_each_entry(nn, &pf->ports, port_list)
-		wanted_irqs += nfp_net_irqs_wanted(nn);
+		wanted_irqs += NFP_NET_NON_Q_VECTORS + nn->num_r_vecs;
 	pf->irq_entries = kcalloc(wanted_irqs, sizeof(*pf->irq_entries),
 				  GFP_KERNEL);
 	if (!pf->irq_entries) {
