@@ -466,6 +466,13 @@ static inline void udp_tunnel_get_rx_info(struct net_device *netdev)
 }
 #endif
 
+#ifndef IFF_RXFH_CONFIGURED
+static inline bool netif_is_rxfh_configured(const struct net_device *netdev)
+{
+	return false;
+}
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0)
 static inline void page_ref_inc(struct page *page)
 {
