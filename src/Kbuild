@@ -33,6 +33,7 @@ endif
 
 override EXTRA_CFLAGS += -DCONFIG_NFP_NET_DEBUG
 override EXTRA_CFLAGS += $(call cc-option, -Wenum-compare,)
+override EXTRA_CFLAGS += $(call cc-option, -Wmaybe-uninitialized,)
 override EXTRA_CFLAGS += -I$(src)
 
 ifneq ($(W),)
