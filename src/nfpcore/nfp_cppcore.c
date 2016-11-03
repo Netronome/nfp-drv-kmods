@@ -67,6 +67,13 @@
 #define NFP_ARM_GCSR_SOFTMODEL2                              0x0000014c
 #define NFP_ARM_GCSR_SOFTMODEL3                              0x00000150
 
+/* Load module regardless of quirk_nfp6000 being on the kernel
+ */
+static int ignore_quirks;
+module_param(ignore_quirks, int, 0644);
+MODULE_PARM_DESC(ignore_quirks,
+		 "Ignore quirks and load even if the kernel does not have quirk_nfp6000");
+
 struct nfp_cpp_resource {
 	struct list_head list;
 	const char *name;
@@ -2107,6 +2114,15 @@ int nfp_cpp_mutex_trylock(struct nfp_cpp_mutex *mutex)
  */
 int nfp_cppcore_init(void)
 {
+#ifndef PCI_DEVICE_ID_NETRONOME_NFP4000
+	if (!ignore_quirks) {
+		pr_err("Error: this kernel does not have quirk_nfp6000\n");
+		pr_err("Please contact support@netronome.com for more information\n");
+		return -EINVAL;
+	}
+	pr_warn("Warning: this kernel does not have quirk_nfp6000\n");
+	pr_warn("Please contact support@netronome.com for more information\n");
+#endif
 	pr_info("Netronome NFP CPP API\n");
 
 	mutex_init(&nfp_cpp_id_lock);
