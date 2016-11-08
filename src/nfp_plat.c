@@ -56,17 +56,12 @@
 
 #include "nfpcore/nfp_arm.h"
 #include "nfpcore/nfp_cpp.h"
-#include "nfpcore/nfp3200/nfp3200.h"
-#include "nfpcore/nfp3200/nfp_em.h"
 
 #include "nfpcore/nfp_target.h"
 
-#include "nfpcore/nfp_mon_err.h"
 #include "nfpcore/nfp_net_vnic.h"
 
 #include "nfp_main.h"
-
-bool nfp_mon_err;
 
 #define NFP_EXPL_START		(0xde000000)
 #define NFP_ARM_EM_START	(0xd6000000 + NFP_ARM_EM)
@@ -89,7 +84,6 @@ struct nfp_plat {
 	struct device *dev;
 
 	struct platform_device *nfp_dev_cpp;
-	struct platform_device *nfp_mon_err;
 	struct platform_device *nfp_net_vnic[4];
 	struct nfp_cpp *cpp;
 	struct nfp_cpp_operations op;
@@ -917,9 +911,6 @@ static const struct of_device_id nfp_plat_match[] = {
 		.compatible = "netronome,nfp6000-arm-cpp",
 		.data = nfp6000_target_pushpull
 	}, {
-		.compatible = "netronome,nfp3200-arm-cpp",
-		.data = nfp3200_target_pushpull
-	}, {
 	},
 };
 MODULE_DEVICE_TABLE(of, nfp_plat_match);
@@ -1228,10 +1219,6 @@ static int nfp_plat_probe(struct platform_device *pdev)
 		priv->nfp_dev_cpp = nfp_platform_device_register(priv->cpp,
 							    NFP_DEV_CPP_TYPE);
 
-	if (nfp_mon_err && NFP_CPP_MODEL_IS_3200(model))
-		priv->nfp_mon_err = nfp_platform_device_register(priv->cpp,
-							    NFP_MON_ERR_TYPE);
-
 	if (nfp_net_vnic) {
 		if (NFP_CPP_MODEL_IS_3200(model))
 			vnic_units = 1;
@@ -1266,7 +1253,6 @@ static int nfp_plat_remove(struct platform_device *pdev)
 	for (i = 0; i < ARRAY_SIZE(priv->nfp_net_vnic); i++)
 		nfp_platform_device_unregister(priv->nfp_net_vnic[i]);
 
-	nfp_platform_device_unregister(priv->nfp_mon_err);
 	nfp_platform_device_unregister(priv->nfp_dev_cpp);
 	nfp_cpp_free(priv->cpp);
 

@@ -43,7 +43,6 @@
 
 #include "nfp_cpp.h"
 
-#include "nfp3200/nfp3200.h"
 #include "nfp6000/nfp6000.h"
 
 #define P32 1
@@ -142,40 +141,6 @@ static inline int nfp3200_cap(u32 cpp_id)
 	AT(NFP_CPP_ACTION_RW, 1, P32, P32);
 	default:
 		return target_rw(cpp_id, P32, 0, 0);
-	}
-}
-
-static inline int nfp3200_target_pushpull(u32 cpp_id, u64 address)
-{
-	switch (NFP_CPP_ID_TARGET_of(cpp_id)) {
-	case NFP_CPP_TARGET_MSF0:
-	case NFP_CPP_TARGET_MSF1:
-		return target_rw(cpp_id, P32, 0, 0);
-	case NFP_CPP_TARGET_QDR:
-		return target_rw(cpp_id, P32, 0, 0);
-	case NFP_CPP_TARGET_HASH:
-		return target_rw(cpp_id, P32, 0, 0);
-	case NFP_CPP_TARGET_MU:
-		return nfp3200_mu(cpp_id);
-	case NFP_CPP_TARGET_GLOBAL_SCRATCH:
-		return target_rw(cpp_id, P32, 0, 0);
-	case NFP_CPP_TARGET_PCIE:
-		return nfp3200_pci(cpp_id);
-	case NFP_CPP_TARGET_ARM:
-		if (address < 0x10000)
-			return target_rw(cpp_id, P64, 0, 0);
-		else
-			return target_rw(cpp_id, P32, 0, 0);
-	case NFP_CPP_TARGET_CRYPTO:
-		return target_rw(cpp_id, P64, 0, 0);
-	case NFP_CPP_TARGET_CAP:
-		return nfp3200_cap(cpp_id);
-	case NFP_CPP_TARGET_CT:
-		return target_rw(cpp_id, P32, 0, 0);
-	case NFP_CPP_TARGET_CLS:
-		return target_rw(cpp_id, P32, 0, 0);
-	default:
-		return -EINVAL;
 	}
 }
 
@@ -473,39 +438,6 @@ static inline int nfp_target_pushpull_width(int pp, int write_not_read)
 		return PULL_WIDTH(pp);
 	else
 		return PUSH_WIDTH(pp);
-}
-
-static inline int nfp3200_target_action_width(u32 cpp_id, u64 address,
-					      int write_not_read)
-{
-	int pp;
-
-	pp = nfp3200_target_pushpull(cpp_id, address);
-
-	return nfp_target_pushpull_width(pp, write_not_read);
-}
-
-static inline int nfp6000_target_action_width(u32 cpp_id, u64 address,
-					      int write_not_read)
-{
-	int pp;
-
-	pp = nfp6000_target_pushpull(cpp_id, address);
-
-	return nfp_target_pushpull_width(pp, write_not_read);
-}
-
-static inline int nfp_target_action_width(u32 model, u32 cpp_id,
-					  u64 address, int write_not_read)
-{
-	if (NFP_CPP_MODEL_IS_3200(model))
-		return nfp3200_target_action_width(cpp_id, address,
-						   write_not_read);
-	else if (NFP_CPP_MODEL_IS_6000(model))
-		return nfp6000_target_action_width(cpp_id, address,
-						   write_not_read);
-	else
-		return -EINVAL;
 }
 
 static inline int _nfp6000_cppat_mu_locality_lsb(int mode, int addr40)

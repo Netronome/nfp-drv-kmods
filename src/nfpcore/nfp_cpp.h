@@ -552,11 +552,9 @@ void nfp_em_manager_release(struct nfp_em_manager *evm, int filter);
 
 /* Implemented in nfp_cpplib.c */
 
-#include "nfp3200/nfp3200.h"
 #include "nfp6000/nfp6000.h"
 
 int __nfp_cpp_model_autodetect(struct nfp_cpp *cpp, u32 *model);
-int __nfp_cpp_model_fixup(struct nfp_cpp *cpp);
 
 /* Helpers for the nfpXXXX_pcie.c interfaces */
 

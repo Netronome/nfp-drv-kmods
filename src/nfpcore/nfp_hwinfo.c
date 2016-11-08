@@ -70,9 +70,6 @@
 #include "nfp.h"
 #include "nfp_cpp.h"
 
-#include "nfp3200/nfp3200.h"
-#include "nfp3200/nfp_xpb.h"
-#include "nfp3200/nfp_pl.h"
 #include <asm/byteorder.h>
 
 #define HWINFO_SIZE_MIN	0x100
@@ -288,12 +285,7 @@ static int hwinfo_fetch_nowait(struct nfp_device *nfp,
 
 		/* Try getting the HWInfo table from the 'classic' location
 		 */
-		if (NFP_CPP_MODEL_IS_3200(model)) {
-			cpp_id = NFP_CPP_ID(NFP_CPP_TARGET_ARM_SCRATCH,
-					    NFP_CPP_ACTION_RW, 0);
-			cpp_addr = 0;
-			cpp_size = 2 * 1024;
-		} else if (NFP_CPP_MODEL_IS_6000(model)) {
+		if (NFP_CPP_MODEL_IS_6000(model)) {
 			cpp_id = NFP_CPP_ISLAND_ID(NFP_CPP_TARGET_MU,
 						   NFP_CPP_ACTION_RW, 0, 1);
 			cpp_addr = 0x30000;
@@ -401,43 +393,10 @@ static void hwinfo_des(void *ptr)
 
 static void *hwinfo_con(struct nfp_device *nfp)
 {
-	struct nfp_cpp *cpp = nfp_device_cpp(nfp);
 	struct hwinfo_priv *priv = NULL;
 	size_t hwdb_size = 0;
 	void *hwdb = NULL;
 	int r = 0;
-	u32 model;
-
-	model = nfp_cpp_model(cpp);
-
-	if (NFP_CPP_MODEL_IS_3200(model) &&
-	    NFP_CPP_INTERFACE_TYPE_of(nfp_cpp_interface(cpp)) ==
-	       NFP_CPP_INTERFACE_TYPE_PCI) {
-		u32 straps;
-		u32 pl_re;
-		u32 arm_re;
-
-		r = nfp_xpb_readl(cpp, NFP_XPB_PL | NFP_PL_STRAPS, &straps);
-		if (r < 0) {
-			nfp_err(nfp, "nfp_xpb_readl failed().\n");
-			r = -ENODEV;
-			goto err;
-		}
-		r = nfp_xpb_readl(cpp, NFP_XPB_PL | NFP_PL_RE, &pl_re);
-		if (r < 0) {
-			nfp_err(nfp, "nfp_xpb_readl failed().\n");
-			r = -ENODEV;
-			goto err;
-		}
-		arm_re = NFP_PL_RE_ARM_GASKET_RESET |
-			 NFP_PL_RE_ARM_GASKET_ENABLE;
-		if (((straps & NFP_PL_STRAPS_CFG_PROM_BOOT) == 0) &&
-		    ((pl_re & arm_re) != arm_re)) {
-			nfp_err(nfp, "ARM gasket is disabled.\n");
-			r = -ENODEV;
-			goto err;
-		}
-	}
 
 	r = hwinfo_fetch(nfp, &hwdb, &hwdb_size);
 	if (r < 0)

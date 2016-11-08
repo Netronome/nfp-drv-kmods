@@ -50,7 +50,6 @@ endif
 obj-$(CONFIG_NFP)	+= nfp.o
 
 nfp-objs := \
-	    nfpcore/nfp3200_pcie.o \
 	    nfpcore/nfp6000_pcie.o \
 	    nfpcore/crc32.o \
 	    nfpcore/nfp_nsp.o \
@@ -61,7 +60,6 @@ nfp-objs := \
 	    nfpcore/nfp_em_manager.o \
 	    nfpcore/nfp_hwinfo.o \
 	    nfpcore/nfp_mip.o \
-	    nfpcore/nfp_mon_err.o \
 	    nfpcore/nfp_nbi.o \
 	    nfpcore/nfp_nbi_phymod.o \
 	    nfpcore/nfp_nffw.o \

@@ -56,12 +56,6 @@
 #include "nfp_cpp.h"
 #include "nfp_target.h"
 
-#include "nfp3200/nfp3200.h"
-#include "nfp3200/nfp_xpb.h"
-#include "nfp3200/nfp_event.h"
-#include "nfp3200/nfp_em.h"
-#include "nfp3200/nfp_im.h"
-
 #define NFP_CPP_DIR_NAME	"nfp_cpp"
 
 #define NFP_ARM_GCSR_SOFTMODEL2                              0x0000014c
@@ -1501,14 +1495,6 @@ struct nfp_cpp *nfp_cpp_from_operations(const struct nfp_cpp_operations *ops)
 			      &mask[1]);
 
 		cpp->island_mask = (((u64)mask[1] << 32) | mask[0]);
-	}
-
-	/* After initialization, do any model specific fixups */
-	err = __nfp_cpp_model_fixup(cpp);
-	if (err < 0) {
-		dev_err(ops->parent, "NFP model fixup failed\n");
-		nfp_cpp_free(cpp);
-		goto err_out;
 	}
 
 	write_lock(&nfp_cpp_list_lock);

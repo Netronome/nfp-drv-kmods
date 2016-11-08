@@ -47,8 +47,6 @@
 #include "nfp.h"
 #include "nfp_cpp.h"
 
-#include "nfp3200/nfp3200.h"
-
 #include "crc32.h"
 
 #define NFP_XPB_OVERLAY(island)  (((island) & 0x3f) << 24)

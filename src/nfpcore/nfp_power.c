@@ -42,8 +42,6 @@
 #include "nfp_cpp.h"
 
 #include "nfp6000/nfp_xpb.h"
-#include "nfp3200/nfp_xpb.h"
-#include "nfp3200/nfp_pl.h"
 
 /* Define this to include code perform a full clear of
  * all ECCable SRAMs when an island is moved from 'reset'
@@ -170,175 +168,6 @@
 #define	NFP_NBI_PCX_CHAR_CreditConfig_BufCmpCredit(_x)    (((_x) & 0x7) << 0)
 #define	NFP_NBI_PCX_CHAR_CreditConfig_BufCmpCredit_of(_x) (((_x) >> 0) & 0x7)
 
-static const struct {
-	u32 reset_mask;
-	u32 enable_mask;
-} target_to_mask[] = {
-	[NFP3200_DEVICE_ARM] = {
-		.reset_mask = NFP_PL_RE_ARM_CORE_RESET,
-		.enable_mask = NFP_PL_RE_ARM_CORE_ENABLE,
-	},
-	[NFP3200_DEVICE_ARM_GASKET] = {
-		.reset_mask = NFP_PL_RE_ARM_GASKET_RESET,
-		.enable_mask = NFP_PL_RE_ARM_GASKET_ENABLE,
-	},
-	[NFP3200_DEVICE_DDR0] = {
-		.reset_mask = NFP_PL_RE_DDR0_RESET,
-		.enable_mask = NFP_PL_RE_DDR0_ENABLE,
-	},
-	[NFP3200_DEVICE_DDR1] = {
-		.reset_mask = NFP_PL_RE_DDR1_RESET,
-		.enable_mask = NFP_PL_RE_DDR1_ENABLE,
-	},
-	[NFP3200_DEVICE_MECL0] = {
-		.reset_mask = NFP_PL_RE_MECL_ME_RESET(1),
-		.enable_mask = NFP_PL_RE_MECL_ME_ENABLE(1),
-	},
-	[NFP3200_DEVICE_MECL1] = {
-	.reset_mask = NFP_PL_RE_MECL_ME_RESET(2),
-		.enable_mask = NFP_PL_RE_MECL_ME_ENABLE(2),
-	},
-	[NFP3200_DEVICE_MECL2] = {
-	.reset_mask = NFP_PL_RE_MECL_ME_RESET(4),
-		.enable_mask = NFP_PL_RE_MECL_ME_ENABLE(4),
-	},
-	[NFP3200_DEVICE_MECL3] = {
-		.reset_mask = NFP_PL_RE_MECL_ME_RESET(8),
-		.enable_mask = NFP_PL_RE_MECL_ME_ENABLE(8),
-	},
-	[NFP3200_DEVICE_MECL4] = {
-		.reset_mask = NFP_PL_RE_MECL_ME_RESET(16),
-		.enable_mask = NFP_PL_RE_MECL_ME_ENABLE(16),
-	},
-	[NFP3200_DEVICE_MSF0] = {
-		.reset_mask = NFP_PL_RE_MSF0_RESET,
-		.enable_mask = NFP_PL_RE_MSF0_ENABLE,
-	},
-	[NFP3200_DEVICE_MSF1] = {
-		.reset_mask = NFP_PL_RE_MSF1_RESET,
-		.enable_mask = NFP_PL_RE_MSF1_ENABLE,
-	},
-	[NFP3200_DEVICE_MU] = {
-		.reset_mask = NFP_PL_RE_MU_RESET,
-		.enable_mask = NFP_PL_RE_MU_ENABLE,
-	},
-	[NFP3200_DEVICE_PCIE] = {
-	.reset_mask = NFP_PL_RE_PCIE_RESET,
-		.enable_mask = NFP_PL_RE_PCIE_ENABLE,
-	},
-	[NFP3200_DEVICE_QDR0] = {
-		.reset_mask = NFP_PL_RE_QDR0_RESET,
-		.enable_mask = NFP_PL_RE_QDR0_ENABLE,
-	},
-	[NFP3200_DEVICE_QDR1] = {
-		.reset_mask = NFP_PL_RE_QDR1_RESET,
-		.enable_mask = NFP_PL_RE_QDR1_ENABLE,
-	},
-	[NFP3200_DEVICE_CRYPTO] = {
-		.reset_mask = NFP_PL_RE_CRYPTO_RESET,
-		.enable_mask = NFP_PL_RE_CRYPTO_ENABLE,
-	},
-};
-
-static int nfp3200_reset_get(struct nfp_cpp *cpp, unsigned int subdevice,
-			     int *reset, int *enable)
-{
-	u32 r_mask, e_mask, csr;
-	int err;
-
-	if (subdevice >= ARRAY_SIZE(target_to_mask))
-		return -EINVAL;
-
-	r_mask = target_to_mask[subdevice].reset_mask;
-	e_mask = target_to_mask[subdevice].enable_mask;
-
-	if (r_mask == 0 && e_mask == 0)
-		return -EINVAL;
-
-	/* Special exception for ARM:
-	 *   The NFP_PL_STRAPS register bit 5 overrides the
-	 *   reset and enable bits, so if it is on, then
-	 *   force them on.
-	 */
-	if (subdevice == NFP3200_DEVICE_ARM) {
-		err = nfp_xpb_readl(cpp, NFP_XPB_PL + NFP_PL_STRAPS, &csr);
-		if (err < 0)
-			return err;
-	} else {
-		csr = 0;
-	}
-
-	if (csr & NFP_PL_STRAPS_CFG_PROM_BOOT) {
-		csr = (r_mask | e_mask);
-	} else {
-		err = nfp_xpb_readl(cpp, NFP_XPB_PL + NFP_PL_RE, &csr);
-		if (err < 0)
-			return err;
-	}
-
-	if (reset)
-		*reset = (csr & r_mask) ? 1 : 0;
-
-	if (enable)
-		*enable = (csr & e_mask) ? 1 : 0;
-
-	return 0;
-}
-
-static int nfp3200_reset_set(struct nfp_cpp *cpp, unsigned int subdevice,
-			     int reset, int enable)
-{
-	u32 csr, r_mask, e_mask;
-	u16 interface;
-	int err;
-
-	if (subdevice >= ARRAY_SIZE(target_to_mask))
-		return -EINVAL;
-
-	/* Disallow changes to the PCIE core if that
-	 * is our interface to the device.
-	 */
-	interface = nfp_cpp_interface(cpp);
-	if ((NFP_CPP_INTERFACE_TYPE_of(interface) ==
-	     NFP_CPP_INTERFACE_TYPE_PCI) &&
-	    (subdevice == NFP3200_DEVICE_PCIE))
-		return -EBUSY;
-
-	r_mask = target_to_mask[subdevice].reset_mask;
-	e_mask = target_to_mask[subdevice].enable_mask;
-
-	if (r_mask == 0 && e_mask == 0)
-		return -EINVAL;
-
-	err = nfp_xpb_readl(cpp, NFP_XPB_PL + NFP_PL_RE, &csr);
-	if (err)
-		return err;
-
-	csr = (csr & ~r_mask) | (reset ? r_mask : 0);
-	csr = (csr & ~e_mask) | (enable ? e_mask : 0);
-
-	err = nfp_xpb_writel(cpp, NFP_XPB_PL + NFP_PL_RE, csr);
-	if (err)
-		return err;
-
-	/* If it's the ARM device, clear the
-	 * forced setting from the strap register.
-	 */
-	if (subdevice == NFP3200_DEVICE_ARM ||
-	    subdevice == NFP3200_DEVICE_ARM_GASKET) {
-		err = nfp_xpb_readl(cpp, NFP_XPB_PL + NFP_PL_STRAPS, &csr);
-		if (err)
-			return err;
-
-		csr &= ~NFP_PL_STRAPS_CFG_PROM_BOOT;
-		err = nfp_xpb_writel(cpp, NFP_XPB_PL + NFP_PL_STRAPS, csr);
-		if (err)
-			return err;
-	}
-
-	return 0;
-}
-
 /* The IMB island mask lists all islands with
  * an IMB. Since the number of islands without
  * an IMB is smaller than the number with,
@@ -454,9 +283,7 @@ int nfp_power_get(struct nfp_device *nfp, unsigned int subdevice, int *state)
 
 	model = nfp_cpp_model(cpp);
 
-	if (NFP_CPP_MODEL_IS_3200(model))
-		err = nfp3200_reset_get(cpp, subdevice, &reset, &enable);
-	else if (NFP_CPP_MODEL_IS_6000(model))
+	if (NFP_CPP_MODEL_IS_6000(model))
 		err = nfp6000_reset_get(cpp, subdevice, &reset, &enable);
 	else
 		err = -EINVAL;
@@ -1235,9 +1062,7 @@ int nfp_power_set(struct nfp_device *nfp, unsigned int subdevice, int state)
 		enable = (~next_state >> 0) & 1;
 		reset = (~next_state >> 1) & 1;
 
-		if (NFP_CPP_MODEL_IS_3200(model))
-			err = nfp3200_reset_set(cpp, subdevice, reset, enable);
-		else if (NFP_CPP_MODEL_IS_6000(model))
+		if (NFP_CPP_MODEL_IS_6000(model))
 			err = nfp6000_reset_set(cpp, subdevice, reset, enable);
 		else
 			err = -EINVAL;

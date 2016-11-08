@@ -47,9 +47,6 @@
 
 #include "nfp.h"
 
-#include "nfp3200/nfp3200.h"
-#include "nfp3200/nfp_xpb.h"
-
 struct nfp_device {
 	int cpp_free;
 	struct nfp_cpp *cpp;

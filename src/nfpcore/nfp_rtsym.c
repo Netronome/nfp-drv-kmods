@@ -55,8 +55,6 @@
 #include "nfp_cpp.h"
 #include "nfp_nffw.h"
 
-#include "nfp3200/nfp3200.h"
-
 /* These need to match the linker */
 #define _SYM_TGT_LMEM	   0
 #define _SYM_TGT_UMEM	   0xFE /* Only NFP-32xx */
