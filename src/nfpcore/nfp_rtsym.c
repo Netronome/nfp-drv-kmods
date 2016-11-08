@@ -65,8 +65,6 @@ struct _rtsym {
 	u8  target;
 	union {
 		u8  val;
-		/* N/A, island or linear menum, depends on 'target' */
-		u8  nfp3200_domain;
 		/* 0xff if N/A */
 		u8  nfp6000_island;
 	} domain1;
@@ -75,8 +73,6 @@ struct _rtsym {
 	u16 name;
 	union {
 		u8  val;
-		u8  nfp3200___rsvd;
-		/* 0xff if N/A */
 		u8  nfp6000_menum;
 	} domain2;
 	u8  size_hi;
@@ -107,14 +103,6 @@ static void *nfp_rtsym_priv_con(struct nfp_device *dev)
 	return priv;
 }
 
-static int nfp3200_melin2meid(u8 melinnum)
-{
-	u8 cluster_num = melinnum >> 3;
-	u8 menum = melinnum & 0x7;
-
-	return cluster_num < 5 ? (cluster_num << 4) | menum | 0x8 : -1;
-}
-
 static int nfp6000_meid(u8 island_id, u8 menum)
 {
 	return (island_id & 0x3F) == island_id && menum < 12 ?
@@ -128,7 +116,6 @@ static int __nfp_rtsymtab_probe(struct nfp_device *dev,
 	struct _rtsym *rtsymtab;
 	u32 *wptr;
 	int err, n;
-	u32 model = nfp_cpp_model(cpp);
 	const u32 dram = NFP_CPP_ID(NFP_CPP_TARGET_MU,
 					 NFP_CPP_ACTION_RW, 0);
 	u32 strtab_addr, symtab_addr;
@@ -175,108 +162,52 @@ static int __nfp_rtsymtab_probe(struct nfp_device *dev,
 		goto err_strtab;
 	}
 
-	if (NFP_CPP_MODEL_IS_3200(model)) {
-		err = nfp_cpp_read(cpp, dram, symtab_addr,
-				   rtsymtab, symtab_size);
-		if (err < symtab_size)
-			goto err_read_symtab;
-
-		err = nfp_cpp_read(cpp, dram, strtab_addr,
-				   priv->rtstrtab, strtab_size);
-		if (err < strtab_size)
-			goto err_read_strtab;
-		priv->rtstrtab[strtab_size] = '\0';
-
-		for (wptr = (u32 *)rtsymtab, n = 0;
-		     n < priv->numrtsyms; n++)
-			wptr[n] = le32_to_cpu(wptr[n]);
-
-		for (n = 0; n < priv->numrtsyms; n++) {
-			priv->rtsymtab[n].type = rtsymtab[n].type;
-			priv->rtsymtab[n].name = priv->rtstrtab +
-				(rtsymtab[n].name % strtab_size);
-			priv->rtsymtab[n].addr =
-				(((uint64_t)rtsymtab[n].addr_hi) << 32) +
-				rtsymtab[n].addr_lo;
-			priv->rtsymtab[n].size =
-				(((uint64_t)rtsymtab[n].size_hi) << 32) +
-				rtsymtab[n].size_lo;
-			switch (rtsymtab[n].target) {
-			case _SYM_TGT_LMEM:
-				priv->rtsymtab[n].target =
-					NFP_RTSYM_TARGET_LMEM;
-				priv->rtsymtab[n].domain = nfp3200_melin2meid(
-					rtsymtab[n].domain1.nfp3200_domain);
-				break;
-			case _SYM_TGT_UMEM:
-				priv->rtsymtab[n].target =
-					NFP_RTSYM_TARGET_USTORE;
-				priv->rtsymtab[n].domain = nfp3200_melin2meid(
-					rtsymtab[n].domain1.nfp3200_domain);
-				break;
-			default:
-				priv->rtsymtab[n].target = rtsymtab[n].target;
-				priv->rtsymtab[n].domain =
-					rtsymtab[n].domain1.nfp3200_domain;
-				break;
-			}
-		}
-	} else if (NFP_CPP_MODEL_IS_6000(model)) {
-		err = nfp_cpp_read(cpp, dram | 24, symtab_addr,
-				   rtsymtab, symtab_size);
-		if (err != symtab_size)
-			goto err_read_symtab;
-
-		err = nfp_cpp_read(cpp, dram | 24, strtab_addr,
-				   priv->rtstrtab, strtab_size);
-		if (err != strtab_size)
-			goto err_read_strtab;
-		priv->rtstrtab[strtab_size] = '\0';
-
-		for (wptr = (u32 *)rtsymtab, n = 0;
-		     n < priv->numrtsyms; n++)
-			wptr[n] = le32_to_cpu(wptr[n]);
-
-		for (n = 0; n < priv->numrtsyms; n++) {
-			priv->rtsymtab[n].type = rtsymtab[n].type;
-			priv->rtsymtab[n].name = priv->rtstrtab +
-				(rtsymtab[n].name % strtab_size);
-			priv->rtsymtab[n].addr = (((uint64_t)
-						rtsymtab[n].addr_hi) << 32) +
-				rtsymtab[n].addr_lo;
-			priv->rtsymtab[n].size = (((uint64_t)
-						rtsymtab[n].size_hi) << 32) +
-				rtsymtab[n].size_lo;
-
-			switch (rtsymtab[n].target) {
-			case _SYM_TGT_LMEM:
-				priv->rtsymtab[n].target =
-					NFP_RTSYM_TARGET_LMEM;
-				break;
-			case _SYM_TGT_EMU_CACHE:
-				priv->rtsymtab[n].target =
-					NFP_RTSYM_TARGET_EMU_CACHE;
-				break;
-			case _SYM_TGT_UMEM:
-				goto err_read_symtab;
-			default:
-				priv->rtsymtab[n].target = rtsymtab[n].target;
-				break;
-			}
-
-			if (rtsymtab[n].domain2.nfp6000_menum != 0xff)
-				priv->rtsymtab[n].domain = nfp6000_meid(
-					rtsymtab[n].domain1.nfp6000_island,
-					rtsymtab[n].domain2.nfp6000_menum);
-			else if (rtsymtab[n].domain1.nfp6000_island != 0xff)
-				priv->rtsymtab[n].domain =
-					rtsymtab[n].domain1.nfp6000_island;
-			else
-				priv->rtsymtab[n].domain = -1;
-		}
-	} else {
-		err = -EINVAL;
+	err = nfp_cpp_read(cpp, dram | 24, symtab_addr, rtsymtab, symtab_size);
+	if (err != symtab_size)
 		goto err_read_symtab;
+
+	err = nfp_cpp_read(cpp, dram | 24, strtab_addr,
+			   priv->rtstrtab, strtab_size);
+	if (err != strtab_size)
+		goto err_read_strtab;
+	priv->rtstrtab[strtab_size] = '\0';
+
+	for (wptr = (u32 *)rtsymtab, n = 0;
+	     n < priv->numrtsyms; n++)
+		wptr[n] = le32_to_cpu(wptr[n]);
+
+	for (n = 0; n < priv->numrtsyms; n++) {
+		priv->rtsymtab[n].type = rtsymtab[n].type;
+		priv->rtsymtab[n].name = priv->rtstrtab +
+			(rtsymtab[n].name % strtab_size);
+		priv->rtsymtab[n].addr = (((u64)rtsymtab[n].addr_hi) << 32) +
+			rtsymtab[n].addr_lo;
+		priv->rtsymtab[n].size = (((u64)rtsymtab[n].size_hi) << 32) +
+			rtsymtab[n].size_lo;
+
+		switch (rtsymtab[n].target) {
+		case _SYM_TGT_LMEM:
+			priv->rtsymtab[n].target = NFP_RTSYM_TARGET_LMEM;
+			break;
+		case _SYM_TGT_EMU_CACHE:
+			priv->rtsymtab[n].target = NFP_RTSYM_TARGET_EMU_CACHE;
+			break;
+		case _SYM_TGT_UMEM:
+			goto err_read_symtab;
+		default:
+			priv->rtsymtab[n].target = rtsymtab[n].target;
+			break;
+		}
+
+		if (rtsymtab[n].domain2.nfp6000_menum != 0xff)
+			priv->rtsymtab[n].domain = nfp6000_meid(
+				rtsymtab[n].domain1.nfp6000_island,
+				rtsymtab[n].domain2.nfp6000_menum);
+		else if (rtsymtab[n].domain1.nfp6000_island != 0xff)
+			priv->rtsymtab[n].domain =
+				rtsymtab[n].domain1.nfp6000_island;
+		else
+			priv->rtsymtab[n].domain = -1;
 	}
 
 	kfree(rtsymtab);

@@ -716,9 +716,7 @@ static int nfp_plat_explicit_do(struct nfp_cpp_explicit *expl,
 	u32 required = 0;
 	u32 model = nfp_cpp_model(cpp);
 
-	if (NFP_CPP_MODEL_IS_3200(model))
-		default_master = 0x41;
-	else if (NFP_CPP_MODEL_IS_6000(model))
+	if (NFP_CPP_MODEL_IS_6000(model))
 		default_master = 0x11;
 	else
 		default_master = 0x01;
@@ -1220,9 +1218,7 @@ static int nfp_plat_probe(struct platform_device *pdev)
 							    NFP_DEV_CPP_TYPE);
 
 	if (nfp_net_vnic) {
-		if (NFP_CPP_MODEL_IS_3200(model))
-			vnic_units = 1;
-		else if (NFP_CPP_MODEL_IS_6000(model))
+		if (NFP_CPP_MODEL_IS_6000(model))
 			vnic_units = 4;
 		else
 			vnic_units = 0;

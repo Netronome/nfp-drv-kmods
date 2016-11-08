@@ -128,27 +128,6 @@ const char *nfp_hwinfo_lookup(struct nfp_device *nfp, const char *lookup);
 #define NFP_DEVICE_STATE_OFF            NFP_DEVICE_STATE_P3
 
 /*
- * NFP3200 specific subdevice identifiers
- */
-#define NFP3200_DEVICE(x)               ((x) & 0x1f)
-#define     NFP3200_DEVICE_ARM          1
-#define     NFP3200_DEVICE_ARM_GASKET   2
-#define     NFP3200_DEVICE_DDR0         3
-#define     NFP3200_DEVICE_DDR1         4
-#define     NFP3200_DEVICE_MECL0        5
-#define     NFP3200_DEVICE_MECL1        6
-#define     NFP3200_DEVICE_MECL2        7
-#define     NFP3200_DEVICE_MECL3        8
-#define     NFP3200_DEVICE_MECL4        9
-#define     NFP3200_DEVICE_MSF0         10
-#define     NFP3200_DEVICE_MSF1         11
-#define     NFP3200_DEVICE_MU           12
-#define     NFP3200_DEVICE_PCIE         13
-#define     NFP3200_DEVICE_QDR0         14
-#define     NFP3200_DEVICE_QDR1         15
-#define     NFP3200_DEVICE_CRYPTO       16
-
-/*
  * NFP6000 specific subdevice identifiers
  */
 #define NFP6000_DEVICE(island, unit) \

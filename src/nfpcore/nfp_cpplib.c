@@ -49,15 +49,6 @@
 
 #include "nfp6000/nfp_xpb.h"
 
-/* NFP3200 MU */
-#define NFP_XPB_MU_PCTL0                NFP_XPB_DEST(21, 2)
-#define NFP_XPB_MU_PCTL1                NFP_XPB_DEST(21, 3)
-#define NFP_MU_PCTL_DTUAWDT            0x00b0
-#define   NFP_MU_PCTL_DTUAWDT_NUMBER_RANKS_of(_x)       (((_x) >> 9) & 0x3)
-#define   NFP_MU_PCTL_DTUAWDT_ROW_ADDR_WIDTH_of(_x)     (((_x) >> 6) & 0x3)
-#define   NFP_MU_PCTL_DTUAWDT_BANK_ADDR_WIDTH_of(_x)    (((_x) >> 3) & 0x3)
-#define   NFP_MU_PCTL_DTUAWDT_COLUMN_ADDR_WIDTH_of(_x)  ((_x) & 0x3)
-
 /* NFP6000 PL */
 #define NFP_PL_DEVICE_ID                         0x00000004
 #define   NFP_PL_DEVICE_ID_PART_NUM_of(_x)       (((_x) >> 16) & 0xffff)
@@ -148,27 +139,22 @@ int nfp_cpp_writeq(struct nfp_cpp *cpp, u32 cpp_id,
 int __nfp_cpp_model_autodetect(struct nfp_cpp *cpp, u32 *model)
 {
 	const u32 arm_id = NFP_CPP_ID(NFP_CPP_TARGET_ARM, 0, 0);
+	u32 tmp;
 	int err;
 
-	/* Safe to read on the NFP3200 also, returns 0 */
 	err = nfp_cpp_readl(cpp, arm_id, NFP6000_ARM_GCSR_SOFTMODEL0, model);
 	if (err < 0)
 		return err;
 
-	if (NFP_CPP_MODEL_IS_6000(*model)) {
-		u32 tmp;
-		int err;
+	/* The PL's PluDeviceID revision code is authoratative */
+	*model &= ~0xff;
+	err = nfp_xpb_readl(cpp, NFP_XPB_DEVICE(1, 1, 16) + NFP_PL_DEVICE_ID,
+			    &tmp);
+	if (err < 0)
+		return err;
 
-		/* The PL's PluDeviceID revision code is authoratative */
-		*model &= ~0xff;
-		err = nfp_xpb_readl(cpp,
-				    NFP_XPB_DEVICE(1, 1, 16) + NFP_PL_DEVICE_ID,
-				    &tmp);
-		if (err < 0)
-			return err;
-		*model |= ((NFP_PL_DEVICE_ID_MAJOR_REV_of(tmp) - 1) << 4) |
-			   NFP_PL_DEVICE_ID_MINOR_REV_of(tmp);
-	}
+	*model |= ((NFP_PL_DEVICE_ID_MAJOR_REV_of(tmp) - 1) << 4) |
+		NFP_PL_DEVICE_ID_MINOR_REV_of(tmp);
 
 	return 0;
 }

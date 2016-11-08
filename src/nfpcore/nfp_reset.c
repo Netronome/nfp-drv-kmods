@@ -55,15 +55,6 @@
 #define NFP_APP_BUFFER_CREDITS	63
 #endif
 
-/* Perform a soft reset of the NFP3200:
- *   - TODO
- */
-static int nfp3200_reset_soft(struct nfp_device *nfp)
-{
-	/* TODO: Determine soft reset sequence for the NFP3200 */
-	return 0;
-}
-
 #define NBIX_BASE					(0xa0000)
 #define NFP_NBI_MACX					(NBIX_BASE + 0x300000)
 #define NFP_NBI_MACX_CSR				(NFP_NBI_MACX + 0x00000)
@@ -1016,10 +1007,7 @@ int nfp_reset_soft(struct nfp_device *nfp)
 	struct nfp_cpp *cpp = nfp_device_cpp(nfp);
 	struct nfp_cpp_area *area;
 	struct nfp_resource *res;
-	u32 model;
 	int i, err;
-
-	model = nfp_cpp_model(cpp);
 
 	/* Claim the nfp.nffw resource page */
 	res = nfp_resource_acquire(nfp, NFP_RESOURCE_NFP_NFFW);
@@ -1029,13 +1017,7 @@ int nfp_reset_soft(struct nfp_device *nfp)
 		return -EBUSY;
 	}
 
-	if (NFP_CPP_MODEL_IS_3200(model))
-		err = nfp3200_reset_soft(nfp);
-	else if (NFP_CPP_MODEL_IS_6000(model))
-		err = nfp6000_reset_soft(nfp);
-	else
-		err = -EINVAL;
-
+	err = nfp6000_reset_soft(nfp);
 	if (err < 0)
 		goto exit;
 

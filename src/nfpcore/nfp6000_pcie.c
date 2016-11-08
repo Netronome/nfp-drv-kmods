@@ -1555,7 +1555,7 @@ static void nfp6000_free(struct nfp_cpp *cpp)
 }
 
 /**
- * nfp_cpp_from_nfp6000_pcie() - Build a NFP CPP bus from a NFP3200 PCI device
+ * nfp_cpp_from_nfp6000_pcie() - Build a NFP CPP bus from a NFP6000 PCI device
  * @pdev:	NFP6000 PCI device
  * @event_irq:	IRQ bound to the event manager (optional)
  *

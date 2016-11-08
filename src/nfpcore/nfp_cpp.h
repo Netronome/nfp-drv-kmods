@@ -49,8 +49,6 @@
 /*
  * NFP hardware vendor/device ids.  Should be added to Linux.
  */
-#define PCI_DEVICE_NFP3200              0x3200
-#define PCI_DEVICE_NFP3240              0x3240
 #define PCI_DEVICE_NFP4000              0x4000
 #define PCI_DEVICE_NFP6000              0x6000
 #define PCI_DEVICE_NFP6010              0x6010
@@ -180,20 +178,6 @@ static inline u8 NFP_CPP_ID_ISLAND_of(u32 id)
 #define NFP_CPP_MODEL_CHIP_of(model)        (((model) >> 16) & 0xffff)
 
 /**
- * NFP_CPP_MODEL_FAMILY_of() - retrieve the chip family from the model ID
- * @model:   NFP CPP model id
- *
- * The chip family is one of:
- * NFP_CHIP_FAMILY_NFP3200
- * NFP_CHIP_FAMILY_NFP6000
- *
- * Return:      NFP Chip family, -1 if family undetermined
- */
-#define NFP_CPP_MODEL_FAMILY_of(model) \
-	(NFP_CPP_MODEL_IS_6000(model) ? NFP_CHIP_FAMILY_NFP6000 : \
-	 NFP_CPP_MODEL_IS_3200(model) ? NFP_CHIP_FAMILY_NFP3200 : -1)
-
-/**
  * NFP_CPP_MODEL_STEPPING_of() - retrieve the revision ID from the model ID
  * @model:      NFP CPP model id
  *
@@ -221,15 +205,6 @@ static inline int NFP_CPP_STEPPING_decode(const char *_str_major_minor)
 		((_str_major_minor[1] - '0'));
 }
 
-/**
- * NFP_CPP_MODEL_IS_3200() - Check for the NFP3200 family of devices
- * @model:      NFP CPP model id
- *
- * Return:      true if model is in the NFP3200 family, false otherwise.
- */
-#define NFP_CPP_MODEL_IS_3200(model) \
-	((0x3200 <= NFP_CPP_MODEL_CHIP_of(model)) && \
-	 (NFP_CPP_MODEL_CHIP_of(model) < 0x3300))
 /**
  * NFP_CPP_MODEL_IS_6000() - Check for the NFP6000 family of devices
  * @model:      NFP CPP model id

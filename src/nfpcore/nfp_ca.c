@@ -166,16 +166,14 @@ struct ca_cpp {
 #endif
 };
 
-static int ca6000_cpp_write_ustore(struct ca_cpp *ca, u32 id,
-				   u64 addr, void *ptr, size_t len);
+static int
+ca_cpp_write_ustore(struct ca_cpp *ca, u32 id, u64 addr, void *ptr, size_t len);
 
 static int ca_cpp_write(struct ca_cpp *ca, u32 id, u64 addr,
 			void *ptr, size_t len)
 {
-	if (NFP_CPP_MODEL_IS_6000(nfp_cpp_model(ca->cpp))) {
-		if (id == NFP_CPP_ID(NFP_CPP_TARGET_CT_XPB, 65, 0))
-			return ca6000_cpp_write_ustore(ca, id, addr, ptr, len);
-	}
+	if (id == NFP_CPP_ID(NFP_CPP_TARGET_CT_XPB, 65, 0))
+		return ca_cpp_write_ustore(ca, id, addr, ptr, len);
 
 	return nfp_cpp_write(ca->cpp, id, addr, ptr, len);
 }
@@ -197,8 +195,8 @@ static int ca_cpp_read(struct ca_cpp *ca, u32 id, u64 addr,
  * addr<31:24> = me_num (0 based, within island)
  * addr<23:0> = byte codestore address
  */
-static int ca6000_cpp_write_ustore(struct ca_cpp *ca, u32 id,
-				   u64 addr, void *ptr, size_t len)
+static int
+ca_cpp_write_ustore(struct ca_cpp *ca, u32 id, u64 addr, void *ptr, size_t len)
 {
 	int err = 0;
 	u64 uw = *((u64 *)ptr);

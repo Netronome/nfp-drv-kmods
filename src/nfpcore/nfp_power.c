@@ -275,18 +275,10 @@ static int nfp6000_reset_set(struct nfp_cpp *cpp, unsigned int subdevice,
  */
 int nfp_power_get(struct nfp_device *nfp, unsigned int subdevice, int *state)
 {
-	struct nfp_cpp *cpp;
-	u32 model;
+	struct nfp_cpp *cpp = nfp_device_cpp(nfp);
 	int err, reset = 0, enable = 0;
 
-	cpp = nfp_device_cpp(nfp);
-
-	model = nfp_cpp_model(cpp);
-
-	if (NFP_CPP_MODEL_IS_6000(model))
-		err = nfp6000_reset_get(cpp, subdevice, &reset, &enable);
-	else
-		err = -EINVAL;
+	err = nfp6000_reset_get(cpp, subdevice, &reset, &enable);
 
 	/* Compute P0..P3 from reset/enable
 	 */
@@ -1024,7 +1016,6 @@ static int nfp6000_island_init(struct nfp_cpp *cpp, unsigned int subdevice)
 int nfp_power_set(struct nfp_device *nfp, unsigned int subdevice, int state)
 {
 	struct nfp_cpp *cpp;
-	u32 model;
 	int err, curr_state;
 
 	err = nfp_power_get(nfp, subdevice, &curr_state);
@@ -1032,8 +1023,6 @@ int nfp_power_set(struct nfp_device *nfp, unsigned int subdevice, int state)
 		return err;
 
 	cpp = nfp_device_cpp(nfp);
-
-	model = nfp_cpp_model(cpp);
 
 	/* Transition to final state */
 	while (state != curr_state) {
@@ -1062,20 +1051,14 @@ int nfp_power_set(struct nfp_device *nfp, unsigned int subdevice, int state)
 		enable = (~next_state >> 0) & 1;
 		reset = (~next_state >> 1) & 1;
 
-		if (NFP_CPP_MODEL_IS_6000(model))
-			err = nfp6000_reset_set(cpp, subdevice, reset, enable);
-		else
-			err = -EINVAL;
+		err = nfp6000_reset_set(cpp, subdevice, reset, enable);
 
 		if (err < 0)
 			break;
-
-		if (NFP_CPP_MODEL_IS_6000(model)) {
 			/* If transitioned from RESET to ON, load the IMB */
-			if (next_state == NFP_DEVICE_STATE_P0 &&
-			    curr_state == NFP_DEVICE_STATE_P2) {
-				nfp6000_island_init(cpp, subdevice);
-			}
+		if (next_state == NFP_DEVICE_STATE_P0 &&
+		    curr_state == NFP_DEVICE_STATE_P2) {
+			nfp6000_island_init(cpp, subdevice);
 		}
 
 		curr_state = next_state;

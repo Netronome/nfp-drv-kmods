@@ -66,18 +66,12 @@ struct nfp_resource {
 int nfp_cpp_resource_table(struct nfp_cpp *cpp, int *target,
 			   u64 *base, size_t *sizep)
 {
-	u32 model = nfp_cpp_model(cpp);
 	size_t size;
 
 	*target = NFP_CPP_TARGET_MU;
 	size   = 4096;
 
-	if (NFP_CPP_MODEL_IS_3200(model))
-		*base = 0;
-	else if (NFP_CPP_MODEL_IS_6000(model))
-		*base = 0x8100000000ULL;
-	else
-		return -EINVAL;
+	*base = 0x8100000000ULL;
 
 	if (sizep)
 		*sizep = size;

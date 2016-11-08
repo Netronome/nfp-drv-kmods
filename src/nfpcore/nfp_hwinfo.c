@@ -281,18 +281,11 @@ static int hwinfo_fetch_nowait(struct nfp_device *nfp,
 		if (cpp_size < HWINFO_SIZE_MIN)
 			return -ENOENT;
 	} else if (PTR_ERR(res) == -ENOENT) {
-		u32 model = nfp_cpp_model(cpp);
-
-		/* Try getting the HWInfo table from the 'classic' location
-		 */
-		if (NFP_CPP_MODEL_IS_6000(model)) {
-			cpp_id = NFP_CPP_ISLAND_ID(NFP_CPP_TARGET_MU,
-						   NFP_CPP_ACTION_RW, 0, 1);
-			cpp_addr = 0x30000;
-			cpp_size = 0x0e000;
-		} else {
-			return -ENODEV;
-		}
+		/* Try getting the HWInfo table from the 'classic' location */
+		cpp_id = NFP_CPP_ISLAND_ID(NFP_CPP_TARGET_MU,
+					   NFP_CPP_ACTION_RW, 0, 1);
+		cpp_addr = 0x30000;
+		cpp_size = 0x0e000;
 	} else {
 		return PTR_ERR(res);
 	}

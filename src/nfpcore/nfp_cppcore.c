@@ -1149,46 +1149,34 @@ out:
 	return err;
 }
 
-/* Return the correct CPP address, and fixup xpb_addr as needed,
- * based upon NFP model.
- */
+/* Return the correct CPP address, and fixup xpb_addr as needed. */
 static u32 nfp_xpb_to_cpp(struct nfp_cpp *cpp, u32 *xpb_addr)
 {
-	u32 xpb;
 	int island;
-	int is_arm = NFP_CPP_INTERFACE_TYPE_of(nfp_cpp_interface(cpp))
-		       == NFP_CPP_INTERFACE_TYPE_ARM;
+	u32 xpb;
 
-	if (NFP_CPP_MODEL_IS_3200(cpp->model)) {
-		xpb = NFP_CPP_ID(13, NFP_CPP_ACTION_RW, 0);
-		(*xpb_addr) |= 0x02000000;
-	} else if (NFP_CPP_MODEL_IS_6000(cpp->model)) {
-		xpb = NFP_CPP_ID(14, NFP_CPP_ACTION_RW, 0);
-		/* Ensure that non-local XPB accesses go
-		 * out through the global XPBM bus.
-		 */
-		island = ((*xpb_addr) >> 24) & 0x3f;
-		if (island) {
-			if (island == 1) {
-				/* Accesses to the ARM Island overlay
-				 * uses Island 0 / Global Bit
-				 */
-				(*xpb_addr) &= ~0x7f000000;
-				if (*xpb_addr < 0x60000) {
-					*xpb_addr |= (1 << 30);
-				} else {
-					/* And only non-ARM interfaces use
-					 * the island id = 1
-					 */
-					if (!is_arm)
-						*xpb_addr |= (1 << 24);
-				}
-			} else {
-				(*xpb_addr) |= (1 << 30);
-			}
-		}
+	xpb = NFP_CPP_ID(14, NFP_CPP_ACTION_RW, 0);
+	/* Ensure that non-local XPB accesses go
+	 * out through the global XPBM bus.
+	 */
+	island = (*xpb_addr >> 24) & 0x3f;
+	if (!island)
+		return xpb;
+
+	if (island != 1) {
+		*xpb_addr |= 1 << 30;
+		return xpb;
+	}
+
+	/* Accesses to the ARM Island overlay uses Island 0 / Global Bit */
+	*xpb_addr &= ~0x7f000000;
+	if (*xpb_addr < 0x60000) {
+		*xpb_addr |= 1 << 30;
 	} else {
-		return 0;
+		/* And only non-ARM interfaces use the island id = 1 */
+		if (NFP_CPP_INTERFACE_TYPE_of(nfp_cpp_interface(cpp))
+		    != NFP_CPP_INTERFACE_TYPE_ARM)
+			*xpb_addr |= 1 << 24;
 	}
 
 	return xpb;
@@ -1402,8 +1390,12 @@ static void nfp_cpp_dev_release(struct device *dev)
  */
 struct nfp_cpp *nfp_cpp_from_operations(const struct nfp_cpp_operations *ops)
 {
+	const u32 arm = NFP_CPP_ID(NFP_CPP_TARGET_ARM, NFP_CPP_ACTION_RW, 0);
 	int id, err;
 	struct nfp_cpp *cpp;
+	u32 mask[2];
+	u32 xpbaddr;
+	size_t tgt;
 
 	BUG_ON(!ops->parent);
 
@@ -1470,32 +1462,24 @@ struct nfp_cpp *nfp_cpp_from_operations(const struct nfp_cpp_operations *ops)
 		}
 	}
 
-	if (NFP_CPP_MODEL_IS_6000(cpp->model)) {
-		u32 mask[2];
-		const u32 arm = NFP_CPP_ID(NFP_CPP_TARGET_ARM,
-						NFP_CPP_ACTION_RW, 0);
-		u32 xpbaddr;
-		size_t tgt;
-
-		for (tgt = 0; tgt < ARRAY_SIZE(cpp->imb_cat_table); tgt++) {
+	for (tgt = 0; tgt < ARRAY_SIZE(cpp->imb_cat_table); tgt++) {
 			/* Hardcoded XPB IMB Base, island 0 */
-			xpbaddr = 0x000a0000 + (tgt * 4);
-			err = nfp_xpb_readl(cpp, xpbaddr,
-					    &cpp->imb_cat_table[tgt]);
-			if (err < 0) {
-				dev_err(ops->parent,
-					"Can't read CPP mapping from device\n");
-				goto err_out;
-			}
+		xpbaddr = 0x000a0000 + (tgt * 4);
+		err = nfp_xpb_readl(cpp, xpbaddr,
+				    &cpp->imb_cat_table[tgt]);
+		if (err < 0) {
+			dev_err(ops->parent,
+				"Can't read CPP mapping from device\n");
+			goto err_out;
 		}
-
-		nfp_cpp_readl(cpp, arm, NFP_ARM_GCSR + NFP_ARM_GCSR_SOFTMODEL2,
-			      &mask[0]);
-		nfp_cpp_readl(cpp, arm, NFP_ARM_GCSR + NFP_ARM_GCSR_SOFTMODEL3,
-			      &mask[1]);
-
-		cpp->island_mask = (((u64)mask[1] << 32) | mask[0]);
 	}
+
+	nfp_cpp_readl(cpp, arm, NFP_ARM_GCSR + NFP_ARM_GCSR_SOFTMODEL2,
+		      &mask[0]);
+	nfp_cpp_readl(cpp, arm, NFP_ARM_GCSR + NFP_ARM_GCSR_SOFTMODEL3,
+		      &mask[1]);
+
+	cpp->island_mask = (((u64)mask[1] << 32) | mask[0]);
 
 	write_lock(&nfp_cpp_list_lock);
 	list_add_tail(&cpp->list, &nfp_cpp_list);
@@ -1791,27 +1775,20 @@ void *nfp_cpp_explicit_priv(struct nfp_cpp_explicit *cpp_explicit)
  */
 #define MUTEX_DEPTH_MAX         0xffff
 
-static int _nfp_cpp_mutex_validate(u32 model, u16 interface,
-				   int *target, unsigned long long address)
+static int
+_nfp_cpp_mutex_validate(u16 interface, int *target, unsigned long long address)
 {
 	/* Not permitted on invalid interfaces */
 	if (NFP_CPP_INTERFACE_TYPE_of(interface) ==
-			NFP_CPP_INTERFACE_TYPE_INVALID)
+	    NFP_CPP_INTERFACE_TYPE_INVALID)
 		return -EINVAL;
 
 	/* Address must be 64-bit aligned */
 	if (address & 7)
 		return -EINVAL;
 
-	if (NFP_CPP_MODEL_IS_3200(model)) {
-		if (*target != NFP_CPP_TARGET_MU)
-			return -EINVAL;
-	} else if (NFP_CPP_MODEL_IS_6000(model)) {
-		if (*target != NFP_CPP_TARGET_MU)
-			return -EINVAL;
-	} else {
+	if (*target != NFP_CPP_TARGET_MU)
 		return -EINVAL;
-	}
 
 	return 0;
 }
@@ -1839,10 +1816,9 @@ int nfp_cpp_mutex_init(struct nfp_cpp *cpp,
 {
 	u16 interface = nfp_cpp_interface(cpp);
 	u32 muw = NFP_CPP_ID(target, 4, 0);    /* atomic_write */
-	u32 model = nfp_cpp_model(cpp);
 	int err;
 
-	err = _nfp_cpp_mutex_validate(model, interface, &target, address);
+	err = _nfp_cpp_mutex_validate(interface, &target, address);
 	if (err)
 		return err;
 
@@ -1877,13 +1853,12 @@ struct nfp_cpp_mutex *nfp_cpp_mutex_alloc(struct nfp_cpp *cpp, int target,
 					  unsigned long long address, u32 key)
 {
 	u16 interface = nfp_cpp_interface(cpp);
-	u32 model = nfp_cpp_model(cpp);
 	u32 mur = NFP_CPP_ID(target, 3, 0);    /* atomic_read */
 	struct nfp_cpp_mutex *mutex;
 	int err;
 	u32 tmp;
 
-	err = _nfp_cpp_mutex_validate(model, interface, &target, address);
+	err = _nfp_cpp_mutex_validate(interface, &target, address);
 	if (err)
 		return NULL;
 
