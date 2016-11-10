@@ -60,45 +60,21 @@ struct nfp_resource {
 	struct nfp_cpp_mutex *mutex;
 };
 
-/* If the EMU is not enabled, we probably don't
- * have any resources anyway.
- */
-int nfp_cpp_resource_table(struct nfp_cpp *cpp, int *target,
-			   u64 *base, size_t *sizep)
-{
-	size_t size;
-
-	*target = NFP_CPP_TARGET_MU;
-	size   = 4096;
-
-	*base = 0x8100000000ULL;
-
-	if (sizep)
-		*sizep = size;
-
-	return size / sizeof(struct nfp_resource_entry);
-}
-
 static int __nfp_resource_entry_init(struct nfp_cpp *cpp, int entry,
 				     const struct nfp_resource_entry_region
 				     *region,
 				     struct nfp_cpp_mutex **resource_mutex)
 {
 	struct nfp_cpp_mutex *mutex;
-	int target, entries;
-	size_t size;
 	u32 cpp_id;
+	u64 base;
 	u32 key;
 	int err;
-	u64 base;
 
-	entries = nfp_cpp_resource_table(cpp, &target, &base, &size);
-	if (entries < 0)
-		return entries;
-
-	if (entry >= entries)
+	if (entry >= NFP_RESOURCE_TBL_ENTRIES)
 		return -EINVAL;
 
+	base = NFP_RESOURCE_TBL_BASE;
 	base += sizeof(struct nfp_resource_entry) * entry;
 
 	if (entry == 0)
@@ -106,17 +82,17 @@ static int __nfp_resource_entry_init(struct nfp_cpp *cpp, int entry,
 	else
 		key = crc32_posix(region->name, 8);
 
-	err = nfp_cpp_mutex_init(cpp, target, base, key);
+	err = nfp_cpp_mutex_init(cpp, NFP_RESOURCE_TBL_TARGET, base, key);
 	if (err < 0)
 		return err;
 
 	/* We already own the initialized lock */
-	mutex = nfp_cpp_mutex_alloc(cpp, target, base, key);
+	mutex = nfp_cpp_mutex_alloc(cpp, NFP_RESOURCE_TBL_TARGET, base, key);
 	if (!mutex)
 		return -ENOMEM;
 
 	/* Mutex Owner and Key are already set */
-	cpp_id = NFP_CPP_ID(target, 4, 0);  /* Atomic write */
+	cpp_id = NFP_CPP_ID(NFP_RESOURCE_TBL_TARGET, 4, 0);  /* Atomic write */
 
 	err = nfp_cpp_write(cpp, cpp_id, base +
 			offsetof(struct nfp_resource_entry, region),
@@ -153,34 +129,27 @@ int nfp_cpp_resource_init(struct nfp_cpp *cpp, struct nfp_cpp_mutex **mutexp)
 	u32 cpp_id;
 	struct nfp_cpp_mutex *mutex;
 	int err;
-	int target, i, entries;
-	u64 base;
-	size_t size;
+	int i;
 	struct nfp_resource_entry_region region = {
 		.name = { NFP_RESOURCE_TABLE_NAME },
 		.cpp_action = NFP_CPP_ACTION_RW,
 		.cpp_token  = 1
 	};
 
-	entries = nfp_cpp_resource_table(cpp, &target, &base, &size);
-	if (entries < 0)
-		return entries;
+	region.cpp_target = NFP_RESOURCE_TBL_TARGET;
+	region.page_offset = NFP_RESOURCE_TBL_BASE >> 8;
+	region.page_size = NFP_RESOURCE_TBL_SIZE >> 8;
 
-	region.cpp_target = target;
-	region.page_offset = base >> 8;
-	region.page_size   = size >> 8;
-
-	cpp_id = NFP_CPP_ID(target, 4, 0);  /* Atomic write */
+	cpp_id = NFP_CPP_ID(NFP_RESOURCE_TBL_TARGET, 4, 0);  /* Atomic write */
 
 	err = __nfp_resource_entry_init(cpp, 0, &region, &mutex);
 	if (err < 0)
 		return err;
 
-	entries = size / sizeof(struct nfp_resource_entry);
-
 	/* We have a lock, initialize entires after 0.*/
-	for (i = sizeof(struct nfp_resource_entry); i < size; i += 4) {
-		err = nfp_cpp_writel(cpp, cpp_id, base + i, 0);
+	for (i = sizeof(struct nfp_resource_entry);
+	     i < NFP_RESOURCE_TBL_SIZE; i += 4) {
+		err = nfp_cpp_writel(cpp, cpp_id, NFP_RESOURCE_TBL_BASE + i, 0);
 		if (err < 0)
 			return err;
 	}
@@ -213,8 +182,7 @@ int nfp_cpp_resource_add(struct nfp_cpp *cpp, const char *name,
 			 u32 cpp_id, u64 address, u64 size,
 			 struct nfp_cpp_mutex **resource_mutex)
 {
-	int target, err, i, entries, minfree;
-	u64 base;
+	int err, i, minfree;
 	u32 key;
 	struct nfp_resource_entry_region region = {
 		.cpp_action = NFP_CPP_ID_ACTION_of(cpp_id),
@@ -233,14 +201,11 @@ int nfp_cpp_resource_add(struct nfp_cpp *cpp, const char *name,
 			region.name[i] = 0;
 	}
 
-	entries = nfp_cpp_resource_table(cpp, &target, &base, NULL);
-	if (entries < 0)
-		return entries;
-
-	cpp_id = NFP_CPP_ID(target, 3, 0);  /* Atomic read */
+	cpp_id = NFP_CPP_ID(NFP_RESOURCE_TBL_TARGET, 3, 0);  /* Atomic read */
 
 	key = NFP_RESOURCE_TABLE_KEY;
-	mutex = nfp_cpp_mutex_alloc(cpp, target, base, key);
+	mutex = nfp_cpp_mutex_alloc(cpp, NFP_RESOURCE_TBL_TARGET,
+				    NFP_RESOURCE_TBL_BASE, key);
 	if (!mutex)
 		return -ENOMEM;
 
@@ -254,8 +219,9 @@ int nfp_cpp_resource_add(struct nfp_cpp *cpp, const char *name,
 	/* Search for a free entry, or a duplicate */
 	minfree = 0;
 	key = crc32_posix(name, 8);
-	for (i = 1; i < entries; i++) {
-		u64 addr = base + sizeof(struct nfp_resource_entry) * i;
+	for (i = 1; i < NFP_RESOURCE_TBL_ENTRIES; i++) {
+		u64 addr = NFP_RESOURCE_TBL_BASE +
+			sizeof(struct nfp_resource_entry) * i;
 
 		err = nfp_cpp_readl(cpp, cpp_id, addr +
 				offsetof(struct nfp_resource_entry, mutex.key),
@@ -297,8 +263,7 @@ static int nfp_cpp_resource_acquire(struct nfp_cpp *cpp, const char *name,
 	struct nfp_resource_entry_region region;
 	struct nfp_resource_entry tmp;
 	struct nfp_cpp_mutex *mutex;
-	int target, err, i, entries;
-	u64 base;
+	int err, i;
 	u32 key;
 	u32 cpp_id;
 
@@ -309,14 +274,11 @@ static int nfp_cpp_resource_acquire(struct nfp_cpp *cpp, const char *name,
 			region.name[i] = 0;
 	}
 
-	entries = nfp_cpp_resource_table(cpp, &target, &base, NULL);
-	if (entries < 0)
-		return entries;
-
-	cpp_id = NFP_CPP_ID(target, 3, 0);  /* Atomic read */
+	cpp_id = NFP_CPP_ID(NFP_RESOURCE_TBL_TARGET, 3, 0);  /* Atomic read */
 
 	key = NFP_RESOURCE_TABLE_KEY;
-	mutex = nfp_cpp_mutex_alloc(cpp, target, base, key);
+	mutex = nfp_cpp_mutex_alloc(cpp, NFP_RESOURCE_TBL_TARGET,
+				    NFP_RESOURCE_TBL_BASE, key);
 	if (!mutex)
 		return -ENOMEM;
 
@@ -331,8 +293,9 @@ static int nfp_cpp_resource_acquire(struct nfp_cpp *cpp, const char *name,
 	if (memcmp(region.name,
 		   NFP_RESOURCE_TABLE_NAME "\0\0\0\0\0\0\0\0", 8) != 0)
 		key = crc32_posix(&region.name[0], sizeof(region.name));
-	for (i = 0; i < entries; i++) {
-		u64 addr = base + sizeof(struct nfp_resource_entry) * i;
+	for (i = 0; i < NFP_RESOURCE_TBL_ENTRIES; i++) {
+		u64 addr = NFP_RESOURCE_TBL_BASE +
+			sizeof(struct nfp_resource_entry) * i;
 
 		err = nfp_cpp_read(cpp, cpp_id, addr, &tmp, sizeof(tmp));
 		if (err < 0) {
@@ -347,7 +310,7 @@ static int nfp_cpp_resource_acquire(struct nfp_cpp *cpp, const char *name,
 			/* Found key! */
 			if (resource_mutex)
 				*resource_mutex = nfp_cpp_mutex_alloc(cpp,
-							target, addr, key);
+							NFP_RESOURCE_TBL_TARGET, addr, key);
 
 			if (r_cpp)
 				*r_cpp = NFP_CPP_ID(tmp.region.cpp_target,

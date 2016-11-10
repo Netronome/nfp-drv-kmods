@@ -211,7 +211,13 @@ int nfp_nsp_command_buf(struct nfp_device *nfp, u16 code, u32 option,
 
 /* Implemented in nfp_resource.c */
 
-#define NFP_RESOURCE_ENTRY_NAME_SZ  8
+#define NFP_RESOURCE_ENTRY_NAME_SZ	8
+
+#define NFP_RESOURCE_TBL_TARGET		NFP_CPP_TARGET_MU
+#define NFP_RESOURCE_TBL_BASE		0x8100000000ULL
+#define NFP_RESOURCE_TBL_SIZE		4096
+#define NFP_RESOURCE_TBL_ENTRIES	(NFP_RESOURCE_TBL_SIZE /	\
+					 sizeof(struct nfp_resource_entry))
 
 /* NFP BSP Resource Reservation Entry
  */
@@ -282,9 +288,6 @@ struct nfp_resource_entry {
 
 int nfp_cpp_resource_init(struct nfp_cpp *cpp,
 			  struct nfp_cpp_mutex **resource_mutex);
-
-int nfp_cpp_resource_table(struct nfp_cpp *cpp, int *target,
-			   u64 *base, size_t *sizep);
 
 struct nfp_resource *nfp_resource_acquire(struct nfp_device *nfp,
 					  const char *name);

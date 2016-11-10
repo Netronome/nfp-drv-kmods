@@ -232,10 +232,6 @@ void *nfp_device_private_alloc(struct nfp_device *dev,
 static struct nfp_cpp_mutex *nfp_device_mutex(struct nfp_device *dev)
 {
 	struct nfp_cpp *cpp;
-	const u32 key = 0;     /* NFP Resource Entry 0's key */
-	int cpptgt = -1;
-	u64 base;
-	int err;
 
 	if (dev->nfp_mutex)
 		return dev->nfp_mutex;
@@ -244,13 +240,8 @@ static struct nfp_cpp_mutex *nfp_device_mutex(struct nfp_device *dev)
 	if (!cpp)
 		return NULL;
 
-	/* Find the location of the NFP CPP Resource table
-	 */
-	err = nfp_cpp_resource_table(cpp, &cpptgt, &base, NULL);
-	if (err < 0)
-		return NULL;
-
-	dev->nfp_mutex = nfp_cpp_mutex_alloc(cpp, cpptgt, base, key);
+	dev->nfp_mutex = nfp_cpp_mutex_alloc(cpp, NFP_RESOURCE_TBL_TARGET,
+					     NFP_RESOURCE_TBL_BASE, 0);
 
 	return dev->nfp_mutex;
 }
