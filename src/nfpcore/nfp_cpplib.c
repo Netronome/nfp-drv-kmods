@@ -376,7 +376,7 @@ int __nfp_cpp_model_fixup(struct nfp_cpp *cpp)
 	return 0;
 }
 
-static inline u8 __nfp_bytemask_of(int width, u64 addr)
+static u8 __nfp_bytemask_of(int width, u64 addr)
 {
 	u8 byte_mask;
 

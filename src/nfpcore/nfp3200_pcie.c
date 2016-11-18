@@ -188,13 +188,13 @@ struct nfp3200_pcie {
 	struct nfp_em_manager *event;
 };
 
-static inline u32 read_pcie_csr(struct nfp3200_pcie *nfp, u32 off)
+static u32 read_pcie_csr(struct nfp3200_pcie *nfp, u32 off)
 {
 	/* We deem this to be safe since we don't do it very often */
 	return readl(nfp->pcietgt + off);
 }
 
-static inline void write_pcie_csr(struct nfp3200_pcie *nfp, u32 off, u32 val)
+static void write_pcie_csr(struct nfp3200_pcie *nfp, u32 off, u32 val)
 {
 	/*
 	 * If write during init with internal target not set up yet,
@@ -221,7 +221,7 @@ static inline void write_pcie_csr(struct nfp3200_pcie *nfp, u32 off, u32 val)
 	}
 }
 
-static inline u32 nfp_bar_maptype(struct nfp_bar *bar)
+static u32 nfp_bar_maptype(struct nfp_bar *bar)
 {
 	return NFP_PCIE_BARCFG_P2C_MAPTYPE_of(bar->barcfg);
 }
@@ -436,7 +436,7 @@ static int matching_bar(struct nfp_bar *bar, u32 tgt, u32 act, u32 tok,
 	return 0;
 }
 
-static inline int bar_search_order(int n)
+static int bar_search_order(int n)
 {
 	return (n == 0) ? 1 : (n == 1) ? 2 : 0;
 }
@@ -542,12 +542,12 @@ static int find_unused_bar_and_lock(struct nfp3200_pcie *nfp,
 	return n;
 }
 
-static inline void nfp_bar_get(struct nfp3200_pcie *nfp, struct nfp_bar *bar)
+static void nfp_bar_get(struct nfp3200_pcie *nfp, struct nfp_bar *bar)
 {
 	atomic_inc(&bar->refcnt);
 }
 
-static inline void nfp_bar_put(struct nfp3200_pcie *nfp, struct nfp_bar *bar)
+static void nfp_bar_put(struct nfp3200_pcie *nfp, struct nfp_bar *bar)
 {
 	if (atomic_dec_and_test(&bar->refcnt))
 		wake_up_interruptible(&nfp->bar_waiters);

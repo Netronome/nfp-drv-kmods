@@ -59,27 +59,27 @@ struct i2c_driver {
 	void *priv;
 };
 
-static inline void i2c_clock_delay(struct i2c_driver *bus)
+static void i2c_clock_delay(struct i2c_driver *bus)
 {
 	udelay(bus->delay);
 }
 
-static inline void i2c_set_sda(struct i2c_driver *bus, int bit)
+static void i2c_set_sda(struct i2c_driver *bus, int bit)
 {
 	bus->set_sda(bus->priv, bit);
 }
 
-static inline int i2c_get_sda(struct i2c_driver *bus)
+static int i2c_get_sda(struct i2c_driver *bus)
 {
 	return bus->get_sda(bus->priv);
 }
 
-static inline int i2c_get_scl(struct i2c_driver *bus)
+static int i2c_get_scl(struct i2c_driver *bus)
 {
 	return bus->get_scl(bus->priv);
 }
 
-static inline int i2c_set_scl(struct i2c_driver *bus, int bit)
+static int i2c_set_scl(struct i2c_driver *bus, int bit)
 {
 	int timeout = 100;
 
@@ -94,7 +94,7 @@ static inline int i2c_set_scl(struct i2c_driver *bus, int bit)
 	return 0;
 }
 
-static inline int i2c_start(struct i2c_driver *bus)
+static int i2c_start(struct i2c_driver *bus)
 {
 	if (i2c_set_scl(bus, 1))
 		return -1;
@@ -108,7 +108,7 @@ static inline int i2c_start(struct i2c_driver *bus)
 	return 0;
 }
 
-static inline void i2c_stop(struct i2c_driver *bus)
+static void i2c_stop(struct i2c_driver *bus)
 {
 	i2c_set_scl(bus, 0);
 	i2c_set_sda(bus, 0);
@@ -122,7 +122,7 @@ static inline void i2c_stop(struct i2c_driver *bus)
 	i2c_set_scl(bus, -1);
 }
 
-static inline void i2c_writebit(struct i2c_driver *bus, bool bit)
+static void i2c_writebit(struct i2c_driver *bus, bool bit)
 {
 	i2c_set_sda(bus, bit);
 	i2c_clock_delay(bus);
@@ -133,7 +133,7 @@ static inline void i2c_writebit(struct i2c_driver *bus, bool bit)
 	i2c_clock_delay(bus);
 }
 
-static inline bool i2c_readbit(struct i2c_driver *bus)
+static bool i2c_readbit(struct i2c_driver *bus)
 {
 	bool bit;
 
@@ -148,12 +148,12 @@ static inline bool i2c_readbit(struct i2c_driver *bus)
 	return bit;
 }
 
-static inline void i2c_ack(struct i2c_driver *bus, bool ack)
+static void i2c_ack(struct i2c_driver *bus, bool ack)
 {
 	i2c_writebit(bus, ack);
 }
 
-static inline int i2c_writeb(struct i2c_driver *bus, u8 data)
+static int i2c_writeb(struct i2c_driver *bus, u8 data)
 {
 	int i, nack;
 
@@ -167,7 +167,7 @@ static inline int i2c_writeb(struct i2c_driver *bus, u8 data)
 	return 0;
 }
 
-static inline u8 i2c_readb(struct i2c_driver *bus, int ack)
+static u8 i2c_readb(struct i2c_driver *bus, int ack)
 {
 	u8 i, tmp;
 

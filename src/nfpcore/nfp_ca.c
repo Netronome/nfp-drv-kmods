@@ -94,7 +94,7 @@ struct nfp_ca_start {
 #define NFP_CA_MASK_4           NFP_CA(21, u32)
 #define NFP_CA_MASK_8           NFP_CA(22, u64)
 
-static inline void cpu_to_ca32(u8 *byte, u32 val)
+static void cpu_to_ca32(u8 *byte, u32 val)
 {
 	int i;
 
@@ -102,7 +102,7 @@ static inline void cpu_to_ca32(u8 *byte, u32 val)
 		byte[i] = (val >> (8 * i)) & 0xff;
 }
 
-static inline u32 ca32_to_cpu(const u8 *byte)
+static u32 ca32_to_cpu(const u8 *byte)
 {
 	int i;
 	u32 val = 0;
@@ -113,7 +113,7 @@ static inline u32 ca32_to_cpu(const u8 *byte)
 	return val;
 }
 
-static inline u64 ca64_to_cpu(const u8 *byte)
+static u64 ca64_to_cpu(const u8 *byte)
 {
 	int i;
 	u64 val = 0;

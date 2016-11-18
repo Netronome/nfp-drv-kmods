@@ -135,8 +135,7 @@ struct nfp_dev_cpp_event {
 	struct list_head list; /* protected by event.lock */
 };
 
-static inline void trace_cdev_vma(struct nfp_dev_cpp_vma *cvma,
-				  loff_t offset, char c)
+static void trace_cdev_vma(struct nfp_dev_cpp_vma *cvma, loff_t offset, char c)
 {
 #if NFP_DEV_CPP_DEBUG
 	struct nfp_dev_cpp_area *area = cvma->area;

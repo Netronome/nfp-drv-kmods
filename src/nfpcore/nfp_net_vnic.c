@@ -333,7 +333,7 @@ static void nfp_net_vnic_rx_poll(struct nfp_net_vnic *vnic)
  * nfp_net_vnic_schedule - Schedule NFP net timer to trigger again
  * @vnic:	vnic pointer
  */
-static inline void nfp_net_vnic_schedule(struct nfp_net_vnic *vnic)
+static void nfp_net_vnic_schedule(struct nfp_net_vnic *vnic)
 {
 	mod_timer(&vnic->timer, jiffies + vnic->timer_int);
 }

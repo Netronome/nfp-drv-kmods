@@ -221,7 +221,7 @@ struct nfp6000_pcie {
 	struct nfp_em_manager *event;
 };
 
-static inline u32 nfp_bar_maptype(struct nfp_bar *bar)
+static u32 nfp_bar_maptype(struct nfp_bar *bar)
 {
 	return NFP_PCIE_BAR_PCIE2CPP_MapType_of(bar->barcfg);
 }
@@ -613,12 +613,12 @@ static int find_unused_bar_and_lock(struct nfp6000_pcie *nfp,
 	return n;
 }
 
-static inline void nfp_bar_get(struct nfp6000_pcie *nfp, struct nfp_bar *bar)
+static void nfp_bar_get(struct nfp6000_pcie *nfp, struct nfp_bar *bar)
 {
 	atomic_inc(&bar->refcnt);
 }
 
-static inline void nfp_bar_put(struct nfp6000_pcie *nfp, struct nfp_bar *bar)
+static void nfp_bar_put(struct nfp6000_pcie *nfp, struct nfp_bar *bar)
 {
 	if (atomic_dec_and_test(&bar->refcnt))
 		wake_up_interruptible(&nfp->bar_waiters);
@@ -774,7 +774,7 @@ static void nfp6000_pciebars_attr_remove(struct device *dev)
 
 static void disable_bars(struct nfp6000_pcie *nfp);
 
-static inline int bar_cmp(const void *aptr, const void *bptr)
+static int bar_cmp(const void *aptr, const void *bptr)
 {
 	const struct nfp_bar *a = aptr, *b = bptr;
 

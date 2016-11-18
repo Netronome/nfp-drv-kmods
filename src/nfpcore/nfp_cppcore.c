@@ -201,7 +201,7 @@ static ssize_t show_area(struct device *dev, struct device_attribute *attr,
 
 static DEVICE_ATTR(area, S_IRUGO, show_area, NULL);
 
-static inline int nfp_cpp_id_acquire(void)
+static int nfp_cpp_id_acquire(void)
 {
 	int id;
 
@@ -213,7 +213,7 @@ static inline int nfp_cpp_id_acquire(void)
 	return (id < NFP_CPP_MAX) ? id : -1;
 }
 
-static inline void nfp_cpp_id_release(int id)
+static void nfp_cpp_id_release(int id)
 {
 	mutex_lock(&nfp_cpp_id_lock);
 	clear_bit(id, nfp_cpp_id);

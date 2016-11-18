@@ -86,32 +86,32 @@ struct nfp_nffw_info_priv {
  * into the table plus this base */
 
 /* loaded = loaded__mu_da__mip_off_hi<31:31> */
-static inline u32 nffw_fwinfo_loaded_get(struct nffw_fwinfo *fi)
+static u32 nffw_fwinfo_loaded_get(struct nffw_fwinfo *fi)
 {
 	return (fi->loaded__mu_da__mip_off_hi >> 31) & 1;
 }
 
 /* mip_cppid = mip_cppid */
-static inline u32 nffw_fwinfo_mip_cppid_get(struct nffw_fwinfo *fi)
+static u32 nffw_fwinfo_mip_cppid_get(struct nffw_fwinfo *fi)
 {
 	return fi->mip_cppid;
 }
 
 /* loaded = loaded__mu_da__mip_off_hi<8:8> */
-static inline u32 nffw_fwinfo_mip_mu_da_get(struct nffw_fwinfo *fi)
+static u32 nffw_fwinfo_mip_mu_da_get(struct nffw_fwinfo *fi)
 {
 	return (fi->loaded__mu_da__mip_off_hi >> 8) & 1;
 }
 
 /* mip_offset = (loaded__mu_da__mip_off_hi<7:0> << 8) | mip_offset_lo */
-static inline u64 nffw_fwinfo_mip_offset_get(struct nffw_fwinfo *fi)
+static u64 nffw_fwinfo_mip_offset_get(struct nffw_fwinfo *fi)
 {
 	return (((u64)fi->loaded__mu_da__mip_off_hi & 0xFF) << 32) |
 		fi->mip_offset_lo;
 }
 
 /* flg_init = flags[0]<0> */
-static inline u32 nffw_res_flg_init_get(struct nfp_nffw_info *res)
+static u32 nffw_res_flg_init_get(struct nfp_nffw_info *res)
 {
 	return (res->flags[0] >> 0) & 0x1;
 }
@@ -128,14 +128,14 @@ static void *__nfp_nffw_info_con(struct nfp_device *dev)
 			__nfp_nffw_info_des);
 }
 
-static inline struct nfp_nffw_info_priv *_nfp_nffw_priv(struct nfp_device *dev)
+static struct nfp_nffw_info_priv *_nfp_nffw_priv(struct nfp_device *dev)
 {
 	if (!dev)
 		return NULL;
 	return nfp_device_private(dev, __nfp_nffw_info_con);
 }
 
-static inline struct nfp_nffw_info *_nfp_nffw_info(struct nfp_device *dev)
+static struct nfp_nffw_info *_nfp_nffw_info(struct nfp_device *dev)
 {
 	struct nfp_nffw_info_priv *priv = _nfp_nffw_priv(dev);
 

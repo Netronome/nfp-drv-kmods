@@ -194,12 +194,12 @@ static const struct file_operations nfp_err_fops = {
  *		Error Checking Handlers
  */
 
-static inline void nfp_err_schedule(struct nfp_err_cdev *cdev)
+static void nfp_err_schedule(struct nfp_err_cdev *cdev)
 {
 	mod_timer(&cdev->timer, jiffies + cdev->timer_interval);
 }
 
-static inline u32 nfp_err_triggered(struct nfp_err_cdev *cdev)
+static u32 nfp_err_triggered(struct nfp_err_cdev *cdev)
 {
 	u32 tmp;
 
@@ -207,7 +207,7 @@ static inline u32 nfp_err_triggered(struct nfp_err_cdev *cdev)
 	return tmp & F_MASK;
 }
 
-static inline u32 nfp_err_ack(struct nfp_err_cdev *cdev, int fnum)
+static u32 nfp_err_ack(struct nfp_err_cdev *cdev, int fnum)
 {
 	u32 tmp;
 

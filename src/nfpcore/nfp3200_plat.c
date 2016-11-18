@@ -254,7 +254,7 @@ found_slot:
 	return 0;
 }
 
-static inline void bulk_csr(u32 *csr, u32 dest, u64 addr, int width)
+static void bulk_csr(u32 *csr, u32 dest, u64 addr, int width)
 {
 	*csr = NFP_ARM_GCSR_BULK_CSR(0,	/* Always expansion */
 			  NFP_CPP_ID_TARGET_of(dest),
@@ -264,8 +264,7 @@ static inline void bulk_csr(u32 *csr, u32 dest, u64 addr, int width)
 			  addr);
 }
 
-static inline void bulk_set(struct nfp3200_plat *priv, u32 csr,
-			    unsigned int id)
+static void bulk_set(struct nfp3200_plat *priv, u32 csr, unsigned int id)
 {
 	int i;
 
@@ -281,7 +280,7 @@ static inline void bulk_set(struct nfp3200_plat *priv, u32 csr,
 			csr);
 }
 
-static inline void expa_csr(u32 *csr, u32 dest, u64 addr, int width)
+static void expa_csr(u32 *csr, u32 dest, u64 addr, int width)
 {
 	unsigned action = NFP_CPP_ID_ACTION_of(dest);
 	int is_64 = (width == 8) ? 1 : 0;
@@ -298,8 +297,7 @@ static inline void expa_csr(u32 *csr, u32 dest, u64 addr, int width)
 			  addr);
 }
 
-static inline void expa_set(struct nfp3200_plat *priv, u32 csr,
-			    unsigned int id)
+static void expa_set(struct nfp3200_plat *priv, u32 csr, unsigned int id)
 {
 	int i;
 
