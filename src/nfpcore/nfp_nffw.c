@@ -265,7 +265,7 @@ int nfp_nffw_info_release(struct nfp_device *dev)
  *
  * Return: 0, or -ERRNO
  */
-int nfp_nffw_info_fw_mip(struct nfp_device *dev, uint8_t fwid,
+int nfp_nffw_info_fw_mip(struct nfp_device *dev, u8 fwid,
 			 u32 *cpp_id, u64 *off)
 {
 	struct nffw_fwinfo *fwinfo;
@@ -299,7 +299,7 @@ int nfp_nffw_info_fw_mip(struct nfp_device *dev, uint8_t fwid,
  *
  * Return: First NFFW firmware ID
  */
-uint8_t nfp_nffw_info_fwid_first(struct nfp_device *dev)
+u8 nfp_nffw_info_fwid_first(struct nfp_device *dev)
 {
 	size_t idx;
 	struct nffw_fwinfo *fwinfo;

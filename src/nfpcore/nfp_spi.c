@@ -405,7 +405,7 @@ int nfp_spi_write(struct nfp_spi *spi, int cs,
 				    dat, dat_len * 8, NULL, 0, 0);
 }
 
-static int spi_interface_key(uint16_t interface)
+static int spi_interface_key(u16 interface)
 {
 	switch (NFP_CPP_INTERFACE_TYPE_of(interface)) {
 	case NFP_CPP_INTERFACE_TYPE_ARM:

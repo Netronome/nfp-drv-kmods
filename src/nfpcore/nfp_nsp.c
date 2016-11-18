@@ -129,7 +129,7 @@ static void *nfp_nsp_con(struct nfp_device *nfp)
  *
  *         -ETIMEDOUT if the NSP took longer than 30 seconds to complete
  */
-int nfp_nsp_command(struct nfp_device *nfp, uint16_t code, u32 option,
+int nfp_nsp_command(struct nfp_device *nfp, u16 code, u32 option,
 		    u32 buff_cpp, u64 buff_addr)
 {
 	struct nfp_cpp *cpp = nfp_device_cpp(nfp);

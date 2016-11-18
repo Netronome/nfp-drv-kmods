@@ -372,7 +372,7 @@ u32 nfp_cpp_model(struct nfp_cpp *cpp)
  *
  * Return: NFP CPP Interface ID
  */
-uint16_t nfp_cpp_interface(struct nfp_cpp *cpp)
+u16 nfp_cpp_interface(struct nfp_cpp *cpp)
 {
 	return cpp->op->interface;
 }
@@ -1642,7 +1642,7 @@ int nfp_cpp_explicit_set_target(struct nfp_cpp_explicit *expl,
  * Return: 0, or -ERRNO
  */
 int nfp_cpp_explicit_set_data(struct nfp_cpp_explicit *expl,
-			      u8 data_master, uint16_t data_ref)
+			      u8 data_master, u16 data_ref)
 {
 	expl->cmd.data_master = data_master;
 	expl->cmd.data_ref = data_ref;
