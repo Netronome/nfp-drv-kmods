@@ -49,7 +49,6 @@ struct platform_device;
 
 struct nfp_cpp;
 struct nfp_cpp_area;
-struct nfp_device;
 
 /**
  * struct nfp_pf - NFP PF-specific device structure
@@ -99,12 +98,10 @@ extern bool nfp_net_vnic;
 extern struct pci_driver nfp_netvf_pci_driver;
 
 #ifdef CONFIG_NFP_NET_PF
-int nfp_net_pci_probe(struct nfp_pf *pf, struct nfp_device *nfp_dev,
-		      bool nfp_reset);
+int nfp_net_pci_probe(struct nfp_pf *pf, bool nfp_reset);
 void nfp_net_pci_remove(struct nfp_pf *pf);
 #else
-static inline int
-nfp_net_pci_probe(struct nfp_pf *pf, struct nfp_device *nfp_dev, bool nfp_reset)
+static inline int nfp_net_pci_probe(struct nfp_pf *pf, bool nfp_reset)
 {
 	return -ENODEV;
 }

@@ -106,16 +106,6 @@ EXPORT_SYMBOL(nfp_cpp_read);
 EXPORT_SYMBOL(nfp_cpp_write);
 EXPORT_SYMBOL(nfp_cpp_area_fill);
 
-/* Implemented in nfp_device.c */
-
-EXPORT_SYMBOL(nfp_device_cpp);
-EXPORT_SYMBOL(nfp_device_from_cpp);
-EXPORT_SYMBOL(nfp_device_close);
-EXPORT_SYMBOL(nfp_device_open);
-EXPORT_SYMBOL(nfp_device_id);
-EXPORT_SYMBOL(nfp_device_private);
-EXPORT_SYMBOL(nfp_device_private_alloc);
-
 /* Implemented in nfp_nbi.c */
 
 EXPORT_SYMBOL(nfp_nbi_open);

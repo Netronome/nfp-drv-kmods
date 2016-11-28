@@ -49,26 +49,6 @@
 #define NFP_SUBSYS ""
 #endif
 
-#define nfp_err(nfp, fmt, args...) \
-	dev_err(nfp_cpp_device(nfp_device_cpp(nfp))->parent, \
-		NFP_SUBSYS fmt, ## args)
-#define nfp_warn(nfp, fmt, args...) \
-	dev_warn(nfp_cpp_device(nfp_device_cpp(nfp))->parent, \
-		 NFP_SUBSYS fmt, ## args)
-#define nfp_info(nfp, fmt, args...) \
-	dev_info(nfp_cpp_device(nfp_device_cpp(nfp))->parent, \
-		NFP_SUBSYS fmt, ## args)
-#define nfp_dbg(nfp, fmt, args...) \
-	dev_dbg(nfp_cpp_device(nfp_device_cpp(nfp))->parent, \
-		NFP_SUBSYS fmt, ## args)
-#define nfp_trace(nfp, fmt, args...) \
-	do { \
-		struct device *_dev; \
-		_dev = nfp_cpp_device(nfp_device_cpp(nfp))->parent; \
-		trace_printk("%s %s: " NFP_SUBSYS fmt, \
-		     dev_driver_string(_dev), dev_name(_dev)); \
-	} while (0)
-
 #define nfp_cpp_err(cpp, fmt, args...) \
 	dev_err(nfp_cpp_device(cpp)->parent, NFP_SUBSYS fmt, ## args)
 #define nfp_cpp_warn(cpp, fmt, args...) \
@@ -80,25 +60,10 @@
 
 struct nfp_cpp;
 
-/* Opaque NFP device handle. */
-struct nfp_device;
-
 /* Maximum device number for an NFP device. */
 #define NFP_MAX_DEVICE_NUM              63
 
 /* Implemented in nfp_device.c */
-
-struct nfp_device *nfp_device_open(unsigned int devnum);
-struct nfp_device *nfp_device_from_cpp(struct nfp_cpp *cpp);
-void nfp_device_close(struct nfp_device *dev);
-
-int nfp_device_id(struct nfp_device *nfp);
-struct nfp_cpp *nfp_device_cpp(struct nfp_device *dev);
-
-void *nfp_device_private(struct nfp_device *dev,
-			 void *(*constructor)(struct nfp_device *dev));
-void *nfp_device_private_alloc(struct nfp_device *dev, size_t private_size,
-			       void (*destructor)(void *private_data));
 
 int nfp_device_trylock(struct nfp_cpp *cpp);
 int nfp_device_lock(struct nfp_cpp *cpp);

@@ -440,23 +440,13 @@ err_release_fw:
 
 static void nfp_fw_unload(struct nfp_pf *pf)
 {
-	struct nfp_device *nfp_dev;
 	int err;
-
-	nfp_dev = nfp_device_from_cpp(pf->cpp);
-	if (!nfp_dev) {
-		dev_warn(&pf->pdev->dev,
-			 "Firmware was not unloaded (can't get nfp_dev)\n");
-		return;
-	}
 
 	err = nfp_reset_soft(pf->cpp);
 	if (err < 0)
 		dev_warn(&pf->pdev->dev, "Couldn't unload firmware: %d\n", err);
 	else
 		dev_info(&pf->pdev->dev, "Firmware safely unloaded\n");
-
-	nfp_device_close(nfp_dev);
 }
 
 static void nfp_register_vnic(struct nfp_pf *pf)
@@ -477,7 +467,6 @@ static void nfp_register_vnic(struct nfp_pf *pf)
 static int nfp_pci_probe(struct pci_dev *pdev,
 			 const struct pci_device_id *pci_id)
 {
-	struct nfp_device *nfp_dev;
 	struct nfp_pf *pf;
 	int err, irq;
 
@@ -532,16 +521,10 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 		goto err_cpp_free;
 #endif
 
-	nfp_dev = nfp_device_from_cpp(pf->cpp);
-	if (!nfp_dev) {
-		err = -ENODEV;
-		goto err_sriov_remove;
-	}
-
 	err = nfp_fw_load(pdev, pf->cpp);
 	if (err < 0) {
 		dev_err(&pdev->dev, "Failed to load FW\n");
-		goto err_dev_close;
+		goto err_sriov_remove;
 	}
 
 	pf->fw_loaded = !!err;
@@ -554,7 +537,7 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 	}
 
 	if (nfp_pf_netdev) {
-		err = nfp_net_pci_probe(pf, nfp_dev, nfp_reset);
+		err = nfp_net_pci_probe(pf, nfp_reset);
 		if (nfp_fallback && err == 1) {
 			dev_info(&pdev->dev, "Netronome NFP Fallback driver\n");
 		} else if (err) {
@@ -565,15 +548,11 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 		nfp_register_vnic(pf);
 	}
 
-	nfp_device_close(nfp_dev);
-
 	return 0;
 
 err_dev_cpp_unreg:
 	if (pf->nfp_dev_cpp)
 		nfp_platform_device_unregister(pf->nfp_dev_cpp);
-err_dev_close:
-	nfp_device_close(nfp_dev);
 err_sriov_remove:
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
 	nfp_sriov_attr_remove(&pdev->dev);
