@@ -402,7 +402,7 @@ static int nfp_fw_load(struct pci_dev *pdev, struct nfp_device *nfp)
 
 	dev_info(&pdev->dev, "NFP soft-reset (implied:%d forced:%d)\n",
 		 !!fw, nfp_reset);
-	err = nfp_reset_soft(nfp);
+	err = nfp_reset_soft(cpp);
 	if (err < 0) {
 		dev_err(&pdev->dev, "Failed to soft reset the NFP: %d\n",
 			err);
@@ -451,7 +451,7 @@ static void nfp_fw_unload(struct nfp_pf *pf)
 		return;
 	}
 
-	err = nfp_reset_soft(nfp_dev);
+	err = nfp_reset_soft(pf->cpp);
 	if (err < 0)
 		dev_warn(&pf->pdev->dev, "Couldn't unload firmware: %d\n", err);
 	else

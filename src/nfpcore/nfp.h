@@ -198,7 +198,7 @@ int nfp_power_set(struct nfp_cpp *cpp, unsigned int subdevice, int state);
 
 /* Implemented in nfp_reset.c */
 
-int nfp_reset_soft(struct nfp_device *nfp);
+int nfp_reset_soft(struct nfp_cpp *cpp);
 
 /* Implemented in nfp_armsp.c */
 
