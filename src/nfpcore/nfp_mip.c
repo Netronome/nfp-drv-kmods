@@ -279,15 +279,19 @@ static int __nfp_mip_location(struct nfp_device *dev,
 	u64 mip_off = 0;
 	struct nfp_cpp *cpp = nfp_device_cpp(dev);
 	struct nfp_mip mip;
+	struct nfp_nffw_info *nffw_info;
 
 	/* First see if we can get it from the nfp.nffw resource */
-	if (nfp_nffw_info_acquire(dev) == 0) {
+
+	nffw_info = nfp_nffw_info_open(cpp);
+	if (!IS_ERR(nffw_info)) {
 		int mu_lsb;
 
 		/* Assume 40-bit addressing */
 		mu_lsb = nfp_mip_nfp6000_mu_locality_lsb(dev);
 
-		if ((nfp_nffw_info_fw_mip(dev, nfp_nffw_info_fwid_first(dev),
+		if ((nfp_nffw_info_fw_mip(nffw_info,
+					  nfp_nffw_info_fwid_first(nffw_info),
 					  &mip_cppid, &mip_off) == 0) &&
 			(mip_cppid != 0) &&
 			(NFP_CPP_ID_TARGET_of(mip_cppid) ==
@@ -299,7 +303,7 @@ static int __nfp_mip_location(struct nfp_device *dev,
 				mip_off |= 2ULL << mu_lsb;
 			}
 		}
-		nfp_nffw_info_release(dev);
+		nfp_nffw_info_close(nffw_info);
 	}
 
 	/* Verify that the discovered area actually has a MIP signature */

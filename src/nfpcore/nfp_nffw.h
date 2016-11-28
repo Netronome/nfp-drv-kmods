@@ -42,11 +42,13 @@
 
 /* Implemented in nfp_nffw.c */
 
-int nfp_nffw_info_acquire(struct nfp_device *dev);
-int nfp_nffw_info_release(struct nfp_device *dev);
-int nfp_nffw_info_fw_mip(struct nfp_device *dev, u8 fwid,
+struct nfp_nffw_info;
+
+struct nfp_nffw_info *nfp_nffw_info_open(struct nfp_cpp *cpp);
+void nfp_nffw_info_close(struct nfp_nffw_info *state);
+int nfp_nffw_info_fw_mip(struct nfp_nffw_info *state, u8 fwid,
 			 u32 *cpp_id, u64 *off);
-uint8_t nfp_nffw_info_fwid_first(struct nfp_device *dev);
+u8 nfp_nffw_info_fwid_first(struct nfp_nffw_info *state);
 
 /* Implemented in nfp_mip.c */
 
