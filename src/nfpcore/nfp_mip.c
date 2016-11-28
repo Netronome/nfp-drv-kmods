@@ -190,27 +190,10 @@ static void __mip_update_byteorder(struct nfp_mip *mip)
 	}
 }
 
-struct nfp_mip_priv {
-	struct nfp_mip *mip;
-};
-
-static void __nfp_mip_des(void *data)
-{
-	struct nfp_mip_priv *priv = data;
-
-	kfree(priv->mip);
-}
-
-static void *__nfp_mip_con(struct nfp_device *dev)
-{
-	return nfp_device_private_alloc(dev,
-			sizeof(struct nfp_mip_priv),
-			__nfp_mip_des);
-}
-
 /**
  * nfp_mip() - Get MIP for NFP device.
- * @dev:	NFP device
+ * @dev:	NFP Device handle
+ * @cpp:	NFP CPP Handle
  *
  * Copy MIP structure from NFP device and return it.  The returned
  * structure is handled internally by the library and should not be
@@ -229,19 +212,20 @@ static void *__nfp_mip_con(struct nfp_device *dev)
  *
  * Return: MIP structure, or NULL
  */
-const struct nfp_mip *nfp_mip(struct nfp_device *dev)
+const struct nfp_mip *nfp_mip(struct nfp_device *dev, struct nfp_cpp *cpp)
 {
-	struct nfp_mip_priv *priv = nfp_device_private(dev, __nfp_mip_con);
+	struct nfp_mip *mip;
 	int err;
 
-	if (priv->mip)
-		return priv->mip;
+	mip = nfp_mip_cache(cpp);
+	if (mip)
+		return mip;
 
-	err = nfp_mip_probe(dev);
+	err = nfp_mip_probe(dev, cpp);
 	if (err < 0)
 		return NULL;
 
-	return priv->mip;
+	return nfp_mip_cache(cpp);
 }
 
 #define   NFP_IMB_TGTADDRESSMODECFG_MODE_of(_x)      (((_x) >> 13) & 0x7)
@@ -249,9 +233,8 @@ const struct nfp_mip *nfp_mip(struct nfp_device *dev)
 #define     NFP_IMB_TGTADDRESSMODECFG_ADDRMODE_32_BIT        0
 #define     NFP_IMB_TGTADDRESSMODECFG_ADDRMODE_40_BIT        BIT(12)
 
-static int nfp_mip_nfp6000_mu_locality_lsb(struct nfp_device *dev)
+static int nfp_mip_nfp6000_mu_locality_lsb(struct nfp_cpp *cpp)
 {
-	struct nfp_cpp *cpp = nfp_device_cpp(dev);
 	u32 xpbaddr, imbcppat;
 	int err;
 
@@ -270,14 +253,13 @@ static int nfp_mip_nfp6000_mu_locality_lsb(struct nfp_device *dev)
 		NFP_IMB_TGTADDRESSMODECFG_ADDRMODE_40_BIT);
 }
 
-static int __nfp_mip_location(struct nfp_device *dev,
+static int __nfp_mip_location(struct nfp_cpp *cpp,
 			      u32 *cppid, u64 *addr,
 			      unsigned long *size, unsigned long *load_time)
 {
 	int retval;
 	u32 mip_cppid = 0;
 	u64 mip_off = 0;
-	struct nfp_cpp *cpp = nfp_device_cpp(dev);
 	struct nfp_mip mip;
 	struct nfp_nffw_info *nffw_info;
 
@@ -288,7 +270,7 @@ static int __nfp_mip_location(struct nfp_device *dev,
 		int mu_lsb;
 
 		/* Assume 40-bit addressing */
-		mu_lsb = nfp_mip_nfp6000_mu_locality_lsb(dev);
+		mu_lsb = nfp_mip_nfp6000_mu_locality_lsb(cpp);
 
 		if ((nfp_nffw_info_fw_mip(nffw_info,
 					  nfp_nffw_info_fwid_first(nffw_info),
@@ -355,7 +337,8 @@ err_probe:
 
 /**
  * nfp_mip_probe() - Check if MIP has been updated.
- * @dev:           NFP device
+ * @dev:	NFP Device handle
+ * @cpp:	NFP CPP Handle
  *
  * Check if currently cached MIP has been updated on the NFP device,
  * and read potential new contents.  If a call to nfp_mip_probe()
@@ -365,20 +348,20 @@ err_probe:
  *
  * Return: 1 if MIP has been updated, 0 if no update has occurred, or -ERRNO
  */
-int nfp_mip_probe(struct nfp_device *dev)
+int nfp_mip_probe(struct nfp_device *dev, struct nfp_cpp *cpp)
 {
-	struct nfp_mip_priv *priv = nfp_device_private(dev, __nfp_mip_con);
 	unsigned long size, time;
 	u32 cpp_id;
 	u64 addr;
 	struct nfp_mip *mip;
 	int retval;
 
-	retval = __nfp_mip_location(dev, &cpp_id, &addr, &size, &time);
+	retval = __nfp_mip_location(cpp, &cpp_id, &addr, &size, &time);
 	if (retval != 0)
 		return -ENODEV;
 
-	if (priv->mip && priv->mip->loadtime == time) {
+	mip = nfp_mip_cache(cpp);
+	if (mip && mip->loadtime == time) {
 		nfp_err(dev, "MIP loadtime unchanged, not reloading\n");
 		return 0; /* No change */
 	}
@@ -388,20 +371,20 @@ int nfp_mip_probe(struct nfp_device *dev)
 	 * new contents from DRAM.  We also discard the current symtab.
 	 */
 
-	if (priv->mip) {
+	if (mip) {
 		/* Invalidate rtsym first, it may want to
 		 * still look at the mip
 		 */
 		nfp_rtsym_reload(dev);
-		kfree(priv->mip);
-		priv->mip = NULL;
+		kfree(mip);
+		nfp_mip_cache_set(cpp, NULL);
 	}
 
 	mip = kmalloc(size, GFP_KERNEL);
 	if (!mip)
 		return -ENOMEM;
 
-	retval = nfp_cpp_read(nfp_device_cpp(dev), cpp_id, addr, mip, size);
+	retval = nfp_cpp_read(cpp, cpp_id, addr, mip, size);
 	if (retval != size) {
 		kfree(mip);
 
@@ -416,7 +399,7 @@ int nfp_mip_probe(struct nfp_device *dev)
 
 	__mip_update_byteorder(mip);
 
-	priv->mip = mip;
+	nfp_mip_cache_set(cpp, mip);
 
 	return 1;
 }
@@ -465,20 +448,22 @@ int nfp_mip_strtab(const struct nfp_mip *mip, u32 *addr, u32 *size)
 
 /**
  * nfp_mip_reload() - Invalidate the current MIP, if any, and related entries.
- * @dev: NFP Device handle
+ * @dev:	NFP Device handle
+ * @cpp:	NFP CPP Handle
  *
  * The next nfp_mip() probe will then do the actual reload of MIP data.
  * Calling nfp_mip_reload() will also invalidate:
  * * rtsyms
  */
-void nfp_mip_reload(struct nfp_device *dev)
+void nfp_mip_reload(struct nfp_device *dev, struct nfp_cpp *cpp)
 {
-	struct nfp_mip_priv *priv = nfp_device_private(dev, __nfp_mip_con);
+	struct nfp_mip *mip;
 
-	if (!priv || !priv->mip)
+	mip = nfp_mip_cache(cpp);
+	if (!mip)
 		return;
 
 	nfp_rtsym_reload(dev);
-	kfree(priv->mip);
-	priv->mip = NULL;
+	kfree(mip);
+	nfp_mip_cache_set(cpp, NULL);
 }

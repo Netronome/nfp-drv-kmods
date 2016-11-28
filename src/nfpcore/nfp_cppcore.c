@@ -117,6 +117,7 @@ struct nfp_cpp {
 
 	/* Cached information */
 	void *hwinfo;
+	void *mip;
 };
 
 /* Element of the area_cache_list */
@@ -291,6 +292,7 @@ static void __nfp_cpp_release(struct kref *kref)
 		cpp->op->free(cpp);
 
 	kfree(cpp->hwinfo);
+	kfree(cpp->mip);
 
 	write_lock(&nfp_cpp_list_lock);
 	list_del_init(&cpp->list);
@@ -403,6 +405,16 @@ void *nfp_hwinfo_cache(struct nfp_cpp *cpp)
 void nfp_hwinfo_cache_set(struct nfp_cpp *cpp, void *val)
 {
 	cpp->hwinfo = val;
+}
+
+void *nfp_mip_cache(struct nfp_cpp *cpp)
+{
+	return cpp->mip;
+}
+
+void nfp_mip_cache_set(struct nfp_cpp *cpp, void *val)
+{
+	cpp->mip = val;
 }
 
 static void __resource_add(struct list_head *head, struct nfp_cpp_resource *res)

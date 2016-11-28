@@ -54,9 +54,9 @@ u8 nfp_nffw_info_fwid_first(struct nfp_nffw_info *state);
 
 struct nfp_mip;
 
-void nfp_mip_reload(struct nfp_device *nfp);
-const struct nfp_mip *nfp_mip(struct nfp_device *dev);
-int nfp_mip_probe(struct nfp_device *dev);
+void nfp_mip_reload(struct nfp_device *nfp, struct nfp_cpp *cpp);
+const struct nfp_mip *nfp_mip(struct nfp_device *dev, struct nfp_cpp *cpp);
+int nfp_mip_probe(struct nfp_device *dev, struct nfp_cpp *cpp);
 
 int nfp_mip_symtab(const struct nfp_mip *mip, u32 *addr, u32 *size);
 int nfp_mip_strtab(const struct nfp_mip *mip, u32 *addr, u32 *size);

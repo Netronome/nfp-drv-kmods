@@ -121,7 +121,7 @@ static int __nfp_rtsymtab_probe(struct nfp_device *dev,
 	u32 strtab_size, symtab_size;
 
 	if (!priv->mip) {
-		priv->mip = nfp_mip(dev);
+		priv->mip = nfp_mip(dev, cpp);
 		if (!priv->mip)
 			return -ENODEV;
 	}
