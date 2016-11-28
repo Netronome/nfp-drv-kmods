@@ -78,29 +78,11 @@ struct _rtsym {
 	u32 size_lo;
 };
 
-struct nfp_rtsym_priv {
-	const struct nfp_mip *mip;
-	int numrtsyms;
-	struct nfp_rtsym *rtsymtab;
-	char *rtstrtab;
+struct nfp_rtsym_cache {
+	int num;
+	char *strtab;
+	struct nfp_rtsym symtab[];
 };
-
-static void nfp_rtsym_priv_des(void *data)
-{
-	struct nfp_rtsym_priv *priv = data;
-
-	kfree(priv->rtsymtab);
-	kfree(priv->rtstrtab);
-}
-
-static void *nfp_rtsym_priv_con(struct nfp_device *dev)
-{
-	struct nfp_rtsym_priv *priv;
-
-	priv = nfp_device_private_alloc(dev, sizeof(*priv), nfp_rtsym_priv_des);
-
-	return priv;
-}
 
 static int nfp6000_meid(u8 island_id, u8 menum)
 {
@@ -108,29 +90,26 @@ static int nfp6000_meid(u8 island_id, u8 menum)
 		(island_id << 4) | (menum + 4) : -1;
 }
 
-static int __nfp_rtsymtab_probe(struct nfp_device *dev,
-				struct nfp_rtsym_priv *priv)
+static int __nfp_rtsymtab_probe(struct nfp_cpp *cpp)
 {
-	struct nfp_cpp *cpp = nfp_device_cpp(dev);
-	struct _rtsym *rtsymtab;
-	u32 *wptr;
-	int err, n;
-	const u32 dram = NFP_CPP_ID(NFP_CPP_TARGET_MU,
-					 NFP_CPP_ACTION_RW, 0);
+	const u32 dram = NFP_CPP_ID(NFP_CPP_TARGET_MU, NFP_CPP_ACTION_RW, 0);
+	struct nfp_rtsym_cache *cache;
 	u32 strtab_addr, symtab_addr;
 	u32 strtab_size, symtab_size;
+	const struct nfp_mip *mip;
+	struct _rtsym *rtsymtab;
+	int err, n, size;
+	u32 *wptr;
 
-	if (!priv->mip) {
-		priv->mip = nfp_mip(dev, cpp);
-		if (!priv->mip)
-			return -ENODEV;
-	}
+	mip = nfp_mip(cpp);
+	if (!mip)
+		return -EIO;
 
-	err = nfp_mip_strtab(priv->mip, &strtab_addr, &strtab_size);
+	err = nfp_mip_strtab(mip, &strtab_addr, &strtab_size);
 	if (err < 0)
 		return err;
 
-	err = nfp_mip_symtab(priv->mip, &symtab_addr, &symtab_size);
+	err = nfp_mip_symtab(mip, &symtab_addr, &symtab_size);
 	if (err < 0)
 		return err;
 
@@ -146,154 +125,149 @@ static int __nfp_rtsymtab_probe(struct nfp_device *dev,
 	if (!rtsymtab)
 		return -ENOMEM;
 
-	priv->numrtsyms = symtab_size / sizeof(*rtsymtab);
-	priv->rtsymtab = kmalloc_array(priv->numrtsyms,
-				       sizeof(struct nfp_rtsym),
-				       GFP_KERNEL);
-	if (!priv->rtsymtab) {
+	size = sizeof(*cache);
+	size += symtab_size / sizeof(*rtsymtab) * sizeof(struct nfp_rtsym);
+	size +=	strtab_size + 1;
+	cache = kmalloc(size, GFP_KERNEL);
+	if (!cache) {
 		err = -ENOMEM;
-		goto err_symtab;
+		goto err_free_rtsym_raw;
 	}
 
-	priv->rtstrtab = kmalloc(strtab_size + 1, GFP_KERNEL);
-	if (!priv->rtstrtab) {
-		err = -ENOMEM;
-		goto err_strtab;
-	}
+	cache->num = symtab_size / sizeof(*rtsymtab);
+	cache->strtab = (void *)&cache->symtab[cache->num];
 
 	err = nfp_cpp_read(cpp, dram | 24, symtab_addr, rtsymtab, symtab_size);
 	if (err != symtab_size)
-		goto err_read_symtab;
+		goto err_free_cache;
 
 	err = nfp_cpp_read(cpp, dram | 24, strtab_addr,
-			   priv->rtstrtab, strtab_size);
+			   cache->strtab, strtab_size);
 	if (err != strtab_size)
-		goto err_read_strtab;
-	priv->rtstrtab[strtab_size] = '\0';
+		goto err_free_cache;
+	cache->strtab[strtab_size] = '\0';
 
-	for (wptr = (u32 *)rtsymtab, n = 0;
-	     n < priv->numrtsyms; n++)
+	for (wptr = (u32 *)rtsymtab, n = 0; n < cache->num; n++)
 		wptr[n] = le32_to_cpu(wptr[n]);
 
-	for (n = 0; n < priv->numrtsyms; n++) {
-		priv->rtsymtab[n].type = rtsymtab[n].type;
-		priv->rtsymtab[n].name = priv->rtstrtab +
+	for (n = 0; n < cache->num; n++) {
+		cache->symtab[n].type = rtsymtab[n].type;
+		cache->symtab[n].name = cache->strtab +
 			(rtsymtab[n].name % strtab_size);
-		priv->rtsymtab[n].addr = (((u64)rtsymtab[n].addr_hi) << 32) +
+		cache->symtab[n].addr = (((u64)rtsymtab[n].addr_hi) << 32) +
 			rtsymtab[n].addr_lo;
-		priv->rtsymtab[n].size = (((u64)rtsymtab[n].size_hi) << 32) +
+		cache->symtab[n].size = (((u64)rtsymtab[n].size_hi) << 32) +
 			rtsymtab[n].size_lo;
 
 		switch (rtsymtab[n].target) {
 		case _SYM_TGT_LMEM:
-			priv->rtsymtab[n].target = NFP_RTSYM_TARGET_LMEM;
+			cache->symtab[n].target = NFP_RTSYM_TARGET_LMEM;
 			break;
 		case _SYM_TGT_EMU_CACHE:
-			priv->rtsymtab[n].target = NFP_RTSYM_TARGET_EMU_CACHE;
+			cache->symtab[n].target = NFP_RTSYM_TARGET_EMU_CACHE;
 			break;
 		case _SYM_TGT_UMEM:
-			goto err_read_symtab;
+			goto err_free_cache;
 		default:
-			priv->rtsymtab[n].target = rtsymtab[n].target;
+			cache->symtab[n].target = rtsymtab[n].target;
 			break;
 		}
 
 		if (rtsymtab[n].domain2.nfp6000_menum != 0xff)
-			priv->rtsymtab[n].domain = nfp6000_meid(
+			cache->symtab[n].domain = nfp6000_meid(
 				rtsymtab[n].domain1.nfp6000_island,
 				rtsymtab[n].domain2.nfp6000_menum);
 		else if (rtsymtab[n].domain1.nfp6000_island != 0xff)
-			priv->rtsymtab[n].domain =
+			cache->symtab[n].domain =
 				rtsymtab[n].domain1.nfp6000_island;
 		else
-			priv->rtsymtab[n].domain = -1;
+			cache->symtab[n].domain = -1;
 	}
 
 	kfree(rtsymtab);
+	nfp_rtsym_cache_set(cpp, cache);
 	return 0;
 
-err_read_strtab:
-err_read_symtab:
-	kfree(priv->rtstrtab);
-	priv->rtstrtab = NULL;
-err_strtab:
-	kfree(priv->rtsymtab);
-	priv->rtsymtab = NULL;
-	priv->numrtsyms = 0;
-err_symtab:
+err_free_cache:
+	kfree(cache);
+err_free_rtsym_raw:
 	kfree(rtsymtab);
 	return err;
 }
 
+static struct nfp_rtsym_cache *nfp_rtsym(struct nfp_cpp *cpp)
+{
+	struct nfp_rtsym_cache *cache;
+	int err;
+
+	cache = nfp_rtsym_cache(cpp);
+	if (cache)
+		return cache;
+
+	err = __nfp_rtsymtab_probe(cpp);
+	if (err < 0)
+		return ERR_PTR(err);
+
+	return nfp_rtsym_cache(cpp);
+}
+
 /**
  * nfp_rtsym_count() - Get the number of RTSYM descriptors
- * @dev:		NFP Device handle
+ * @cpp:		NFP CPP handle
  *
  * Return: Number of RTSYM descriptors, or -ERRNO
  */
-int nfp_rtsym_count(struct nfp_device *dev)
+int nfp_rtsym_count(struct nfp_cpp *cpp)
 {
-	struct nfp_rtsym_priv *priv = nfp_device_private(dev,
-							 nfp_rtsym_priv_con);
-	int err;
+	struct nfp_rtsym_cache *cache;
 
-	if (!priv->rtsymtab) {
-		err = __nfp_rtsymtab_probe(dev, priv);
-		if (err < 0)
-			return err;
-	}
+	cache = nfp_rtsym(cpp);
+	if (IS_ERR(cache))
+		return PTR_ERR(cache);
 
-	return priv->numrtsyms;
+	return cache->num;
 }
 
 /**
  * nfp_rtsym_get() - Get the Nth RTSYM descriptor
- * @dev:		NFP Device handle
+ * @cpp:		NFP CPP handle
  * @idx:		Index (0-based) of the RTSYM descriptor
  *
  * Return: const pointer to a struct nfp_rtsym descriptor, or NULL
  */
-const struct nfp_rtsym *nfp_rtsym_get(struct nfp_device *dev, int idx)
+const struct nfp_rtsym *nfp_rtsym_get(struct nfp_cpp *cpp, int idx)
 {
-	struct nfp_rtsym_priv *priv = nfp_device_private(dev,
-							 nfp_rtsym_priv_con);
-	int err;
+	struct nfp_rtsym_cache *cache;
 
-	if (!priv->rtsymtab) {
-		err = __nfp_rtsymtab_probe(dev, priv);
-		if (err < 0)
-			return NULL;
-	}
-
-	if (idx >= priv->numrtsyms)
+	cache = nfp_rtsym(cpp);
+	if (IS_ERR(cache))
 		return NULL;
 
-	return &priv->rtsymtab[idx];
+	if (idx >= cache->num)
+		return NULL;
+
+	return &cache->symtab[idx];
 }
 
 /**
  * nfp_rtsym_lookup() - Return the RTSYM descriptor for a symbol name
- * @dev:		NFP Device handle
+ * @cpp:		NFP CPP handle
  * @name:		Symbol name
  *
  * Return: const pointer to a struct nfp_rtsym descriptor, or NULL
  */
-const struct nfp_rtsym *nfp_rtsym_lookup(struct nfp_device *dev,
-					 const char *name)
+const struct nfp_rtsym *nfp_rtsym_lookup(struct nfp_cpp *cpp, const char *name)
 {
-	struct nfp_rtsym_priv *priv = nfp_device_private(dev,
-							 nfp_rtsym_priv_con);
-	int err, n;
+	struct nfp_rtsym_cache *cache;
+	int n;
 
-	if (!priv->rtsymtab) {
-		err = __nfp_rtsymtab_probe(dev, priv);
-		if (err < 0)
-			return NULL;
-	}
+	cache = nfp_rtsym(cpp);
+	if (IS_ERR(cache))
+		return NULL;
 
-	for (n = 0; n < priv->numrtsyms; n++) {
-		if (strcmp(name, priv->rtsymtab[n].name) == 0)
-			return &priv->rtsymtab[n];
+	for (n = 0; n < cache->num; n++) {
+		if (strcmp(name, cache->symtab[n].name) == 0)
+			return &cache->symtab[n];
 	}
 
 	return NULL;
@@ -301,7 +275,7 @@ const struct nfp_rtsym *nfp_rtsym_lookup(struct nfp_device *dev,
 
 /**
  * nfp_rtsym_read_le() - Read a simple unsigned scalar value from symbol
- * @nfp:	NFP Device handle
+ * @cpp:	NFP CPP handle
  * @name:	Symbol name
  * @error:	Poniter to error code (optional)
  *
@@ -311,7 +285,7 @@ const struct nfp_rtsym *nfp_rtsym_lookup(struct nfp_device *dev,
  *
  * Return: value read, on error sets the error and returns ~0ULL.
  */
-u64 nfp_rtsym_read_le(struct nfp_device *nfp, const char *name, int *error)
+u64 nfp_rtsym_read_le(struct nfp_cpp *cpp, const char *name, int *error)
 {
 	const struct nfp_rtsym *sym;
 	struct nfp_cpp_area *area;
@@ -320,15 +294,14 @@ u64 nfp_rtsym_read_le(struct nfp_device *nfp, const char *name, int *error)
 	u64 val;
 	u32 id;
 
-	sym = nfp_rtsym_lookup(nfp, name);
+	sym = nfp_rtsym_lookup(cpp, name);
 	if (!sym) {
 		err = -ENOENT;
 		goto err;
 	}
 
 	id = NFP_CPP_ISLAND_ID(sym->target, NFP_CPP_ACTION_RW, 0, sym->domain);
-	area = nfp_cpp_area_alloc_acquire(nfp_device_cpp(nfp), id, sym->addr,
-					  sym->size);
+	area = nfp_cpp_area_alloc_acquire(cpp, id, sym->addr, sym->size);
 	if (IS_ERR_OR_NULL(area)) {
 		err = area ? PTR_ERR(area) : -ENOMEM;
 		goto err;
@@ -354,8 +327,8 @@ u64 nfp_rtsym_read_le(struct nfp_device *nfp, const char *name, int *error)
 		val = readq(ptr);
 		break;
 	default:
-		nfp_err(nfp, "rtsym '%s' non-scalar size: %lld\n",
-			name, sym->size);
+		nfp_cpp_err(cpp, "rtsym '%s' non-scalar size: %lld\n",
+			    name, sym->size);
 		err = -EINVAL;
 		goto err_release_free;
 	}
@@ -374,17 +347,10 @@ err:
 
 /**
  * nfp_rtsym_reload() - Force a reload of the RTSYM table
- * @dev:	NFP Device handle
+ * @cpp:	NFP CPP handle
  */
-void nfp_rtsym_reload(struct nfp_device *dev)
+void nfp_rtsym_reload(struct nfp_cpp *cpp)
 {
-	struct nfp_rtsym_priv *priv = nfp_device_private(dev,
-							 nfp_rtsym_priv_con);
-	kfree(priv->rtsymtab);
-	kfree(priv->rtstrtab);
-	priv->numrtsyms = 0;
-	/* priv->rtsymtab is used to check if rtsyms are valid */
-	priv->rtsymtab = NULL;
-	priv->rtstrtab = NULL;
-	priv->mip = NULL;
+	kfree(nfp_rtsym_cache(cpp));
+	nfp_rtsym_cache_set(cpp, NULL);
 }

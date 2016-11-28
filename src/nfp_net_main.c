@@ -195,8 +195,7 @@ nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_cpp *cpp,
 	nfp_net_get_mac_addr_hwinfo(nn, cpp, id);
 }
 
-static unsigned int
-nfp_net_pf_get_num_ports(struct nfp_pf *pf, struct nfp_device *nfp_dev)
+static unsigned int nfp_net_pf_get_num_ports(struct nfp_pf *pf)
 {
 	char name[256];
 	u16 interface;
@@ -209,11 +208,12 @@ nfp_net_pf_get_num_ports(struct nfp_pf *pf, struct nfp_device *nfp_dev)
 
 	snprintf(name, sizeof(name), "nfd_cfg_pf%d_num_ports", pcie_pf);
 
-	val = nfp_rtsym_read_le(nfp_dev, name, &err);
+	val = nfp_rtsym_read_le(pf->cpp, name, &err);
 	/* Default to one port */
 	if (err) {
 		if (err != -ENOENT)
-			nfp_err(nfp_dev, "Unable to read adapter port count\n");
+			nfp_cpp_err(pf->cpp,
+				    "Unable to read adapter port count\n");
 		val = 1;
 	}
 
@@ -245,8 +245,7 @@ nfp_net_pf_total_qcs(struct nfp_pf *pf, void __iomem *ctrl_bar,
 	return max_qc - min_qc;
 }
 
-static u8 __iomem *
-nfp_net_pf_map_ctrl_bar(struct nfp_pf *pf, struct nfp_device *nfp_dev)
+static u8 __iomem *nfp_net_pf_map_ctrl_bar(struct nfp_pf *pf)
 {
 	const struct nfp_rtsym *ctrl_sym;
 	u8 __iomem *ctrl_bar;
@@ -259,7 +258,7 @@ nfp_net_pf_map_ctrl_bar(struct nfp_pf *pf, struct nfp_device *nfp_dev)
 
 	snprintf(pf_symbol, sizeof(pf_symbol), "_pf%d_net_bar0", pcie_pf);
 
-	ctrl_sym = nfp_rtsym_lookup(nfp_dev, pf_symbol);
+	ctrl_sym = nfp_rtsym_lookup(pf->cpp, pf_symbol);
 	if (!ctrl_sym) {
 		dev_err(&pf->pdev->dev,
 			"Failed to find PF BAR0 symbol %s\n", pf_symbol);
@@ -490,9 +489,9 @@ nfp_net_pci_probe(struct nfp_pf *pf, struct nfp_device *nfp_dev, bool nfp_reset)
 		return 1;
 	}
 
-	pf->num_ports = nfp_net_pf_get_num_ports(pf, nfp_dev);
+	pf->num_ports = nfp_net_pf_get_num_ports(pf);
 
-	ctrl_bar = nfp_net_pf_map_ctrl_bar(pf, nfp_dev);
+	ctrl_bar = nfp_net_pf_map_ctrl_bar(pf);
 	if (!ctrl_bar)
 		return 1;
 

@@ -563,7 +563,7 @@ static int bpe_lookup(struct nfp_device *nfp, int nbi, u32 *bpe, int bpe_max)
 
 	buff[3] += nbi;
 
-	sym = nfp_rtsym_lookup(nfp, buff);
+	sym = nfp_rtsym_lookup(nfp_device_cpp(nfp), buff);
 	if (!sym) {
 		nfp_info(nfp, "%s: Symbol not present\n", buff);
 		return 0;
@@ -1047,7 +1047,7 @@ int nfp_reset_soft(struct nfp_device *nfp)
 	}
 
 	/* Invalidate old MIP and rtsymtab data */
-	nfp_mip_reload(nfp, cpp);
+	nfp_mip_reload(cpp);
 
 	err = 0;
 

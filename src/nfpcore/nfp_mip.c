@@ -192,7 +192,6 @@ static void __mip_update_byteorder(struct nfp_mip *mip)
 
 /**
  * nfp_mip() - Get MIP for NFP device.
- * @dev:	NFP Device handle
  * @cpp:	NFP CPP Handle
  *
  * Copy MIP structure from NFP device and return it.  The returned
@@ -212,7 +211,7 @@ static void __mip_update_byteorder(struct nfp_mip *mip)
  *
  * Return: MIP structure, or NULL
  */
-const struct nfp_mip *nfp_mip(struct nfp_device *dev, struct nfp_cpp *cpp)
+const struct nfp_mip *nfp_mip(struct nfp_cpp *cpp)
 {
 	struct nfp_mip *mip;
 	int err;
@@ -221,7 +220,7 @@ const struct nfp_mip *nfp_mip(struct nfp_device *dev, struct nfp_cpp *cpp)
 	if (mip)
 		return mip;
 
-	err = nfp_mip_probe(dev, cpp);
+	err = nfp_mip_probe(cpp);
 	if (err < 0)
 		return NULL;
 
@@ -337,7 +336,6 @@ err_probe:
 
 /**
  * nfp_mip_probe() - Check if MIP has been updated.
- * @dev:	NFP Device handle
  * @cpp:	NFP CPP Handle
  *
  * Check if currently cached MIP has been updated on the NFP device,
@@ -348,7 +346,7 @@ err_probe:
  *
  * Return: 1 if MIP has been updated, 0 if no update has occurred, or -ERRNO
  */
-int nfp_mip_probe(struct nfp_device *dev, struct nfp_cpp *cpp)
+int nfp_mip_probe(struct nfp_cpp *cpp)
 {
 	unsigned long size, time;
 	u32 cpp_id;
@@ -362,7 +360,7 @@ int nfp_mip_probe(struct nfp_device *dev, struct nfp_cpp *cpp)
 
 	mip = nfp_mip_cache(cpp);
 	if (mip && mip->loadtime == time) {
-		nfp_err(dev, "MIP loadtime unchanged, not reloading\n");
+		nfp_cpp_err(cpp, "MIP loadtime unchanged, not reloading\n");
 		return 0; /* No change */
 	}
 
@@ -375,7 +373,7 @@ int nfp_mip_probe(struct nfp_device *dev, struct nfp_cpp *cpp)
 		/* Invalidate rtsym first, it may want to
 		 * still look at the mip
 		 */
-		nfp_rtsym_reload(dev);
+		nfp_rtsym_reload(cpp);
 		kfree(mip);
 		nfp_mip_cache_set(cpp, NULL);
 	}
@@ -448,14 +446,13 @@ int nfp_mip_strtab(const struct nfp_mip *mip, u32 *addr, u32 *size)
 
 /**
  * nfp_mip_reload() - Invalidate the current MIP, if any, and related entries.
- * @dev:	NFP Device handle
  * @cpp:	NFP CPP Handle
  *
  * The next nfp_mip() probe will then do the actual reload of MIP data.
  * Calling nfp_mip_reload() will also invalidate:
  * * rtsyms
  */
-void nfp_mip_reload(struct nfp_device *dev, struct nfp_cpp *cpp)
+void nfp_mip_reload(struct nfp_cpp *cpp)
 {
 	struct nfp_mip *mip;
 
@@ -463,7 +460,7 @@ void nfp_mip_reload(struct nfp_device *dev, struct nfp_cpp *cpp)
 	if (!mip)
 		return;
 
-	nfp_rtsym_reload(dev);
+	nfp_rtsym_reload(cpp);
 	kfree(mip);
 	nfp_mip_cache_set(cpp, NULL);
 }
