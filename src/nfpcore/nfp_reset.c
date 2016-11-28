@@ -715,7 +715,7 @@ static int nfp6000_reset_soft(struct nfp_device *nfp)
 			continue;
 		}
 
-		nbi[i] = nfp_nbi_open(nfp, i);
+		nbi[i] = nfp_nbi_open(cpp, i);
 		if (!nbi[i])
 			continue;
 

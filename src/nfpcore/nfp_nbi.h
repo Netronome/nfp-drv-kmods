@@ -51,7 +51,7 @@
  */
 struct nfp_nbi_dev;
 
-struct nfp_nbi_dev *nfp_nbi_open(struct nfp_device *nfp, int nbi);
+struct nfp_nbi_dev *nfp_nbi_open(struct nfp_cpp *cpp, int nbi);
 void nfp_nbi_close(struct nfp_nbi_dev *nfpnbidev);
 
 int nfp_nbi_index(struct nfp_nbi_dev *nfpnbidev);

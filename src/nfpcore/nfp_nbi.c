@@ -70,7 +70,6 @@ struct nfp_nbi_priv {
 };
 
 struct nfp_nbi_dev {
-	struct nfp_device *nfp;
 	struct nfp_cpp *cpp;
 	int nbi;
 	struct nfp_nbi_priv *priv;
@@ -152,12 +151,7 @@ struct nfp_nbi_mac_allstats {
 	struct nfp_nbi_mac_stats mac[2];
 };
 
-/**
- * Construct device global data, common for both NBI interfaces,
- * that are persistient throughout the lifetime of the device
- * handle.
- */
-static void *nfp_nbi_priv_con(struct nfp_device *dev)
+static void *nfp_nbi(struct nfp_cpp *cpp)
 {
 	const struct nfp_rtsym *sym;
 	struct nfp_nbi_priv *priv;
@@ -166,8 +160,11 @@ static void *nfp_nbi_priv_con(struct nfp_device *dev)
 	u32 cpp_id;
 	int i;
 
-	res = nfp_resource_acquire(nfp_device_cpp(dev),
-				   NFP_RESOURCE_MAC_STATISTICS);
+	priv = nfp_nbi_cache(cpp);
+	if (priv)
+		return priv;
+
+	res = nfp_resource_acquire(cpp, NFP_RESOURCE_MAC_STATISTICS);
 	if (IS_ERR(res))
 		return NULL;
 
@@ -182,15 +179,16 @@ static void *nfp_nbi_priv_con(struct nfp_device *dev)
 			 "i%d.pause_poll_tx_flush_flags", i);
 		tx_flags_name[sizeof(tx_flags_name) - 1] = 0;
 
-		sym = nfp_rtsym_lookup(nfp_device_cpp(dev), tx_flags_name);
+		sym = nfp_rtsym_lookup(cpp, tx_flags_name);
 		if (sym) {
-			nfp_info(dev, "NBI: Firmware TX pause control: %s\n",
-				 tx_flags_name);
+			nfp_cpp_info(cpp,
+				     "NBI: Firmware TX pause control: %s\n",
+				     tx_flags_name);
 			break;
 		}
 	}
 
-	priv = nfp_device_private_alloc(dev, sizeof(*priv), NULL);
+	priv = kzalloc(sizeof(*priv), GFP_KERNEL);
 	if (!priv)
 		return NULL;
 
@@ -198,17 +196,18 @@ static void *nfp_nbi_priv_con(struct nfp_device *dev)
 	priv->stats.cpp_addr = cpp_addr;
 	priv->tx_flush_flags.sym = sym;
 
+	nfp_nbi_cache_set(cpp, priv);
 	return priv;
 }
 
 /**
  * nfp_nbi_open() - Acquire NFP NBI device handle
- * @nfp:	NFP Device handle
+ * @cpp:	NFP CPP handle
  * @nbi_id:	NFP NBI index to open (0..1)
  *
  * Return: struct nfp_nbi_dev *, or NULL
  */
-struct nfp_nbi_dev *nfp_nbi_open(struct nfp_device *nfp, int nbi_id)
+struct nfp_nbi_dev *nfp_nbi_open(struct nfp_cpp *cpp, int nbi_id)
 {
 	struct nfp_nbi_priv *priv;
 	struct nfp_nbi_dev *nbi;
@@ -216,7 +215,7 @@ struct nfp_nbi_dev *nfp_nbi_open(struct nfp_device *nfp, int nbi_id)
 	if (nbi_id < 0 || nbi_id >= 2)
 		return NULL;
 
-	priv = nfp_device_private(nfp, nfp_nbi_priv_con);
+	priv = nfp_nbi(cpp);
 	if (!priv)
 		return NULL;
 
@@ -224,8 +223,7 @@ struct nfp_nbi_dev *nfp_nbi_open(struct nfp_device *nfp, int nbi_id)
 	if (!nbi)
 		return NULL;
 
-	nbi->nfp = nfp;
-	nbi->cpp = nfp_device_cpp(nfp);
+	nbi->cpp = cpp;
 	nbi->nbi = nbi_id;
 	nbi->priv = priv;
 
@@ -398,9 +396,9 @@ static int nfp_nbi_tx_flush_flags(struct nfp_nbi_dev *nbi, u32 flags)
 	 * STOP to RUN, and there was no ACK.
 	 */
 	if (flags != TX_FLUSH_FLAG_RUN) {
-		nfp_warn(nbi->nfp,
-			 "NBI: pause_poll_tx_flush_flags was not acknowledged after %dms.\n",
-			 timeout_ms);
+		nfp_cpp_warn(nbi->cpp,
+			     "NBI: pause_poll_tx_flush_flags was not acknowledged after %dms.\n",
+			     timeout_ms);
 	}
 
 	return 0;
@@ -501,7 +499,7 @@ int nfp_nbi_mac_regw(struct nfp_nbi_dev *nbi, u32 base, u32 reg,
 	u32 r = NFP_XPB_ISLAND(nbi->nbi + 8) + base + reg;
 
 	if (priv->tx_flush_flags.sym && !priv->tx_flush_flags.count)
-		nfp_warn(nbi->nfp, "NBI: nbi_nbi_mac_regw() called outside of nfp_nbi_mac_acquire()/release()\n");
+		nfp_cpp_warn(nbi->cpp, "NBI: nbi_nbi_mac_regw() called outside of nfp_nbi_mac_acquire()/release()\n");
 
 	return nfp_xpb_writelm(nbi->cpp, r, mask, data);
 }
