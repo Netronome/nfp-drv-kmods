@@ -44,7 +44,7 @@
 struct nfp_phymod;
 struct nfp_phymod_eth;
 
-struct nfp_phymod_eth *nfp_phymod_eth_next(struct nfp_device *dev,
+struct nfp_phymod_eth *nfp_phymod_eth_next(struct nfp_cpp *dev,
 					   struct nfp_phymod *phy, void **ptr);
 
 int nfp_phymod_eth_get_index(struct nfp_phymod_eth *eth, int *index);

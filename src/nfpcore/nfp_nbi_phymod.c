@@ -68,7 +68,7 @@ struct eth_table_entry {
 };
 
 struct eth_priv {
-	struct nfp_device *nfp;
+	struct nfp_cpp *cpp;
 	int eth_idx;
 	char label[8];
 	u8 mac[6];
@@ -76,27 +76,27 @@ struct eth_priv {
 	struct eth_table_entry eths[NSP_ETH_MAX_COUNT];
 };
 
-static void eth_private_free(void *_priv)
-{
-}
-
-static void *eth_private(struct nfp_device *nfp)
+static void *eth_private(struct nfp_cpp *cpp)
 {
 	struct eth_priv *priv;
 
-	priv = nfp_device_private_alloc(nfp, sizeof(struct eth_priv),
-					eth_private_free);
+	priv = nfp_phymod_state(cpp);
+	if (priv)
+		return priv;
+
+	priv = kmalloc(sizeof(struct eth_priv), GFP_KERNEL);
 	if (!priv)
 		return NULL;
 
-	priv->nfp = nfp;
+	priv->cpp = cpp;
+	nfp_phymod_state_set(cpp, priv);
 
 	return priv;
 }
 
 /**
  * nfp_phymod_eth_next() - PHY Module Ethernet port enumeration
- * @nfp:	NFP Device handle
+ * @cpp:	NFP CPP handle
  * @phy:	PHY module
  * @ptr:	Abstract pointer, must be NULL to get the first port
  *
@@ -105,15 +105,14 @@ static void *eth_private(struct nfp_device *nfp)
  *
  * Return: struct nfp_phymod_eth pointer, or NULL
  */
-struct nfp_phymod_eth *nfp_phymod_eth_next(struct nfp_device *nfp,
+struct nfp_phymod_eth *nfp_phymod_eth_next(struct nfp_cpp *cpp,
 					   struct nfp_phymod *phy, void **ptr)
 {
-	struct nfp_cpp *cpp = nfp_device_cpp(nfp);
 	struct eth_priv *priv;
 	int err;
 	u64 port;
 
-	priv = nfp_device_private(nfp, eth_private);
+	priv = eth_private(cpp);
 	if (!priv || !priv->eths)
 		return NULL;
 
@@ -341,7 +340,7 @@ int nfp_phymod_eth_write_disable(struct nfp_phymod_eth *eth,
 	if (!tx_disable == !!(NSP_ETH_TX_STATE_ENABLED & control))
 		return 0;
 
-	nsp = nfp_nsp_open(nfp_device_cpp(priv->nfp));
+	nsp = nfp_nsp_open(priv->cpp);
 	if (IS_ERR(nsp))
 		return PTR_ERR(nsp);
 

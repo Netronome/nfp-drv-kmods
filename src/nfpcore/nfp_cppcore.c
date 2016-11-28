@@ -120,6 +120,7 @@ struct nfp_cpp {
 	void *mip;
 	void *rtsym;
 	void *nbi;
+	void *phymod;
 };
 
 /* Element of the area_cache_list */
@@ -297,6 +298,7 @@ static void __nfp_cpp_release(struct kref *kref)
 	kfree(cpp->mip);
 	kfree(cpp->rtsym);
 	kfree(cpp->nbi);
+	kfree(cpp->phymod);
 
 	write_lock(&nfp_cpp_list_lock);
 	list_del_init(&cpp->list);
@@ -439,6 +441,16 @@ void *nfp_nbi_cache(struct nfp_cpp *cpp)
 void nfp_nbi_cache_set(struct nfp_cpp *cpp, void *val)
 {
 	cpp->nbi = val;
+}
+
+void *nfp_phymod_state(struct nfp_cpp *cpp)
+{
+	return cpp->phymod;
+}
+
+void nfp_phymod_state_set(struct nfp_cpp *cpp, void *val)
+{
+	cpp->phymod = val;
 }
 
 static void __resource_add(struct list_head *head, struct nfp_cpp_resource *res)

@@ -163,7 +163,6 @@ nfp_net_get_mac_addr_hwinfo(struct nfp_net *nn, struct nfp_cpp *cpp,
  * nfp_net_get_mac_addr() - Get the MAC address.
  * @nn:       NFP Network structure
  * @cpp:      NFP CPP handle
- * @nfp_dev:  NFP Device structure
  * @port_iter:	PHYMod iteration state
  * @id:	      NFP port id
  *
@@ -172,13 +171,12 @@ nfp_net_get_mac_addr_hwinfo(struct nfp_net *nn, struct nfp_cpp *cpp,
  */
 static void
 nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_cpp *cpp,
-		     struct nfp_device *nfp_dev,
 		     struct nfp_phymod_eth **port_iter, unsigned int id)
 {
 	const u8 *mac_addr;
 	int index;
 
-	while ((*port_iter = nfp_phymod_eth_next(nfp_dev, NULL,
+	while ((*port_iter = nfp_phymod_eth_next(cpp, NULL,
 						 (void **)port_iter))) {
 		if (nfp_phymod_eth_get_index(*port_iter, &index))
 			break;
@@ -326,13 +324,12 @@ nfp_net_pf_alloc_port_netdev(struct nfp_pf *pf, void __iomem *ctrl_bar,
 
 static int
 nfp_net_pf_init_port_netdev(struct nfp_pf *pf, struct nfp_net *nn,
-			    struct nfp_device *nfp_dev,
 			    struct nfp_phymod_eth **port_iter, unsigned int id)
 {
 	int err;
 
 	/* Get MAC address */
-	nfp_net_get_mac_addr(nn, pf->cpp, nfp_dev, port_iter, id);
+	nfp_net_get_mac_addr(nn, pf->cpp, port_iter, id);
 
 	/* Get ME clock frequency from ctrl BAR
 	 * XXX for now frequency is hardcoded until we figure out how
@@ -394,7 +391,7 @@ err_free_prev:
 }
 
 static int
-nfp_net_pf_spawn_netdevs(struct nfp_pf *pf, struct nfp_device *nfp_dev,
+nfp_net_pf_spawn_netdevs(struct nfp_pf *pf,
 			 void __iomem *ctrl_bar, void __iomem *tx_bar,
 			 void __iomem *rx_bar, int stride,
 			 struct nfp_net_fw_version *fw_ver)
@@ -446,8 +443,7 @@ nfp_net_pf_spawn_netdevs(struct nfp_pf *pf, struct nfp_device *nfp_dev,
 	/* Finish netdev init and register */
 	id = 0;
 	list_for_each_entry(nn, &pf->ports, port_list) {
-		err = nfp_net_pf_init_port_netdev(pf, nn, nfp_dev, &port_iter,
-						  id);
+		err = nfp_net_pf_init_port_netdev(pf, nn, &port_iter, id);
 		if (err)
 			goto err_prev_deinit;
 
@@ -562,7 +558,7 @@ nfp_net_pci_probe(struct nfp_pf *pf, struct nfp_device *nfp_dev, bool nfp_reset)
 
 	pf->ddir = nfp_net_debugfs_device_add(pf->pdev);
 
-	err = nfp_net_pf_spawn_netdevs(pf, nfp_dev, ctrl_bar, tx_bar, rx_bar,
+	err = nfp_net_pf_spawn_netdevs(pf, ctrl_bar, tx_bar, rx_bar,
 				       stride, &fw_ver);
 	if (err)
 		goto err_clean_ddir;

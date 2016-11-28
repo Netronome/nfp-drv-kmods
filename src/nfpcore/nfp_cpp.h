@@ -285,6 +285,8 @@ void *nfp_rtsym_cache(struct nfp_cpp *cpp);
 void nfp_rtsym_cache_set(struct nfp_cpp *cpp, void *val);
 void *nfp_nbi_cache(struct nfp_cpp *cpp);
 void nfp_nbi_cache_set(struct nfp_cpp *cpp, void *val);
+void *nfp_phymod_state(struct nfp_cpp *cpp);
+void nfp_phymod_state_set(struct nfp_cpp *cpp, void *val);
 
 struct nfp_cpp_area *nfp_cpp_area_alloc_with_name(struct nfp_cpp *cpp,
 						  u32 cpp_id,
