@@ -234,7 +234,7 @@ int nfp_nffw_info_acquire(struct nfp_device *dev)
 	struct nfp_nffw_info_priv *priv = _nfp_nffw_priv(dev);
 	int err;
 
-	res = nfp_resource_acquire(dev, NFP_RESOURCE_NFP_NFFW);
+	res = nfp_resource_acquire(nfp_device_cpp(dev), NFP_RESOURCE_NFP_NFFW);
 	if (!IS_ERR(res)) {
 		u32 cpp_id = nfp_resource_cpp_id(res);
 		u64 addr = nfp_resource_address(res);

@@ -102,7 +102,7 @@ static void *nfp_nsp_con(struct nfp_device *nfp)
 	struct nfp_nsp *priv;
 	int err;
 
-	res = nfp_resource_acquire(nfp, NSP_RESOURCE);
+	res = nfp_resource_acquire(nfp_device_cpp(nfp), NSP_RESOURCE);
 	if (IS_ERR(res))
 		return NULL;
 

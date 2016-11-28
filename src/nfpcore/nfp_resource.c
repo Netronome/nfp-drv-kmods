@@ -140,17 +140,16 @@ static int nfp_cpp_resource_acquire(struct nfp_cpp *cpp, const char *name,
 
 /**
  * nfp_resource_acquire() - Acquire a resource handle
- * @nfp:		NFP Device handle
+ * @cpp:		NFP CPP handle
  * @name:		Name of the resource
  *
  * NOTE: This function implictly locks the acquired resource
  *
  * Return: NFP Resource handle, or ERR_PTR()
  */
-struct nfp_resource *nfp_resource_acquire(struct nfp_device *nfp,
+struct nfp_resource *nfp_resource_acquire(struct nfp_cpp *cpp,
 					  const char *name)
 {
-	struct nfp_cpp *cpp = nfp_device_cpp(nfp);
 	struct nfp_cpp_mutex *mutex;
 	struct nfp_resource *res;
 	u64 addr, size;

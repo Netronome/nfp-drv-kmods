@@ -286,8 +286,8 @@ struct nfp_resource_entry {
  */
 #define NFP_RESOURCE_MAC_STATISTICS     "mac.stat"
 
-struct nfp_resource *nfp_resource_acquire(struct nfp_device *nfp,
-					  const char *name);
+struct nfp_resource *
+nfp_resource_acquire(struct nfp_cpp *cpp, const char *name);
 
 void nfp_resource_release(struct nfp_resource *res);
 

@@ -693,7 +693,8 @@ static int nfp6000_reset_soft(struct nfp_device *nfp)
 	/* Lock out the MAC from any stats updaters,
 	 * such as the NSP
 	 */
-	res = nfp_resource_acquire(nfp, NFP_RESOURCE_MAC_STATISTICS);
+	res = nfp_resource_acquire(nfp_device_cpp(nfp),
+				   NFP_RESOURCE_MAC_STATISTICS);
 	if (!res)
 		return -EBUSY;
 
@@ -1010,7 +1011,7 @@ int nfp_reset_soft(struct nfp_device *nfp)
 	int i, err;
 
 	/* Claim the nfp.nffw resource page */
-	res = nfp_resource_acquire(nfp, NFP_RESOURCE_NFP_NFFW);
+	res = nfp_resource_acquire(nfp_device_cpp(nfp), NFP_RESOURCE_NFP_NFFW);
 	if (IS_ERR(res)) {
 		nfp_err(nfp, "Can't aquire %s resource\n",
 			NFP_RESOURCE_NFP_NFFW);

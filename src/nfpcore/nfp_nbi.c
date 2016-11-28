@@ -166,7 +166,8 @@ static void *nfp_nbi_priv_con(struct nfp_device *dev)
 	u32 cpp_id;
 	int i;
 
-	res = nfp_resource_acquire(dev, NFP_RESOURCE_MAC_STATISTICS);
+	res = nfp_resource_acquire(nfp_device_cpp(dev),
+				   NFP_RESOURCE_MAC_STATISTICS);
 	if (IS_ERR(res))
 		return NULL;
 
