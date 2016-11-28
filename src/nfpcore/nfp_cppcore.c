@@ -114,6 +114,9 @@ struct nfp_cpp {
 	/* Cached areas for cpp/xpb readl/writel speedups */
 	struct mutex area_cache_mutex;  /* Lock for the area cache */
 	struct list_head area_cache_list;
+
+	/* Cached information */
+	void *hwinfo;
 };
 
 /* Element of the area_cache_list */
@@ -287,6 +290,8 @@ static void __nfp_cpp_release(struct kref *kref)
 	if (cpp->op->free)
 		cpp->op->free(cpp);
 
+	kfree(cpp->hwinfo);
+
 	write_lock(&nfp_cpp_list_lock);
 	list_del_init(&cpp->list);
 	write_unlock(&nfp_cpp_list_lock);
@@ -388,6 +393,16 @@ int nfp_cpp_serial(struct nfp_cpp *cpp, const u8 **serial)
 {
 	*serial = &cpp->serial[0];
 	return sizeof(cpp->serial);
+}
+
+void *nfp_hwinfo_cache(struct nfp_cpp *cpp)
+{
+	return cpp->hwinfo;
+}
+
+void nfp_hwinfo_cache_set(struct nfp_cpp *cpp, void *val)
+{
+	cpp->hwinfo = val;
 }
 
 static void __resource_add(struct list_head *head, struct nfp_cpp_resource *res)

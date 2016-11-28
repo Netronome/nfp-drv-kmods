@@ -635,7 +635,7 @@ static int nfp_net_vnic_probe(struct platform_device *pdev)
 	 * initialization has been completed by the NFP's ARM
 	 * firmware.
 	 */
-	mac_str = nfp_hwinfo_lookup(nfp, netm_mac);
+	mac_str = nfp_hwinfo_lookup(cpp, netm_mac);
 
 	switch (vnic_unit) {
 	case 0:

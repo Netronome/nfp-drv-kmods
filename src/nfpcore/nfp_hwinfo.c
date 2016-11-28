@@ -179,7 +179,7 @@ static int board_state = 15;	/* board.state to match against */
 module_param(board_state, int, S_IRUGO);
 MODULE_PARM_DESC(board_state, "board.state to wait for");
 
-static void hwinfo_db_parse(struct nfp_device *nfp, void *hwinfo)
+static void hwinfo_db_parse(struct nfp_cpp *cpp, void *hwinfo)
 {
 	const char *key;
 	const char *val;
@@ -189,42 +189,41 @@ static void hwinfo_db_parse(struct nfp_device *nfp, void *hwinfo)
 	     key = val + strlen(val) + 1) {
 		val = key + strlen(key) + 1;
 
-		nfp_dbg(nfp, "%s=%s\n", key, val);
+		nfp_cpp_dbg(cpp, "%s=%s\n", key, val);
 	}
 }
 
-static int hwinfo_db_validate(struct nfp_device *nfp, void *db, u32 len)
+static int hwinfo_db_validate(struct nfp_cpp *cpp, void *db, u32 len)
 {
 	u32 crc;
 
 	if (NFP_HWINFO_VERSION_IN(db) != NFP_HWINFO_VERSION_1 &&
 	    NFP_HWINFO_VERSION_IN(db) != NFP_HWINFO_VERSION_2) {
-		nfp_err(nfp, "Unknown hwinfo version 0x%x, expected 0x%x or 0x%x\n",
-			NFP_HWINFO_VERSION_IN(db),
-			NFP_HWINFO_VERSION_1, NFP_HWINFO_VERSION_2);
+		nfp_cpp_err(cpp, "Unknown hwinfo version 0x%x, expected 0x%x or 0x%x\n",
+			    NFP_HWINFO_VERSION_IN(db),
+			    NFP_HWINFO_VERSION_1, NFP_HWINFO_VERSION_2);
 		return -EINVAL;
 	}
 
 	if (NFP_HWINFO_SIZE_IN(db) > len) {
-		nfp_err(nfp, "Unsupported hwinfo size %u > %u\n",
-			NFP_HWINFO_SIZE_IN(db), len);
+		nfp_cpp_err(cpp, "Unsupported hwinfo size %u > %u\n",
+			    NFP_HWINFO_SIZE_IN(db), len);
 		return -EINVAL;
 	}
 
 	crc = crc32_posix(db, len);
 	if (crc != NFP_HWINFO_CRC32_IN(db)) {
-		nfp_err(nfp, "Corrupt hwinfo table (CRC mismatch), calculated 0x%x, expected 0x%x\n",
-			crc, NFP_HWINFO_CRC32_IN(db));
+		nfp_cpp_err(cpp, "Corrupt hwinfo table (CRC mismatch), calculated 0x%x, expected 0x%x\n",
+			    crc, NFP_HWINFO_CRC32_IN(db));
 		return -EINVAL;
 	}
 
 	return 0;
 }
 
-static int hwinfo_fetch_nowait(struct nfp_device *nfp,
+static int hwinfo_fetch_nowait(struct nfp_cpp *cpp,
 			       void **hwdb, size_t *hwdb_size)
 {
-	struct nfp_cpp *cpp = nfp_device_cpp(nfp);
 	struct nfp_cpp_area *area;
 	struct nfp_resource *res;
 	size_t   cpp_size;
@@ -235,8 +234,7 @@ static int hwinfo_fetch_nowait(struct nfp_device *nfp,
 	int r = 0;
 	u32 ver;
 
-	res = nfp_resource_acquire(nfp_device_cpp(nfp),
-				   NFP_RESOURCE_NFP_HWINFO);
+	res = nfp_resource_acquire(cpp, NFP_RESOURCE_NFP_HWINFO);
 	if (!IS_ERR(res)) {
 		cpp_id = nfp_resource_cpp_id(res);
 		cpp_addr = nfp_resource_address(res);
@@ -270,7 +268,7 @@ static int hwinfo_fetch_nowait(struct nfp_device *nfp,
 
 	r = nfp_cpp_area_read(area, 0, header, sizeof(header));
 	if (r < 0) {
-		nfp_err(nfp, "Can't read version: %d\n", r);
+		nfp_cpp_err(cpp, "Can't read version: %d\n", r);
 		goto exit_area_release;
 	}
 
@@ -282,7 +280,7 @@ static int hwinfo_fetch_nowait(struct nfp_device *nfp,
 	}
 
 	if (ver != NFP_HWINFO_VERSION_2 && ver != NFP_HWINFO_VERSION_1) {
-		nfp_err(nfp, "Unknown HWInfo version: 0x%08x\n", ver);
+		nfp_cpp_err(cpp, "Unknown HWInfo version: 0x%08x\n", ver);
 		r = -EINVAL;
 		goto exit_area_release;
 	}
@@ -314,7 +312,7 @@ exit_area_free:
 	return r;
 }
 
-static int hwinfo_fetch(struct nfp_device *nfp, void **hwdb, size_t *hwdb_size)
+static int hwinfo_fetch(struct nfp_cpp *cpp, void **hwdb, size_t *hwdb_size)
 {
 	const unsigned long wait_until = jiffies + hwinfo_wait * HZ;
 	int r;
@@ -322,7 +320,7 @@ static int hwinfo_fetch(struct nfp_device *nfp, void **hwdb, size_t *hwdb_size)
 	for (;;) {
 		const unsigned long start_time = jiffies;
 
-		r = hwinfo_fetch_nowait(nfp, hwdb, hwdb_size);
+		r = hwinfo_fetch_nowait(cpp, hwdb, hwdb_size);
 		if (r >= 0)
 			break;
 
@@ -334,73 +332,60 @@ static int hwinfo_fetch(struct nfp_device *nfp, void **hwdb, size_t *hwdb_size)
 	}
 
 	if (r < 0)
-		nfp_err(nfp, "NFP access error detected\n");
+		nfp_cpp_err(cpp, "NFP access error detected\n");
 
 	return r;
 }
 
-struct hwinfo_priv {
-	void *db;
-};
-
-static void hwinfo_des(void *ptr)
+static const void *nfp_hwinfo_db(struct nfp_cpp *cpp)
 {
-	struct hwinfo_priv *priv = ptr;
-
-	kfree(priv->db);
-}
-
-static void *hwinfo_con(struct nfp_device *nfp)
-{
-	struct hwinfo_priv *priv = NULL;
 	size_t hwdb_size = 0;
 	void *hwdb = NULL;
 	int r = 0;
 
-	r = hwinfo_fetch(nfp, &hwdb, &hwdb_size);
+	hwdb = nfp_hwinfo_cache(cpp);
+	if (hwdb)
+		return hwdb;
+
+	r = hwinfo_fetch(cpp, &hwdb, &hwdb_size);
 	if (r < 0)
 		goto err;
 
-	r = hwinfo_db_validate(nfp, hwdb, hwdb_size);
+	r = hwinfo_db_validate(cpp, hwdb, hwdb_size);
 	if (r < 0)
 		goto err;
 
 	if (NFP_HWINFO_DEBUG)
-		hwinfo_db_parse(nfp, hwdb);
-
-	priv = nfp_device_private_alloc(nfp, sizeof(*priv),
-					hwinfo_des);
-	if (priv)
-		priv->db = hwdb;
-	else
-		r = -ENOMEM;
+		hwinfo_db_parse(cpp, hwdb);
 
 err:
 	if (r < 0 && hwdb)
 		kfree(hwdb);
+	else
+		nfp_hwinfo_cache_set(cpp, hwdb);
 
-	return priv;
+	return nfp_hwinfo_cache(cpp);
 }
 
 /**
  * nfp_hwinfo_lookup() - Find a value in the HWInfo table by name
- * @nfp:	NFP Device handle
+ * @cpp:	NFP CPP handle
  * @lookup:	HWInfo name to search for
  *
  * Return: Value of the HWInfo name, or NULL
  */
-const char *nfp_hwinfo_lookup(struct nfp_device *nfp, const char *lookup)
+const char *nfp_hwinfo_lookup(struct nfp_cpp *cpp, const char *lookup)
 {
-	struct hwinfo_priv *priv = nfp_device_private(nfp, hwinfo_con);
+	const char *db = nfp_hwinfo_db(cpp);
 	const char *val = NULL;
 	const char *key;
 
-	if (!priv || !lookup)
+	if (!db || !lookup)
 		return NULL;
 
-	for (key = NFP_HWINFO_DATA_START(priv->db);
+	for (key = NFP_HWINFO_DATA_START(db);
 		*key &&
-		key < (const char *)NFP_HWINFO_DATA_END(priv->db);
+		key < (const char *)NFP_HWINFO_DATA_END(db);
 		key = val + strlen(val) + 1, val = NULL) {
 		val = key + strlen(key) + 1;
 

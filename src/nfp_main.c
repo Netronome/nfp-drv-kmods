@@ -285,12 +285,12 @@ static void nfp_sriov_attr_remove(struct device *dev)
 /**
  * nfp_net_fw_find() - Find the correct firmware image for netdev mode
  * @pdev:	PCI Device structure
- * @nfp:	NFP Device handle
+ * @cpp:	NFP CPP handle
  * @fwp:	Pointer to firmware pointer
  *
  * Return: -ERRNO on error, 0 on FW found or OK to continue without it
  */
-static int nfp_net_fw_find(struct pci_dev *pdev, struct nfp_device *nfp,
+static int nfp_net_fw_find(struct pci_dev *pdev, struct nfp_cpp *cpp,
 			   const struct firmware **fwp)
 {
 	const struct firmware *fw = NULL;
@@ -300,7 +300,7 @@ static int nfp_net_fw_find(struct pci_dev *pdev, struct nfp_device *nfp,
 
 	*fwp = NULL;
 
-	fw_model = nfp_hwinfo_lookup(nfp, "assembly.partno");
+	fw_model = nfp_hwinfo_lookup(cpp, "assembly.partno");
 
 	if (fw_model) {
 		snprintf(fw_name,
@@ -324,8 +324,7 @@ static int nfp_net_fw_find(struct pci_dev *pdev, struct nfp_device *nfp,
 	return 0;
 }
 
-static int nfp_fw_find(struct pci_dev *pdev, struct nfp_device *nfp,
-		       const struct firmware **fwp)
+static int nfp_fw_find(struct pci_dev *pdev, const struct firmware **fwp)
 {
 	const struct firmware *fw = NULL;
 	int err;
@@ -368,9 +367,9 @@ static int nfp_fw_load(struct pci_dev *pdev, struct nfp_device *nfp)
 	}
 
 	if (!nfp_pf_netdev)
-		err = nfp_fw_find(pdev, nfp, &fw);
+		err = nfp_fw_find(pdev, &fw);
 	else
-		err = nfp_net_fw_find(pdev, nfp, &fw);
+		err = nfp_net_fw_find(pdev, cpp, &fw);
 	if (err)
 		return err;
 

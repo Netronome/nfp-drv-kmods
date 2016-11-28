@@ -73,6 +73,8 @@
 	dev_err(nfp_cpp_device(cpp)->parent, NFP_SUBSYS fmt, ## args)
 #define nfp_cpp_warn(cpp, fmt, args...) \
 	dev_warn(nfp_cpp_device(cpp)->parent, NFP_SUBSYS fmt, ## args)
+#define nfp_cpp_dbg(cpp, fmt, args...) \
+	dev_dbg(nfp_cpp_device(cpp)->parent, NFP_SUBSYS fmt, ## args)
 
 struct nfp_cpp;
 
@@ -102,7 +104,7 @@ int nfp_device_unlock(struct nfp_device *nfp);
 
 /* Implemented in nfp_hwinfo.c */
 
-const char *nfp_hwinfo_lookup(struct nfp_device *nfp, const char *lookup);
+const char *nfp_hwinfo_lookup(struct nfp_cpp *cpp, const char *lookup);
 
 /* Implemented in nfp_power.c */
 

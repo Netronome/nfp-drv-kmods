@@ -60,13 +60,13 @@
 
 #define NFP_PF_CSR_SLICE_SIZE	(32 * 1024)
 
-static int nfp_is_ready(struct nfp_device *nfp)
+static int nfp_is_ready(struct nfp_cpp *cpp)
 {
 	const char *cp;
 	long state;
 	int err;
 
-	cp = nfp_hwinfo_lookup(nfp, "board.state");
+	cp = nfp_hwinfo_lookup(cpp, "board.state");
 	if (!cp)
 		return 0;
 
@@ -129,7 +129,7 @@ err_area:
 }
 
 static void
-nfp_net_get_mac_addr_hwinfo(struct nfp_net *nn, struct nfp_device *nfp_dev,
+nfp_net_get_mac_addr_hwinfo(struct nfp_net *nn, struct nfp_cpp *cpp,
 			    unsigned int id)
 {
 	u8 mac_addr[ETH_ALEN];
@@ -138,7 +138,7 @@ nfp_net_get_mac_addr_hwinfo(struct nfp_net *nn, struct nfp_device *nfp_dev,
 
 	snprintf(name, sizeof(name), "eth%d.mac", id);
 
-	mac_str = nfp_hwinfo_lookup(nfp_dev, name);
+	mac_str = nfp_hwinfo_lookup(cpp, name);
 	if (!mac_str) {
 		dev_warn(&nn->pdev->dev,
 			 "Can't lookup MAC address. Generate\n");
@@ -162,6 +162,7 @@ nfp_net_get_mac_addr_hwinfo(struct nfp_net *nn, struct nfp_device *nfp_dev,
 /**
  * nfp_net_get_mac_addr() - Get the MAC address.
  * @nn:       NFP Network structure
+ * @cpp:      NFP CPP handle
  * @nfp_dev:  NFP Device structure
  * @port_iter:	PHYMod iteration state
  * @id:	      NFP port id
@@ -170,7 +171,8 @@ nfp_net_get_mac_addr_hwinfo(struct nfp_net *nn, struct nfp_device *nfp_dev,
  * fails try HWInfo.  As a last resort generate a random address.
  */
 static void
-nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_device *nfp_dev,
+nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_cpp *cpp,
+		     struct nfp_device *nfp_dev,
 		     struct nfp_phymod_eth **port_iter, unsigned int id)
 {
 	const u8 *mac_addr;
@@ -190,7 +192,7 @@ nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_device *nfp_dev,
 		return;
 	}
 
-	nfp_net_get_mac_addr_hwinfo(nn, nfp_dev, id);
+	nfp_net_get_mac_addr_hwinfo(nn, cpp, id);
 }
 
 static unsigned int
@@ -331,7 +333,7 @@ nfp_net_pf_init_port_netdev(struct nfp_pf *pf, struct nfp_net *nn,
 	int err;
 
 	/* Get MAC address */
-	nfp_net_get_mac_addr(nn, nfp_dev, port_iter, id);
+	nfp_net_get_mac_addr(nn, pf->cpp, nfp_dev, port_iter, id);
 
 	/* Get ME clock frequency from ctrl BAR
 	 * XXX for now frequency is hardcoded until we figure out how
@@ -483,7 +485,7 @@ nfp_net_pci_probe(struct nfp_pf *pf, struct nfp_device *nfp_dev, bool nfp_reset)
 	int err;
 
 	/* Verify that the board has completed initialization */
-	if ((!pf->fw_loaded && nfp_reset) || !nfp_is_ready(nfp_dev)) {
+	if ((!pf->fw_loaded && nfp_reset) || !nfp_is_ready(pf->cpp)) {
 		nfp_err(nfp_dev, "NFP is not ready for NIC operation.\n");
 		return 1;
 	}
