@@ -346,13 +346,12 @@ static int nfp_fw_find(struct pci_dev *pdev, const struct firmware **fwp)
 /**
  * nfp_net_fw_load() - Load the firmware image
  * @pdev:       PCI Device structure
- * @nfp:        NFP Device structure
+ * @cpp:	NFP CPP structure
  *
  * Return: -ERRNO, 0 for no firmware loaded, 1 for firmware loaded
  */
-static int nfp_fw_load(struct pci_dev *pdev, struct nfp_device *nfp)
+static int nfp_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
 {
-	struct nfp_cpp *cpp = nfp_device_cpp(nfp);
 	const struct firmware *fw;
 	struct nfp_nsp *nsp;
 	int timeout = 30;
@@ -413,14 +412,14 @@ static int nfp_fw_load(struct pci_dev *pdev, struct nfp_device *nfp)
 		/* Lock the NFP, prevent others from touching it while we
 		 * load the firmware.
 		 */
-		err = nfp_device_lock(nfp);
+		err = nfp_device_lock(cpp);
 		if (err < 0) {
 			dev_err(&pdev->dev, "Can't lock NFP device: %d\n", err);
 			goto err_nsp_close;
 		}
 
 		err = nfp_ca_replay(cpp, fw->data, fw->size);
-		nfp_device_unlock(nfp);
+		nfp_device_unlock(cpp);
 
 		if (err < 0) {
 			dev_err(&pdev->dev, "FW loading failed: %d\n",
@@ -539,7 +538,7 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 		goto err_sriov_remove;
 	}
 
-	err = nfp_fw_load(pdev, nfp_dev);
+	err = nfp_fw_load(pdev, pf->cpp);
 	if (err < 0) {
 		dev_err(&pdev->dev, "Failed to load FW\n");
 		goto err_dev_close;

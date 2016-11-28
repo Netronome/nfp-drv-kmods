@@ -34,7 +34,8 @@
 /*
  * nfp_device.c
  * The NFP CPP device wrapper
- * Author: Jason McMullan <jason.mcmullan@netronome.com>
+ * Author: Jakub Kicinski <jakub.kicinski@netronome.com>
+ *         Jason McMullan <jason.mcmullan@netronome.com>
  */
 
 #include <linux/kernel.h>
@@ -229,33 +230,30 @@ void *nfp_device_private_alloc(struct nfp_device *dev,
  * This overlaps and is identical to the lock for
  * the first NFP Resource Entry in the NFP Resource Page.
  */
-static struct nfp_cpp_mutex *nfp_device_mutex(struct nfp_device *dev)
+static struct nfp_cpp_mutex *nfp_device_mutex(struct nfp_cpp *cpp)
 {
-	struct nfp_cpp *cpp;
+	struct nfp_cpp_mutex *mutex;
 
-	if (dev->nfp_mutex)
-		return dev->nfp_mutex;
+	mutex = nfp_device_mutex_cache(cpp);
+	if (mutex)
+		return mutex;
 
-	cpp = nfp_device_cpp(dev);
-	if (!cpp)
-		return NULL;
+	mutex = nfp_cpp_mutex_alloc(cpp, NFP_RESOURCE_TBL_TARGET,
+				    NFP_RESOURCE_TBL_BASE, 0);
+	nfp_device_mutex_cache_set(cpp, mutex);
 
-	dev->nfp_mutex = nfp_cpp_mutex_alloc(cpp, NFP_RESOURCE_TBL_TARGET,
-					     NFP_RESOURCE_TBL_BASE, 0);
-
-	return dev->nfp_mutex;
+	return mutex;
 }
 
 /**
- * Perform an advisory trylock on the NFP device
+ * nfp_device_trylock() - perform an advisory trylock on the NFP device
+ * @cpp:	NFP CPP handle
  *
- * @param dev           NFP device
- *
- * @return 0 on success, or -1 on error (and set errno accordingly)
+ * Return 0 on success, or -ERRNO on failure
  */
-int nfp_device_trylock(struct nfp_device *dev)
+int nfp_device_trylock(struct nfp_cpp *cpp)
 {
-	struct nfp_cpp_mutex *m = nfp_device_mutex(dev);
+	struct nfp_cpp_mutex *m = nfp_device_mutex(cpp);
 
 	if (!m)
 		return -EINVAL;
@@ -264,15 +262,14 @@ int nfp_device_trylock(struct nfp_device *dev)
 }
 
 /**
- * Perform an advisory lock on the NFP device
+ * nfp_device_lock() - perform an advisory lock on the NFP device
+ * @cpp:	NFP CPP handle
  *
- * @param dev           NFP device
- *
- * @return 0 on success, or -1 on error (and set errno accordingly)
+ * Return 0 on success, or -ERRNO on failure
  */
-int nfp_device_lock(struct nfp_device *dev)
+int nfp_device_lock(struct nfp_cpp *cpp)
 {
-	struct nfp_cpp_mutex *m = nfp_device_mutex(dev);
+	struct nfp_cpp_mutex *m = nfp_device_mutex(cpp);
 
 	if (!m)
 		return -EINVAL;
@@ -281,15 +278,14 @@ int nfp_device_lock(struct nfp_device *dev)
 }
 
 /**
- * Perform an advisory unlock on the NFP device
+ * nfp_device_unlock() - perform an advisory unlock on the NFP device
+ * @cpp:	NFP CPP handle
  *
- * @param dev           NFP device
- *
- * @return 0 on success, or -1 on error (and set errno accordingly)
+ * Return 0 on success, or -ERRNO on failure
  */
-int nfp_device_unlock(struct nfp_device *dev)
+int nfp_device_unlock(struct nfp_cpp *cpp)
 {
-	struct nfp_cpp_mutex *m = nfp_device_mutex(dev);
+	struct nfp_cpp_mutex *m = nfp_device_mutex(cpp);
 
 	if (!m)
 		return -EINVAL;

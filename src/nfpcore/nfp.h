@@ -100,9 +100,9 @@ void *nfp_device_private(struct nfp_device *dev,
 void *nfp_device_private_alloc(struct nfp_device *dev, size_t private_size,
 			       void (*destructor)(void *private_data));
 
-int nfp_device_trylock(struct nfp_device *nfp);
-int nfp_device_lock(struct nfp_device *nfp);
-int nfp_device_unlock(struct nfp_device *nfp);
+int nfp_device_trylock(struct nfp_cpp *cpp);
+int nfp_device_lock(struct nfp_cpp *cpp);
+int nfp_device_unlock(struct nfp_cpp *cpp);
 
 /* Implemented in nfp_hwinfo.c */
 

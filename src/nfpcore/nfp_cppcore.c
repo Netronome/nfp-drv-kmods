@@ -121,6 +121,8 @@ struct nfp_cpp {
 	void *rtsym;
 	void *nbi;
 	void *phymod;
+
+	struct nfp_cpp_mutex *dev_mutex;
 };
 
 /* Element of the area_cache_list */
@@ -235,6 +237,9 @@ static void __nfp_cpp_release(struct kref *kref)
 	struct nfp_cpp_area_cache *cache, *ctmp;
 	struct nfp_cpp_mutex *mutex, *mtmp;
 	struct nfp_cpp_resource *res, *rtmp;
+
+	if (cpp->dev_mutex)
+		nfp_cpp_mutex_free(cpp->dev_mutex);
 
 	/* There should be no mutexes in the cache at this point.
 	 */
@@ -451,6 +456,16 @@ void *nfp_phymod_state(struct nfp_cpp *cpp)
 void nfp_phymod_state_set(struct nfp_cpp *cpp, void *val)
 {
 	cpp->phymod = val;
+}
+
+struct nfp_cpp_mutex *nfp_device_mutex_cache(struct nfp_cpp *cpp)
+{
+	return cpp->dev_mutex;
+}
+
+void nfp_device_mutex_cache_set(struct nfp_cpp *cpp, struct nfp_cpp_mutex *val)
+{
+	cpp->dev_mutex = val;
 }
 
 static void __resource_add(struct list_head *head, struct nfp_cpp_resource *res)
