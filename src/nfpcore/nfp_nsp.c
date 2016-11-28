@@ -85,48 +85,47 @@
 #define NSP_CODE_MINOR_of(code)	(((code) >>  0) & 0xfff)
 
 struct nfp_nsp {
+	struct nfp_cpp *cpp;
 	struct nfp_resource *res;
 };
 
-static void nfp_nsp_des(void *ptr)
-{
-	struct nfp_nsp *priv = ptr;
-
-	nfp_resource_lock(priv->res);
-	nfp_resource_release(priv->res);
-}
-
-static void *nfp_nsp_con(struct nfp_device *nfp)
+/**
+ * nfp_nsp_open() - Prepare for communication and lock the NSP resource.
+ * @cpp:	NFP CPP Handle
+ */
+struct nfp_nsp *nfp_nsp_open(struct nfp_cpp *cpp)
 {
 	struct nfp_resource *res;
-	struct nfp_nsp *priv;
-	int err;
+	struct nfp_nsp *state;
 
-	res = nfp_resource_acquire(nfp_device_cpp(nfp), NSP_RESOURCE);
+	res = nfp_resource_acquire(cpp, NSP_RESOURCE);
 	if (IS_ERR(res))
-		return NULL;
+		return (void *)res;
 
-	err = nfp_resource_unlock(res);
-	if (err) {
+	state = kzalloc(sizeof(*state), GFP_KERNEL);
+	if (!state) {
 		nfp_resource_release(res);
-		return NULL;
+		return ERR_PTR(-ENOMEM);
 	}
+	state->cpp = cpp;
+	state->res = res;
 
-	priv = nfp_device_private_alloc(nfp, sizeof(*priv), nfp_nsp_des);
-	if (!priv) {
-		nfp_resource_lock(res);
-		nfp_resource_release(res);
-		return priv;
-	}
+	return state;
+}
 
-	priv->res = res;
-
-	return priv;
+/**
+ * nfp_nsp_close() - Clean up and unlock the NSP resource.
+ * @state:	NFP SP state
+ */
+void nfp_nsp_close(struct nfp_nsp *state)
+{
+	nfp_resource_release(state->res);
+	kfree(state);
 }
 
 /**
  * nfp_nsp_command() - Execute a command on the NFP Service Processor
- * @nfp:	NFP Device handle
+ * @state:	NFP SP state
  * @code:	NSP Command Code
  *
  * Return: 0 for success with no result
@@ -143,11 +142,10 @@ static void *nfp_nsp_con(struct nfp_device *nfp)
  *
  *         -ETIMEDOUT if the NSP took longer than 30 seconds to complete
  */
-static int __nfp_nsp_command(struct nfp_device *nfp, u16 code, u32 option,
-			     u32 buff_cpp, u64 buff_addr)
+int nfp_nsp_command(struct nfp_nsp *state, u16 code, u32 option,
+		    u32 buff_cpp, u64 buff_addr)
 {
-	struct nfp_cpp *cpp = nfp_device_cpp(nfp);
-	struct nfp_nsp *nsp;
+	struct nfp_cpp *cpp = state->cpp;
 	u32 nsp_cpp;
 	u64 nsp_base;
 	u64 nsp_status;
@@ -157,12 +155,8 @@ static int __nfp_nsp_command(struct nfp_device *nfp, u16 code, u32 option,
 	u64 tmp;
 	int timeout = 30 * 10;	/* 30 seconds total */
 
-	nsp = nfp_device_private(nfp, nfp_nsp_con);
-	if (!nsp)
-		return -EAGAIN;
-
-	nsp_cpp = nfp_resource_cpp_id(nsp->res);
-	nsp_base = nfp_resource_address(nsp->res);
+	nsp_cpp = nfp_resource_cpp_id(state->res);
+	nsp_base = nfp_resource_address(state->res);
 	nsp_status = nsp_base + NSP_STATUS;
 	nsp_command = nsp_base + NSP_COMMAND;
 	nsp_buffer = nsp_base + NSP_BUFFER;
@@ -172,14 +166,14 @@ static int __nfp_nsp_command(struct nfp_device *nfp, u16 code, u32 option,
 		return err;
 
 	if (NSP_MAGIC != NSP_STATUS_MAGIC_of(tmp)) {
-		nfp_err(nfp, "NSP: Cannot detect NFP Service Processor\n");
+		nfp_cpp_err(cpp, "NSP: Cannot detect NFP Service Processor\n");
 		return -ENODEV;
 	}
 
 	ok = NSP_STATUS_MAJOR_of(tmp) == NSP_CODE_MAJOR_of(code) &&
 	     NSP_STATUS_MINOR_of(tmp) >= NSP_CODE_MINOR_of(code);
 	if (!ok) {
-		nfp_err(nfp, "NSP: Code 0x%04x not supported (ABI %d.%d)\n",
+		nfp_cpp_err(cpp, "NSP: Code 0x%04x not supported (ABI %d.%d)\n",
 			code,
 			(int)NSP_STATUS_MAJOR_of(tmp),
 			(int)NSP_STATUS_MINOR_of(tmp));
@@ -187,7 +181,7 @@ static int __nfp_nsp_command(struct nfp_device *nfp, u16 code, u32 option,
 	}
 
 	if (tmp & NSP_STATUS_BUSY) {
-		nfp_err(nfp, "NSP: Service processor busy!\n");
+		nfp_cpp_err(cpp, "NSP: Service processor busy!\n");
 		return -EBUSY;
 	}
 
@@ -213,14 +207,14 @@ static int __nfp_nsp_command(struct nfp_device *nfp, u16 code, u32 option,
 			break;
 
 		if (msleep_interruptible(100) > 0) {
-			nfp_warn(nfp, "NSP: Interrupt waiting for code 0x%04x to start\n",
+			nfp_cpp_warn(cpp, "NSP: Interrupt waiting for code 0x%04x to start\n",
 				 code);
 			return -EINTR;
 		}
 	}
 
 	if (timeout < 0) {
-		nfp_warn(nfp, "NSP: Timeout waiting for code 0x%04x to start\n",
+		nfp_cpp_warn(cpp, "NSP: Timeout waiting for code 0x%04x to start\n",
 			 code);
 		return -ETIMEDOUT;
 	}
@@ -235,14 +229,14 @@ static int __nfp_nsp_command(struct nfp_device *nfp, u16 code, u32 option,
 			break;
 
 		if (msleep_interruptible(100) > 0) {
-			nfp_warn(nfp, "NSP: Interrupt waiting for code 0x%04x to complete\n",
+			nfp_cpp_warn(cpp, "NSP: Interrupt waiting for code 0x%04x to complete\n",
 				 code);
 			return -EINTR;
 		}
 	}
 
 	if (timeout < 0) {
-		nfp_warn(nfp, "NSP: Timeout waiting for code 0x%04x to complete\n",
+		nfp_cpp_warn(cpp, "NSP: Timeout waiting for code 0x%04x to complete\n",
 			 code);
 		return -ETIMEDOUT;
 	}
@@ -258,52 +252,29 @@ static int __nfp_nsp_command(struct nfp_device *nfp, u16 code, u32 option,
 	return NSP_COMMAND_OPTION_of(tmp);
 }
 
-int nfp_nsp_command(struct nfp_device *nfp, u16 code, u32 option,
-		    u32 buff_cpp, u64 buff_addr)
+int nfp_nsp_command_buf(struct nfp_nsp *nsp, u16 code, u32 option,
+			const void *in_buf, unsigned int in_size,
+			void *out_buf, unsigned int out_size)
 {
-	struct nfp_nsp *nsp;
-	int ret;
-
-	nsp = nfp_device_private(nfp, nfp_nsp_con);
-	if (!nsp)
-		return -EAGAIN;
-
-	ret = nfp_resource_lock(nsp->res);
-	if (ret)
-		return ret;
-	ret = __nfp_nsp_command(nfp, code, option, buff_cpp, buff_addr);
-	nfp_resource_unlock(nsp->res);
-
-	return ret;
-}
-
-static int __nfp_nsp_command_buf(struct nfp_device *nfp, u16 code, u32 option,
-				 const void *in_buf, unsigned int in_size,
-				 void *out_buf, unsigned int out_size)
-{
+	struct nfp_cpp *cpp = nsp->cpp;
 	unsigned int max_size;
-	struct nfp_nsp *nsp;
 	u64 tmp, cpp_buf;
 	int ret, err;
 	u32 cpp_id;
 
-	nsp = nfp_device_private(nfp, nfp_nsp_con);
-	if (!nsp)
-		return -EAGAIN;
-
-	err = nfp_cpp_readq(nfp_device_cpp(nfp), nfp_resource_cpp_id(nsp->res),
+	err = nfp_cpp_readq(cpp, nfp_resource_cpp_id(nsp->res),
 			    nfp_resource_address(nsp->res) + NSP_STATUS, &tmp);
 	if (err < 0)
 		return err;
 
 	if (NSP_STATUS_MINOR_of(tmp) < 13) {
-		nfp_err(nfp, "NSP: Code 0x%04x with buffer not supported (ABI %lld.%lld)\n",
+		nfp_cpp_err(cpp, "NSP: Code 0x%04x with buffer not supported (ABI %lld.%lld)\n",
 			code, NSP_STATUS_MAJOR_of(tmp),
 			NSP_STATUS_MINOR_of(tmp));
 		return -EOPNOTSUPP;
 	}
 
-	err = nfp_cpp_readq(nfp_device_cpp(nfp), nfp_resource_cpp_id(nsp->res),
+	err = nfp_cpp_readq(cpp, nfp_resource_cpp_id(nsp->res),
 			    nfp_resource_address(nsp->res) +
 			    NSP_DEFAULT_BUFFER_CONFIG,
 			    &tmp);
@@ -312,12 +283,12 @@ static int __nfp_nsp_command_buf(struct nfp_device *nfp, u16 code, u32 option,
 
 	max_size = max(in_size, out_size);
 	if (NSP_DEF_BUFFER_SIZE_MB_of(tmp) * SZ_1M < max_size) {
-		nfp_err(nfp, "NSP: default buffer too small for command (%llu < %u)\n",
+		nfp_cpp_err(cpp, "NSP: default buffer too small for command (%llu < %u)\n",
 			NSP_DEF_BUFFER_SIZE_MB_of(tmp) * SZ_1M, max_size);
 		return -EINVAL;
 	}
 
-	err = nfp_cpp_readq(nfp_device_cpp(nfp), nfp_resource_cpp_id(nsp->res),
+	err = nfp_cpp_readq(cpp, nfp_resource_cpp_id(nsp->res),
 			    nfp_resource_address(nsp->res) +
 			    NSP_DEFAULT_BUFFER,
 			    &tmp);
@@ -328,43 +299,20 @@ static int __nfp_nsp_command_buf(struct nfp_device *nfp, u16 code, u32 option,
 	cpp_buf = NSP_BUFFER_ADDRESS_of(tmp);
 
 	if (in_buf && in_size) {
-		err = nfp_cpp_write(nfp_device_cpp(nfp), cpp_id, cpp_buf,
-				    in_buf, in_size);
+		err = nfp_cpp_write(cpp, cpp_id, cpp_buf, in_buf, in_size);
 		if (err < 0)
 			return err;
 	}
 
-	ret = nfp_nsp_command(nfp, code, option, cpp_id, cpp_buf);
+	ret = nfp_nsp_command(nsp, code, option, cpp_id, cpp_buf);
 	if (ret < 0)
 		return ret;
 
 	if (out_buf && out_size) {
-		err = nfp_cpp_read(nfp_device_cpp(nfp), cpp_id, cpp_buf,
-				   out_buf, out_size);
+		err = nfp_cpp_read(cpp, cpp_id, cpp_buf, out_buf, out_size);
 		if (err < 0)
 			return err;
 	}
-
-	return ret;
-}
-
-int nfp_nsp_command_buf(struct nfp_device *nfp, u16 code, u32 option,
-			const void *in_buf, unsigned int in_size,
-			void *out_buf, unsigned int out_size)
-{
-	struct nfp_nsp *nsp;
-	int ret;
-
-	nsp = nfp_device_private(nfp, nfp_nsp_con);
-	if (!nsp)
-		return -EAGAIN;
-
-	ret = nfp_resource_lock(nsp->res);
-	if (ret)
-		return ret;
-	ret = __nfp_nsp_command_buf(nfp, code, option, in_buf, in_size,
-				    out_buf, out_size);
-	nfp_resource_unlock(nsp->res);
 
 	return ret;
 }

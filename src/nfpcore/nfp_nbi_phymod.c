@@ -108,6 +108,7 @@ static void *eth_private(struct nfp_device *nfp)
 struct nfp_phymod_eth *nfp_phymod_eth_next(struct nfp_device *nfp,
 					   struct nfp_phymod *phy, void **ptr)
 {
+	struct nfp_cpp *cpp = nfp_device_cpp(nfp);
 	struct eth_priv *priv;
 	int err;
 	u64 port;
@@ -117,9 +118,16 @@ struct nfp_phymod_eth *nfp_phymod_eth_next(struct nfp_device *nfp,
 		return NULL;
 
 	if (!*ptr) {
-		err = nfp_nsp_command_buf(nfp, SPCODE_ETH_RESCAN,
+		struct nfp_nsp *nsp;
+
+		nsp = nfp_nsp_open(cpp);
+		if (IS_ERR(nsp))
+			return NULL;
+
+		err = nfp_nsp_command_buf(nsp, SPCODE_ETH_RESCAN,
 					  sizeof(priv->eths), NULL, 0,
 					  priv->eths, sizeof(priv->eths));
+		nfp_nsp_close(nsp);
 		if (err)
 			return NULL;
 		priv->eth_idx = 0;
@@ -322,6 +330,7 @@ int nfp_phymod_eth_write_disable(struct nfp_phymod_eth *eth,
 				 u32 tx_disable, u32 rx_disable)
 {
 	struct eth_priv *priv;
+	struct nfp_nsp *nsp;
 	int idx, err;
 	u64 control;
 
@@ -332,6 +341,10 @@ int nfp_phymod_eth_write_disable(struct nfp_phymod_eth *eth,
 	if (!tx_disable == !!(NSP_ETH_TX_STATE_ENABLED & control))
 		return 0;
 
+	nsp = nfp_nsp_open(nfp_device_cpp(priv->nfp));
+	if (IS_ERR(nsp))
+		return PTR_ERR(nsp);
+
 	if (tx_disable)
 		control &= ~NSP_ETH_TX_STATE_ENABLED;
 	else
@@ -339,7 +352,7 @@ int nfp_phymod_eth_write_disable(struct nfp_phymod_eth *eth,
 
 	priv->eths[idx].control = cpu_to_le64(control);
 
-	err = nfp_nsp_command_buf(priv->nfp, SPCODE_ETH_CONTROL,
+	err = nfp_nsp_command_buf(nsp, SPCODE_ETH_CONTROL,
 				  sizeof(priv->eths),
 				  priv->eths, sizeof(priv->eths),
 				  priv->eths, sizeof(priv->eths));

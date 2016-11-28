@@ -238,31 +238,3 @@ u64 nfp_resource_size(struct nfp_resource *res)
 {
 	return res->size;
 }
-
-/**
- * nfp_resource_lock() - Lock the resource
- * @res:	NFP Resource handle
- *
- * Note: nfp_resource_acquire() already acquires the lock, this should only
- * be used if more granular control of locking of the resource is needed.
- *
- * Return: same as nfp_cpp_mutex_lock().
- */
-int nfp_resource_lock(struct nfp_resource *res)
-{
-	return nfp_cpp_mutex_lock(res->mutex);
-}
-
-/**
- * nfp_resource_unlock() - Lock the resource
- * @res:	NFP Resource handle
- *
- * Note: nfp_resource_release() already releases the lock, this should only
- * be used if more granular control of locking of the resource is needed.
- *
- * Return: same as nfp_cpp_mutex_unlock().
- */
-int nfp_resource_unlock(struct nfp_resource *res)
-{
-	return nfp_cpp_mutex_unlock(res->mutex);
-}

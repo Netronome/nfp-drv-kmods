@@ -69,6 +69,11 @@
 		     dev_driver_string(_dev), dev_name(_dev)); \
 	} while (0)
 
+#define nfp_cpp_err(cpp, fmt, args...) \
+	dev_err(nfp_cpp_device(cpp)->parent, NFP_SUBSYS fmt, ## args)
+#define nfp_cpp_warn(cpp, fmt, args...) \
+	dev_warn(nfp_cpp_device(cpp)->parent, NFP_SUBSYS fmt, ## args)
+
 struct nfp_cpp;
 
 /* Opaque NFP device handle. */
@@ -203,9 +208,13 @@ int nfp_reset_soft(struct nfp_device *nfp);
 #define SPCODE_ETH_RESCAN       7       /* Rescan ETHs, update ETH_TABLE */
 #define SPCODE_ETH_CONTROL      8       /* Perform ETH control action */
 
-int nfp_nsp_command(struct nfp_device *nfp, uint16_t spcode, u32 option,
+struct nfp_nsp;
+
+struct nfp_nsp *nfp_nsp_open(struct nfp_cpp *cpp);
+void nfp_nsp_close(struct nfp_nsp *state);
+int nfp_nsp_command(struct nfp_nsp *state, uint16_t spcode, u32 option,
 		    u32 buff_cpp, u64 buff_addr);
-int nfp_nsp_command_buf(struct nfp_device *nfp, u16 code, u32 option,
+int nfp_nsp_command_buf(struct nfp_nsp *state, u16 code, u32 option,
 			const void *in_buf, unsigned int in_size,
 			void *out_buf, unsigned int out_size);
 
@@ -298,8 +307,5 @@ const char *nfp_resource_name(struct nfp_resource *res);
 u64 nfp_resource_address(struct nfp_resource *res);
 
 u64 nfp_resource_size(struct nfp_resource *res);
-
-int nfp_resource_lock(struct nfp_resource *res);
-int nfp_resource_unlock(struct nfp_resource *res);
 
 #endif /* !__NFP_H__ */
