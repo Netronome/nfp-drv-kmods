@@ -90,7 +90,7 @@ struct nfp_net_vnic_queue {
 struct nfp_net_vnic {
 	struct platform_device *pdev;
 	struct net_device *netdev;
-	struct nfp_device *nfp;
+	struct nfp_cpp *cpp;
 	struct nfp_cpp_area *area;
 	struct net_device_stats stats;
 	struct timer_list timer;
@@ -602,7 +602,6 @@ static int nfp_net_vnic_probe(struct platform_device *pdev)
 	struct net_device *netdev;
 	struct nfp_net_vnic *vnic;
 	int err;
-	struct nfp_device *nfp;
 	u16 interface;
 	const char *res_name;
 	struct nfp_resource *res;
@@ -619,14 +618,11 @@ static int nfp_net_vnic_probe(struct platform_device *pdev)
 	pdata = nfp_platform_device_data(pdev);
 	BUG_ON(!pdata);
 
-	nfp = nfp_device_open(pdata->nfp);
-	if (!nfp)
+	cpp = nfp_cpp_from_device_id(pdata->nfp);
+	if (!cpp)
 		return -ENODEV;
 
 	vnic_unit = pdata->unit;
-
-	cpp = nfp_device_cpp(nfp);
-	BUG_ON(!cpp);
 
 	/* HACK:
 	 *
@@ -656,11 +652,11 @@ static int nfp_net_vnic_probe(struct platform_device *pdev)
 	}
 
 	if (!res_name) {
-		nfp_device_close(nfp);
+		nfp_cpp_free(cpp);
 		return -ENODEV;
 	}
 
-	res = nfp_resource_acquire(nfp_device_cpp(nfp), res_name);
+	res = nfp_resource_acquire(cpp, res_name);
 	if (IS_ERR(res)) {
 		dev_err(&pdev->dev, "No '%s' resource present\n",
 			res_name);
@@ -673,8 +669,7 @@ static int nfp_net_vnic_probe(struct platform_device *pdev)
 	barsz    = nfp_resource_size(res);
 	nfp_resource_release(res);
 
-	area = nfp_cpp_area_alloc_acquire(cpp,
-					  cpp_id, cpp_addr, barsz);
+	area = nfp_cpp_area_alloc_acquire(cpp, cpp_id, cpp_addr, barsz);
 	if (!area) {
 		dev_err(&pdev->dev, "Can't acquire %lu byte area at %d:%d:%d:0x%llx\n",
 			barsz, NFP_CPP_ID_TARGET_of(cpp_id),
@@ -699,7 +694,7 @@ static int nfp_net_vnic_probe(struct platform_device *pdev)
 	vnic = netdev_priv(netdev);
 	memset(vnic, 0, sizeof(*vnic));
 	vnic->pdev = pdev;
-	vnic->nfp = nfp;
+	vnic->cpp = cpp;
 	vnic->area = area;
 	vnic->netdev = netdev;
 	vnic->id = pdev->id;
@@ -762,7 +757,7 @@ err_alloc_netdev:
 	nfp_cpp_area_release_free(area);
 err_area_acquire:
 err_resource_acquire:
-	nfp_device_close(nfp);
+	nfp_cpp_free(cpp);
 	return err;
 }
 
@@ -776,7 +771,7 @@ static int nfp_net_vnic_remove(struct platform_device *pdev)
 	free_netdev(vnic->netdev);
 	platform_set_drvdata(pdev, NULL);
 	nfp_cpp_area_release_free(vnic->area);
-	nfp_device_close(vnic->nfp);
+	nfp_cpp_free(vnic->cpp);
 
 	return 0;
 }
