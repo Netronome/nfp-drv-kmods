@@ -111,7 +111,7 @@
 #define NFP_QCTLR_STS_HI                                     0x0000000c
 #define   NFP_QCTLR_STS_HI_EMPTY				BIT(26)
 
-static int nfp6000_island_reset(struct nfp_device *nfp, int nbi_mask)
+static int nfp6000_island_reset(struct nfp_cpp *cpp, int nbi_mask)
 {
 	int err;
 	int i, u;
@@ -122,7 +122,7 @@ static int nfp6000_island_reset(struct nfp_device *nfp, int nbi_mask)
 		if ((nbi_mask & BIT(i)) == 0)
 			continue;
 
-		err = nfp_power_set(nfp,
+		err = nfp_power_set(cpp,
 				    NFP6000_DEVICE_NBI(i,
 						       NFP6000_DEVICE_NBI_CORE),
 				    state);
@@ -136,7 +136,7 @@ static int nfp6000_island_reset(struct nfp_device *nfp, int nbi_mask)
 	/* Reset ILA cores */
 	for (i = 0; i < 2; i++) {
 		for (u = NFP6000_DEVICE_ILA_MEG1; u >= 0; u--) {
-			err = nfp_power_set(nfp,
+			err = nfp_power_set(cpp,
 					    NFP6000_DEVICE_ILA(i, u), state);
 			if (err < 0) {
 				if (err == -ENODEV)
@@ -149,7 +149,7 @@ static int nfp6000_island_reset(struct nfp_device *nfp, int nbi_mask)
 	/* Reset FPC cores */
 	for (i = 0; i < 7; i++) {
 		for (u = NFP6000_DEVICE_FPC_MEG5; u >= 0; u--) {
-			err = nfp_power_set(nfp,
+			err = nfp_power_set(cpp,
 					    NFP6000_DEVICE_FPC(i, u), state);
 			if (err < 0) {
 				if (err == -ENODEV)
@@ -162,7 +162,7 @@ static int nfp6000_island_reset(struct nfp_device *nfp, int nbi_mask)
 	/* Reset IMU islands */
 	for (i = 0; i < 2; i++) {
 		for (u = NFP6000_DEVICE_IMU_NLU; u >= 0; u--) {
-			err = nfp_power_set(nfp,
+			err = nfp_power_set(cpp,
 					    NFP6000_DEVICE_IMU(i, u), state);
 			if (err < 0) {
 				if (err == -ENODEV)
@@ -175,7 +175,7 @@ static int nfp6000_island_reset(struct nfp_device *nfp, int nbi_mask)
 	/* Reset CRP islands */
 	for (i = 0; i < 2; i++) {
 		for (u = NFP6000_DEVICE_CRP_MEG1; u >= 0; u--) {
-			err = nfp_power_set(nfp,
+			err = nfp_power_set(cpp,
 					    NFP6000_DEVICE_CRP(i, u), state);
 			if (err < 0) {
 				if (err == -ENODEV)
@@ -189,7 +189,7 @@ static int nfp6000_island_reset(struct nfp_device *nfp, int nbi_mask)
 	for (i = 0; i < 4; i++) {
 		for (u = NFP6000_DEVICE_PCI_MEG1; u >= NFP6000_DEVICE_PCI_MEG0;
 		     u--) {
-			err = nfp_power_set(nfp,
+			err = nfp_power_set(cpp,
 					    NFP6000_DEVICE_PCI(i, u), state);
 			if (err < 0) {
 				if (err == -ENODEV)
@@ -202,7 +202,7 @@ static int nfp6000_island_reset(struct nfp_device *nfp, int nbi_mask)
 	return 0;
 }
 
-static int nfp6000_island_on(struct nfp_device *nfp, int nbi_mask)
+static int nfp6000_island_on(struct nfp_cpp *cpp, int nbi_mask)
 {
 	int err;
 	int i, u;
@@ -213,7 +213,7 @@ static int nfp6000_island_on(struct nfp_device *nfp, int nbi_mask)
 		if ((nbi_mask & BIT(i)) == 0)
 			continue;
 
-		err = nfp_power_set(nfp,
+		err = nfp_power_set(cpp,
 				    NFP6000_DEVICE_NBI(i,
 						       NFP6000_DEVICE_NBI_CORE),
 				    state);
@@ -227,7 +227,7 @@ static int nfp6000_island_on(struct nfp_device *nfp, int nbi_mask)
 	/* Reset ILA cores */
 	for (i = 0; i < 2; i++) {
 		for (u = 0; u <= NFP6000_DEVICE_ILA_MEG1; u++) {
-			err = nfp_power_set(nfp,
+			err = nfp_power_set(cpp,
 					    NFP6000_DEVICE_ILA(i, u), state);
 			if (err < 0) {
 				if (err == -ENODEV)
@@ -240,7 +240,7 @@ static int nfp6000_island_on(struct nfp_device *nfp, int nbi_mask)
 	/* Reset FPC cores */
 	for (i = 0; i < 7; i++) {
 		for (u = 0; u <= NFP6000_DEVICE_FPC_MEG5; u++) {
-			err = nfp_power_set(nfp,
+			err = nfp_power_set(cpp,
 					    NFP6000_DEVICE_FPC(i, u), state);
 			if (err < 0) {
 				if (err == -ENODEV)
@@ -253,7 +253,7 @@ static int nfp6000_island_on(struct nfp_device *nfp, int nbi_mask)
 	/* Reset IMU islands */
 	for (i = 0; i < 2; i++) {
 		for (u = 0; u <= NFP6000_DEVICE_IMU_NLU; u++) {
-			err = nfp_power_set(nfp,
+			err = nfp_power_set(cpp,
 					    NFP6000_DEVICE_IMU(i, u), state);
 			if (err < 0) {
 				if (err == -ENODEV)
@@ -266,7 +266,7 @@ static int nfp6000_island_on(struct nfp_device *nfp, int nbi_mask)
 	/* Reset CRP islands */
 	for (i = 0; i < 2; i++) {
 		for (u = 0; u <= NFP6000_DEVICE_CRP_MEG1; u++) {
-			err = nfp_power_set(nfp,
+			err = nfp_power_set(cpp,
 					    NFP6000_DEVICE_CRP(i, u), state);
 			if (err < 0) {
 				if (err == -ENODEV)
@@ -280,7 +280,7 @@ static int nfp6000_island_on(struct nfp_device *nfp, int nbi_mask)
 	for (i = 0; i < 4; i++) {
 		for (u = NFP6000_DEVICE_PCI_MEG0; u <= NFP6000_DEVICE_PCI_MEG1;
 		     u++) {
-			err = nfp_power_set(nfp,
+			err = nfp_power_set(cpp,
 					    NFP6000_DEVICE_PCI(i, u), state);
 			if (err < 0) {
 				if (err == -ENODEV)
@@ -304,10 +304,9 @@ static int nfp6000_island_on(struct nfp_device *nfp, int nbi_mask)
 
 #define NFP_CT_ME(_x)			(0x00010000 + (((_x + 4) & 0xf) << 10))
 
-static int nfp6000_stop_me(struct nfp_device *nfp, int island, int menum)
+static int nfp6000_stop_me(struct nfp_cpp *cpp, int island, int menum)
 {
 	int err;
-	struct nfp_cpp *cpp = nfp_device_cpp(nfp);
 	u32 tmp;
 	u32 me_r = NFP_CPP_ID(NFP_CPP_TARGET_CT_XPB, 2, 1);
 	u32 me_w = NFP_CPP_ID(NFP_CPP_TARGET_CT_XPB, 3, 1);
@@ -344,15 +343,15 @@ static int nfp6000_stop_me(struct nfp_device *nfp, int island, int menum)
 		return err;
 
 	if (tmp & NFP_ME_ACTCTXSTATUS_AB0) {
-		nfp_err(nfp, "ME%d.%d did not stop after 1000us\n",
-			island, menum);
+		nfp_cpp_err(cpp, "ME%d.%d did not stop after 1000us\n",
+			    island, menum);
 		return -EIO;
 	}
 
 	return 0;
 }
 
-static int nfp6000_stop_me_island(struct nfp_device *nfp, int island)
+static int nfp6000_stop_me_island(struct nfp_cpp *cpp, int island)
 {
 	int i, err;
 	int meg_device, megs;
@@ -395,7 +394,7 @@ static int nfp6000_stop_me_island(struct nfp_device *nfp, int island)
 	for (i = 0; i < megs; i++) {
 		int state;
 
-		err = nfp_power_get(nfp,
+		err = nfp_power_get(cpp,
 				    NFP6000_DEVICE(island, meg_device + i),
 				    &state);
 		if (err < 0) {
@@ -407,11 +406,11 @@ static int nfp6000_stop_me_island(struct nfp_device *nfp, int island)
 		if (state != NFP_DEVICE_STATE_ON)
 			continue;
 
-		err = nfp6000_stop_me(nfp, island, i * 2 + 0);
+		err = nfp6000_stop_me(cpp, island, i * 2 + 0);
 		if (err < 0)
 			return err;
 
-		err = nfp6000_stop_me(nfp, island, i * 2 + 1);
+		err = nfp6000_stop_me(cpp, island, i * 2 + 1);
 		if (err < 0)
 			return err;
 	}
@@ -702,7 +701,7 @@ static int nfp6000_reset_soft(struct nfp_device *nfp)
 		u32 tmp;
 		int state;
 
-		err = nfp_power_get(nfp, NFP6000_DEVICE_NBI(i, 0), &state);
+		err = nfp_power_get(cpp, NFP6000_DEVICE_NBI(i, 0), &state);
 		if (err < 0) {
 			if (err == -ENODEV) {
 				nbi[i] = NULL;
@@ -835,7 +834,7 @@ static int nfp6000_reset_soft(struct nfp_device *nfp)
 		unsigned int subdev = NFP6000_DEVICE_PCI(i,
 					NFP6000_DEVICE_PCI_PCI);
 
-		err = nfp_power_get(nfp, subdev, &state);
+		err = nfp_power_get(cpp, subdev, &state);
 		if (err < 0) {
 			if (err == -ENODEV)
 				continue;
@@ -863,7 +862,7 @@ static int nfp6000_reset_soft(struct nfp_device *nfp)
 
 	/* Stop all MEs */
 	for (i = 0; i < 64; i++) {
-		err = nfp6000_stop_me_island(nfp, i);
+		err = nfp6000_stop_me_island(cpp, i);
 		if (err < 0)
 			goto exit;
 	}
@@ -875,7 +874,7 @@ static int nfp6000_reset_soft(struct nfp_device *nfp)
 		unsigned int subdev = NFP6000_DEVICE_PCI(i,
 					NFP6000_DEVICE_PCI_PCI);
 
-		err = nfp_power_get(nfp, subdev, &state);
+		err = nfp_power_get(cpp, subdev, &state);
 		if (err < 0) {
 			if (err == -ENODEV)
 				continue;
@@ -904,7 +903,7 @@ static int nfp6000_reset_soft(struct nfp_device *nfp)
 		const u32 pci = NFP_CPP_ISLAND_ID(NFP_CPP_TARGET_PCIE,
 						       3, 0, i + 4);
 
-		err = nfp_power_get(nfp, subdev, &state);
+		err = nfp_power_get(cpp, subdev, &state);
 		if (err < 0) {
 			if (err == -ENODEV)
 				continue;
@@ -977,11 +976,11 @@ static int nfp6000_reset_soft(struct nfp_device *nfp)
 	}
 
 	/* Soft reset subcomponents relevant to this model */
-	err = nfp6000_island_reset(nfp, nbi_mask);
+	err = nfp6000_island_reset(cpp, nbi_mask);
 	if (err < 0)
 		goto exit;
 
-	err = nfp6000_island_on(nfp, nbi_mask);
+	err = nfp6000_island_on(cpp, nbi_mask);
 	if (err < 0)
 		goto exit;
 

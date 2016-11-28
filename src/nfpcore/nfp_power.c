@@ -267,15 +267,14 @@ static int nfp6000_reset_set(struct nfp_cpp *cpp, unsigned int subdevice,
 
 /**
  * nfp_power_get() - Get current device state
- * @nfp:	   NFP Device handle
+ * @cpp:	   NFP CPP handle
  * @subdevice:     NFP subdevice
  * @state:	 Power state
  *
  * Return: 0, or -ERRNO
  */
-int nfp_power_get(struct nfp_device *nfp, unsigned int subdevice, int *state)
+int nfp_power_get(struct nfp_cpp *cpp, unsigned int subdevice, int *state)
 {
-	struct nfp_cpp *cpp = nfp_device_cpp(nfp);
 	int err, reset = 0, enable = 0;
 
 	err = nfp6000_reset_get(cpp, subdevice, &reset, &enable);
@@ -1007,22 +1006,19 @@ static int nfp6000_island_init(struct nfp_cpp *cpp, unsigned int subdevice)
 
 /**
  * nfp_power_set() - Set device power state
- * @nfp:	   NFP Device handle
+ * @cpp:	   NFP CPP handle
  * @subdevice:     NFP subdevice
  * @state:	   Power state
  *
  * Return: 0, or -ERRNO
  */
-int nfp_power_set(struct nfp_device *nfp, unsigned int subdevice, int state)
+int nfp_power_set(struct nfp_cpp *cpp, unsigned int subdevice, int state)
 {
-	struct nfp_cpp *cpp;
 	int err, curr_state;
 
-	err = nfp_power_get(nfp, subdevice, &curr_state);
+	err = nfp_power_get(cpp, subdevice, &curr_state);
 	if (err < 0)
 		return err;
-
-	cpp = nfp_device_cpp(nfp);
 
 	/* Transition to final state */
 	while (state != curr_state) {

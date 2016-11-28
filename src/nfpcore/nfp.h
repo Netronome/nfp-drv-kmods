@@ -191,8 +191,8 @@ const char *nfp_hwinfo_lookup(struct nfp_cpp *cpp, const char *lookup);
 #define     NFP6000_DEVICE_ILA_MEG0  2
 #define     NFP6000_DEVICE_ILA_MEG1  3
 
-int nfp_power_get(struct nfp_device *dev, unsigned int subdevice, int *state);
-int nfp_power_set(struct nfp_device *dev, unsigned int subdevice, int state);
+int nfp_power_get(struct nfp_cpp *cpp, unsigned int subdevice, int *state);
+int nfp_power_set(struct nfp_cpp *cpp, unsigned int subdevice, int state);
 
 /* Implemented in nfp_reset.c */
 
