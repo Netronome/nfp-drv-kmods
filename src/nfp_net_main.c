@@ -62,51 +62,14 @@
 #include "nfp_net_compat.h"
 #include "nfp_net_ctrl.h"
 #include "nfp_net.h"
+#include "nfp_main.h"
 
 #include "nfp_modinfo.h"
 
 #define NFP_PF_CSR_SLICE_SIZE	(32 * 1024)
 
-/**
- * struct nfp_net_pf - NFP PF-specific device structure
- * @pdev:		Backpointer to PCI device
- * @cpp:		Pointer to the CPP handle
- * @nfp_dev_cpp:	Pointer to the NFP Device handle
- * @ctrl_area:		Pointer to the CPP area for the control BAR
- * @tx_area:		Pointer to the CPP area for the TX queues
- * @rx_area:		Pointer to the CPP area for the FL/RX queues
- * @irq_entries:	Array of MSI-X entries for all ports
- * @num_vfs:		Number of SR-IOV VFs enabled
- * @fw_loaded:		Is the firmware loaded?
- * @nfp_fallback:	Is the driver used in fallback mode?
- * @ddir:		Per-device debugfs directory
- * @num_ports:		Number of adapter ports
- * @ports:		Linked list of port structures (struct nfp_net)
- */
-struct nfp_net_pf {
-	struct pci_dev *pdev;
 
-	struct nfp_cpp *cpp;
-	struct platform_device *nfp_dev_cpp;
-
-	struct nfp_cpp_area *ctrl_area;
-	struct nfp_cpp_area *tx_area;
-	struct nfp_cpp_area *rx_area;
-
-	struct msix_entry *irq_entries;
-
-	unsigned int num_vfs;
-
-	bool fw_loaded;
-	bool nfp_fallback;
-
-	struct dentry *ddir;
-
-	unsigned int num_ports;
-	struct list_head ports;
-};
-
-static bool nfp_dev_cpp = true;
+bool nfp_dev_cpp = true;
 module_param(nfp_dev_cpp, bool, 0444);
 MODULE_PARM_DESC(nfp_dev_cpp,
 		 "Enable NFP CPP user-space access (default = true)");
@@ -284,7 +247,7 @@ exit_release_fw:
 	return fw_stop_on_fail ? err : 0;
 }
 
-static void nfp_net_fw_unload(struct nfp_net_pf *pf)
+static void nfp_net_fw_unload(struct nfp_pf *pf)
 {
 	struct nfp_device *nfp_dev;
 	int err;
@@ -311,7 +274,7 @@ static void nfp_net_fw_unload(struct nfp_net_pf *pf)
 static int nfp_pcie_sriov_enable(struct pci_dev *pdev, int num_vfs)
 {
 #ifdef CONFIG_PCI_IOV
-	struct nfp_net_pf *pf = pci_get_drvdata(pdev);
+	struct nfp_pf *pf = pci_get_drvdata(pdev);
 	int err = 0;
 	int max_vfs;
 
@@ -353,7 +316,7 @@ err_out:
 static int nfp_pcie_sriov_disable(struct pci_dev *pdev)
 {
 #ifdef CONFIG_PCI_IOV
-	struct nfp_net_pf *pf = pci_get_drvdata(pdev);
+	struct nfp_pf *pf = pci_get_drvdata(pdev);
 
 	/* If the VFs are assigned we cannot shut down SR-IOV without
 	 * causing issues, so just leave the hardware available but
@@ -398,8 +361,7 @@ static ssize_t show_sriov_numvfs(struct device *dev,
 				 struct device_attribute *attr,
 				 char *buf)
 {
-	struct pci_dev *pdev = to_pci_dev(dev);
-	struct nfp_net_pf *pf = pci_get_drvdata(pdev);
+	struct nfp_pf *pf = pci_get_drvdata(to_pci_dev(dev));
 
 	return sprintf(buf, "%u\n", pf->num_vfs);
 }
@@ -415,8 +377,7 @@ static ssize_t store_sriov_numvfs(struct device *dev,
 				  struct device_attribute *attr,
 				  const char *buf, size_t count)
 {
-	struct pci_dev *pdev = to_pci_dev(dev);
-	struct nfp_net_pf *pf = pci_get_drvdata(pdev);
+	struct nfp_pf *pf = pci_get_drvdata(to_pci_dev(dev));
 	unsigned long num_vfs;
 	int ret;
 
@@ -617,7 +578,7 @@ nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_device *nfp_dev,
 }
 
 static unsigned int
-nfp_net_pf_get_num_ports(struct nfp_net_pf *pf, struct nfp_device *nfp_dev)
+nfp_net_pf_get_num_ports(struct nfp_pf *pf, struct nfp_device *nfp_dev)
 {
 	char name[256];
 	u16 interface;
@@ -642,7 +603,7 @@ nfp_net_pf_get_num_ports(struct nfp_net_pf *pf, struct nfp_device *nfp_dev)
 }
 
 static unsigned int
-nfp_net_pf_total_qcs(struct nfp_net_pf *pf, void __iomem *ctrl_bar,
+nfp_net_pf_total_qcs(struct nfp_pf *pf, void __iomem *ctrl_bar,
 		     unsigned int stride, u32 start_off, u32 num_off)
 {
 	unsigned int i, min_qc, max_qc;
@@ -667,7 +628,7 @@ nfp_net_pf_total_qcs(struct nfp_net_pf *pf, void __iomem *ctrl_bar,
 }
 
 static u8 __iomem *
-nfp_net_pf_map_ctrl_bar(struct nfp_net_pf *pf, struct nfp_device *nfp_dev)
+nfp_net_pf_map_ctrl_bar(struct nfp_pf *pf, struct nfp_device *nfp_dev)
 {
 	const struct nfp_rtsym *ctrl_sym;
 	u8 __iomem *ctrl_bar;
@@ -707,8 +668,7 @@ nfp_net_pf_map_ctrl_bar(struct nfp_net_pf *pf, struct nfp_device *nfp_dev)
 	return ctrl_bar;
 }
 
-static void
-nfp_net_pf_free_netdevs(struct nfp_net_pf *pf)
+static void nfp_net_pf_free_netdevs(struct nfp_pf *pf)
 {
 	struct nfp_net *nn;
 
@@ -721,7 +681,7 @@ nfp_net_pf_free_netdevs(struct nfp_net_pf *pf)
 }
 
 static struct nfp_net *
-nfp_net_pf_alloc_port_netdev(struct nfp_net_pf *pf, void __iomem *ctrl_bar,
+nfp_net_pf_alloc_port_netdev(struct nfp_pf *pf, void __iomem *ctrl_bar,
 			     void __iomem *tx_bar, void __iomem *rx_bar,
 			     int stride, struct nfp_net_fw_version *fw_ver)
 {
@@ -748,7 +708,7 @@ nfp_net_pf_alloc_port_netdev(struct nfp_net_pf *pf, void __iomem *ctrl_bar,
 }
 
 static int
-nfp_net_pf_init_port_netdev(struct nfp_net_pf *pf, struct nfp_net *nn,
+nfp_net_pf_init_port_netdev(struct nfp_pf *pf, struct nfp_net *nn,
 			    struct nfp_device *nfp_dev,
 			    struct nfp_phymod_eth **port_iter, unsigned int id)
 {
@@ -778,7 +738,7 @@ nfp_net_pf_init_port_netdev(struct nfp_net_pf *pf, struct nfp_net *nn,
 }
 
 static int
-nfp_net_pf_alloc_netdevs(struct nfp_net_pf *pf, void __iomem *ctrl_bar,
+nfp_net_pf_alloc_netdevs(struct nfp_pf *pf, void __iomem *ctrl_bar,
 			 void __iomem *tx_bar, void __iomem *rx_bar,
 			 int stride, struct nfp_net_fw_version *fw_ver)
 {
@@ -817,7 +777,7 @@ err_free_prev:
 }
 
 static int
-nfp_net_pf_spawn_netdevs(struct nfp_net_pf *pf, struct nfp_device *nfp_dev,
+nfp_net_pf_spawn_netdevs(struct nfp_pf *pf, struct nfp_device *nfp_dev,
 			 void __iomem *ctrl_bar, void __iomem *tx_bar,
 			 void __iomem *rx_bar, int stride,
 			 struct nfp_net_fw_version *fw_ver)
@@ -903,7 +863,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	struct nfp_net_fw_version fw_ver;
 	u32 tx_area_sz, rx_area_sz;
 	struct nfp_device *nfp_dev;
-	struct nfp_net_pf *pf;
+	struct nfp_pf *pf;
 	u32 start_q;
 	int stride;
 	int err;
@@ -1111,7 +1071,7 @@ err_free_pf:
 
 static void nfp_net_pci_remove(struct pci_dev *pdev)
 {
-	struct nfp_net_pf *pf = pci_get_drvdata(pdev);
+	struct nfp_pf *pf = pci_get_drvdata(pdev);
 	struct nfp_net *nn;
 
 	list_for_each_entry(nn, &pf->ports, port_list) {

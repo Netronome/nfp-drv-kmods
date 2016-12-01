@@ -83,20 +83,6 @@ module_param(nfp6000_firmware, charp, 0444);
 MODULE_PARM_DESC(nfp6000_firmware,
 		 "NFP6000 firmware to load from /lib/firmware/ (optional)");
 
-struct nfp_pci {
-	struct nfp_cpp *cpp;
-	struct msix_entry msix;
-	int fw_loaded;
-
-	struct platform_device *nfp_dev_cpp;
-	struct platform_device *nfp_net_vnic;
-
-#ifdef CONFIG_PCI_IOV
-	/* SR-IOV handling */
-	unsigned int num_vfs;
-#endif
-};
-
 static const char nfp_driver_name[] = "nfp";
 
 static const struct pci_device_id nfp_pci_device_ids[] = {
@@ -123,7 +109,7 @@ MODULE_DEVICE_TABLE(pci, nfp_pci_device_ids);
 static int nfp_pcie_sriov_enable(struct pci_dev *pdev, int num_vfs)
 {
 #ifdef CONFIG_PCI_IOV
-	struct nfp_pci *nfp = pci_get_drvdata(pdev);
+	struct nfp_pf *nfp = pci_get_drvdata(pdev);
 	int err = 0;
 	int max_vfs;
 
@@ -167,7 +153,7 @@ err_out:
 static int nfp_pcie_sriov_disable(struct pci_dev *pdev)
 {
 #ifdef CONFIG_PCI_IOV
-	struct nfp_pci *nfp = pci_get_drvdata(pdev);
+	struct nfp_pf *nfp = pci_get_drvdata(pdev);
 
 	/* Device specific VF config goes here */
 	nfp->num_vfs = 0;
@@ -305,8 +291,7 @@ static ssize_t show_sriov_numvfs(struct device *dev,
 				 struct device_attribute *attr,
 				 char *buf)
 {
-	struct pci_dev *pdev = to_pci_dev(dev);
-	struct nfp_pci *nfp = pci_get_drvdata(pdev);
+	struct nfp_pf *nfp = pci_get_drvdata(to_pci_dev(dev));
 
 	return sprintf(buf, "%u\n", nfp->num_vfs);
 }
@@ -322,10 +307,9 @@ static ssize_t store_sriov_numvfs(struct device *dev,
 				  struct device_attribute *attr,
 				  const char *buf, size_t count)
 {
-	struct pci_dev *pdev = to_pci_dev(dev);
-	struct nfp_pci *nfp = pci_get_drvdata(pdev);
-	int ret;
+	struct nfp_pf *nfp = pci_get_drvdata(to_pci_dev(dev));
 	unsigned long num_vfs;
+	int ret;
 
 	ret = kstrtoul(buf, 0, &num_vfs);
 	if (ret < 0)
@@ -386,7 +370,7 @@ static void nfp_sriov_attr_remove(struct device *dev)
 #endif /* CONFIG_PCI_IOV */
 #endif /* Linux kernel version */
 
-static void register_pf(struct nfp_pci *np)
+static void register_pf(struct nfp_pf *np)
 {
 	int pcie_unit;
 
@@ -406,7 +390,7 @@ static void register_pf(struct nfp_pci *np)
 static int nfp_pci_probe(struct pci_dev *pdev,
 			 const struct pci_device_id *pci_id)
 {
-	struct nfp_pci *np;
+	struct nfp_pf *np;
 	int err, irq;
 
 	err = pci_enable_device(pdev);
@@ -437,6 +421,7 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 		err = -ENOMEM;
 		goto err_kzalloc;
 	}
+	INIT_LIST_HEAD(&np->ports);
 
 	if (nfp_mon_event) {
 		/* Completely optional: we will be fine with Legacy IRQs */
@@ -493,7 +478,7 @@ err_dma_mask:
 
 static void nfp_pci_remove(struct pci_dev *pdev)
 {
-	struct nfp_pci *np = pci_get_drvdata(pdev);
+	struct nfp_pf *np = pci_get_drvdata(pdev);
 
 	nfp_platform_device_unregister(np->nfp_net_vnic);
 
