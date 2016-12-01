@@ -133,9 +133,9 @@ static void nfp_net_get_drvinfo(struct net_device *netdev,
 {
 	struct nfp_net *nn = netdev_priv(netdev);
 
-	strlcpy(drvinfo->driver, nfp_net_driver_name, sizeof(drvinfo->driver));
-	strlcpy(drvinfo->version, nfp_net_driver_version,
-		sizeof(drvinfo->version));
+	strlcpy(drvinfo->driver, nn->pdev->driver->name,
+		sizeof(drvinfo->driver));
+	strlcpy(drvinfo->version, nfp_driver_version, sizeof(drvinfo->version));
 
 	snprintf(drvinfo->fw_version, sizeof(drvinfo->fw_version),
 		 "%d.%d.%d.%d",

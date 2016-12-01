@@ -760,8 +760,7 @@ static inline u32 nfp_qcp_wr_ptr_read(u8 __iomem *q)
 }
 
 /* Globals */
-extern const char nfp_net_driver_name[];
-extern const char nfp_net_driver_version[];
+extern const char nfp_driver_version[];
 
 /* Prototypes */
 void nfp_net_get_fw_version(struct nfp_net_fw_version *fw_ver,

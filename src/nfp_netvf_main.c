@@ -47,8 +47,7 @@
 #include "nfp_net_compat.h"
 #include "nfp_net_ctrl.h"
 #include "nfp_net.h"
-
-#include "nfp_modinfo.h"
+#include "nfp_main.h"
 
 /**
  * struct nfp_net_vf - NFP VF-specific device structure
@@ -67,8 +66,8 @@ struct nfp_net_vf {
 	struct dentry *ddir;
 };
 
-const char nfp_net_driver_name[] = "nfp_netvf";
-const char nfp_net_driver_version[] = "0.1";
+static const char nfp_net_driver_name[] = "nfp_netvf";
+
 #define PCI_DEVICE_NFP6000VF		0x6003
 static const struct pci_device_id nfp_netvf_pci_device_ids[] = {
 	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_NFP6000VF,
@@ -77,7 +76,9 @@ static const struct pci_device_id nfp_netvf_pci_device_ids[] = {
 	},
 	{ 0, } /* Required last entry. */
 };
+#if COMPAT__CAN_HAVE_MULTIPLE_MOD_TABLES
 MODULE_DEVICE_TABLE(pci, nfp_netvf_pci_device_ids);
+#endif
 
 static void nfp_netvf_get_mac_addr(struct nfp_net *nn)
 {
@@ -351,40 +352,9 @@ static void nfp_netvf_pci_remove(struct pci_dev *pdev)
 	kfree(vf);
 }
 
-static struct pci_driver nfp_netvf_pci_driver = {
+struct pci_driver nfp_netvf_pci_driver = {
 	.name        = nfp_net_driver_name,
 	.id_table    = nfp_netvf_pci_device_ids,
 	.probe       = nfp_netvf_pci_probe,
 	.remove      = nfp_netvf_pci_remove,
 };
-
-static int __init nfp_netvf_init(void)
-{
-	int err;
-
-	pr_info("%s: NFP VF Network driver, Copyright (C) 2014-2015 Netronome Systems\n",
-		nfp_net_driver_name);
-
-	nfp_net_debugfs_create();
-	err = pci_register_driver(&nfp_netvf_pci_driver);
-	if (err) {
-		nfp_net_debugfs_destroy();
-		return err;
-	}
-
-	return 0;
-}
-
-static void __exit nfp_netvf_exit(void)
-{
-	pci_unregister_driver(&nfp_netvf_pci_driver);
-	nfp_net_debugfs_destroy();
-}
-
-module_init(nfp_netvf_init);
-module_exit(nfp_netvf_exit);
-
-MODULE_AUTHOR("Netronome Systems <oss-drivers@netronome.com>");
-MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("NFP VF network device driver");
-MODULE_INFO_NFP();

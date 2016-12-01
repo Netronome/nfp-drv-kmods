@@ -57,6 +57,9 @@
 #define PCI_VENDOR_ID_NETRONOME		0x19ee
 #endif
 
+#define COMPAT__CAN_HAVE_MULTIPLE_MOD_TABLES \
+	(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 6, 0))
 #include <linux/sizes.h>
 #else
