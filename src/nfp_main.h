@@ -111,4 +111,13 @@ void nfp_sriov_attr_remove(struct device *dev);
 int nfp_fw_load(struct pci_dev *pdev, struct nfp_device *nfp, bool nfp_netdev);
 void nfp_fw_unload(struct nfp_pf *pf);
 
+void nfp_pci_remove(struct pci_dev *pdev);
+#ifdef CONFIG_NFP_NET_PF
+void nfp_net_pci_remove(struct nfp_pf *pf);
+#else
+static inline void nfp_net_pci_remove(struct nfp_pf *pf)
+{
+}
+#endif
+
 #endif /* NFP_MAIN_H */

@@ -61,6 +61,8 @@
 static bool nfp_pf_netdev = true;
 module_param(nfp_pf_netdev, bool, 0444);
 MODULE_PARM_DESC(nfp_pf_netdev, "Create netdevs on PF (requires appropriate firmware) (default = true)");
+#else
+static const bool nfp_pf_netdev;
 #endif
 
 bool nfp_dev_cpp = true;
@@ -217,29 +219,35 @@ err_dma_mask:
 	return err;
 }
 
-static void nfp_pci_remove(struct pci_dev *pdev)
+void nfp_pci_remove(struct pci_dev *pdev)
 {
-	struct nfp_pf *np = pci_get_drvdata(pdev);
+	struct nfp_pf *pf = pci_get_drvdata(pdev);
 
-	nfp_platform_device_unregister(np->nfp_net_vnic);
+	if (!list_empty(&pf->ports))
+		nfp_net_pci_remove(pf);
+
+	if (pf->nfp_net_vnic)
+		nfp_platform_device_unregister(pf->nfp_net_vnic);
 
 	nfp_pcie_sriov_disable(pdev);
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0) && defined(CONFIG_PCI_IOV)
 	nfp_sriov_attr_remove(&pdev->dev);
 #endif
 
-	if (nfp_reset_on_exit)
-		nfp_fw_unload(np);
+	if (nfp_reset_on_exit || (nfp_pf_netdev && pf->fw_loaded))
+		nfp_fw_unload(pf);
 
-	nfp_platform_device_unregister(np->nfp_dev_cpp);
+	if (pf->nfp_dev_cpp)
+		nfp_platform_device_unregister(pf->nfp_dev_cpp);
 
 	pci_set_drvdata(pdev, NULL);
-	nfp_cpp_free(np->cpp);
+	nfp_cpp_free(pf->cpp);
 
-	pci_disable_msix(pdev);
+	if (nfp_mon_event)
+		pci_disable_msix(pdev);
 
-	kfree(np);
+	kfree(pf);
 	pci_release_regions(pdev);
 	pci_disable_device(pdev);
 }

@@ -718,9 +718,8 @@ err_free_pf:
 	return err;
 }
 
-static void nfp_net_pci_remove(struct pci_dev *pdev)
+void nfp_net_pci_remove(struct nfp_pf *pf)
 {
-	struct nfp_pf *pf = pci_get_drvdata(pdev);
 	struct nfp_net *nn;
 
 	list_for_each_entry(nn, &pf->ports, port_list) {
@@ -733,41 +732,19 @@ static void nfp_net_pci_remove(struct pci_dev *pdev)
 
 	nfp_net_debugfs_dir_clean(&pf->ddir);
 
-#ifdef CONFIG_PCI_IOV
-	nfp_pcie_sriov_disable(pdev);
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0))
-	nfp_sriov_attr_remove(&pdev->dev);
-#endif
-#endif
-	if (!pf->nfp_fallback) {
-		nfp_net_irqs_disable(pf->pdev);
-		kfree(pf->irq_entries);
+	nfp_net_irqs_disable(pf->pdev);
+	kfree(pf->irq_entries);
 
-		nfp_cpp_area_release_free(pf->rx_area);
-		nfp_cpp_area_release_free(pf->tx_area);
-		nfp_cpp_area_release_free(pf->ctrl_area);
-	}
-
-	if (pf->fw_loaded)
-		nfp_fw_unload(pf);
-
-	if (pf->nfp_dev_cpp)
-		nfp_platform_device_unregister(pf->nfp_dev_cpp);
-
-	nfp_cpp_free(pf->cpp);
-
-	pci_release_regions(pdev);
-	pci_disable_device(pdev);
-
-	pci_set_drvdata(pdev, NULL);
-	kfree(pf);
+	nfp_cpp_area_release_free(pf->rx_area);
+	nfp_cpp_area_release_free(pf->tx_area);
+	nfp_cpp_area_release_free(pf->ctrl_area);
 }
 
 struct pci_driver nfp_net_pci_driver = {
 	.name        = nfp_net_driver_name,
 	.id_table    = nfp_net_pci_device_ids,
 	.probe       = nfp_net_pci_probe,
-	.remove      = nfp_net_pci_remove,
+	.remove      = nfp_pci_remove,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
 	.sriov_configure = nfp_pcie_sriov_configure,
 #endif
