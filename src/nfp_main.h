@@ -99,6 +99,7 @@ extern bool nfp_dev_cpp;
 extern bool nfp_net_vnic;
 extern bool nfp_reset;
 
+extern struct pci_driver nfp_net_pci_driver;
 extern struct pci_driver nfp_netvf_pci_driver;
 
 int nfp_pcie_sriov_configure(struct pci_dev *pdev, int num_vfs);

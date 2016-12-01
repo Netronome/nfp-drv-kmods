@@ -790,11 +790,35 @@ int
 nfp_net_ring_reconfig(struct nfp_net *nn, struct bpf_prog **xdp_prog,
 		      struct nfp_net_ring_set *rx, struct nfp_net_ring_set *tx);
 
+#ifdef CONFIG_NFP_NET_DEBUG
 void nfp_net_debugfs_create(void);
 void nfp_net_debugfs_destroy(void);
 struct dentry *nfp_net_debugfs_device_add(struct pci_dev *pdev);
 void nfp_net_debugfs_port_add(struct nfp_net *nn, struct dentry *ddir, int id);
 void nfp_net_debugfs_dir_clean(struct dentry **dir);
+#else
+static inline void nfp_net_debugfs_create(void)
+{
+}
+
+static inline void nfp_net_debugfs_destroy(void)
+{
+}
+
+static inline struct dentry *nfp_net_debugfs_device_add(struct pci_dev *pdev)
+{
+	return NULL;
+}
+
+static inline void
+nfp_net_debugfs_port_add(struct nfp_net *nn, struct dentry *ddir, int id)
+{
+}
+
+static inline void nfp_net_debugfs_dir_clean(struct dentry **dir)
+{
+}
+#endif /* CONFIG_NFP_NET_DEBUG */
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
 void nfp_net_filter_stats_timer(unsigned long data);

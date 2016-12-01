@@ -5,7 +5,8 @@
 ## Define our own config variables.
 ## A kernel Kconfig file may define these variables one day.
 CONFIG_NFP ?= m
-CONFIG_NFP_NET ?= m
+# Include code for the PFs
+CONFIG_NFP_NET_PF ?= y
 # Include code for the VFs
 CONFIG_NFP_NET_VF ?= y
 
@@ -25,7 +26,8 @@ endif
 ifneq ($(CONFIG_NFP),n)
   ifneq ($(CONFIG_PCI_MSI),y)
     $(warning NFP: MSI interrupts (CONFIG_PCI_MSI) not be enabled, disabling NFP_NET drivers)
-    CONFIG_NFP_NET = n
+    CONFIG_NFP_NET_PF = n
+    CONFIG_NFP_NET_VF = n
   endif
   ifneq ($(CONFIG_FW_LOADER),y)
     $(warning NFP: The firmware loader (CONFIG_FW_LOADER) should be enabled)
@@ -33,7 +35,6 @@ ifneq ($(CONFIG_NFP),n)
 endif
 endif
 
-ccflags-y += -DCONFIG_NFP_NET_DEBUG
 ccflags-y += $(call cc-option, -Wenum-compare,)
 ccflags-y += $(call cc-option, -Wmaybe-uninitialized,)
 ccflags-y += -I$(src)
@@ -43,9 +44,8 @@ ifneq ($(W),)
 endif
 
 obj-$(CONFIG_NFP)	+= nfp.o
-obj-$(CONFIG_NFP_NET)	+= nfp_net.o
 
-nfpcore-objs := \
+nfp-objs := \
 	    nfpcore/nfp3200_pcie.o \
 	    nfpcore/nfp6000_pcie.o \
 	    nfpcore/crc32.o \
@@ -67,39 +67,46 @@ nfpcore-objs := \
 	    nfpcore/nfp_reset.o \
 	    nfpcore/nfp_resource.o \
 	    nfpcore/nfp_rtsym.o \
-	    merged.o
-
-nfp-objs := $(nfpcore-objs) \
 	    nfpcore/nfp3200_plat.o \
 	    nfpcore/nfp_export.o \
 	    nfpcore/nfp_nbi_mac_eth.o \
 	    nfpcore/nfp_net_vnic.o \
-	    nfp_main.o
+	    nfp_main.o \
+	    merged.o
 
-nfp_net-objs := $(nfpcore-objs) \
-	    nfp_net_common.o \
-	    nfp_net_ethtool.o \
-	    nfp_net_debugfs.o \
-	    nfp_net_main.o
+ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
+  ccflags-y += -DCONFIG_NFP_NET_DEBUG
 
-KERNEL_GE_4_9 := $(shell [ $(VERSION) -gt 4 -o \( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 9 \) ] && echo y)
+  nfp-objs += \
+		nfp_net_common.o \
+		nfp_net_ethtool.o \
+		nfp_net_debugfs.o
 
-ifeq ($(KERNEL_GE_4_9),y)
-nfp_net-objs += \
-	    nfp_net_offload.o
+  ifeq ($(CONFIG_NFP_NET_PF),y)
+    ccflags-y += -DCONFIG_NFP_NET_PF=1
 
-ifeq ($(CONFIG_BPF_SYSCALL),y)
-nfp_net-objs += \
-	    nfp_bpf_verifier.o \
-	    nfp_bpf_jit.o
-endif
-endif # $(KERNEL_GT_4_8),1
+    nfp-objs += nfp_net_main.o
+  endif
 
-ifeq ($(CONFIG_NFP_NET_VF),y)
-  ccflags-y += -DCONFIG_NFP_NET_VF=1
+  ifeq ($(CONFIG_NFP_NET_VF),y)
+    ccflags-y += -DCONFIG_NFP_NET_VF=1
 
-  nfp_net-objs += nfp_netvf_main.o
-endif
+    nfp-objs += nfp_netvf_main.o
+  endif
+
+  KERNEL_GE_4_9 := $(shell [ $(VERSION) -gt 4 -o \( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 9 \) ] && echo y)
+
+  ifeq ($(KERNEL_GE_4_9),y)
+    nfp-objs += \
+		nfp_net_offload.o
+
+    ifeq ($(CONFIG_BPF_SYSCALL),y)
+      nfp-objs += \
+		nfp_bpf_verifier.o \
+		nfp_bpf_jit.o
+    endif
+  endif # $(KERNEL_GT_4_8),1
+endif # CONFIG_NFP_NET_*
 
 ####################
 # Build information
@@ -130,4 +137,3 @@ $(obj)/nfp_build_info.h: FORCE
 	@echo "#define NFP_SRC_PATH \"$(nfp_src_dir)\"" >> $@
 
 $(obj)/nfp_main.o: $(obj)/nfp_build_info.h
-$(obj)/nfp_net_main.o: $(obj)/nfp_build_info.h

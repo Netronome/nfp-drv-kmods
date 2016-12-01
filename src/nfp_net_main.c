@@ -64,15 +64,8 @@
 #include "nfp_net.h"
 #include "nfp_main.h"
 
-#include "nfp_modinfo.h"
-
 #define NFP_PF_CSR_SLICE_SIZE	(32 * 1024)
 
-
-bool nfp_dev_cpp = true;
-module_param(nfp_dev_cpp, bool, 0444);
-MODULE_PARM_DESC(nfp_dev_cpp,
-		 "Enable NFP CPP user-space access (default = true)");
 
 static bool nfp_fallback = true;
 module_param(nfp_fallback, bool, 0444);
@@ -80,7 +73,6 @@ MODULE_PARM_DESC(nfp_fallback,
 		 "Fallback to nfp.ko behaviour if no suitable FW is present (default = true)");
 
 static const char nfp_net_driver_name[] = "nfp_net";
-const char nfp_driver_version[] = "0.1";
 
 static const struct pci_device_id nfp_net_pci_device_ids[] = {
 	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_NFP4000,
@@ -771,7 +763,7 @@ static void nfp_net_pci_remove(struct pci_dev *pdev)
 	kfree(pf);
 }
 
-static struct pci_driver nfp_net_pci_driver = {
+struct pci_driver nfp_net_pci_driver = {
 	.name        = nfp_net_driver_name,
 	.id_table    = nfp_net_pci_device_ids,
 	.probe       = nfp_net_pci_probe,
@@ -780,135 +772,3 @@ static struct pci_driver nfp_net_pci_driver = {
 	.sriov_configure = nfp_pcie_sriov_configure,
 #endif
 };
-
-#if !COMPAT__CAN_HAVE_MULTIPLE_MOD_TABLES
-static const struct pci_device_id compat_nfp_device_ids[] = {
-	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_NFP4000,
-	  PCI_VENDOR_ID_NETRONOME, PCI_ANY_ID,
-	  PCI_ANY_ID, 0,
-	},
-	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_NFP6000,
-	  PCI_VENDOR_ID_NETRONOME, PCI_ANY_ID,
-	  PCI_ANY_ID, 0,
-	},
-#ifdef CONFIG_NFP_NET_VF
-	{ PCI_VENDOR_ID_NETRONOME, 0x6003,
-	  PCI_VENDOR_ID_NETRONOME, PCI_ANY_ID,
-	  PCI_ANY_ID, 0,
-	},
-#endif
-	{ 0, } /* Required last entry. */
-};
-MODULE_DEVICE_TABLE(pci, compat_nfp_device_ids);
-
-static int compat_nfp_probe(struct pci_dev *pdev,
-			    const struct pci_device_id *pci_id)
-{
-#ifdef CONFIG_NFP_NET_VF
-	if (pdev->device == 0x6003)
-		return nfp_netvf_pci_driver.probe(pdev, pci_id);
-#endif
-	return nfp_net_pci_driver.probe(pdev, pci_id);
-}
-
-static void compat_nfp_remove(struct pci_dev *pdev)
-{
-#ifdef CONFIG_NFP_NET_VF
-	if (pdev->device == 0x6003)
-		nfp_netvf_pci_driver.remove(pdev);
-	else
-#endif
-		nfp_net_pci_driver.remove(pdev);
-}
-
-static struct pci_driver compat_nfp_driver = {
-	.name        = nfp_net_driver_name,
-	.id_table    = compat_nfp_device_ids,
-	.probe       = compat_nfp_probe,
-	.remove      = compat_nfp_remove,
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
-	.sriov_configure = nfp_pcie_sriov_configure,
-#endif
-};
-#endif /* !COMPAT__CAN_HAVE_MULTIPLE_MOD_TABLES */
-
-static int __init nfp_net_init(void)
-{
-	int err;
-
-	mutex_lock(&module_mutex);
-	if (find_module("nfp")) {
-		pr_err("%s: Cannot be loaded while nfp is loaded\n",
-		       nfp_net_driver_name);
-		mutex_unlock(&module_mutex);
-		return -EBUSY;
-	}
-	mutex_unlock(&module_mutex);
-
-	pr_info("%s: NFP Network driver, Copyright (C) 2014-2015 Netronome Systems\n",
-		nfp_net_driver_name);
-	pr_info(NFP_BUILD_DESCRIPTION(nfp));
-
-	err = nfp_cppcore_init();
-	if (err < 0)
-		goto fail_cppcore_init;
-
-	err = nfp_dev_cpp_init();
-	if (err < 0)
-		goto fail_dev_cpp_init;
-
-	nfp_net_debugfs_create();
-
-#if COMPAT__CAN_HAVE_MULTIPLE_MOD_TABLES
-	err = pci_register_driver(&nfp_net_pci_driver);
-	if (err < 0)
-		goto fail_pci_init;
-
-#ifdef CONFIG_NFP_NET_VF
-	err = pci_register_driver(&nfp_netvf_pci_driver);
-	if (err)
-		goto err_unreg_net;
-#endif
-#else /* COMPAT__CAN_HAVE_MULTIPLE_MOD_TABLES */
-	err = pci_register_driver(&compat_nfp_driver);
-	if (err)
-		goto fail_pci_init;
-#endif
-
-	return err;
-
-#if defined(CONFIG_NFP_NET_VF) && COMPAT__CAN_HAVE_MULTIPLE_MOD_TABLES
-err_unreg_net:
-	pci_unregister_driver(&nfp_net_pci_driver);
-#endif
-fail_pci_init:
-	nfp_net_debugfs_destroy();
-	nfp_dev_cpp_exit();
-fail_dev_cpp_init:
-	nfp_cppcore_exit();
-fail_cppcore_init:
-	return err;
-}
-
-static void __exit nfp_net_exit(void)
-{
-#if COMPAT__CAN_HAVE_MULTIPLE_MOD_TABLES
-#ifdef CONFIG_NFP_NET_VF
-	pci_unregister_driver(&nfp_netvf_pci_driver);
-#endif
-	pci_unregister_driver(&nfp_net_pci_driver);
-#else /* COMPAT__CAN_HAVE_MULTIPLE_MOD_TABLES */
-	pci_unregister_driver(&compat_nfp_driver);
-#endif
-	nfp_net_debugfs_destroy();
-	nfp_dev_cpp_exit();
-	nfp_cppcore_exit();
-}
-
-module_init(nfp_net_init);
-module_exit(nfp_net_exit);
-
-MODULE_AUTHOR("Netronome Systems <oss-drivers@netronome.com>");
-MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("NFP network device driver");
-MODULE_INFO_NFP();
