@@ -382,8 +382,10 @@ int nfp_mip_probe(struct nfp_device *dev)
 	if (retval != 0)
 		return -ENODEV;
 
-	if (priv->mip && priv->mip->loadtime == time)
+	if (priv->mip && priv->mip->loadtime == time) {
+		nfp_err(dev, "MIP loadtime unchanged, not reloading\n");
 		return 0; /* No change */
+	}
 
 	/*
 	 * Once we have confirmed a MIP update we discard old MIP and read
@@ -463,4 +465,24 @@ int nfp_mip_strtab(const struct nfp_mip *mip, u32 *addr, u32 *size)
 		*size = mip->strtab_size;
 
 	return 0;
+}
+
+/**
+ * nfp_mip_reload() - Invalidate the current MIP, if any, and related entries.
+ * @dev: NFP Device handle
+ *
+ * The next nfp_mip() probe will then do the actual reload of MIP data.
+ * Calling nfp_mip_reload() will also invalidate:
+ * * rtsyms
+ */
+void nfp_mip_reload(struct nfp_device *dev)
+{
+	struct nfp_mip_priv *priv = nfp_device_private(dev, __nfp_mip_con);
+
+	if (!priv || !priv->mip)
+		return;
+
+	nfp_rtsym_reload(dev);
+	kfree(priv->mip);
+	priv->mip = NULL;
 }

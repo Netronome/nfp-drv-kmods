@@ -52,6 +52,7 @@ uint8_t nfp_nffw_info_fwid_first(struct nfp_device *dev);
 
 struct nfp_mip;
 
+void nfp_mip_reload(struct nfp_device *nfp);
 const struct nfp_mip *nfp_mip(struct nfp_device *dev);
 int nfp_mip_probe(struct nfp_device *dev);
 

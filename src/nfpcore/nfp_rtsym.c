@@ -455,4 +455,8 @@ void nfp_rtsym_reload(struct nfp_device *dev)
 	kfree(priv->rtsymtab);
 	kfree(priv->rtstrtab);
 	priv->numrtsyms = 0;
+	/* priv->rtsymtab is used to check if rtsyms are valid */
+	priv->rtsymtab = NULL;
+	priv->rtstrtab = NULL;
+	priv->mip = NULL;
 }

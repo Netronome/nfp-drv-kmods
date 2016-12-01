@@ -1063,6 +1063,9 @@ int nfp_reset_soft(struct nfp_device *nfp)
 		goto exit;
 	}
 
+	/* Invalidate old MIP and rtsymtab data */
+	nfp_mip_reload(nfp);
+
 	err = 0;
 
 exit:
