@@ -97,4 +97,10 @@ struct nfp_pf {
 extern bool nfp_dev_cpp;
 extern bool nfp_net_vnic;
 
+int nfp_pcie_sriov_configure(struct pci_dev *pdev, int num_vfs);
+int nfp_pcie_sriov_disable(struct pci_dev *pdev);
+
+int nfp_sriov_attr_add(struct device *dev);
+void nfp_sriov_attr_remove(struct device *dev);
+
 #endif /* NFP_MAIN_H */

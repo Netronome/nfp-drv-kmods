@@ -67,7 +67,8 @@ nfpcore-objs := \
 	    nfpcore/nfp_power.o \
 	    nfpcore/nfp_reset.o \
 	    nfpcore/nfp_resource.o \
-	    nfpcore/nfp_rtsym.o
+	    nfpcore/nfp_rtsym.o \
+	    merged.o
 
 nfp-objs := $(nfpcore-objs) \
 	    nfpcore/nfp3200_plat.o \
