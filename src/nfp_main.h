@@ -49,6 +49,7 @@ struct platform_device;
 
 struct nfp_cpp;
 struct nfp_cpp_area;
+struct nfp_device;
 
 /**
  * struct nfp_pf - NFP PF-specific device structure
@@ -96,11 +97,15 @@ struct nfp_pf {
 
 extern bool nfp_dev_cpp;
 extern bool nfp_net_vnic;
+extern bool nfp_reset;
 
 int nfp_pcie_sriov_configure(struct pci_dev *pdev, int num_vfs);
 int nfp_pcie_sriov_disable(struct pci_dev *pdev);
 
 int nfp_sriov_attr_add(struct device *dev);
 void nfp_sriov_attr_remove(struct device *dev);
+
+int nfp_fw_load(struct pci_dev *pdev, struct nfp_device *nfp, bool nfp_netdev);
+void nfp_fw_unload(struct nfp_pf *pf);
 
 #endif /* NFP_MAIN_H */
