@@ -5,6 +5,8 @@
 ## Define our own config variables.
 ## A kernel Kconfig file may define these variables one day.
 CONFIG_NFP ?= m
+# Include code for /dev/nfp* user space access
+CONFIG_NFP_USER_SPACE_CPP ?= y
 # Export NFP function symbols
 CONFIG_NFP_EXPORTS ?= y
 # Include code for the PFs
@@ -74,6 +76,11 @@ nfp-objs := \
 	    nfp_dev_cpp.o \
 	    nfp_main.o
 
+ifeq ($(CONFIG_NFP_USER_SPACE_CPP),y)
+  ccflags-y += -DCONFIG_NFP_USER_SPACE_CPP
+
+  nfp-objs += nfp_dev_cpp.o
+endif
 ifeq ($(CONFIG_NFP_EXPORTS),y)
   nfp-objs += nfpcore/nfp_export.o
 endif

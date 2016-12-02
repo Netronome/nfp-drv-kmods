@@ -58,22 +58,28 @@
 
 #ifdef CONFIG_NFP_NET_PF
 static bool nfp_pf_netdev = true;
+#ifdef CONFIG_NFP_USER_SPACE_CPP
 module_param(nfp_pf_netdev, bool, 0444);
 MODULE_PARM_DESC(nfp_pf_netdev, "Create netdevs on PF (requires appropriate firmware) (default = true)");
+#endif
 #else
 static const bool nfp_pf_netdev;
-#endif
+#endif /* CONFIG_NFP_NET_PF */
 
 static int nfp_fallback = -1;
-#ifdef CONFIG_NFP_NET_PF
+#if defined(CONFIG_NFP_NET_PF) && defined(CONFIG_NFP_USER_SPACE_CPP)
 module_param(nfp_fallback, bint, 0444);
 MODULE_PARM_DESC(nfp_fallback, "(netdev mode) Stay bound to device with user space access only (no netdevs) if no suitable FW is present (default = nfp_dev_cpp)");
 #endif
 
+#ifdef CONFIG_NFP_USER_SPACE_CPP
 int nfp_dev_cpp = -1;
 module_param(nfp_dev_cpp, bint, 0444);
 MODULE_PARM_DESC(nfp_dev_cpp,
 		 "NFP CPP /dev interface (default = !nfp_pf_netdev)");
+#else
+int nfp_dev_cpp;
+#endif
 
 bool nfp_net_vnic;
 module_param(nfp_net_vnic, bool, 0444);
@@ -732,8 +738,10 @@ static bool __init nfp_resolve_params(void)
 		return false;
 	}
 
+#ifdef CONFIG_NFP_USER_SPACE_CPP
 	if (nfp_dev_cpp == -1)
 		nfp_dev_cpp = !nfp_pf_netdev;
+#endif
 	if (nfp_mon_event == -1)
 		nfp_mon_event = !nfp_pf_netdev;
 	if (nfp_fallback == -1)
