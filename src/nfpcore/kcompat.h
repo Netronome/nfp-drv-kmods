@@ -541,4 +541,14 @@ netif_trans_update(struct net_device *netdev)
 }
 #endif
 
+static inline unsigned long compat_vmf_get_addr(struct vm_fault *vmf)
+{
+/* TODO: change to >= 4.10 when released */
+#if defined(VM_FAULT_DONE_COW) && VM_FAULT_DONE_COW == 0x1000
+	return vmf->address;
+#else
+	return (unsigned long)vmf->virtual_address;
+#endif
+}
+
 #endif /* __KERNEL__NFP_COMPAT_H__ */

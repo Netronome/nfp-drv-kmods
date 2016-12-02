@@ -951,7 +951,7 @@ static int nfp_cpp_mmap_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 	cdev = area->cdev;
 
 	/* We don't use vmf->pgoff since that has the fake offset */
-	offset = ((unsigned long)vmf->virtual_address - vma->vm_start);
+	offset = compat_vmf_get_addr(vmf) - vma->vm_start;
 	if (offset >= area->req.size)
 		return VM_FAULT_SIGBUS;
 
@@ -988,8 +988,7 @@ static int nfp_cpp_mmap_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 		 */
 		io = nfp_cpp_area_phys(area->area) + offset;
 		BUG_ON(io == 0);
-		vm_insert_pfn(vma, (unsigned long)vmf->virtual_address,
-			      io >> PAGE_SHIFT);
+		vm_insert_pfn(vma, compat_vmf_get_addr(vmf), io >> PAGE_SHIFT);
 		err = 0;
 	}
 
