@@ -395,15 +395,15 @@ static int __init nfp_main_init(void)
 
 	err = nfp_cppcore_init();
 	if (err < 0)
-		goto fail_cppcore_init;
+		return err;
 
 	err = nfp_dev_cpp_init();
 	if (err < 0)
-		goto fail_dev_cpp_init;
+		goto err_exit_cppcore;
 
 	err = nfp_net_vnic_init();
 	if (err < 0)
-		goto fail_net_vnic_init;
+		goto err_exit_dev_cpp;
 
 	nfp_net_debugfs_create();
 
@@ -430,11 +430,10 @@ err_unreg_pf:
 err_destroy_debugfs:
 	nfp_net_debugfs_destroy();
 	nfp_net_vnic_exit();
-fail_net_vnic_init:
+err_exit_dev_cpp:
 	nfp_dev_cpp_exit();
-fail_dev_cpp_init:
+err_exit_cppcore:
 	nfp_cppcore_exit();
-fail_cppcore_init:
 	return err;
 }
 
