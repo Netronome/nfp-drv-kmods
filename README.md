@@ -3,18 +3,9 @@
 These drivers support Netronome's line of Flow Processor devices,
 including the NFP3200 and NFP6000 model lines.
 
-This archive builds the following modules:
-
- * nfp_net.ko: PCIe Physical Function NIC driver
-   - Requires firmware - see the [Acquiring Firmware](#acquiring-firmware) section below
-
- * nfp_netvf.ko: PCIe Virtual Function NIC driver
-   - SR-IOV driver for virtual functions
-   - Configuration and features depend upon Physical Function firmware
-
- * nfp.ko: Debugging driver
-   - Has no NIC features
-   - For diagnostics and test only
+This archive builds the nfp.ko module which can be used to expose
+networking devices (netdevs) and/or user space access to the device
+via a character device.
 
 For more information, please see:
 
@@ -80,6 +71,7 @@ To override the detected location, set `KSRC`:
 | --------------- | ----------------------------------------------- |
 | make coccicheck | Runs Coccinelle/coccicheck[1]                   |
 | make sparse     | Runs sparse, a tool for static code analysis[2] |
+| make nfp_net    | Build the driver limited to netdev operation    |
 
 1. Requires `coccinelle` to be installed, e.g.
 
@@ -93,93 +85,72 @@ To override the detected location, set `KSRC`:
 
 This section describes how kernel modules are structured.
 
-NOTE: `modinfo <modulename>` is the authoritative documentation,
-this is only presented here as a reference.
+The nfp.ko module provides drivers for both PFs and VFs.  VFs can only
+be used as netdevs.  In case of PF one can select whether to load the
+driver in netdev mode which will create networking interfaces or only
+expose low-level API to the user space and run health monitoring, and
+diagnostics.
 
-## nfp_net.ko
+## PF non-netdev mode
 
-This module provides a Linux network device interface to the NFP's physical
-function.  It is not used on systems running Netronome SDN products.
+This mode is used by the Netronome SDN products for health monitoring,
+loading firmware, and diagnostics.
 
-### Sources
+It provides a low-level interface into the NFP, and does not require
+that a NFP firmware be loaded.
 
-| Source              | Description                                           |
-| ------------------- | ----------------------------------------------------- |
-| nfp_net_main.c      | NFP NIC driver                                        |
-| nfp_net_common.c    | NFP NIC common interface functions                    |
-| nfp_net_ethtool.c   | NFP NIC ethtool interface support                     |
-| nfpcore/            | NFP Core Library [1]                                  |
+## PF netdev mode
 
-NOTES:
+In this mode module provides a Linux network device interface on
+the NFP's physical function.  It requires appropriate FW image to
+be either pre-loaded or available in `/lib/firmware/netronome/` to
+work.  Systems using Netronome SDN products currently do use this
+mode.
 
-1. See the [NFP Core Library](#nfp-core-library) section for details
+Note that in standard build configuration user space access can still
+be enabled for this mode by setting the nfp_dev_cpp parameter to true,
+but is disabled by default.
 
-### Parameters
+## VF driver
 
-| Parameter       | Default | Comment                                         |
-| --------------- | ------- | ----------------------------------------------- |
-| nfp_dev_cpp     |    true | Enable NFP CPP /dev interface                   |
-| ~~fw_noload~~   |  ~~false~~ | ~~Do not load firmware~~ [1]                 |
-| fw_stop_on_fail |   false | Fail init if no suitable FW is present          |
-| nfp_reset       |   false | Reset the NFP on init [2]                       |
-| hwinfo_debug    |   false | Enable to log hwinfo contents on load           |
-| board_state     |      15 | HWInfo board.state to wait for. (range: 0..15)  |
-| hwinfo_wait     |      10 | Wait N sec for board.state match, -1 = forever  |
-| nfp6000_explicit_bars | 4 | Number of explicit BARs. (range: 1..4)          |
-| nfp6000_debug   |   false | Enable debugging for the NFP6000 PCIe           |
-| nfp3200_debug   |   false | Enable debugging for the NFP3200 PCIe           |
-
-NOTES:
-
-1. Please simply remove the firmware file from `/lib/firmware` if you don't want it loaded.
-2. Reset on init will be performed anyway if firmware file is found.
-
-## nfp_netvf.ko
-
-This module is used to provide NIC-style access to Virtual Functions
-of the device when operating in PCI SR-IOV mode.
+The nfp.ko contains a driver used to provide NIC-style access to Virtual
+Functions of the device when operating in PCI SR-IOV mode.
 
 For example, if a physical NFP6000 device was running Netronome SDN,
 and had assigned a rule matching 'all 172.16.0.0/24 received' to VF 5,
 then the NFP6000's SR-IOV device `#5` would use this driver to provide a
 NIC style interface to the flows that match that rule.
 
-### Sources
+## Sources
 
 | Source              | Description                                           |
 | ------------------- | ----------------------------------------------------- |
-| nfp_netvf_main.c    | NFP Virtual Function NIC driver                       |
+| nfp_main.c          | NFP PF low-level PCIe and FW loading routines         |
+| nfp_net_main.c      | NFP NIC PF low-level routines                         |
+| nfp_netvf_main.c    | NFP NIC VF low-level routines                         |
 | nfp_net_common.c    | NFP NIC common interface functions                    |
 | nfp_net_ethtool.c   | NFP NIC ethtool interface support                     |
-
-## nfp.ko
-
-This module is used by the Netronome SDN products for health monitoring,
-loading firmware, and diagnostics.
-
-It provides a low-level interface into the NFP, and does not require
-that a NFP firmware be loaded.
-
-### Sources
-
-| Source              | Description                                           |
-| ------------------- | ----------------------------------------------------- |
-| nfp_main.c          | NFP low level driver                                  |
-| nfpcore/            | NFP Core Library [1]                                  |
-
-1. See the [NFP Core Library](#nfp-core-library) section for details
+| nfp_dev_cpp.c       | User space access via /dev/nfp-cpp-N interface        |
+| nfpcore/            | NFP Core Library, see ([NFP Core Library](#nfp-core-library)) |
 
 ### Parameters
 
+NOTE: `modinfo nfp.ko` is the authoritative documentation,
+this is only presented here as a reference.
+
 | Parameter       | Default | Comment                                         |
 | --------------- | ------- | ----------------------------------------------- |
-| nfp_mon_err     |   false | ECC Monitor [1]                                 |
-| nfp_dev_cpp     |    true | Enable NFP CPP /dev interface [2]               |
-| nfp_net_vnic    |   false | vNIC net devices [4]                            |
+| nfp_pf_netdev   |    true | PF driver in [Netdev mode](#pf-netdev-mode)     |
+| nfp_fallback    |    true | In netdev mode stay bound even if netdevs failed|
+| nfp_dev_cpp     |    true | Enable NFP CPP user space /dev interface        |
+| ~~fw_stop_on_fail~~ | ~~false~~ | ~~Fail init if no suitable FW is present~~|
+| fw_load_required |  false | Fail init if no suitable FW is present          |
+| nfp_net_vnic    |   false | vNIC net devices [1]                            |
 | nfp_net_vnic_pollinterval | 10 | Polling interval for Rx/Tx queues (in ms)  |
 | nfp_net_vnic_debug | false | Enable debug printk messages                   |
+| nfp_mon_err     |   false | ECC Monitor [2]                                 |
 | nfp_mon_err_pollinterval | 10 | Polling interval for error checking (in ms) |
-| nfp_reset       |   false | Reset the NFP on init [5]                       |
+| nfp_reset       |   false | Reset the NFP on init [3]                       |
 | nfp_reset_on_exit | false | Reset the NFP on exit                           |
 | hwinfo_debug    |   false | Enable to log hwinfo contents on load           |
 | board_state     |      15 | HWInfo board.state to wait for. (range: 0..15)  |
@@ -187,22 +158,18 @@ that a NFP firmware be loaded.
 | nfp6000_explicit_bars | 4 | Number of explicit BARs. (range: 1..4)          |
 | nfp6000_debug   |   false | Enable debugging for the NFP6000 PCIe           |
 | nfp3200_debug   |   false | Enable debugging for the NFP3200 PCIe           |
-| nfp3200_firmware | (none) | NFP3200 firmware to load from /lib/firmware/    |
 | nfp6000_firmware | (none) | NFP6000 firmware to load from /lib/firmware/    |
 
 NOTES:
 
-1. The 'ECC Monitor' example is for the NFP3200 hardware only.
-2. The '/dev/nfp-cpp-N' interface is for diagnostic applications.
-4. The vNIC net device creates a pseudo-NIC for NFP ARM Linux systems.
-5. Reset on init will be performed anyway if firmware file is specified.
+1. The vNIC net device creates a pseudo-NIC for NFP ARM Linux systems.
+2. The 'ECC Monitor' example is for the NFP3200 hardware only.
+3. Reset on init will be performed anyway if firmware file is specified.
 
 ## NFP Core Library
 
-The NFP Core Library is used by the `nfp_net.ko` and `nfp.ko` kernel modules
-to load firmware, and provide other low-level accesses to the NFP.
-
-It is not used by the `nfp_netvf.ko` driver.
+The NFP Core Library is used by `nfp.ko` kernel module to load firmware,
+and provide other low-level accesses to the NFP.
 
 ### Sources
 
@@ -218,7 +185,6 @@ All sources are in `src/nfpcore/`:
 | nfp_cppcore.c       | API       | CPP bus core                              |
 | nfp_cpplib.c        | API       | CPP bus helper                            |
 | nfp_device.c        | API       | NFP chip interface                        |
-| nfp_dev_cpp.c       | Example   | /dev/nfp-cpp-N interface                  |
 | nfp_em_manager.c    | API       | NFP Event Monitor                         |
 | nfp_export.c        | API       | List of all EXPORT_SYMBOLs                |
 | nfp_gpio.c          | API       | NFP GPIO access                           |
