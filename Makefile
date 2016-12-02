@@ -47,7 +47,7 @@ EXTRA_CFLAGS += $(CFLAGS_EXTRA)
 ###########################################################################
 # Build rules
 
-COMMON_ARGS := nfp_src_ver:=$(NFPVER) ccflags-y:="$(CFLAGS_EXTRA)" -C $(KSRC) M=`pwd`/src
+COMMON_ARGS := nfp_src_ver:=$(NFPVER) -C $(KSRC) M=`pwd`/src
 
 build:
 	$(MAKE) $(COMMON_ARGS) modules

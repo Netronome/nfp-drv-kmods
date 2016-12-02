@@ -8,8 +8,10 @@ CONFIG_NFP ?= m
 CONFIG_NFP_NET ?= m
 CONFIG_NFP_NETVF ?= m
 
+ccflags-y := $(CFLAGS_EXTRA)
+
 # un-comment for debug symbols
-# override EXTRA_CFLAGS += -g3
+# ccflags-y += -g3
 
 # Perform checks only if config was evaluated (some targets e.g. clean don't
 # have CONFIG_* variables set).
@@ -31,13 +33,13 @@ ifneq ($(CONFIG_NFP),n)
 endif
 endif
 
-override EXTRA_CFLAGS += -DCONFIG_NFP_NET_DEBUG
-override EXTRA_CFLAGS += $(call cc-option, -Wenum-compare,)
-override EXTRA_CFLAGS += $(call cc-option, -Wmaybe-uninitialized,)
-override EXTRA_CFLAGS += -I$(src)
+ccflags-y += -DCONFIG_NFP_NET_DEBUG
+ccflags-y += $(call cc-option, -Wenum-compare,)
+ccflags-y += $(call cc-option, -Wmaybe-uninitialized,)
+ccflags-y += -I$(src)
 
 ifneq ($(W),)
-override EXTRA_CFLAGS += $(call cc-option, -Wno-missing-include-dirs,)
+      ccflags-y += $(call cc-option, -Wno-missing-include-dirs,)
 endif
 
 obj-$(CONFIG_NFP)	+= nfp.o
