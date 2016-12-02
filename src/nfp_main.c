@@ -65,17 +65,24 @@ MODULE_PARM_DESC(nfp_pf_netdev, "Create netdevs on PF (requires appropriate firm
 static const bool nfp_pf_netdev;
 #endif
 
-bool nfp_dev_cpp = true;
-module_param(nfp_dev_cpp, bool, 0444);
-MODULE_PARM_DESC(nfp_dev_cpp, "NFP CPP /dev interface (default = true)");
+static int nfp_fallback = -1;
+#ifdef CONFIG_NFP_NET_PF
+module_param(nfp_fallback, bint, 0444);
+MODULE_PARM_DESC(nfp_fallback, "(netdev mode) Stay bound to device with user space access only (no netdevs) if no suitable FW is present (default = nfp_dev_cpp)");
+#endif
+
+int nfp_dev_cpp = -1;
+module_param(nfp_dev_cpp, bint, 0444);
+MODULE_PARM_DESC(nfp_dev_cpp,
+		 "NFP CPP /dev interface (default = !nfp_pf_netdev)");
 
 bool nfp_net_vnic;
 module_param(nfp_net_vnic, bool, 0444);
 MODULE_PARM_DESC(nfp_net_vnic, "vNIC net devices (default = false)");
 
-static bool nfp_mon_event = true;
-module_param(nfp_mon_event, bool, 0444);
-MODULE_PARM_DESC(nfp_mon_event, "Event monitor support (default = true)");
+static int nfp_mon_event = -1;
+module_param(nfp_mon_event, bint, 0444);
+MODULE_PARM_DESC(nfp_mon_event, "(non-netdev mode) Event monitor support (default = !nfp_pf_netdev)");
 
 static bool nfp_reset_on_exit;
 module_param(nfp_reset_on_exit, bool, 0444);
@@ -104,28 +111,26 @@ static const struct pci_device_id nfp_pci_device_ids[] = {
 MODULE_DEVICE_TABLE(pci, nfp_pci_device_ids);
 #endif
 
-static void register_pf(struct nfp_pf *np)
+static void nfp_register_vnic(struct nfp_pf *pf)
 {
 	int pcie_unit;
 
-	pcie_unit = NFP_CPP_INTERFACE_UNIT_of(nfp_cpp_interface(np->cpp));
+	pcie_unit = NFP_CPP_INTERFACE_UNIT_of(nfp_cpp_interface(pf->cpp));
 
-	if (nfp_dev_cpp)
-		np->nfp_dev_cpp = nfp_platform_device_register(np->cpp,
-				NFP_DEV_CPP_TYPE);
+	if (!nfp_net_vnic)
+		return;
 
-	if (nfp_net_vnic)
-		np->nfp_net_vnic = nfp_platform_device_register_unit(np->cpp,
-							   NFP_NET_VNIC_TYPE,
-							   pcie_unit,
-							   NFP_NET_VNIC_UNITS);
+	pf->nfp_net_vnic =
+		nfp_platform_device_register_unit(pf->cpp, NFP_NET_VNIC_TYPE,
+						  pcie_unit,
+						  NFP_NET_VNIC_UNITS);
 }
 
 static int nfp_pci_probe(struct pci_dev *pdev,
 			 const struct pci_device_id *pci_id)
 {
 	struct nfp_device *nfp_dev;
-	struct nfp_pf *np;
+	struct nfp_pf *pf;
 	int err, irq;
 
 	err = pci_enable_device(pdev);
@@ -134,92 +139,113 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 
 	pci_set_master(pdev);
 
-	err = pci_set_dma_mask(pdev, DMA_BIT_MASK(40));
-	if (err < 0) {
-		dev_err(&pdev->dev, "Unable to set PCI device mask.\n");
-		goto err_dma_mask;
-	}
-	err = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(40));
-	if (err < 0) {
-		dev_err(&pdev->dev, "Unable to set device consistent mask.\n");
-		goto err_dma_mask;
-	}
+	err = dma_set_mask_and_coherent(&pdev->dev,
+					DMA_BIT_MASK(NFP_NET_MAX_DMA_BITS));
+	if (err)
+		goto err_pci_disable;
 
 	err = pci_request_regions(pdev, nfp_driver_name);
 	if (err < 0) {
 		dev_err(&pdev->dev, "Unable to reserve pci resources.\n");
-		goto err_request_regions;
+		goto err_pci_disable;
 	}
 
-	np = kzalloc(sizeof(*np), GFP_KERNEL);
-	if (!np) {
+	pf = kzalloc(sizeof(*pf), GFP_KERNEL);
+	if (!pf) {
 		err = -ENOMEM;
-		goto err_kzalloc;
+		goto err_rel_regions;
 	}
-	INIT_LIST_HEAD(&np->ports);
+	INIT_LIST_HEAD(&pf->ports);
+	pci_set_drvdata(pdev, pf);
+	pf->pdev = pdev;
 
 	if (nfp_mon_event) {
 		/* Completely optional: we will be fine with Legacy IRQs */
-		err = pci_enable_msix(pdev, &np->msix, 1);
-		if (pdev->msix_enabled)
-			irq = np->msix.vector;
+		err = pci_enable_msix(pdev, &pf->msix, 1);
+		if (!err)
+			irq = pf->msix.vector;
 		else
 			irq = pdev->irq;
 	} else {
 		irq = -1;
 	}
 
-	np->cpp = nfp_cpp_from_nfp6000_pcie(pdev, irq);
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
-	if (!IS_ERR_OR_NULL(np->cpp)) {
-		err = nfp_sriov_attr_add(&pdev->dev);
-		if (err < 0)
-			goto err_nfp_cpp;
-	}
-#endif
-	if (IS_ERR_OR_NULL(np->cpp)) {
-		err = PTR_ERR(np->cpp);
+	pf->cpp = nfp_cpp_from_nfp6000_pcie(pdev, irq);
+	if (IS_ERR_OR_NULL(pf->cpp)) {
+		err = PTR_ERR(pf->cpp);
 		if (err >= 0)
 			err = -ENOMEM;
-		goto err_nfp_cpp;
+		goto err_disable_msix;
 	}
 
-	nfp_dev = nfp_device_from_cpp(np->cpp);
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
+	err = nfp_sriov_attr_add(&pdev->dev);
+	if (err < 0)
+		goto err_cpp_free;
+#endif
+
+	nfp_dev = nfp_device_from_cpp(pf->cpp);
 	if (!nfp_dev) {
 		err = -ENODEV;
-		goto err_nfp_dev;
+		goto err_sriov_remove;
 	}
 
-	err = nfp_fw_load(pdev, nfp_dev, false);
+	err = nfp_fw_load(pdev, nfp_dev, nfp_pf_netdev);
+	if (err < 0) {
+		dev_err(&pdev->dev, "Failed to load FW\n");
+		goto err_dev_close;
+	}
+
+	pf->fw_loaded = !!err;
+
+	if (nfp_dev_cpp) {
+		pf->nfp_dev_cpp =
+			nfp_platform_device_register(pf->cpp, NFP_DEV_CPP_TYPE);
+		if (!pf->nfp_dev_cpp)
+			dev_err(&pdev->dev, "Failed to enable user space access. Ignoring.\n");
+	}
+
+	if (nfp_pf_netdev) {
+		err = nfp_net_pci_probe(pf, nfp_dev, nfp_reset);
+		if (nfp_fallback && err == 1) {
+			dev_info(&pdev->dev, "Netronome NFP Fallback driver\n");
+		} else if (err) {
+			err = err < 0 ? err : -EINVAL;
+			goto err_dev_cpp_unreg;
+		}
+	} else {
+		nfp_register_vnic(pf);
+	}
+
 	nfp_device_close(nfp_dev);
-	if (err < 0)
-		goto err_fw_load;
-
-	np->fw_loaded = !!err;
-
-	register_pf(np);
-
-	pci_set_drvdata(pdev, np);
 
 	return 0;
 
-err_fw_load:
-err_nfp_dev:
-	nfp_cpp_free(np->cpp);
-
-err_nfp_cpp:
-	pci_disable_msix(pdev);
-
-	kfree(np);
-err_kzalloc:
+err_dev_cpp_unreg:
+	if (pf->nfp_dev_cpp)
+		nfp_platform_device_unregister(pf->nfp_dev_cpp);
+err_dev_close:
+	nfp_device_close(nfp_dev);
+err_sriov_remove:
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
+	nfp_sriov_attr_remove(&pdev->dev);
+err_cpp_free:
+#endif
+	nfp_cpp_free(pf->cpp);
+err_disable_msix:
+	if (pdev->msix_enabled)
+		pci_disable_msix(pdev);
+	pci_set_drvdata(pdev, NULL);
+	kfree(pf);
+err_rel_regions:
 	pci_release_regions(pdev);
-err_request_regions:
-err_dma_mask:
+err_pci_disable:
 	pci_disable_device(pdev);
+
 	return err;
 }
 
-void nfp_pci_remove(struct pci_dev *pdev)
+static void nfp_pci_remove(struct pci_dev *pdev)
 {
 	struct nfp_pf *pf = pci_get_drvdata(pdev);
 
@@ -252,7 +278,7 @@ void nfp_pci_remove(struct pci_dev *pdev)
 	pci_disable_device(pdev);
 }
 
-static struct pci_driver nfp_pcie_driver = {
+static struct pci_driver nfp_pci_driver = {
 	.name        = nfp_driver_name,
 	.id_table    = nfp_pci_device_ids,
 	.probe       = nfp_pci_probe,
@@ -293,11 +319,7 @@ static int compat_nfp_probe(struct pci_dev *pdev,
 	if (pdev->device == 0x6003)
 		return nfp_netvf_pci_driver.probe(pdev, pci_id);
 #endif
-#ifdef CONFIG_NFP_NET_PF
-	if (nfp_pf_netdev)
-		return nfp_net_pci_driver.probe(pdev, pci_id);
-#endif
-	return nfp_pcie_driver.probe(pdev, pci_id);
+	return nfp_pci_driver.probe(pdev, pci_id);
 }
 
 static void compat_nfp_remove(struct pci_dev *pdev)
@@ -308,13 +330,7 @@ static void compat_nfp_remove(struct pci_dev *pdev)
 		return;
 	}
 #endif
-#ifdef CONFIG_NFP_NET_PF
-	if (nfp_pf_netdev) {
-		nfp_net_pci_driver.remove(pdev);
-		return;
-	}
-#endif
-	nfp_pcie_driver.remove(pdev);
+	nfp_pci_driver.remove(pdev);
 }
 
 static struct pci_driver compat_nfp_driver = {
@@ -327,33 +343,6 @@ static struct pci_driver compat_nfp_driver = {
 #endif
 };
 #endif /* !COMPAT__CAN_HAVE_MULTIPLE_MOD_TABLES */
-
-static int nfp_net_pf_register(void)
-{
-#if COMPAT__CAN_HAVE_MULTIPLE_MOD_TABLES
-#ifdef CONFIG_NFP_NET_PF
-	if (nfp_pf_netdev)
-		return pci_register_driver(&nfp_net_pci_driver);
-#endif
-	return pci_register_driver(&nfp_pcie_driver);
-#else /* COMPAT__CAN_HAVE_MULTIPLE_MOD_TABLES */
-	return pci_register_driver(&compat_nfp_driver);
-#endif
-}
-
-static void nfp_net_pf_unregister(void)
-{
-#if COMPAT__CAN_HAVE_MULTIPLE_MOD_TABLES
-#ifdef CONFIG_NFP_NET_PF
-	if (nfp_pf_netdev)
-		pci_unregister_driver(&nfp_net_pci_driver);
-	else
-#endif
-		pci_unregister_driver(&nfp_pcie_driver);
-#else /* COMPAT__CAN_HAVE_MULTIPLE_MOD_TABLES */
-		pci_unregister_driver(&compat_nfp_driver);
-#endif
-}
 
 static int nfp_net_vf_register(void)
 {
@@ -370,6 +359,29 @@ static void nfp_net_vf_unregister(void)
 #endif
 }
 
+static bool __init nfp_resolve_params(void)
+{
+	if (nfp_pf_netdev && nfp_mon_event == 1) {
+		pr_err("nfp_mon_event cannot be used in netdev mode\n");
+		return false;
+	}
+	if (!nfp_pf_netdev && nfp_fallback == 1)
+		pr_warn("nfp_fallback is ignored in netdev mode\n");
+	if (nfp_fallback == 1 && nfp_dev_cpp == 0) {
+		pr_err("nfp_fallback cannot be used without nfp_dev_cpp\n");
+		return false;
+	}
+
+	if (nfp_dev_cpp == -1)
+		nfp_dev_cpp = !nfp_pf_netdev;
+	if (nfp_mon_event == -1)
+		nfp_mon_event = !nfp_pf_netdev;
+	if (nfp_fallback == -1)
+		nfp_fallback = nfp_pf_netdev && nfp_dev_cpp;
+
+	return true;
+}
+
 static int __init nfp_main_init(void)
 {
 	int err;
@@ -377,6 +389,9 @@ static int __init nfp_main_init(void)
 	pr_info("%s: NFP PCIe Driver, Copyright (C) 2014-2015 Netronome Systems\n",
 		nfp_driver_name);
 	pr_info(NFP_BUILD_DESCRIPTION(nfp));
+
+	if (!nfp_resolve_params())
+		return -EINVAL;
 
 	err = nfp_cppcore_init();
 	if (err < 0)
@@ -392,7 +407,11 @@ static int __init nfp_main_init(void)
 
 	nfp_net_debugfs_create();
 
-	err = nfp_net_pf_register();
+#if COMPAT__CAN_HAVE_MULTIPLE_MOD_TABLES
+	err = pci_register_driver(&nfp_pci_driver);
+#else
+	err = pci_register_driver(&compat_nfp_driver);
+#endif
 	if (err < 0)
 		goto err_destroy_debugfs;
 
@@ -403,7 +422,11 @@ static int __init nfp_main_init(void)
 	return err;
 
 err_unreg_pf:
-	nfp_net_pf_unregister();
+#if COMPAT__CAN_HAVE_MULTIPLE_MOD_TABLES
+	pci_unregister_driver(&nfp_pci_driver);
+#else
+	pci_unregister_driver(&compat_nfp_driver);
+#endif
 err_destroy_debugfs:
 	nfp_net_debugfs_destroy();
 	nfp_net_vnic_exit();
@@ -418,7 +441,11 @@ fail_cppcore_init:
 static void __exit nfp_main_exit(void)
 {
 	nfp_net_vf_unregister();
-	nfp_net_pf_unregister();
+#if COMPAT__CAN_HAVE_MULTIPLE_MOD_TABLES
+	pci_unregister_driver(&nfp_pci_driver);
+#else
+	pci_unregister_driver(&compat_nfp_driver);
+#endif
 	nfp_net_debugfs_destroy();
 	nfp_net_vnic_exit();
 	nfp_dev_cpp_exit();

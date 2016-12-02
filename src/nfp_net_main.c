@@ -40,23 +40,17 @@
  *          Rolf Neugebauer <rolf.neugebauer@netronome.com>
  */
 
-#include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/pci.h>
 #include <linux/pci_regs.h>
 #include <linux/msi.h>
 #include <linux/random.h>
-#include <linux/firmware.h>
-
-#include <linux/ktime.h>
-#include <linux/hrtimer.h>
 
 #include "nfpcore/nfp.h"
 #include "nfpcore/nfp_cpp.h"
 #include "nfpcore/nfp_nffw.h"
 #include "nfpcore/nfp6000_pcie.h"
-#include "nfpcore/nfp_dev_cpp.h"
 #include "nfpcore/nfp_nbi_phymod.h"
 
 #include "nfp_net_compat.h"
@@ -65,33 +59,6 @@
 #include "nfp_main.h"
 
 #define NFP_PF_CSR_SLICE_SIZE	(32 * 1024)
-
-
-static bool nfp_fallback = true;
-module_param(nfp_fallback, bool, 0444);
-MODULE_PARM_DESC(nfp_fallback,
-		 "Fallback to nfp.ko behaviour if no suitable FW is present (default = true)");
-
-static const char nfp_net_driver_name[] = "nfp_net";
-
-static const struct pci_device_id nfp_net_pci_device_ids[] = {
-	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_NFP4000,
-	  PCI_VENDOR_ID_NETRONOME, PCI_ANY_ID,
-	  PCI_ANY_ID, 0,
-	},
-	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_NFP6000,
-	  PCI_VENDOR_ID_NETRONOME, PCI_ANY_ID,
-	  PCI_ANY_ID, 0,
-	},
-	{ 0, } /* Required last entry. */
-};
-#if COMPAT__CAN_HAVE_MULTIPLE_MOD_TABLES
-MODULE_DEVICE_TABLE(pci, nfp_net_pci_device_ids);
-#endif
-
-/*
- * Helper functions
- */
 
 static int nfp_is_ready(struct nfp_device *nfp)
 {
@@ -504,99 +471,32 @@ err_nn_free:
 /*
  * PCI device functions
  */
-static int nfp_net_pci_probe(struct pci_dev *pdev,
-			     const struct pci_device_id *pci_id)
+int
+nfp_net_pci_probe(struct nfp_pf *pf, struct nfp_device *nfp_dev, bool nfp_reset)
 {
 	u8 __iomem *ctrl_bar, *tx_bar, *rx_bar;
 	u32 total_tx_qcs, total_rx_qcs;
 	struct nfp_net_fw_version fw_ver;
 	u32 tx_area_sz, rx_area_sz;
-	struct nfp_device *nfp_dev;
-	struct nfp_pf *pf;
 	u32 start_q;
 	int stride;
 	int err;
 
-	pf = kzalloc(sizeof(*pf), GFP_KERNEL);
-	if (!pf)
-		return -ENOMEM;
-	INIT_LIST_HEAD(&pf->ports);
-	pci_set_drvdata(pdev, pf);
-	pf->pdev = pdev;
-
-	err = pci_enable_device(pdev);
-	if (err < 0)
-		goto err_free_pf;
-
-	pci_set_master(pdev);
-
-	err = pci_request_regions(pdev, nfp_net_driver_name);
-	if (err < 0) {
-		dev_err(&pdev->dev, "Unable to reserve pci resources.\n");
-		goto err_pci_disable;
-	}
-
-	err = dma_set_mask_and_coherent(&pdev->dev,
-					DMA_BIT_MASK(NFP_NET_MAX_DMA_BITS));
-	if (err)
-		goto err_pci_regions;
-
-	pf->cpp = nfp_cpp_from_nfp6000_pcie(pdev, -1);
-
-	if (IS_ERR_OR_NULL(pf->cpp)) {
-		err = PTR_ERR(pf->cpp);
-		if (err >= 0)
-			err = -ENOMEM;
-		goto err_pci_regions;
-	}
-
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
-	err = nfp_sriov_attr_add(&pdev->dev);
-	if (err < 0)
-		goto err_sriov;
-#endif
-
-	nfp_dev = nfp_device_from_cpp(pf->cpp);
-	if (!nfp_dev) {
-		err = -ENODEV;
-		goto err_cpp_free;
-	}
-
-	err = nfp_fw_load(pdev, nfp_dev, true);
-	if (err < 0) {
-		dev_err(&pdev->dev, "Failed to load FW\n");
-		goto err_nfp_close;
-	}
-
-	pf->fw_loaded = !!err;
-
-	if (nfp_dev_cpp) {
-		pf->nfp_dev_cpp =
-			nfp_platform_device_register(pf->cpp, NFP_DEV_CPP_TYPE);
-		if (!pf->nfp_dev_cpp)
-			dev_err(&pdev->dev,
-				"Failed to enable user space access. Ignored\n");
-	}
-
 	/* Verify that the board has completed initialization */
 	if ((!pf->fw_loaded && nfp_reset) || !nfp_is_ready(nfp_dev)) {
-		dev_err(&pdev->dev, "NFP is not ready for NIC operation.\n");
-		ctrl_bar = NULL;
-		err = -ENOENT;
-		goto err_register_fallback;
+		nfp_err(nfp_dev, "NFP is not ready for NIC operation.\n");
+		return 1;
 	}
 
 	pf->num_ports = nfp_net_pf_get_num_ports(pf, nfp_dev);
 
 	ctrl_bar = nfp_net_pf_map_ctrl_bar(pf, nfp_dev);
-	if (!ctrl_bar) {
-		err = -EIO;
-		goto err_register_fallback;
-	}
+	if (!ctrl_bar)
+		return 1;
 
 	nfp_net_get_fw_version(&fw_ver, ctrl_bar);
 	if (fw_ver.resv || fw_ver.class != NFP_NET_CFG_VERSION_CLASS_GENERIC) {
-		dev_err(&pdev->dev, "Unknown Firmware ABI %d.%d.%d.%d\n",
+		nfp_err(nfp_dev, "Unknown Firmware ABI %d.%d.%d.%d\n",
 			fw_ver.resv, fw_ver.class, fw_ver.major, fw_ver.minor);
 		err = -EINVAL;
 		goto err_ctrl_unmap;
@@ -605,14 +505,14 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 	/* Determine stride */
 	if (nfp_net_fw_ver_eq(&fw_ver, 0, 0, 0, 1)) {
 		stride = 2;
-		dev_warn(&pdev->dev, "OBSOLETE Firmware detected - VF isolation not available\n");
+		nfp_warn(nfp_dev, "OBSOLETE Firmware detected - VF isolation not available\n");
 	} else {
 		switch (fw_ver.major) {
 		case 1 ... 4:
 			stride = 4;
 			break;
 		default:
-			dev_err(&pdev->dev, "Unsupported Firmware ABI %d.%d.%d.%d\n",
+			nfp_err(nfp_dev, "Unsupported Firmware ABI %d.%d.%d.%d\n",
 				fw_ver.resv, fw_ver.class,
 				fw_ver.major, fw_ver.minor);
 			err = -EINVAL;
@@ -628,7 +528,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 					    NFP_NET_CFG_START_RXQ,
 					    NFP_NET_CFG_MAX_RXRINGS);
 	if (!total_tx_qcs || !total_rx_qcs) {
-		dev_err(&pdev->dev, "Invalid PF QC configuration [%d,%d]\n",
+		nfp_err(nfp_dev, "Invalid PF QC configuration [%d,%d]\n",
 			total_tx_qcs, total_rx_qcs);
 		err = -EINVAL;
 		goto err_ctrl_unmap;
@@ -643,7 +543,7 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 				  NFP_PCIE_QUEUE(start_q),
 				  tx_area_sz, &pf->tx_area);
 	if (IS_ERR(tx_bar)) {
-		dev_err(&pdev->dev, "Failed to map TX area.\n");
+		nfp_err(nfp_dev, "Failed to map TX area.\n");
 		err = PTR_ERR(tx_bar);
 		goto err_ctrl_unmap;
 	}
@@ -654,19 +554,17 @@ static int nfp_net_pci_probe(struct pci_dev *pdev,
 				  NFP_PCIE_QUEUE(start_q),
 				  rx_area_sz, &pf->rx_area);
 	if (IS_ERR(rx_bar)) {
-		dev_err(&pdev->dev, "Failed to map RX area.\n");
+		nfp_err(nfp_dev, "Failed to map RX area.\n");
 		err = PTR_ERR(rx_bar);
 		goto err_unmap_tx;
 	}
 
-	pf->ddir = nfp_net_debugfs_device_add(pdev);
+	pf->ddir = nfp_net_debugfs_device_add(pf->pdev);
 
 	err = nfp_net_pf_spawn_netdevs(pf, nfp_dev, ctrl_bar, tx_bar, rx_bar,
 				       stride, &fw_ver);
 	if (err)
 		goto err_clean_ddir;
-
-	nfp_device_close(nfp_dev);
 
 	return 0;
 
@@ -677,44 +575,6 @@ err_unmap_tx:
 	nfp_cpp_area_release_free(pf->tx_area);
 err_ctrl_unmap:
 	nfp_cpp_area_release_free(pf->ctrl_area);
-err_register_fallback:
-	/* Register fallback only if there are problems with finding ctrl_bar
-	 * or FW is not operational.
-	 */
-	if (!ctrl_bar && nfp_fallback) {
-		pf->nfp_fallback = true;
-		dev_info(&pdev->dev, "Netronome NFP Fallback driver\n");
-
-		nfp_device_close(nfp_dev);
-		return 0;
-	}
-	if (pf->fw_loaded) {
-		int ret = nfp_reset_soft(nfp_dev);
-
-		if (ret < 0)
-			dev_warn(&pdev->dev,
-				 "Couldn't unload firmware: %d\n", ret);
-		else
-			dev_info(&pdev->dev,
-				 "Firmware safely unloaded\n");
-	}
-err_nfp_close:
-	nfp_device_close(nfp_dev);
-err_cpp_free:
-	if (pf->nfp_dev_cpp)
-		nfp_platform_device_unregister(pf->nfp_dev_cpp);
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
-	nfp_sriov_attr_remove(&pdev->dev);
-err_sriov:
-#endif
-	nfp_cpp_free(pf->cpp);
-err_pci_regions:
-	pci_release_regions(pdev);
-err_pci_disable:
-	pci_disable_device(pdev);
-err_free_pf:
-	pci_set_drvdata(pdev, NULL);
-	kfree(pf);
 	return err;
 }
 
@@ -739,13 +599,3 @@ void nfp_net_pci_remove(struct nfp_pf *pf)
 	nfp_cpp_area_release_free(pf->tx_area);
 	nfp_cpp_area_release_free(pf->ctrl_area);
 }
-
-struct pci_driver nfp_net_pci_driver = {
-	.name        = nfp_net_driver_name,
-	.id_table    = nfp_net_pci_device_ids,
-	.probe       = nfp_net_pci_probe,
-	.remove      = nfp_pci_remove,
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
-	.sriov_configure = nfp_pcie_sriov_configure,
-#endif
-};

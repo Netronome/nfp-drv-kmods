@@ -173,6 +173,21 @@ static inline int compat_kstrtoul(const char *str, int base, unsigned long *res)
 #endif
 #endif /* < KERNEL_VERSION(3, 0, 0) */
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 13, 0)
+static inline
+int compat_dma_set_mask_and_coherent(struct device *dev, u64 mask)
+{
+	int rc = dma_set_mask(dev, mask);
+
+	if (rc == 0)
+		dma_set_coherent_mask(dev, mask);
+
+	return rc;
+}
+#define dma_set_mask_and_coherent(dev, mask) \
+	compat_dma_set_mask_and_coherent(dev, mask)
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0)
 static inline int _pci_enable_msi_range(struct pci_dev *dev,
 					int minvec, int maxvec)

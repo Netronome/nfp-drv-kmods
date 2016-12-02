@@ -64,7 +64,6 @@ struct nfp_device;
  * @msix:		Single MSI-X entry for non-netdev mode event monitor
  * @num_vfs:		Number of SR-IOV VFs enabled
  * @fw_loaded:		Is the firmware loaded?
- * @nfp_fallback:	Is the driver used in fallback mode?
  * @ddir:		Per-device debugfs directory
  * @num_ports:		Number of adapter ports
  * @ports:		Linked list of port structures (struct nfp_net)
@@ -87,7 +86,6 @@ struct nfp_pf {
 	unsigned int num_vfs;
 
 	bool fw_loaded;
-	bool nfp_fallback;
 
 	struct dentry *ddir;
 
@@ -95,11 +93,10 @@ struct nfp_pf {
 	struct list_head ports;
 };
 
-extern bool nfp_dev_cpp;
+extern int nfp_dev_cpp;
 extern bool nfp_net_vnic;
 extern bool nfp_reset;
 
-extern struct pci_driver nfp_net_pci_driver;
 extern struct pci_driver nfp_netvf_pci_driver;
 
 int nfp_pcie_sriov_configure(struct pci_dev *pdev, int num_vfs);
@@ -111,10 +108,17 @@ void nfp_sriov_attr_remove(struct device *dev);
 int nfp_fw_load(struct pci_dev *pdev, struct nfp_device *nfp, bool nfp_netdev);
 void nfp_fw_unload(struct nfp_pf *pf);
 
-void nfp_pci_remove(struct pci_dev *pdev);
 #ifdef CONFIG_NFP_NET_PF
+int nfp_net_pci_probe(struct nfp_pf *pf, struct nfp_device *nfp_dev,
+		      bool nfp_reset);
 void nfp_net_pci_remove(struct nfp_pf *pf);
 #else
+static inline int
+nfp_net_pci_probe(struct nfp_pf *pf, struct nfp_device *nfp_dev, bool nfp_reset)
+{
+	return -ENODEV;
+}
+
 static inline void nfp_net_pci_remove(struct nfp_pf *pf)
 {
 }
