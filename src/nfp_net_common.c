@@ -41,14 +41,6 @@
  *          Chris Telfer <chris.telfer@netronome.com>
  */
 
-/* This file is used by multiple drivers, in which case Kbuild does
- * not set @KBUILD_MODNAME. Unfortunately, this is required to be set
- * by a number of kernel components, used by this file.
- */
-#ifndef KBUILD_MODNAME
-#define KBUILD_MODNAME "nfp_net_common"
-#endif
-
 #include "nfp_net_compat.h"
 
 #if COMPAT__HAVE_XDP

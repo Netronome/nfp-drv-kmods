@@ -60,10 +60,6 @@
 #define VER_RHEL_LT(x, y)						\
 	(RHEL_RELEASE_CODE && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(x, y))
 
-#ifndef KBUILD_MODNAME
-#define KBUILD_MODNAME "nfp_net_compat"
-#endif
-
 #include <asm/barrier.h>
 #include <linux/bitops.h>
 #include <linux/ethtool.h>

@@ -46,13 +46,6 @@
 #include <linux/err.h>
 #include <linux/etherdevice.h>
 
-/* This is required when building common objects for
- * multiple modules
- */
-#ifndef KBUILD_MODNAME
-#define KBUILD_MODNAME	"nfpcore"
-#endif
-
 #ifndef PCI_VENDOR_ID_NETRONOME
 #define PCI_VENDOR_ID_NETRONOME		0x19ee
 #endif
