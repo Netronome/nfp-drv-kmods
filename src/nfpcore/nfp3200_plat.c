@@ -62,7 +62,6 @@
 #include "nfp_target.h"
 
 #include "nfp_mon_err.h"
-#include "nfp_dev_cpp.h"
 #include "nfp_net_vnic.h"
 
 #include "../nfp_main.h"

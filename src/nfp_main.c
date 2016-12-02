@@ -51,7 +51,6 @@
 
 #include "nfpcore/nfp6000_pcie.h"
 
-#include "nfpcore/nfp_dev_cpp.h"
 #include "nfpcore/nfp_net_vnic.h"
 
 #include "nfp_main.h"

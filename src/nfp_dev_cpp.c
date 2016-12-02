@@ -53,14 +53,15 @@
 #include <linux/platform_device.h>
 #include <linux/wait.h>
 
-#include "nfp.h"
-#include "nfp_cpp.h"
+#include "nfpcore/nfp.h"
+#include "nfpcore/nfp_cpp.h"
+
+#include "nfpcore/nfp3200/nfp_arm.h"
+
 #include "nfp_ioctl.h"
+#include "nfp_main.h"
 
-#include "nfp3200/nfp_arm.h"
-
-#include "nfp_dev_cpp.h"
-
+#define NFP_DEV_CPP_MAX		128
 #define NFP_DEV_CPP_DEBUG	0
 
 static int nfp_dev_cpp_major;

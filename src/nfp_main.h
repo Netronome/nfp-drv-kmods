@@ -114,4 +114,9 @@ static inline void nfp_net_pci_remove(struct nfp_pf *pf)
 }
 #endif
 
+#define NFP_DEV_CPP_TYPE	"nfp-dev-cpp"
+
+int nfp_dev_cpp_init(void);
+void nfp_dev_cpp_exit(void);
+
 #endif /* NFP_MAIN_H */

@@ -55,7 +55,6 @@ nfp-objs := \
 	    nfpcore/nfp_ca.o \
 	    nfpcore/nfp_cppcore.o \
 	    nfpcore/nfp_cpplib.o \
-	    nfpcore/nfp_dev_cpp.o \
 	    nfpcore/nfp_device.o \
 	    nfpcore/nfp_em_manager.o \
 	    nfpcore/nfp_hwinfo.o \
@@ -72,6 +71,7 @@ nfp-objs := \
 	    nfpcore/nfp3200_plat.o \
 	    nfpcore/nfp_nbi_mac_eth.o \
 	    nfpcore/nfp_net_vnic.o \
+	    nfp_dev_cpp.o \
 	    nfp_main.o
 
 ifeq ($(CONFIG_NFP_EXPORTS),y)
