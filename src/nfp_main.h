@@ -95,18 +95,8 @@ struct nfp_pf {
 
 extern int nfp_dev_cpp;
 extern bool nfp_net_vnic;
-extern bool nfp_reset;
 
 extern struct pci_driver nfp_netvf_pci_driver;
-
-int nfp_pcie_sriov_configure(struct pci_dev *pdev, int num_vfs);
-int nfp_pcie_sriov_disable(struct pci_dev *pdev);
-
-int nfp_sriov_attr_add(struct device *dev);
-void nfp_sriov_attr_remove(struct device *dev);
-
-int nfp_fw_load(struct pci_dev *pdev, struct nfp_device *nfp, bool nfp_netdev);
-void nfp_fw_unload(struct nfp_pf *pf);
 
 #ifdef CONFIG_NFP_NET_PF
 int nfp_net_pci_probe(struct nfp_pf *pf, struct nfp_device *nfp_dev,
