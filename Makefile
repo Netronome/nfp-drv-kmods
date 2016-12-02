@@ -52,6 +52,9 @@ COMMON_ARGS := nfp_src_ver:=$(NFPVER) -C $(KSRC) M=`pwd`/src
 build:
 	$(MAKE) $(COMMON_ARGS) modules
 
+nfp_net:
+	$(MAKE) $(COMMON_ARGS) CONFIG_NFP_EXPORTS=n CONFIG_NFP_USER_SPACE_CPP=n modules
+
 noisy: clean
 	$(MAKE) $(COMMON_ARGS) V=1 modules
 
@@ -72,3 +75,5 @@ uninstall:
 	rm -f $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/extra/nfp_net.ko
 	rm -f $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/extra/nfp_netvf.ko
 	depmod $(DEPMOD_PATH) $(KVER)
+
+.PHONY: build nfp_net noisy coccicheck sparse clean install uninstall
