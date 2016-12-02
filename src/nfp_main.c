@@ -722,6 +722,10 @@ static bool __init nfp_resolve_params(void)
 		pr_err("nfp_mon_event cannot be used in netdev mode\n");
 		return false;
 	}
+	if (nfp_pf_netdev && nfp6000_firmware) {
+		pr_err("nfp6000_firmware cannot be used in netdev mode\n");
+		return false;
+	}
 	if (!nfp_pf_netdev && nfp_fallback == 1)
 		pr_warn("nfp_fallback is ignored in netdev mode\n");
 	if (nfp_fallback == 1 && nfp_dev_cpp == 0) {
