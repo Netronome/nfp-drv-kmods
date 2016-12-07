@@ -398,7 +398,7 @@ static inline bool compat_is_gretap(struct sk_buff *skb, u8 l4_hdr)
 }
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 2, 0)
+#if VER_VANILLA_LT(4, 2) || VER_RHEL_LT(7, 3)
 static inline void skb_free_frag(void *addr)
 {
 	put_page(virt_to_head_page(addr));
@@ -478,7 +478,7 @@ static inline bool netif_is_rxfh_configured(const struct net_device *netdev)
 }
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0)
+#if VER_VANILLA_LT(4, 6) || VER_RHEL_LT(7, 3)
 static inline void page_ref_inc(struct page *page)
 {
 	atomic_inc(&page->_count);
