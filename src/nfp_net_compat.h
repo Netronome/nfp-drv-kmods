@@ -64,11 +64,17 @@
 #define KBUILD_MODNAME "nfp_net_compat"
 #endif
 
+#include <asm/barrier.h>
+#include <linux/bitops.h>
+#include <linux/ethtool.h>
+#include <linux/compiler.h>
 #include <linux/if_vlan.h>
 #include <linux/interrupt.h>
 #include <linux/ip.h>
 #include <linux/ipv6.h>
 #include <linux/msi.h>
+#include <linux/netdev_features.h>
+#include <linux/netdevice.h>
 #include <linux/pci.h>
 #include <linux/skbuff.h>
 #include <linux/udp.h>
