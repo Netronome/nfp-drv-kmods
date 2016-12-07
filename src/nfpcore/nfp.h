@@ -286,17 +286,10 @@ struct nfp_resource_entry {
  */
 #define NFP_RESOURCE_MAC_STATISTICS     "mac.stat"
 
-int nfp_cpp_resource_init(struct nfp_cpp *cpp,
-			  struct nfp_cpp_mutex **resource_mutex);
-
 struct nfp_resource *nfp_resource_acquire(struct nfp_device *nfp,
 					  const char *name);
 
 void nfp_resource_release(struct nfp_resource *res);
-
-int nfp_cpp_resource_add(struct nfp_cpp *cpp, const char *name,
-			 u32 cpp_id, u64 address, u64 size,
-			 struct nfp_cpp_mutex **resource_mutex);
 
 u32 nfp_resource_cpp_id(struct nfp_resource *res);
 
