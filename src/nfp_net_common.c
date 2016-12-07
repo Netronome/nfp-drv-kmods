@@ -3002,6 +3002,12 @@ static int nfp_net_xdp_setup(struct nfp_net *nn, struct bpf_prog *prog)
 	};
 	int err;
 
+#if COMPAT__HAVE_XDP_ADJUST_HEAD
+	if (prog && prog->xdp_adjust_head) {
+		nn_err(nn, "Does not support bpf_xdp_adjust_head()\n");
+		return -EOPNOTSUPP;
+	}
+#endif
 	if (!prog && !nn->xdp_prog)
 		return 0;
 	if (prog && nn->xdp_prog) {
