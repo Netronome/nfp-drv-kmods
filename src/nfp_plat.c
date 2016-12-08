@@ -32,7 +32,7 @@
  */
 
 /*
- * nfp3200_plat.c
+ * nfp_plat.c
  * Author: Jason McMullan <jason.mcmullan@netronome.com>
  */
 
@@ -54,17 +54,17 @@
 #include <linux/slab.h>
 #include <linux/interrupt.h>
 
-#include "nfp_arm.h"
-#include "nfp_cpp.h"
-#include "nfp3200/nfp3200.h"
-#include "nfp3200/nfp_em.h"
+#include "nfpcore/nfp_arm.h"
+#include "nfpcore/nfp_cpp.h"
+#include "nfpcore/nfp3200/nfp3200.h"
+#include "nfpcore/nfp3200/nfp_em.h"
 
-#include "nfp_target.h"
+#include "nfpcore/nfp_target.h"
 
-#include "nfp_mon_err.h"
-#include "nfp_net_vnic.h"
+#include "nfpcore/nfp_mon_err.h"
+#include "nfpcore/nfp_net_vnic.h"
 
-#include "../nfp_main.h"
+#include "nfp_main.h"
 
 bool nfp_mon_err;
 
@@ -82,10 +82,10 @@ struct nfp_plat_bar {
 	u32 csr;
 };
 
-#define NFP3200_EM_FILTER_BASE	8
-#define NFP3200_EM_FILTERS	32
+#define NFP_EM_FILTER_BASE	8
+#define NFP_EM_FILTERS		32
 
-struct nfp3200_plat {
+struct nfp_plat {
 	struct device *dev;
 
 	struct platform_device *nfp_dev_cpp;
@@ -106,8 +106,8 @@ struct nfp3200_plat {
 	void __iomem *expl_io;
 	void __iomem *expl_data;
 
-	unsigned long irq_used[BITS_TO_LONGS(NFP3200_EM_FILTERS)];
-	unsigned int irq[NFP3200_EM_FILTERS];
+	unsigned long irq_used[BITS_TO_LONGS(NFP_EM_FILTERS)];
+	unsigned int irq[NFP_EM_FILTERS];
 };
 
 struct nfp_plat_area_priv {
@@ -163,7 +163,7 @@ static void bar_unlock(struct nfp_plat_bar *bar)
 static int bar_find(struct nfp_cpp_area *area, enum bar_type type,
 		    int bars, u32 csr, int can_alloc)
 {
-	struct nfp3200_plat *nfp_priv = nfp_cpp_priv(nfp_cpp_area_cpp(area));
+	struct nfp_plat *nfp_priv = nfp_cpp_priv(nfp_cpp_area_cpp(area));
 	struct nfp_plat_area_priv *priv = nfp_cpp_area_priv(area);
 	struct nfp_plat_bar *bar;
 	unsigned long bar_base;
@@ -263,7 +263,7 @@ static void bulk_csr(u32 *csr, u32 dest, u64 addr, int width)
 			  addr);
 }
 
-static void bulk_set(struct nfp3200_plat *priv, u32 csr, unsigned int id)
+static void bulk_set(struct nfp_plat *priv, u32 csr, unsigned int id)
 {
 	int i;
 
@@ -296,7 +296,7 @@ static void expa_csr(u32 *csr, u32 dest, u64 addr, int width)
 			  addr);
 }
 
-static void expa_set(struct nfp3200_plat *priv, u32 csr, unsigned int id)
+static void expa_set(struct nfp_plat *priv, u32 csr, unsigned int id)
 {
 	int i;
 
@@ -312,10 +312,10 @@ static void expa_set(struct nfp3200_plat *priv, u32 csr, unsigned int id)
 			csr);
 }
 
-static int nfp3200_plat_area_init(struct nfp_cpp_area *area,
-				  u32 dest, u64 addr, unsigned long size)
+static int nfp_plat_area_init(struct nfp_cpp_area *area, u32 dest, u64 addr,
+			      unsigned long size)
 {
-	struct nfp3200_plat *nfp_priv = nfp_cpp_priv(nfp_cpp_area_cpp(area));
+	struct nfp_plat *nfp_priv = nfp_cpp_priv(nfp_cpp_area_cpp(area));
 	struct nfp_plat_area_priv *priv = nfp_cpp_area_priv(area);
 	int pp;
 
@@ -344,13 +344,13 @@ static int nfp3200_plat_area_init(struct nfp_cpp_area *area,
 	return 0;
 }
 
-void nfp3200_plat_area_cleanup(struct nfp_cpp_area *area)
+void nfp_plat_area_cleanup(struct nfp_cpp_area *area)
 {
 }
 
 static int bar_find_any(struct nfp_cpp_area *area, int can_allocate)
 {
-	struct nfp3200_plat *nfp_priv = nfp_cpp_priv(nfp_cpp_area_cpp(area));
+	struct nfp_plat *nfp_priv = nfp_cpp_priv(nfp_cpp_area_cpp(area));
 	struct nfp_plat_area_priv *priv = nfp_cpp_area_priv(area);
 	unsigned long size;
 	int bars, err, i;
@@ -401,7 +401,7 @@ static int bar_find_any(struct nfp_cpp_area *area, int can_allocate)
 	return -ENOSPC;
 }
 
-static int nfp3200_plat_acquire(struct nfp_cpp_area *area)
+static int nfp_plat_acquire(struct nfp_cpp_area *area)
 {
 	struct nfp_plat_area_priv *priv = nfp_cpp_area_priv(area);
 	phys_addr_t phys_offset;
@@ -425,9 +425,9 @@ static int nfp3200_plat_acquire(struct nfp_cpp_area *area)
 	return err;
 }
 
-static void nfp3200_plat_release(struct nfp_cpp_area *area)
+static void nfp_plat_release(struct nfp_cpp_area *area)
 {
-	struct nfp3200_plat *nfp_priv = nfp_cpp_priv(nfp_cpp_area_cpp(area));
+	struct nfp_plat *nfp_priv = nfp_cpp_priv(nfp_cpp_area_cpp(area));
 	struct nfp_plat_area_priv *priv = nfp_cpp_area_priv(area);
 	int i;
 
@@ -447,7 +447,7 @@ static void nfp3200_plat_release(struct nfp_cpp_area *area)
 	priv->iomem = NULL;
 }
 
-static struct resource *nfp3200_plat_resource(struct nfp_cpp_area *area)
+static struct resource *nfp_plat_resource(struct nfp_cpp_area *area)
 {
 	struct nfp_plat_area_priv *priv = nfp_cpp_area_priv(area);
 
@@ -456,7 +456,7 @@ static struct resource *nfp3200_plat_resource(struct nfp_cpp_area *area)
 	return &priv->resource;
 }
 
-static phys_addr_t nfp3200_plat_phys(struct nfp_cpp_area *area)
+static phys_addr_t nfp_plat_phys(struct nfp_cpp_area *area)
 {
 	struct nfp_plat_area_priv *priv = nfp_cpp_area_priv(area);
 
@@ -465,7 +465,7 @@ static phys_addr_t nfp3200_plat_phys(struct nfp_cpp_area *area)
 	return priv->phys_addr + priv->offset;
 }
 
-static void __iomem *nfp3200_plat_iomem(struct nfp_cpp_area *area)
+static void __iomem *nfp_plat_iomem(struct nfp_cpp_area *area)
 {
 	struct nfp_plat_area_priv *priv = nfp_cpp_area_priv(area);
 	phys_addr_t phys_offset;
@@ -482,8 +482,8 @@ static void __iomem *nfp3200_plat_iomem(struct nfp_cpp_area *area)
 	return priv->iomem;
 }
 
-static int nfp3200_plat_read(struct nfp_cpp_area *area, void *kernel_vaddr,
-			     unsigned long offset, unsigned int length)
+static int nfp_plat_read(struct nfp_cpp_area *area, void *kernel_vaddr,
+			 unsigned long offset, unsigned int length)
 {
 	struct nfp_plat_area_priv *priv = nfp_cpp_area_priv(area);
 	void __iomem *iomem;
@@ -534,9 +534,9 @@ static int nfp3200_plat_read(struct nfp_cpp_area *area, void *kernel_vaddr,
 	return -EINVAL;
 }
 
-static int nfp3200_plat_write(struct nfp_cpp_area *area,
-			      const void *kernel_vaddr, unsigned long offset,
-			      unsigned int length)
+static int nfp_plat_write(struct nfp_cpp_area *area,
+			  const void *kernel_vaddr, unsigned long offset,
+			  unsigned int length)
 {
 	struct nfp_plat_area_priv *priv = nfp_cpp_area_priv(area);
 	void __iomem *iomem;
@@ -586,7 +586,7 @@ static int nfp3200_plat_write(struct nfp_cpp_area *area,
 	return -EINVAL;
 }
 
-static irqreturn_t nfp3200_plat_irq(int irq, void *priv)
+static irqreturn_t nfp_plat_irq(int irq, void *priv)
 {
 	struct nfp_cpp_event *event = priv;
 
@@ -595,11 +595,11 @@ static irqreturn_t nfp3200_plat_irq(int irq, void *priv)
 	return IRQ_HANDLED;
 }
 
-static int nfp3200_plat_event_acquire(struct nfp_cpp_event *event,
-				      u32 match, u32 mask, unsigned int type)
+static int nfp_plat_event_acquire(struct nfp_cpp_event *event,
+				  u32 match, u32 mask, unsigned int type)
 {
 	struct nfp_plat_event_priv *event_priv = nfp_cpp_event_priv(event);
-	struct nfp3200_plat *priv = nfp_cpp_priv(nfp_cpp_event_cpp(event));
+	struct nfp_plat *priv = nfp_cpp_priv(nfp_cpp_event_cpp(event));
 	int err, em_slot;
 	unsigned int irq;
 	u32 spec[4];
@@ -634,7 +634,7 @@ static int nfp3200_plat_event_acquire(struct nfp_cpp_event *event,
 	irq = irq_create_of_mapping(priv->arm_em, spec, 4);
 	priv->irq[em_slot] = irq;
 
-	err = request_irq(irq, nfp3200_plat_irq, 0, "nfp3200_plat", event);
+	err = request_irq(irq, nfp_plat_irq, 0, "nfp_plat", event);
 	if (err < 0) {
 		spin_lock(&priv->lock);
 		clear_bit(em_slot, priv->irq_used);
@@ -644,10 +644,10 @@ static int nfp3200_plat_event_acquire(struct nfp_cpp_event *event,
 	return err;
 }
 
-static void nfp3200_plat_event_release(struct nfp_cpp_event *event)
+static void nfp_plat_event_release(struct nfp_cpp_event *event)
 {
 	struct nfp_plat_event_priv *event_priv = nfp_cpp_event_priv(event);
-	struct nfp3200_plat *priv = nfp_cpp_priv(nfp_cpp_event_cpp(event));
+	struct nfp_plat *priv = nfp_cpp_priv(nfp_cpp_event_cpp(event));
 	int irq;
 
 	spin_lock(&priv->lock);
@@ -677,12 +677,12 @@ struct nfp_plat_explicit_priv {
 				     ((offset & 0xc000) >> 14); })
 #define EXPL_INDEX_TO_SIGNAL_REF(n)  (0x60 + ((n) << 1))
 
-int nfp3200_plat_explicit_acquire(struct nfp_cpp_explicit *expl)
+int nfp_plat_explicit_acquire(struct nfp_cpp_explicit *expl)
 {
-	int i;
-	struct nfp_cpp *cpp = nfp_cpp_explicit_cpp(expl);
 	struct nfp_plat_explicit_priv *expl_priv = nfp_cpp_explicit_priv(expl);
-	struct nfp3200_plat *priv = nfp_cpp_priv(cpp);
+	struct nfp_cpp *cpp = nfp_cpp_explicit_cpp(expl);
+	struct nfp_plat *priv = nfp_cpp_priv(cpp);
+	int i;
 
 	/* The last EXPL is for user use! */
 	for (i = 0; i < 7; i++) {
@@ -696,24 +696,24 @@ int nfp3200_plat_explicit_acquire(struct nfp_cpp_explicit *expl)
 }
 
 /* Release an explicit transaction handle */
-void nfp3200_plat_explicit_release(struct nfp_cpp_explicit *expl)
+void nfp_plat_explicit_release(struct nfp_cpp_explicit *expl)
 {
 	struct nfp_plat_explicit_priv *expl_priv = nfp_cpp_explicit_priv(expl);
 	struct nfp_cpp *cpp = nfp_cpp_explicit_cpp(expl);
-	struct nfp3200_plat *priv = nfp_cpp_priv(cpp);
+	struct nfp_plat *priv = nfp_cpp_priv(cpp);
 
 	clear_bit(expl_priv->index, priv->expl_bar_mask);
 }
 
 /* Perform the transaction */
-static int nfp3200_plat_explicit_do(struct nfp_cpp_explicit *expl,
-				    const struct nfp_cpp_explicit_command *cmd,
-				    u64 address)
+static int nfp_plat_explicit_do(struct nfp_cpp_explicit *expl,
+				const struct nfp_cpp_explicit_command *cmd,
+				u64 address)
 {
 	struct nfp_plat_explicit_priv *expl_priv = nfp_cpp_explicit_priv(expl);
 	struct nfp_cpp *cpp = nfp_cpp_explicit_cpp(expl);
-	struct nfp3200_plat *priv = nfp_cpp_priv(cpp);
 	u16 signal_master, data_master, default_master;
+	struct nfp_plat *priv = nfp_cpp_priv(cpp);
 	void __iomem *expl_io = priv->expl_io;
 	void __iomem *gcsr = priv->gcsr;
 	int err, index = expl_priv->index;
@@ -856,12 +856,12 @@ static int nfp3200_plat_explicit_do(struct nfp_cpp_explicit *expl,
 }
 
 /* Write data to send */
-int nfp3200_plat_explicit_put(struct nfp_cpp_explicit *expl,
-			      const void *buff, size_t len)
+int nfp_plat_explicit_put(struct nfp_cpp_explicit *expl,
+			  const void *buff, size_t len)
 {
 	struct nfp_plat_explicit_priv *expl_priv = nfp_cpp_explicit_priv(expl);
 	struct nfp_cpp *cpp = nfp_cpp_explicit_cpp(expl);
-	struct nfp3200_plat *priv = nfp_cpp_priv(cpp);
+	struct nfp_plat *priv = nfp_cpp_priv(cpp);
 
 	if (len > 128)
 		return -EINVAL;
@@ -873,12 +873,11 @@ int nfp3200_plat_explicit_put(struct nfp_cpp_explicit *expl,
 }
 
 /* Read data received */
-int nfp3200_plat_explicit_get(struct nfp_cpp_explicit *expl,
-			      void *buff, size_t len)
+int nfp_plat_explicit_get(struct nfp_cpp_explicit *expl, void *buff, size_t len)
 {
 	struct nfp_plat_explicit_priv *expl_priv = nfp_cpp_explicit_priv(expl);
 	struct nfp_cpp *cpp = nfp_cpp_explicit_cpp(expl);
-	struct nfp3200_plat *priv = nfp_cpp_priv(cpp);
+	struct nfp_plat *priv = nfp_cpp_priv(cpp);
 
 	if (len > 128)
 		return -EINVAL;
@@ -889,31 +888,31 @@ int nfp3200_plat_explicit_get(struct nfp_cpp_explicit *expl,
 	return len;
 }
 
-const struct nfp_cpp_operations nfp3200_plat_template = {
+const struct nfp_cpp_operations nfp_plat_template = {
 	.area_priv_size = sizeof(struct nfp_plat_area_priv),
-	.area_init = nfp3200_plat_area_init,
-	.area_cleanup = nfp3200_plat_area_cleanup,
-	.area_acquire = nfp3200_plat_acquire,
-	.area_release = nfp3200_plat_release,
-	.area_phys = nfp3200_plat_phys,
-	.area_resource = nfp3200_plat_resource,
-	.area_iomem = nfp3200_plat_iomem,
-	.area_read = nfp3200_plat_read,
-	.area_write = nfp3200_plat_write,
+	.area_init = nfp_plat_area_init,
+	.area_cleanup = nfp_plat_area_cleanup,
+	.area_acquire = nfp_plat_acquire,
+	.area_release = nfp_plat_release,
+	.area_phys = nfp_plat_phys,
+	.area_resource = nfp_plat_resource,
+	.area_iomem = nfp_plat_iomem,
+	.area_read = nfp_plat_read,
+	.area_write = nfp_plat_write,
 
 	.explicit_priv_size = sizeof(struct nfp_plat_explicit_priv),
-	.explicit_acquire = nfp3200_plat_explicit_acquire,
-	.explicit_release = nfp3200_plat_explicit_release,
-	.explicit_put = nfp3200_plat_explicit_put,
-	.explicit_get = nfp3200_plat_explicit_get,
-	.explicit_do = nfp3200_plat_explicit_do,
+	.explicit_acquire = nfp_plat_explicit_acquire,
+	.explicit_release = nfp_plat_explicit_release,
+	.explicit_put = nfp_plat_explicit_put,
+	.explicit_get = nfp_plat_explicit_get,
+	.explicit_do = nfp_plat_explicit_do,
 
 	.event_priv_size = sizeof(struct nfp_plat_event_priv),
-	.event_acquire = nfp3200_plat_event_acquire,
-	.event_release = nfp3200_plat_event_release,
+	.event_acquire = nfp_plat_event_acquire,
+	.event_release = nfp_plat_event_release,
 };
 
-static const struct of_device_id nfp3200_plat_match[] = {
+static const struct of_device_id nfp_plat_match[] = {
 	{
 		.compatible = "netronome,nfp6000-arm-cpp",
 		.data = nfp6000_target_pushpull
@@ -923,14 +922,14 @@ static const struct of_device_id nfp3200_plat_match[] = {
 	}, {
 	},
 };
-MODULE_DEVICE_TABLE(of, nfp3200_plat_match);
+MODULE_DEVICE_TABLE(of, nfp_plat_match);
 
 #define BARTYPE_EXPA	1
 #define BARTYPE_EXPL	2
 
-static int nfp3200_plat_bar_scan(struct nfp3200_plat *priv,
-				 u32 arm_addr, u32 arm_size,
-				 u32 cpp_id, u64 cpp_addr, unsigned long *used)
+static int nfp_plat_bar_scan(struct nfp_plat *priv,
+			     u32 arm_addr, u32 arm_size,
+			     u32 cpp_id, u64 cpp_addr, unsigned long *used)
 {
 	int pp, target, action, token, is_64;
 	struct device *dev = priv->dev;
@@ -1042,7 +1041,7 @@ static int nfp3200_plat_bar_scan(struct nfp3200_plat *priv,
 /* Sanity checking, and reserve BARs in the 'ranges' property
  *
  */
-static int nfp3200_plat_of(struct nfp3200_plat *priv)
+static int nfp_plat_of(struct nfp_plat *priv)
 {
 	struct device_node *dn = priv->dev->of_node;
 	struct device *dev = priv->dev;
@@ -1061,7 +1060,7 @@ static int nfp3200_plat_of(struct nfp3200_plat *priv)
 	}
 
 	/* Mark as used the EM filters we won't be using */
-	for (i = 0; i < NFP3200_EM_FILTER_BASE; i++)
+	for (i = 0; i < NFP_EM_FILTER_BASE; i++)
 		set_bit(i, priv->irq_used);
 
 	if (of_property_read_u32(dn, "#address-cells", &tmp) < 0 || tmp != 2) {
@@ -1127,10 +1126,8 @@ static int nfp3200_plat_of(struct nfp3200_plat *priv)
 		}
 		arm_size = tmp;
 
-		err = nfp3200_plat_bar_scan(priv,
-					    arm_addr, arm_size,
-				    cpp_id, cpp_addr,
-				    used);
+		err = nfp_plat_bar_scan(priv, arm_addr, arm_size,
+					cpp_id, cpp_addr, used);
 		if (err < 0) {
 			iounmap(priv->gcsr);
 			return err;
@@ -1184,14 +1181,14 @@ static int nfp3200_plat_of(struct nfp3200_plat *priv)
 	return 0;
 }
 
-static int nfp3200_plat_probe(struct platform_device *pdev)
+static int nfp_plat_probe(struct platform_device *pdev)
 {
 	const struct of_device_id *of_id;
-	struct nfp3200_plat *priv;
 	int i, err, vnic_units;
+	struct nfp_plat *priv;
 	u32 model;
 
-	of_id = of_match_device(nfp3200_plat_match, &pdev->dev);
+	of_id = of_match_device(nfp_plat_match, &pdev->dev);
 	if (!of_id) {
 		dev_err(&pdev->dev, "Failed to find devtree node\n");
 		return -EFAULT;
@@ -1203,14 +1200,14 @@ static int nfp3200_plat_probe(struct platform_device *pdev)
 	priv->dev = &pdev->dev;
 	spin_lock_init(&priv->lock);
 
-	err = nfp3200_plat_of(priv);
+	err = nfp_plat_of(priv);
 	if (err < 0) {
 		dev_err(&pdev->dev, "Can't initialize device\n");
 		kfree(priv);
 		return err;
 	}
 
-	priv->op = nfp3200_plat_template;
+	priv->op = nfp_plat_template;
 	priv->op.model = 0;	/* Autodetected model ID */
 	/* We support multiple virtual channels over this interface */
 	priv->op.interface = NFP_CPP_INTERFACE(
@@ -1261,9 +1258,9 @@ static int nfp3200_plat_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int nfp3200_plat_remove(struct platform_device *pdev)
+static int nfp_plat_remove(struct platform_device *pdev)
 {
-	struct nfp3200_plat *priv = platform_get_drvdata(pdev);
+	struct nfp_plat *priv = platform_get_drvdata(pdev);
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(priv->nfp_net_vnic); i++)
@@ -1284,12 +1281,12 @@ static int nfp3200_plat_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static struct platform_driver nfp3200_plat_driver = {
-	.probe = nfp3200_plat_probe,
-	.remove	 = __exit_p(nfp3200_plat_remove),
+static struct platform_driver nfp_plat_driver = {
+	.probe = nfp_plat_probe,
+	.remove	 = __exit_p(nfp_plat_remove),
 	.driver = {
-		.name = "nfp3200_plat",
-		.of_match_table = of_match_ptr(nfp3200_plat_match),
+		.name = "nfp_plat",
+		.of_match_table = of_match_ptr(nfp_plat_match),
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 11, 0)
 		.owner = THIS_MODULE,
 #endif
@@ -1297,22 +1294,19 @@ static struct platform_driver nfp3200_plat_driver = {
 };
 
 /**
- * nfp3200_plat_init() - Register the NFP3200/NFP6000 ARM platform driver
- *
- * The same driver can handle the ARM CPP platform device for both
- * the NFP3200 and the NFP6000
+ * nfp_plat_init() - Register the NFP ARM platform driver
  */
-int nfp3200_plat_init(void)
+int nfp_plat_init(void)
 {
-	return platform_driver_register(&nfp3200_plat_driver);
+	return platform_driver_register(&nfp_plat_driver);
 }
 
 /**
- * nfp3200_plat_exit() - Unregister the NFP3200/NFP6000 ARM platform driver
+ * nfp_plat_exit() - Unregister the NFP ARM platform driver
  */
-void nfp3200_plat_exit(void)
+void nfp_plat_exit(void)
 {
-	platform_driver_unregister(&nfp3200_plat_driver);
+	platform_driver_unregister(&nfp_plat_driver);
 }
 
 #endif /* CONFIG_ARCH_NFP */

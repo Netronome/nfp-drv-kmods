@@ -70,10 +70,9 @@ nfp-objs := \
 	    nfpcore/nfp_reset.o \
 	    nfpcore/nfp_resource.o \
 	    nfpcore/nfp_rtsym.o \
-	    nfpcore/nfp3200_plat.o \
 	    nfpcore/nfp_nbi_mac_eth.o \
 	    nfpcore/nfp_net_vnic.o \
-	    nfp_dev_cpp.o \
+	    nfp_plat.o \
 	    nfp_main.o
 
 ifeq ($(CONFIG_NFP_USER_SPACE_CPP),y)
