@@ -54,9 +54,8 @@
 #include <linux/wait.h>
 
 #include "nfpcore/nfp.h"
+#include "nfpcore/nfp_arm.h"
 #include "nfpcore/nfp_cpp.h"
-
-#include "nfpcore/nfp3200/nfp_arm.h"
 
 #include "nfp_ioctl.h"
 #include "nfp_main.h"

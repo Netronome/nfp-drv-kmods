@@ -36,10 +36,9 @@
  * Definitions for ARM-based registers and memory spaces
  */
 
-#ifndef NFP3200_NFP_ARM_H
-#define NFP3200_NFP_ARM_H
+#ifndef NFP_ARM_H
+#define NFP_ARM_H
 
-/* HGID: nfp3200/arm.desc = 5702fafbfb92 */
 #define NFP_ARM_QUEUE(_q)              (0x100000 + (0x800 * ((_q) & 0xff)))
 #define NFP_ARM_IM                     0x200000
 #define NFP_ARM_EM                     0x300000
@@ -244,4 +243,4 @@
 	/* PL320 CSRs */
 #define NFP_ARM_PCSR_SIZE	SZ_64K
 
-#endif /* NFP3200_NFP_ARM_H */
+#endif /* NFP_ARM_H */

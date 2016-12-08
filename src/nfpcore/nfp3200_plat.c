@@ -54,9 +54,9 @@
 #include <linux/slab.h>
 #include <linux/interrupt.h>
 
+#include "nfp_arm.h"
 #include "nfp_cpp.h"
 #include "nfp3200/nfp3200.h"
-#include "nfp3200/nfp_arm.h"
 #include "nfp3200/nfp_em.h"
 
 #include "nfp_target.h"

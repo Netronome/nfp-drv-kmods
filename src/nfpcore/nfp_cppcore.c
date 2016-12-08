@@ -52,11 +52,11 @@
 #include <linux/mutex.h>
 
 #include "nfp.h"
+#include "nfp_arm.h"
 #include "nfp_cpp.h"
 #include "nfp_target.h"
 
 #include "nfp3200/nfp3200.h"
-#include "nfp3200/nfp_arm.h"
 #include "nfp3200/nfp_xpb.h"
 #include "nfp3200/nfp_event.h"
 #include "nfp3200/nfp_em.h"
