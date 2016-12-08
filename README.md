@@ -1,7 +1,7 @@
 # Netronome Flow Processor (NFP) Kernel Drivers
 
 These drivers support Netronome's line of Flow Processor devices,
-including the NFP3200 and NFP6000 model lines.
+including the NFP4000 and NFP6000 model lines.
 
 This archive builds the nfp.ko module which can be used to expose
 networking devices (netdevs) and/or user space access to the device
@@ -20,7 +20,7 @@ email us on:
 
 # Acquiring Firmware
 
-The NFP3200 and NFP6000 devices require application
+The NFP4000 and NFP6000 devices require application
 specific firmware to function.
 
 Please contact support@netronome.com for the latest
@@ -28,12 +28,7 @@ firmware for your platform and device.
 
 Once acquired, install the firmware to `/lib/firmware`:
 
-For the NFP3200 device family:
-
-    # mkdir -p /lib/firmware/netronome
-    # cp nfp3200_net.cat /lib/firmware/netronome
-
-For the NFP6000/NFP4000 device family:
+For the NFP4000/NFP6000 device family:
 
     # mkdir -p /lib/firmware/netronome
     # cp nfp6000_net.cat /lib/firmware/netronome
@@ -148,23 +143,19 @@ this is only presented here as a reference.
 | nfp_net_vnic    |   false | vNIC net devices [1]                            |
 | nfp_net_vnic_pollinterval | 10 | Polling interval for Rx/Tx queues (in ms)  |
 | nfp_net_vnic_debug | false | Enable debug printk messages                   |
-| nfp_mon_err     |   false | ECC Monitor [2]                                 |
-| nfp_mon_err_pollinterval | 10 | Polling interval for error checking (in ms) |
-| nfp_reset       |   false | Reset the NFP on init [3]                       |
+| nfp_reset       |   false | Reset the NFP on init [2]                       |
 | nfp_reset_on_exit | false | Reset the NFP on exit                           |
 | hwinfo_debug    |   false | Enable to log hwinfo contents on load           |
 | board_state     |      15 | HWInfo board.state to wait for. (range: 0..15)  |
 | hwinfo_wait     |      10 | Wait N sec for board.state match, -1 = forever  |
 | nfp6000_explicit_bars | 4 | Number of explicit BARs. (range: 1..4)          |
 | nfp6000_debug   |   false | Enable debugging for the NFP6000 PCIe           |
-| nfp3200_debug   |   false | Enable debugging for the NFP3200 PCIe           |
 | nfp6000_firmware | (none) | NFP6000 firmware to load from /lib/firmware/    |
 
 NOTES:
 
 1. The vNIC net device creates a pseudo-NIC for NFP ARM Linux systems.
-2. The 'ECC Monitor' example is for the NFP3200 hardware only.
-3. Reset on init will be performed anyway if firmware file is specified.
+2. Reset on init will be performed anyway if firmware file is specified.
 
 ## NFP Core Library
 
@@ -178,8 +169,6 @@ All sources are in `src/nfpcore/`:
 | Source              | Type      | Description                               |
 | ------------------- | ----------|------------------------------------------ |
 | crc32.c             | API       | CRC32 library                             |
-| nfp3200_pcie.c      | Transport | NFP3200 PCIe interface                    |
-| nfp3200_plat.c      | Transport | NFP3200/NFP6000 ARM interface             |
 | nfp6000_pcie.c      | Transport | NFP6000 PCIe interface                    |
 | nfp_ca.c            | API       | CPP Action firmware file parser           |
 | nfp_cppcore.c       | API       | CPP bus core                              |
@@ -191,7 +180,6 @@ All sources are in `src/nfpcore/`:
 | nfp_hwinfo.c        | API       | NFP Hardware Info Database                |
 | nfp_i2c.c           | API       | NFP I2C access                            |
 | nfp_mip.c           | API       | Microcode Information Page                |
-| nfp_mon_err.c       | Example   | ECC error monitor for the NFP3200         |
 | nfp_nbi.c           | API       | NFP NBI access                            |
 | nfp_nbi_mac_eth.c   | API       | NFP NBI Ethernet MAC access               |
 | nfp_nbi_phymod.c    | API       | NFP NBI Ethernet PHY access               |
