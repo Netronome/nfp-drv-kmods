@@ -306,6 +306,13 @@ static void expa_set(struct nfp_plat *priv, u32 csr, unsigned int id)
 			csr);
 }
 
+static u16 nfp_plat_get_interface(struct device *dev)
+{
+	return NFP_CPP_INTERFACE(NFP_CPP_INTERFACE_TYPE_ARM,
+				 0,
+				 NFP_CPP_INTERFACE_CHANNEL_PEROPENER);
+}
+
 static int nfp_plat_area_init(struct nfp_cpp_area *area, u32 dest, u64 addr,
 			      unsigned long size)
 {
@@ -881,6 +888,8 @@ int nfp_plat_explicit_get(struct nfp_cpp_explicit *expl, void *buff, size_t len)
 }
 
 const struct nfp_cpp_operations nfp_plat_template = {
+	.get_interface = nfp_plat_get_interface,
+
 	.area_priv_size = sizeof(struct nfp_plat_area_priv),
 	.area_init = nfp_plat_area_init,
 	.area_cleanup = nfp_plat_area_cleanup,
@@ -1198,10 +1207,6 @@ static int nfp_plat_probe(struct platform_device *pdev)
 
 	priv->op = nfp_plat_template;
 	/* We support multiple virtual channels over this interface */
-	priv->op.interface = NFP_CPP_INTERFACE(
-					NFP_CPP_INTERFACE_TYPE_ARM,
-					0,
-					NFP_CPP_INTERFACE_CHANNEL_PEROPENER);
 	priv->op.parent = priv->dev;
 	priv->op.priv = priv;
 

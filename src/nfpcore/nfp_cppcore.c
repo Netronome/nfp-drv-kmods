@@ -90,7 +90,11 @@ struct nfp_cpp {
 	int id;
 	struct device dev;
 	struct kref kref;
+
 	u32 model;
+	u16 interface;
+	u8 serial[NFP_SERIAL_LEN];
+
 	const struct nfp_cpp_operations *op;
 	struct list_head resource_list;	/** NFP CPP resource list */
 	struct list_head mutex_cache;	/** Mutex cache */
@@ -368,7 +372,7 @@ u32 nfp_cpp_model(struct nfp_cpp *cpp)
  */
 u16 nfp_cpp_interface(struct nfp_cpp *cpp)
 {
-	return cpp->op->interface;
+	return cpp->interface;
 }
 
 /**
@@ -380,8 +384,8 @@ u16 nfp_cpp_interface(struct nfp_cpp *cpp)
  */
 int nfp_cpp_serial(struct nfp_cpp *cpp, const u8 **serial)
 {
-	*serial = &cpp->op->serial[0];
-	return sizeof(cpp->op->serial);
+	*serial = &cpp->serial[0];
+	return sizeof(cpp->serial);
 }
 
 static void __resource_add(struct list_head *head, struct nfp_cpp_resource *res)
@@ -1413,6 +1417,11 @@ struct nfp_cpp *nfp_cpp_from_operations(const struct nfp_cpp_operations *ops)
 
 	cpp->id = id;
 	cpp->op = ops;
+	cpp->interface = ops->get_interface(ops->parent);
+	if (ops->read_serial) {
+		ops->read_serial(ops->parent, cpp->serial);
+		dev_info(ops->parent, "Serial Number: %pM\n", cpp->serial);
+	}
 	kref_init(&cpp->kref);
 	rwlock_init(&cpp->resource_lock);
 	init_waitqueue_head(&cpp->waitq);

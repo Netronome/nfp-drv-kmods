@@ -377,10 +377,10 @@ struct nfp_cpp_explicit_command {
 	s8   sigb_mode;
 };
 
+#define NFP_SERIAL_LEN		6
+
 /**
  * struct nfp_cpp_operations - NFP CPP operations structure
- * @interface:          Interface ID - required!
- * @serial:             Serial number, typically the management MAC for the NFP
  * @area_priv_size:     Size of the nfp_cpp_area private data
  * @event_priv_size:    Size of the nfp_cpp_event private data
  * @owner:              Owner module
@@ -388,6 +388,8 @@ struct nfp_cpp_explicit_command {
  * @priv:               Private data
  * @init:               Initialize the NFP CPP bus
  * @free:               Free the bus
+ * @read_serial:	Read serial number to memory provided
+ * @get_interface:	Return CPP interface
  * @area_init:          Initialize a new NFP CPP area (not serialized)
  * @area_cleanup:       Clean up a NFP CPP area (not serialized)
  * @area_acquire:       Acquire the NFP CPP area (serialized)
@@ -407,9 +409,6 @@ struct nfp_cpp_explicit_command {
  * @explicit_do:        Perform the transaction
  */
 struct nfp_cpp_operations {
-	u16 interface;
-	u8 serial[6];
-
 	size_t area_priv_size;
 	size_t event_priv_size;
 	struct module *owner;
@@ -418,6 +417,9 @@ struct nfp_cpp_operations {
 
 	int (*init)(struct nfp_cpp *cpp);
 	void (*free)(struct nfp_cpp *cpp);
+
+	void (*read_serial)(struct device *dev, u8 *serial);
+	u16 (*get_interface)(struct device *dev);
 
 	int (*area_init)(struct nfp_cpp_area *area,
 			 u32 dest, unsigned long long address,
@@ -465,7 +467,7 @@ int nfp_cpp_area_cache_add(struct nfp_cpp *cpp, size_t size);
 
 /*
  * Use this channel ID for multiple virtual channel interfaces
- * (ie ARM and PCIe) when setting up the nfp_cpp_ops.interface field.
+ * (ie ARM and PCIe) when setting up the interface field.
  */
 #define NFP_CPP_INTERFACE_CHANNEL_PEROPENER	255
 struct device *nfp_cpp_device(struct nfp_cpp *cpp);

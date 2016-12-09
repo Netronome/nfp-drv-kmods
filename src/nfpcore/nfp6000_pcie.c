@@ -801,7 +801,7 @@ static int bar_cmp(const void *aptr, const void *bptr)
  * BAR1.0-BAR1.7: --
  * BAR2.0-BAR2.7: --
  */
-static int enable_bars(struct nfp6000_pcie *nfp)
+static int enable_bars(struct nfp6000_pcie *nfp, u16 interface)
 {
 	int expl_groups;
 	const u32 barcfg_msix_general =
@@ -865,7 +865,7 @@ static int enable_bars(struct nfp6000_pcie *nfp)
 	 */
 	mutex_init(&nfp->expl.mutex);
 
-	nfp->expl.master_id = ((NFP_CPP_INTERFACE_UNIT_of(nfp->ops.interface)
+	nfp->expl.master_id = ((NFP_CPP_INTERFACE_UNIT_of(interface)
 				& 3) + 4) << 4;
 	nfp->expl.signal_ref = 0x10;
 
@@ -1554,6 +1554,39 @@ static void nfp6000_free(struct nfp_cpp *cpp)
 	kfree(nfp);
 }
 
+static void nfp6000_read_serial(struct device *dev, u8 *serial)
+{
+	struct pci_dev *pdev = to_pci_dev(dev);
+	int pos;
+	u32 reg;
+
+	pos = pci_find_ext_capability(pdev, PCI_EXT_CAP_ID_DSN);
+	if (!pos) {
+		memset(serial, 0, NFP_SERIAL_LEN);
+		return;
+	}
+
+	pci_read_config_dword(pdev, pos + 4, &reg);
+	put_unaligned_be16(reg >> 16, serial + 4);
+	pci_read_config_dword(pdev, pos + 8, &reg);
+	put_unaligned_be32(reg, serial);
+}
+
+static u16 nfp6000_get_interface(struct device *dev)
+{
+	struct pci_dev *pdev = to_pci_dev(dev);
+	int pos;
+	u32 reg;
+
+	pos = pci_find_ext_capability(pdev, PCI_EXT_CAP_ID_DSN);
+	if (!pos)
+		return NFP_CPP_INTERFACE(NFP_CPP_INTERFACE_TYPE_PCI, 0, 0xff);
+
+	pci_read_config_dword(pdev, pos + 4, &reg);
+
+	return reg & 0xffff;
+}
+
 /**
  * nfp_cpp_from_nfp6000_pcie() - Build a NFP CPP bus from a NFP6000 PCI device
  * @pdev:	NFP6000 PCI device
@@ -1565,7 +1598,8 @@ struct nfp_cpp *nfp_cpp_from_nfp6000_pcie(struct pci_dev *pdev, int event_irq)
 {
 	struct nfp_cpp_operations *ops;
 	struct nfp6000_pcie *nfp;
-	int err, pos;
+	u16 interface;
+	int err;
 
 	/*  Finished with card initialization. */
 	dev_info(&pdev->dev,
@@ -1585,51 +1619,21 @@ struct nfp_cpp *nfp_cpp_from_nfp6000_pcie(struct pci_dev *pdev, int event_irq)
 	ops->parent = &pdev->dev;
 	ops->priv = nfp;
 
-	pos = pci_find_ext_capability(pdev, PCI_EXT_CAP_ID_DSN);
-	if (pos) {
-		u32 serial[2];
+	interface = nfp6000_get_interface(&pdev->dev);
 
-		pci_read_config_dword(pdev, pos + 4, &serial[0]);
-		pci_read_config_dword(pdev, pos + 8, &serial[1]);
-
-		dev_info(&pdev->dev, "Serial Number: %02x-%02x-%02x-%02x-%02x-%02x\n",
-			 (serial[1] >> 24) & 0xff,
-			 (serial[1] >> 16) & 0xff,
-			 (serial[1] >>  8) & 0xff,
-			 (serial[1] >>  0) & 0xff,
-			 (serial[0] >> 24) & 0xff,
-			 (serial[0] >> 16) & 0xff);
-
-		/* Set the NFP operations interface ID and serial number */
-		ops->serial[0] = (serial[1] >> 24) & 0xff;
-		ops->serial[1] = (serial[1] >> 16) & 0xff;
-		ops->serial[2] = (serial[1] >>  8) & 0xff;
-		ops->serial[3] = (serial[1] >>  0) & 0xff;
-		ops->serial[4] = (serial[0] >> 24) & 0xff;
-		ops->serial[5] = (serial[0] >> 16) & 0xff;
-
-		ops->interface = serial[0] & 0xffff;
-	} else {
-		/* Fallback - only one PCI interface supported
-		 * if no serial number is present
-		 */
-		ops->interface = NFP_CPP_INTERFACE(
-				NFP_CPP_INTERFACE_TYPE_PCI, 0, 0xff);
-	}
-
-	if (NFP_CPP_INTERFACE_TYPE_of(ops->interface) !=
+	if (NFP_CPP_INTERFACE_TYPE_of(interface) !=
 	    NFP_CPP_INTERFACE_TYPE_PCI) {
 		dev_err(&pdev->dev, "Interface type %d is not the expected %d\n",
-			NFP_CPP_INTERFACE_TYPE_of(ops->interface),
+			NFP_CPP_INTERFACE_TYPE_of(interface),
 			NFP_CPP_INTERFACE_TYPE_PCI);
 		kfree(nfp);
 		return ERR_PTR(-ENODEV);
 	}
 
-	if (NFP_CPP_INTERFACE_CHANNEL_of(ops->interface) !=
-		NFP_CPP_INTERFACE_CHANNEL_PEROPENER) {
+	if (NFP_CPP_INTERFACE_CHANNEL_of(interface) !=
+	    NFP_CPP_INTERFACE_CHANNEL_PEROPENER) {
 		dev_err(&pdev->dev, "Interface channel %d is not the expected %d\n",
-			NFP_CPP_INTERFACE_CHANNEL_of(ops->interface),
+			NFP_CPP_INTERFACE_CHANNEL_of(interface),
 			NFP_CPP_INTERFACE_CHANNEL_PEROPENER);
 		kfree(nfp);
 		return ERR_PTR(-ENODEV);
@@ -1657,12 +1661,15 @@ struct nfp_cpp *nfp_cpp_from_nfp6000_pcie(struct pci_dev *pdev, int event_irq)
 	ops->event_acquire = nfp6000_event_acquire;
 	ops->event_release = nfp6000_event_release;
 
+	ops->read_serial = nfp6000_read_serial;
+	ops->get_interface = nfp6000_get_interface;
+
 	ops->init = nfp6000_init;
 	ops->free = nfp6000_free;
 
 	ops->owner = THIS_MODULE;
 
-	err = enable_bars(nfp);
+	err = enable_bars(nfp, interface);
 	if (err)
 		goto err_enable_bars;
 
