@@ -379,7 +379,6 @@ struct nfp_cpp_explicit_command {
 
 /**
  * struct nfp_cpp_operations - NFP CPP operations structure
- * @model:              Model ID (0 for built-in autodetection)
  * @interface:          Interface ID - required!
  * @serial:             Serial number, typically the management MAC for the NFP
  * @area_priv_size:     Size of the nfp_cpp_area private data
@@ -408,7 +407,6 @@ struct nfp_cpp_explicit_command {
  * @explicit_do:        Perform the transaction
  */
 struct nfp_cpp_operations {
-	u32 model;
 	u16 interface;
 	u8 serial[6];
 

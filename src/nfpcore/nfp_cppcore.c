@@ -1438,9 +1438,6 @@ struct nfp_cpp *nfp_cpp_from_operations(const struct nfp_cpp_operations *ops)
 	if (err < 0)
 		goto err_attr;
 
-	if (cpp->op->model)
-		cpp->model = cpp->op->model;
-
 	/* NOTE: cpp_lock is NOT locked for op->init,
 	 * since it may call NFP CPP API operations
 	 */
@@ -1453,13 +1450,10 @@ struct nfp_cpp *nfp_cpp_from_operations(const struct nfp_cpp_operations *ops)
 		}
 	}
 
-	/* If cpp->op->model == 0, then autodetection is requested */
-	if (cpp->op->model == 0) {
-		err = __nfp_cpp_model_autodetect(cpp, &cpp->model);
-		if (err < 0) {
-			dev_err(ops->parent, "NFP model detection failed\n");
-			goto err_out;
-		}
+	err = __nfp_cpp_model_autodetect(cpp, &cpp->model);
+	if (err < 0) {
+		dev_err(ops->parent, "NFP model detection failed\n");
+		goto err_out;
 	}
 
 	for (tgt = 0; tgt < ARRAY_SIZE(cpp->imb_cat_table); tgt++) {

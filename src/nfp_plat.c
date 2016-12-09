@@ -1197,7 +1197,6 @@ static int nfp_plat_probe(struct platform_device *pdev)
 	}
 
 	priv->op = nfp_plat_template;
-	priv->op.model = 0;	/* Autodetected model ID */
 	/* We support multiple virtual channels over this interface */
 	priv->op.interface = NFP_CPP_INTERFACE(
 					NFP_CPP_INTERFACE_TYPE_ARM,
