@@ -44,8 +44,6 @@
  * abstraction builds upon this BAR interface.
  */
 
-#define NFP6000_LONGNAMES 1
-
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/kref.h>

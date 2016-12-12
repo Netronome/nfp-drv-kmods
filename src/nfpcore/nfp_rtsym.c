@@ -38,7 +38,6 @@
  *          Espen Skoglund <espen.skoglund@netronome.com>
  *          Francois H. Theron <francois.theron@netronome.com>
  */
-#define NFP6000_LONGNAMES
 
 #include <linux/kernel.h>
 #include <linux/module.h>
