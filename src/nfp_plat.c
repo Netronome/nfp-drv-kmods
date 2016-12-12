@@ -1207,12 +1207,11 @@ static int nfp_plat_probe(struct platform_device *pdev)
 
 	priv->op = nfp_plat_template;
 	/* We support multiple virtual channels over this interface */
-	priv->op.parent = priv->dev;
 	priv->op.priv = priv;
 
 	platform_set_drvdata(pdev, priv);
 
-	priv->cpp = nfp_cpp_from_operations(&priv->op);
+	priv->cpp = nfp_cpp_from_operations(&priv->op, priv->dev);
 	BUG_ON(!priv->cpp);
 
 	model = nfp_cpp_model(priv->cpp);

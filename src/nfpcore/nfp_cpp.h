@@ -384,7 +384,6 @@ struct nfp_cpp_explicit_command {
  * @area_priv_size:     Size of the nfp_cpp_area private data
  * @event_priv_size:    Size of the nfp_cpp_event private data
  * @owner:              Owner module
- * @parent:             Parent device
  * @priv:               Private data
  * @init:               Initialize the NFP CPP bus
  * @free:               Free the bus
@@ -412,7 +411,6 @@ struct nfp_cpp_operations {
 	size_t area_priv_size;
 	size_t event_priv_size;
 	struct module *owner;
-	struct device *parent;	/* Device handle */
 	void *priv;		/* Private data */
 
 	int (*init)(struct nfp_cpp *cpp);
@@ -454,8 +452,9 @@ struct nfp_cpp_operations {
 			   u64 address);
 };
 
-struct nfp_cpp *nfp_cpp_from_operations(
-		const struct nfp_cpp_operations *cpp_ops);
+struct nfp_cpp *
+nfp_cpp_from_operations(const struct nfp_cpp_operations *ops,
+			struct device *parent);
 void *nfp_cpp_priv(struct nfp_cpp *priv);
 
 int nfp_cpp_area_cache_add(struct nfp_cpp *cpp, size_t size);

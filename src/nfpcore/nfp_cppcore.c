@@ -233,7 +233,7 @@ static void __nfp_cpp_release(struct kref *kref)
 	/* .. but if there are, unlock them and complain.
 	 */
 	list_for_each_entry_safe(mutex, mtmp, &cpp->mutex_cache, list) {
-		dev_err(cpp->op->parent, "Dangling mutex: @%d::0x%llx, %d locks held by %d owners\n",
+		dev_err(cpp->dev.parent, "Dangling mutex: @%d::0x%llx, %d locks held by %d owners\n",
 			mutex->target, (unsigned long long)mutex->address,
 			mutex->depth, mutex->usage);
 
@@ -268,7 +268,7 @@ static void __nfp_cpp_release(struct kref *kref)
 							 struct nfp_cpp_area,
 							 resource);
 
-		dev_err(cpp->op->parent, "Dangling area: %d:%d:%d:0x%0llx-0x%0llx%s%s\n",
+		dev_err(cpp->dev.parent, "Dangling area: %d:%d:%d:0x%0llx-0x%0llx%s%s\n",
 			NFP_CPP_ID_TARGET_of(res->cpp_id),
 			NFP_CPP_ID_ACTION_of(res->cpp_id),
 			NFP_CPP_ID_TOKEN_of(res->cpp_id),
@@ -1387,12 +1387,15 @@ static void nfp_cpp_dev_release(struct device *dev)
  * nfp_cpp_from_operations() - Create a NFP CPP handle
  *                             from an operations structure
  * @ops:       NFP CPP operations structure
+ * @parent:    Parent device
  *
  * NOTE: On failure, cpp_ops->free will be called!
  *
  * Return: NFP CPP handle on success, ERR_PTR on failure
  */
-struct nfp_cpp *nfp_cpp_from_operations(const struct nfp_cpp_operations *ops)
+struct nfp_cpp *
+nfp_cpp_from_operations(const struct nfp_cpp_operations *ops,
+			struct device *parent)
 {
 	const u32 arm = NFP_CPP_ID(NFP_CPP_TARGET_ARM, NFP_CPP_ACTION_RW, 0);
 	int id, err;
@@ -1401,11 +1404,11 @@ struct nfp_cpp *nfp_cpp_from_operations(const struct nfp_cpp_operations *ops)
 	u32 xpbaddr;
 	size_t tgt;
 
-	BUG_ON(!ops->parent);
+	BUG_ON(!parent);
 
 	id = nfp_cpp_id_acquire();
 	if (id < 0) {
-		dev_err(ops->parent, "Out of NFP CPP API slots.\n");
+		dev_err(parent, "Out of NFP CPP API slots.\n");
 		return ERR_PTR(id);
 	}
 
@@ -1417,10 +1420,10 @@ struct nfp_cpp *nfp_cpp_from_operations(const struct nfp_cpp_operations *ops)
 
 	cpp->id = id;
 	cpp->op = ops;
-	cpp->interface = ops->get_interface(ops->parent);
+	cpp->interface = ops->get_interface(parent);
 	if (ops->read_serial) {
-		ops->read_serial(ops->parent, cpp->serial);
-		dev_info(ops->parent, "Serial Number: %pM\n", cpp->serial);
+		ops->read_serial(parent, cpp->serial);
+		dev_info(parent, "Serial Number: %pM\n", cpp->serial);
 	}
 	kref_init(&cpp->kref);
 	rwlock_init(&cpp->resource_lock);
@@ -1433,7 +1436,7 @@ struct nfp_cpp *nfp_cpp_from_operations(const struct nfp_cpp_operations *ops)
 	INIT_LIST_HEAD(&cpp->area_cache_list);
 	mutex_init(&cpp->area_cache_mutex);
 	cpp->dev.init_name = "cpp";
-	cpp->dev.parent = ops->parent;
+	cpp->dev.parent = parent;
 	cpp->dev.release = nfp_cpp_dev_release;
 	err = device_register(&cpp->dev);
 	if (err < 0) {
@@ -1453,7 +1456,7 @@ struct nfp_cpp *nfp_cpp_from_operations(const struct nfp_cpp_operations *ops)
 	if (cpp->op->init) {
 		err = cpp->op->init(cpp);
 		if (err < 0) {
-			dev_err(ops->parent,
+			dev_err(parent,
 				"NFP interface initialization failed\n");
 			goto err_out;
 		}
@@ -1461,7 +1464,7 @@ struct nfp_cpp *nfp_cpp_from_operations(const struct nfp_cpp_operations *ops)
 
 	err = __nfp_cpp_model_autodetect(cpp, &cpp->model);
 	if (err < 0) {
-		dev_err(ops->parent, "NFP model detection failed\n");
+		dev_err(parent, "NFP model detection failed\n");
 		goto err_out;
 	}
 
@@ -1471,7 +1474,7 @@ struct nfp_cpp *nfp_cpp_from_operations(const struct nfp_cpp_operations *ops)
 		err = nfp_xpb_readl(cpp, xpbaddr,
 				    &cpp->imb_cat_table[tgt]);
 		if (err < 0) {
-			dev_err(ops->parent,
+			dev_err(parent,
 				"Can't read CPP mapping from device\n");
 			goto err_out;
 		}
@@ -1488,7 +1491,7 @@ struct nfp_cpp *nfp_cpp_from_operations(const struct nfp_cpp_operations *ops)
 	list_add_tail(&cpp->list, &nfp_cpp_list);
 	write_unlock(&nfp_cpp_list_lock);
 
-	dev_info(cpp->op->parent, "Model: 0x%08x, Interface: 0x%04x\n",
+	dev_info(cpp->dev.parent, "Model: 0x%08x, Interface: 0x%04x\n",
 		 nfp_cpp_model(cpp), nfp_cpp_interface(cpp));
 
 	return cpp;
@@ -1939,7 +1942,7 @@ int nfp_cpp_mutex_lock(struct nfp_cpp_mutex *mutex)
 
 		if (time_is_before_eq_jiffies(warn_at)) {
 			warn_at = jiffies + 60 * HZ;
-			dev_warn(mutex->cpp->op->parent,
+			dev_warn(mutex->cpp->dev.parent,
 				 "Warning: waiting for NFP mutex [usage:%hd depth:%hd target:%d addr:%llx key:%08x]\n",
 				 mutex->usage, mutex->depth,
 				 mutex->target, mutex->address, mutex->key);
