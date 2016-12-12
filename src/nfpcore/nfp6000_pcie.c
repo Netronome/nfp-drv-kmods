@@ -1616,7 +1616,6 @@ struct nfp_cpp *nfp_cpp_from_nfp6000_pcie(struct pci_dev *pdev, int event_irq)
 	init_waitqueue_head(&nfp->bar_waiters);
 	spin_lock_init(&nfp->bar_lock);
 	ops = &nfp->ops;
-	ops->priv = nfp;
 
 	interface = nfp6000_get_interface(&pdev->dev);
 
@@ -1683,7 +1682,7 @@ struct nfp_cpp *nfp_cpp_from_nfp6000_pcie(struct pci_dev *pdev, int event_irq)
 
 	/* Probe for all the common NFP devices */
 	dev_info(&pdev->dev, "Found a NFP6000 on the PCIe bus.\n");
-	return nfp_cpp_from_operations(&nfp->ops, &pdev->dev);
+	return nfp_cpp_from_operations(&nfp->ops, &pdev->dev, nfp);
 
 err_em_init:
 	disable_bars(nfp);

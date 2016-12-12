@@ -91,6 +91,8 @@ struct nfp_cpp {
 	struct device dev;
 	struct kref kref;
 
+	void *priv; /* Private data of the low-level implementation */
+
 	u32 model;
 	u16 interface;
 	u8 serial[NFP_SERIAL_LEN];
@@ -1388,6 +1390,7 @@ static void nfp_cpp_dev_release(struct device *dev)
  *                             from an operations structure
  * @ops:       NFP CPP operations structure
  * @parent:    Parent device
+ * @priv:      Private data of low-level implementation
  *
  * NOTE: On failure, cpp_ops->free will be called!
  *
@@ -1395,7 +1398,7 @@ static void nfp_cpp_dev_release(struct device *dev)
  */
 struct nfp_cpp *
 nfp_cpp_from_operations(const struct nfp_cpp_operations *ops,
-			struct device *parent)
+			struct device *parent, void *priv)
 {
 	const u32 arm = NFP_CPP_ID(NFP_CPP_TARGET_ARM, NFP_CPP_ACTION_RW, 0);
 	int id, err;
@@ -1420,6 +1423,7 @@ nfp_cpp_from_operations(const struct nfp_cpp_operations *ops,
 
 	cpp->id = id;
 	cpp->op = ops;
+	cpp->priv = priv;
 	cpp->interface = ops->get_interface(parent);
 	if (ops->read_serial) {
 		ops->read_serial(parent, cpp->serial);
@@ -1515,7 +1519,7 @@ err_malloc:
  */
 void *nfp_cpp_priv(struct nfp_cpp *cpp)
 {
-	return cpp->op->priv;
+	return cpp->priv;
 }
 
 /**
