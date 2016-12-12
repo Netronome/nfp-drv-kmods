@@ -189,8 +189,6 @@ struct nfp6000_pcie {
 	struct pci_dev *pdev;
 	struct device *dev;
 
-	struct nfp_cpp_operations ops;
-
 	/* PCI BAR management */
 	spinlock_t bar_lock;		/* Protect the PCI2CPP BAR cache */
 	int bars;
@@ -1587,6 +1585,38 @@ static u16 nfp6000_get_interface(struct device *dev)
 	return reg & 0xffff;
 }
 
+static const struct nfp_cpp_operations nfp6000_pcie_ops = {
+	.owner			= THIS_MODULE,
+
+	.init			= nfp6000_init,
+	.free			= nfp6000_free,
+
+	.read_serial		= nfp6000_read_serial,
+	.get_interface		= nfp6000_get_interface,
+
+	.area_priv_size		= sizeof(struct nfp6000_area_priv),
+	.area_init		= nfp6000_area_init,
+	.area_cleanup		= nfp6000_area_cleanup,
+	.area_acquire		= nfp6000_area_acquire,
+	.area_release		= nfp6000_area_release,
+	.area_phys		= nfp6000_area_phys,
+	.area_iomem		= nfp6000_area_iomem,
+	.area_resource		= nfp6000_area_resource,
+	.area_read		= nfp6000_area_read,
+	.area_write		= nfp6000_area_write,
+
+	.explicit_priv_size	= sizeof(struct nfp6000_explicit_priv),
+	.explicit_acquire	= nfp6000_explicit_acquire,
+	.explicit_release	= nfp6000_explicit_release,
+	.explicit_put		= nfp6000_explicit_put,
+	.explicit_do		= nfp6000_explicit_do,
+	.explicit_get		= nfp6000_explicit_get,
+
+	.event_priv_size	= sizeof(struct nfp6000_event_priv),
+	.event_acquire		= nfp6000_event_acquire,
+	.event_release		= nfp6000_event_release,
+};
+
 /**
  * nfp_cpp_from_nfp6000_pcie() - Build a NFP CPP bus from a NFP6000 PCI device
  * @pdev:	NFP6000 PCI device
@@ -1596,7 +1626,6 @@ static u16 nfp6000_get_interface(struct device *dev)
  */
 struct nfp_cpp *nfp_cpp_from_nfp6000_pcie(struct pci_dev *pdev, int event_irq)
 {
-	struct nfp_cpp_operations *ops;
 	struct nfp6000_pcie *nfp;
 	u16 interface;
 	int err;
@@ -1615,7 +1644,6 @@ struct nfp_cpp *nfp_cpp_from_nfp6000_pcie(struct pci_dev *pdev, int event_irq)
 	nfp->pdev = pdev;
 	init_waitqueue_head(&nfp->bar_waiters);
 	spin_lock_init(&nfp->bar_lock);
-	ops = &nfp->ops;
 
 	interface = nfp6000_get_interface(&pdev->dev);
 
@@ -1637,36 +1665,6 @@ struct nfp_cpp *nfp_cpp_from_nfp6000_pcie(struct pci_dev *pdev, int event_irq)
 		return ERR_PTR(-ENODEV);
 	}
 
-	ops->area_priv_size = sizeof(struct nfp6000_area_priv);
-	ops->area_init = nfp6000_area_init;
-	ops->area_cleanup = nfp6000_area_cleanup;
-	ops->area_acquire = nfp6000_area_acquire;
-	ops->area_release = nfp6000_area_release;
-	ops->area_phys = nfp6000_area_phys;
-	ops->area_iomem = nfp6000_area_iomem;
-	ops->area_resource = nfp6000_area_resource;
-	ops->area_read = nfp6000_area_read;
-	ops->area_write = nfp6000_area_write;
-
-	ops->explicit_priv_size = sizeof(struct nfp6000_explicit_priv);
-	ops->explicit_acquire = nfp6000_explicit_acquire;
-	ops->explicit_release = nfp6000_explicit_release;
-	ops->explicit_put = nfp6000_explicit_put;
-	ops->explicit_do = nfp6000_explicit_do;
-	ops->explicit_get = nfp6000_explicit_get;
-
-	ops->event_priv_size = sizeof(struct nfp6000_event_priv);
-	ops->event_acquire = nfp6000_event_acquire;
-	ops->event_release = nfp6000_event_release;
-
-	ops->read_serial = nfp6000_read_serial;
-	ops->get_interface = nfp6000_get_interface;
-
-	ops->init = nfp6000_init;
-	ops->free = nfp6000_free;
-
-	ops->owner = THIS_MODULE;
-
 	err = enable_bars(nfp, interface);
 	if (err)
 		goto err_enable_bars;
@@ -1682,7 +1680,7 @@ struct nfp_cpp *nfp_cpp_from_nfp6000_pcie(struct pci_dev *pdev, int event_irq)
 
 	/* Probe for all the common NFP devices */
 	dev_info(&pdev->dev, "Found a NFP6000 on the PCIe bus.\n");
-	return nfp_cpp_from_operations(&nfp->ops, &pdev->dev, nfp);
+	return nfp_cpp_from_operations(&nfp6000_pcie_ops, &pdev->dev, nfp);
 
 err_em_init:
 	disable_bars(nfp);

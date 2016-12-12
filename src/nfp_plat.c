@@ -86,7 +86,6 @@ struct nfp_plat {
 	struct platform_device *nfp_dev_cpp;
 	struct platform_device *nfp_net_vnic[4];
 	struct nfp_cpp *cpp;
-	struct nfp_cpp_operations op;
 	int (*target_pushpull)(u32 cpp_id, u64 address);
 	spinlock_t lock;			/* Lock for the BAR cache */
 	struct nfp_plat_bar bulk_bar[7];	/* Last BULK is for user use */
@@ -887,7 +886,7 @@ int nfp_plat_explicit_get(struct nfp_cpp_explicit *expl, void *buff, size_t len)
 	return len;
 }
 
-const struct nfp_cpp_operations nfp_plat_template = {
+static const struct nfp_cpp_operations nfp_plat_ops = {
 	.get_interface = nfp_plat_get_interface,
 
 	.area_priv_size = sizeof(struct nfp_plat_area_priv),
@@ -1205,12 +1204,11 @@ static int nfp_plat_probe(struct platform_device *pdev)
 		return err;
 	}
 
-	priv->op = nfp_plat_template;
 	/* We support multiple virtual channels over this interface */
 
 	platform_set_drvdata(pdev, priv);
 
-	priv->cpp = nfp_cpp_from_operations(&priv->op, priv->dev, priv);
+	priv->cpp = nfp_cpp_from_operations(&nfp_plat_ops, priv->dev, priv);
 	BUG_ON(!priv->cpp);
 
 	model = nfp_cpp_model(priv->cpp);
