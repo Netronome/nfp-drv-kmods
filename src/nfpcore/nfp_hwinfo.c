@@ -44,16 +44,16 @@
  *   (ie, in this example, ME 39 has been reserved by boardconfig.)
  */
 
+#include <asm/byteorder.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/log2.h>
 #include <linux/crc32.h>
 #include <linux/delay.h>
 
+#include "crc32.h"
 #include "nfp.h"
 #include "nfp_cpp.h"
-
-#include <asm/byteorder.h>
 
 #define HWINFO_SIZE_MIN	0x100
 
@@ -193,24 +193,6 @@ static void hwinfo_db_parse(struct nfp_device *nfp, void *hwinfo)
 	}
 }
 
-static u32 hwinfo_crc(void *db)
-{
-	u32 len = NFP_HWINFO_SIZE_IN(db) - sizeof(u32);
-	u32 crc;
-
-	crc = crc32_be(0, db, len);
-
-	/* Extend with the length of the string (but not the length word). */
-	while (len != 0) {
-		u8 byte = len & 0xff;
-
-		crc = crc32_be(crc, (void *)&byte, 1);
-		len >>= 8;
-	}
-
-	return ~crc;
-}
-
 static int hwinfo_db_validate(struct nfp_device *nfp, void *db, u32 len)
 {
 	u32 crc;
@@ -229,7 +211,7 @@ static int hwinfo_db_validate(struct nfp_device *nfp, void *db, u32 len)
 		return -EINVAL;
 	}
 
-	crc = hwinfo_crc(db);
+	crc = crc32_posix(db, len);
 	if (crc != NFP_HWINFO_CRC32_IN(db)) {
 		nfp_err(nfp, "Corrupt hwinfo table (CRC mismatch), calculated 0x%x, expected 0x%x\n",
 			crc, NFP_HWINFO_CRC32_IN(db));
