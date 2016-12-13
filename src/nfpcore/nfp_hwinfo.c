@@ -31,14 +31,10 @@
  * SOFTWARE.
  */
 
-/*
- * nfp_ca.h
- * Author: Jason McMullan <jason.mcmullan@netronome.com>
- *
- * Parses the hwinfo table that the ARM firmware builds in the ARM scratch SRAM
+/* Parse the hwinfo table that the ARM firmware builds in the ARM scratch SRAM
  * after chip reset.
  *
- * Some of the fields:
+ * Examples of the fields:
  *   me.count = 40
  *   me.mask = 0x7f_ffff_ffff
  *
@@ -46,19 +42,6 @@
  *   me.mask is the bitmask of MEs that are available for application usage.
  *
  *   (ie, in this example, ME 39 has been reserved by boardconfig.)
- *
- *   arm.mem = 512
- *   assembly.model = rsvp
- *   board.exec = linux.bin
- *   board.setup = boardconfig.bin
- *   chip.model = NFP3240
- *   config.timestamp = 2010-1-5 17:58:22 GMT
- *   ddr.mem = 2048
- *   flash.model = tip
- *   me.mem = 1536
- *   qdr1.enabled = 1
- *   qdr1.mem = 8
- *   qdr1.type = mem
  */
 
 #include <linux/kernel.h>
@@ -85,7 +68,7 @@
  * 0x0008: u32 jumptab	        Offset of key/value table
  * 0x000c: u32 keys	        Total number of keys in the key/value table
  * NNNNNN:		        Key/value jump table and string data
- * (size - 4): u32 crc32	CRC32 (same as IEEE 802.3, POSIX cksum, etc)
+ * (size - 4): u32 crc32	CRC32 (same as IEEE 802.3, POSIX csum, etc)
  *				CRC32("",0) = ~0, CRC32("a",1) = 0x48C279FE
  *
  * HWInfo v2 Table (variable size)
@@ -95,7 +78,7 @@
  * 0x0008: u32 limit	        Maximum size of the table
  * 0x000c: u32 reserved	        Unused, set to zero
  * NNNNNN:			Key/value data
- * (size - 4): u32 crc32	CRC32 (same as IEEE 802.3, POSIX cksum, etc)
+ * (size - 4): u32 crc32	CRC32 (same as IEEE 802.3, POSIX csum, etc)
  *				CRC32("",0) = ~0, CRC32("a",1) = 0x48C279FE
  *
  * If the HWInfo table is in the process of being updated, the low bit
