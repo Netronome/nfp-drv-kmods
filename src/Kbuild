@@ -51,7 +51,6 @@ obj-$(CONFIG_NFP)	+= nfp.o
 
 nfp-objs := \
 	    nfpcore/nfp6000_pcie.o \
-	    nfpcore/crc32.o \
 	    nfpcore/nfp_nsp.o \
 	    nfpcore/nfp_ca.o \
 	    nfpcore/nfp_cppcore.o \
