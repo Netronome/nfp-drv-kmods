@@ -51,7 +51,6 @@
 #include <linux/wait.h>
 #include <linux/mutex.h>
 
-#include "nfp.h"
 #include "nfp_arm.h"
 #include "nfp_cpp.h"
 #include "nfp_target.h"

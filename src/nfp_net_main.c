@@ -210,8 +210,7 @@ static unsigned int nfp_net_pf_get_num_ports(struct nfp_pf *pf)
 	/* Default to one port */
 	if (err) {
 		if (err != -ENOENT)
-			nfp_cpp_err(pf->cpp,
-				    "Unable to read adapter port count\n");
+			nfp_err(pf->cpp, "Unable to read adapter port count\n");
 		val = 1;
 	}
 
@@ -480,7 +479,7 @@ int nfp_net_pci_probe(struct nfp_pf *pf, bool nfp_reset)
 
 	/* Verify that the board has completed initialization */
 	if ((!pf->fw_loaded && nfp_reset) || !nfp_is_ready(pf->cpp)) {
-		nfp_cpp_err(pf->cpp, "NFP is not ready for NIC operation.\n");
+		nfp_err(pf->cpp, "NFP is not ready for NIC operation.\n");
 		return 1;
 	}
 
@@ -492,7 +491,7 @@ int nfp_net_pci_probe(struct nfp_pf *pf, bool nfp_reset)
 
 	nfp_net_get_fw_version(&fw_ver, ctrl_bar);
 	if (fw_ver.resv || fw_ver.class != NFP_NET_CFG_VERSION_CLASS_GENERIC) {
-		nfp_cpp_err(pf->cpp, "Unknown Firmware ABI %d.%d.%d.%d\n",
+		nfp_err(pf->cpp, "Unknown Firmware ABI %d.%d.%d.%d\n",
 			fw_ver.resv, fw_ver.class, fw_ver.major, fw_ver.minor);
 		err = -EINVAL;
 		goto err_ctrl_unmap;
@@ -501,14 +500,14 @@ int nfp_net_pci_probe(struct nfp_pf *pf, bool nfp_reset)
 	/* Determine stride */
 	if (nfp_net_fw_ver_eq(&fw_ver, 0, 0, 0, 1)) {
 		stride = 2;
-		nfp_cpp_warn(pf->cpp, "OBSOLETE Firmware detected - VF isolation not available\n");
+		nfp_warn(pf->cpp, "OBSOLETE Firmware detected - VF isolation not available\n");
 	} else {
 		switch (fw_ver.major) {
 		case 1 ... 4:
 			stride = 4;
 			break;
 		default:
-			nfp_cpp_err(pf->cpp, "Unsupported Firmware ABI %d.%d.%d.%d\n",
+			nfp_err(pf->cpp, "Unsupported Firmware ABI %d.%d.%d.%d\n",
 				fw_ver.resv, fw_ver.class,
 				fw_ver.major, fw_ver.minor);
 			err = -EINVAL;
@@ -524,7 +523,7 @@ int nfp_net_pci_probe(struct nfp_pf *pf, bool nfp_reset)
 					    NFP_NET_CFG_START_RXQ,
 					    NFP_NET_CFG_MAX_RXRINGS);
 	if (!total_tx_qcs || !total_rx_qcs) {
-		nfp_cpp_err(pf->cpp, "Invalid PF QC configuration [%d,%d]\n",
+		nfp_err(pf->cpp, "Invalid PF QC configuration [%d,%d]\n",
 			total_tx_qcs, total_rx_qcs);
 		err = -EINVAL;
 		goto err_ctrl_unmap;
@@ -539,7 +538,7 @@ int nfp_net_pci_probe(struct nfp_pf *pf, bool nfp_reset)
 				  NFP_PCIE_QUEUE(start_q),
 				  tx_area_sz, &pf->tx_area);
 	if (IS_ERR(tx_bar)) {
-		nfp_cpp_err(pf->cpp, "Failed to map TX area.\n");
+		nfp_err(pf->cpp, "Failed to map TX area.\n");
 		err = PTR_ERR(tx_bar);
 		goto err_ctrl_unmap;
 	}
@@ -550,7 +549,7 @@ int nfp_net_pci_probe(struct nfp_pf *pf, bool nfp_reset)
 				  NFP_PCIE_QUEUE(start_q),
 				  rx_area_sz, &pf->rx_area);
 	if (IS_ERR(rx_bar)) {
-		nfp_cpp_err(pf->cpp, "Failed to map RX area.\n");
+		nfp_err(pf->cpp, "Failed to map RX area.\n");
 		err = PTR_ERR(rx_bar);
 		goto err_unmap_tx;
 	}

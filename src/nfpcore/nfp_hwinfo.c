@@ -189,7 +189,7 @@ static void hwinfo_db_parse(struct nfp_cpp *cpp, void *hwinfo)
 	     key = val + strlen(val) + 1) {
 		val = key + strlen(key) + 1;
 
-		nfp_cpp_dbg(cpp, "%s=%s\n", key, val);
+		nfp_dbg(cpp, "%s=%s\n", key, val);
 	}
 }
 
@@ -199,22 +199,22 @@ static int hwinfo_db_validate(struct nfp_cpp *cpp, void *db, u32 len)
 
 	if (NFP_HWINFO_VERSION_IN(db) != NFP_HWINFO_VERSION_1 &&
 	    NFP_HWINFO_VERSION_IN(db) != NFP_HWINFO_VERSION_2) {
-		nfp_cpp_err(cpp, "Unknown hwinfo version 0x%x, expected 0x%x or 0x%x\n",
-			    NFP_HWINFO_VERSION_IN(db),
-			    NFP_HWINFO_VERSION_1, NFP_HWINFO_VERSION_2);
+		nfp_err(cpp, "Unknown hwinfo version 0x%x, expected 0x%x or 0x%x\n",
+			NFP_HWINFO_VERSION_IN(db),
+			NFP_HWINFO_VERSION_1, NFP_HWINFO_VERSION_2);
 		return -EINVAL;
 	}
 
 	if (NFP_HWINFO_SIZE_IN(db) > len) {
-		nfp_cpp_err(cpp, "Unsupported hwinfo size %u > %u\n",
-			    NFP_HWINFO_SIZE_IN(db), len);
+		nfp_err(cpp, "Unsupported hwinfo size %u > %u\n",
+			NFP_HWINFO_SIZE_IN(db), len);
 		return -EINVAL;
 	}
 
 	crc = crc32_posix(db, len);
 	if (crc != NFP_HWINFO_CRC32_IN(db)) {
-		nfp_cpp_err(cpp, "Corrupt hwinfo table (CRC mismatch), calculated 0x%x, expected 0x%x\n",
-			    crc, NFP_HWINFO_CRC32_IN(db));
+		nfp_err(cpp, "Corrupt hwinfo table (CRC mismatch), calculated 0x%x, expected 0x%x\n",
+			crc, NFP_HWINFO_CRC32_IN(db));
 		return -EINVAL;
 	}
 
@@ -268,7 +268,7 @@ static int hwinfo_fetch_nowait(struct nfp_cpp *cpp,
 
 	r = nfp_cpp_area_read(area, 0, header, sizeof(header));
 	if (r < 0) {
-		nfp_cpp_err(cpp, "Can't read version: %d\n", r);
+		nfp_err(cpp, "Can't read version: %d\n", r);
 		goto exit_area_release;
 	}
 
@@ -280,7 +280,7 @@ static int hwinfo_fetch_nowait(struct nfp_cpp *cpp,
 	}
 
 	if (ver != NFP_HWINFO_VERSION_2 && ver != NFP_HWINFO_VERSION_1) {
-		nfp_cpp_err(cpp, "Unknown HWInfo version: 0x%08x\n", ver);
+		nfp_err(cpp, "Unknown HWInfo version: 0x%08x\n", ver);
 		r = -EINVAL;
 		goto exit_area_release;
 	}
@@ -332,7 +332,7 @@ static int hwinfo_fetch(struct nfp_cpp *cpp, void **hwdb, size_t *hwdb_size)
 	}
 
 	if (r < 0)
-		nfp_cpp_err(cpp, "NFP access error detected\n");
+		nfp_err(cpp, "NFP access error detected\n");
 
 	return r;
 }

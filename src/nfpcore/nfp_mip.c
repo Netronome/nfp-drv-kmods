@@ -360,7 +360,7 @@ int nfp_mip_probe(struct nfp_cpp *cpp)
 
 	mip = nfp_mip_cache(cpp);
 	if (mip && mip->loadtime == time) {
-		nfp_cpp_err(cpp, "MIP loadtime unchanged, not reloading\n");
+		nfp_err(cpp, "MIP loadtime unchanged, not reloading\n");
 		return 0; /* No change */
 	}
 

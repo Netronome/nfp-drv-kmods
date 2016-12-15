@@ -327,8 +327,8 @@ u64 nfp_rtsym_read_le(struct nfp_cpp *cpp, const char *name, int *error)
 		val = readq(ptr);
 		break;
 	default:
-		nfp_cpp_err(cpp, "rtsym '%s' non-scalar size: %lld\n",
-			    name, sym->size);
+		nfp_err(cpp, "rtsym '%s' non-scalar size: %lld\n",
+			name, sym->size);
 		err = -EINVAL;
 		goto err_release_free;
 	}

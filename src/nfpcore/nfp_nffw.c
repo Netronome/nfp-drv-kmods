@@ -298,7 +298,7 @@ void nfp_nffw_info_close(struct nfp_nffw_info *state)
 		/* Clear the device's nffw_info data to invalidate it */
 		memset(fwinf, 0, sizeof(*fwinf));
 		if (err < 0)
-			nfp_cpp_err(cpp, "NFFW info write back failed\n");
+			nfp_err(cpp, "NFFW info write back failed\n");
 	}
 
 	kfree(state);

@@ -166,14 +166,14 @@ int nfp_nsp_command(struct nfp_nsp *state, u16 code, u32 option,
 		return err;
 
 	if (NSP_MAGIC != NSP_STATUS_MAGIC_of(tmp)) {
-		nfp_cpp_err(cpp, "NSP: Cannot detect NFP Service Processor\n");
+		nfp_err(cpp, "NSP: Cannot detect NFP Service Processor\n");
 		return -ENODEV;
 	}
 
 	ok = NSP_STATUS_MAJOR_of(tmp) == NSP_CODE_MAJOR_of(code) &&
 	     NSP_STATUS_MINOR_of(tmp) >= NSP_CODE_MINOR_of(code);
 	if (!ok) {
-		nfp_cpp_err(cpp, "NSP: Code 0x%04x not supported (ABI %d.%d)\n",
+		nfp_err(cpp, "NSP: Code 0x%04x not supported (ABI %d.%d)\n",
 			code,
 			(int)NSP_STATUS_MAJOR_of(tmp),
 			(int)NSP_STATUS_MINOR_of(tmp));
@@ -181,7 +181,7 @@ int nfp_nsp_command(struct nfp_nsp *state, u16 code, u32 option,
 	}
 
 	if (tmp & NSP_STATUS_BUSY) {
-		nfp_cpp_err(cpp, "NSP: Service processor busy!\n");
+		nfp_err(cpp, "NSP: Service processor busy!\n");
 		return -EBUSY;
 	}
 
@@ -207,14 +207,14 @@ int nfp_nsp_command(struct nfp_nsp *state, u16 code, u32 option,
 			break;
 
 		if (msleep_interruptible(100) > 0) {
-			nfp_cpp_warn(cpp, "NSP: Interrupt waiting for code 0x%04x to start\n",
+			nfp_warn(cpp, "NSP: Interrupt waiting for code 0x%04x to start\n",
 				 code);
 			return -EINTR;
 		}
 	}
 
 	if (timeout < 0) {
-		nfp_cpp_warn(cpp, "NSP: Timeout waiting for code 0x%04x to start\n",
+		nfp_warn(cpp, "NSP: Timeout waiting for code 0x%04x to start\n",
 			 code);
 		return -ETIMEDOUT;
 	}
@@ -229,14 +229,14 @@ int nfp_nsp_command(struct nfp_nsp *state, u16 code, u32 option,
 			break;
 
 		if (msleep_interruptible(100) > 0) {
-			nfp_cpp_warn(cpp, "NSP: Interrupt waiting for code 0x%04x to complete\n",
+			nfp_warn(cpp, "NSP: Interrupt waiting for code 0x%04x to complete\n",
 				 code);
 			return -EINTR;
 		}
 	}
 
 	if (timeout < 0) {
-		nfp_cpp_warn(cpp, "NSP: Timeout waiting for code 0x%04x to complete\n",
+		nfp_warn(cpp, "NSP: Timeout waiting for code 0x%04x to complete\n",
 			 code);
 		return -ETIMEDOUT;
 	}
@@ -268,7 +268,7 @@ int nfp_nsp_command_buf(struct nfp_nsp *nsp, u16 code, u32 option,
 		return err;
 
 	if (NSP_STATUS_MINOR_of(tmp) < 13) {
-		nfp_cpp_err(cpp, "NSP: Code 0x%04x with buffer not supported (ABI %lld.%lld)\n",
+		nfp_err(cpp, "NSP: Code 0x%04x with buffer not supported (ABI %lld.%lld)\n",
 			code, NSP_STATUS_MAJOR_of(tmp),
 			NSP_STATUS_MINOR_of(tmp));
 		return -EOPNOTSUPP;
@@ -283,7 +283,7 @@ int nfp_nsp_command_buf(struct nfp_nsp *nsp, u16 code, u32 option,
 
 	max_size = max(in_size, out_size);
 	if (NSP_DEF_BUFFER_SIZE_MB_of(tmp) * SZ_1M < max_size) {
-		nfp_cpp_err(cpp, "NSP: default buffer too small for command (%llu < %u)\n",
+		nfp_err(cpp, "NSP: default buffer too small for command (%llu < %u)\n",
 			NSP_DEF_BUFFER_SIZE_MB_of(tmp) * SZ_1M, max_size);
 		return -EINVAL;
 	}

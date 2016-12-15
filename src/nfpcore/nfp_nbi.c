@@ -181,9 +181,8 @@ static void *nfp_nbi(struct nfp_cpp *cpp)
 
 		sym = nfp_rtsym_lookup(cpp, tx_flags_name);
 		if (sym) {
-			nfp_cpp_info(cpp,
-				     "NBI: Firmware TX pause control: %s\n",
-				     tx_flags_name);
+			nfp_info(cpp, "NBI: Firmware TX pause control: %s\n",
+				 tx_flags_name);
 			break;
 		}
 	}
@@ -396,9 +395,8 @@ static int nfp_nbi_tx_flush_flags(struct nfp_nbi_dev *nbi, u32 flags)
 	 * STOP to RUN, and there was no ACK.
 	 */
 	if (flags != TX_FLUSH_FLAG_RUN) {
-		nfp_cpp_warn(nbi->cpp,
-			     "NBI: pause_poll_tx_flush_flags was not acknowledged after %dms.\n",
-			     timeout_ms);
+		nfp_warn(nbi->cpp, "NBI: pause_poll_tx_flush_flags was not acknowledged after %dms.\n",
+			 timeout_ms);
 	}
 
 	return 0;
@@ -499,7 +497,7 @@ int nfp_nbi_mac_regw(struct nfp_nbi_dev *nbi, u32 base, u32 reg,
 	u32 r = NFP_XPB_ISLAND(nbi->nbi + 8) + base + reg;
 
 	if (priv->tx_flush_flags.sym && !priv->tx_flush_flags.count)
-		nfp_cpp_warn(nbi->cpp, "NBI: nbi_nbi_mac_regw() called outside of nfp_nbi_mac_acquire()/release()\n");
+		nfp_warn(nbi->cpp, "NBI: nbi_nbi_mac_regw() called outside of nfp_nbi_mac_acquire()/release()\n");
 
 	return nfp_xpb_writelm(nbi->cpp, r, mask, data);
 }
