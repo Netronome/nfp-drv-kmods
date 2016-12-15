@@ -503,10 +503,11 @@ static inline int nfp_net_xdp_offload(struct nfp_net *nn, struct bpf_prog *prog)
 
 #if COMPAT__HAVE_XDP
 static inline const struct file_operations *
-debugfs_real_fops(const struct file *file)
+compat_debugfs_real_fops(const struct file *file)
 {
 	return file->f_path.dentry->d_fsdata;
 }
+#define debugfs_real_fops compat_debugfs_real_fops
 #else
 #define debugfs_real_fops(x) (void *)1 /* Can't do NULL b/c of -Waddress */
 #endif /* COMPAT__HAVE_XDP */
