@@ -45,6 +45,9 @@
 #include <linux/pci.h>
 #include <linux/err.h>
 #include <linux/etherdevice.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+#include <linux/bitfield.h>
+#endif
 
 #define VER_VANILLA_LT(x, y)						\
 	(!RHEL_RELEASE_CODE && LINUX_VERSION_CODE < KERNEL_VERSION(x, y, 0))
@@ -94,6 +97,11 @@
 #ifndef GENMASK
 #define GENMASK(h, l) \
 	((~0UL << (l)) & (~0UL >> (BITS_PER_LONG - (h) - 1)))
+#endif
+
+#ifndef GENMASK_ULL
+#define GENMASK_ULL(h, l) \
+	((~0ULL << (l)) & (~0ULL >> (BITS_PER_LONG_LONG - (h) - 1)))
 #endif
 
 #ifndef dma_rmb
@@ -611,6 +619,26 @@ compat_debugfs_real_fops(const struct file *file)
 #else
 #define debugfs_real_fops(x) (void *)1 /* Can't do NULL b/c of -Waddress */
 #endif /* >= 4.8 */
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 0)
+#define _c1(x)  ((x) & 1)
+#define _c2(x)  ((((x)& 0x0003) &&  !_c1(x)) * ( _c1((x) >>  1) +  1) +  _c1(x))
+#define _c4(x)  ((((x)& 0x000f) &&  !_c2(x)) * ( _c2((x) >>  2) +  2) +  _c2(x))
+#define _c8(x)  ((((x)& 0x00ff) &&  !_c4(x)) * ( _c4((x) >>  4) +  4) +  _c4(x))
+#define _c16(x) ((((x)& 0xffff) &&  !_c8(x)) * ( _c8((x) >>  8) +  8) +  _c8(x))
+#define _c32(x) ((((x)&    ~0U) && !_c16(x)) * (_c16((x) >> 16) + 16) + _c16(x))
+#define _c64(x) ((((x)&  ~0ULL) && !_c32(x)) * (_c32((x) >> 32) + 32) + _c32(x))
+
+#define c64(x) (_c64(x) - 1)
+
+#define FIELD_GET(MASK, val)  ((((u64)val) & (MASK)) >> c64(MASK))
+#define FIELD_PREP(MASK, val)  ((((u64)val) << c64(MASK)) & (MASK))
+#define __bf_shf	c64
+#endif
+
+#ifndef FIELD_FIT
+#define FIELD_FIT(mask, val)	(!((((u64)val) << __bf_shf(mask)) & ~(mask)))
 #endif
 
 static inline unsigned long compat_vmf_get_addr(struct vm_fault *vmf)

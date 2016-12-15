@@ -41,6 +41,7 @@
 
 #include "nfp_asm.h"
 #include "nfp_bpf.h"
+#include "nfpcore/kcompat.h"
 
 /* --- NFP prog --- */
 /* Foreach "multiple" entries macros provide pos and next<n> pointers.

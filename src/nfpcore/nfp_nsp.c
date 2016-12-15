@@ -33,61 +33,94 @@
 
 /*
  * nfp_nsp.c
- * Author: Jason McMullan <jason.mcmullan@netronome.com>
+ * Author: Jakub Kicinski <jakub.kicinski@netronome.com>
+ *         Jason McMullan <jason.mcmullan@netronome.com>
  */
 
-#include <linux/kernel.h>
+#include <linux/version.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+#include <linux/bitfield.h>
+#endif
 #include <linux/delay.h>
+#include <linux/kernel.h>
 #include <linux/kthread.h>
+
+#define NFP_SUBSYS "[NSP] "
 
 #include "nfp.h"
 #include "nfp_cpp.h"
 
-#define NSP_RESOURCE		"nfp.sp"
-
 /* Offsets relative to the CSR base */
-#define NSP_STATUS            0x00
-#define   NSP_STATUS_MAGIC_of(x)      (((x) >> 48) & 0xffff)
-#define   NSP_STATUS_MAGIC(x)         (((x) & 0xffffULL) << 48)
-#define   NSP_STATUS_MAJOR_of(x)      (((x) >> 40) & 0xf)
-#define   NSP_STATUS_MAJOR(x)         (((x) & 0xfULL) << 40)
-#define   NSP_STATUS_MINOR_of(x)      (((x) >> 32) & 0xfff)
-#define   NSP_STATUS_MINOR(x)         (((x) & 0xfffULL) << 32)
-#define   NSP_STATUS_CODE_of(x)       (((x) >> 16) & 0xffff)
-#define   NSP_STATUS_CODE(x)          (((x) & 0xffffULL) << 16)
-#define   NSP_STATUS_RESULT_of(x)     (((x) >>  8) & 0xff)
-#define   NSP_STATUS_RESULT(x)        (((x) & 0xffULL) << 8)
-#define   NSP_STATUS_BUSY             BIT_ULL(0)
+#define NSP_STATUS		0x00
+#define   NSP_STATUS_MAGIC	GENMASK_ULL(63, 48)
+#define   NSP_STATUS_MAJOR	GENMASK_ULL(47, 44)
+#define   NSP_STATUS_MINOR	GENMASK_ULL(43, 32)
+#define   NSP_STATUS_CODE	GENMASK_ULL(31, 16)
+#define   NSP_STATUS_RESULT	GENMASK_ULL(15, 8)
+#define   NSP_STATUS_BUSY	BIT_ULL(0)
 
-#define NSP_COMMAND           0x08
-#define   NSP_COMMAND_OPTION(x)       ((u64)((x) & 0xffffffff) << 32)
-#define   NSP_COMMAND_OPTION_of(x)    (((x) >> 32) & 0xffffffff)
-#define   NSP_COMMAND_CODE(x)         (((x) & 0xffff) << 16)
-#define   NSP_COMMAND_CODE_of(x)      (((x) >> 16) & 0xffff)
-#define   NSP_COMMAND_START           BIT_ULL(0)
+#define NSP_COMMAND		0x08
+#define   NSP_COMMAND_OPTION	GENMASK_ULL(63, 32)
+#define   NSP_COMMAND_CODE	GENMASK_ULL(31, 16)
+#define   NSP_COMMAND_START	BIT_ULL(0)
 
 /* CPP address to retrieve the data from */
-#define NSP_BUFFER            0x10
-#define   NSP_BUFFER_CPP(x)           ((u64)(((x) >> 8) & 0xffffff) << 40)
-#define   NSP_BUFFER_CPP_of(x)        ((((x) >> 40) & 0xffffff) << 8)
-#define   NSP_BUFFER_ADDRESS(x)       (((x) & ((1ULL << 40) - 1)) << 0)
-#define   NSP_BUFFER_ADDRESS_of(x)    (((x) >> 0) & ((1ULL << 40) - 1))
+#define NSP_BUFFER		0x10
+#define   NSP_BUFFER_CPP	GENMASK_ULL(63, 40)
+#define   NSP_BUFFER_PCIE	GENMASK_ULL(39, 38)
+#define   NSP_BUFFER_ADDRESS	GENMASK_ULL(37, 0)
 
-#define NSP_DEFAULT_BUFFER	0x18
+#define NSP_DFLT_BUFFER		0x18
 
-#define NSP_DEFAULT_BUFFER_CONFIG 0x20
-#define   NSP_DEF_BUFFER_SIZE_MB_of(x)	(((x) >> 0) & (0xff))
+#define NSP_DFLT_BUFFER_CONFIG	0x20
+#define   NSP_DFLT_BUFFER_SIZE_MB	GENMASK_ULL(7, 0)
 
-#define NSP_MAGIC             0xab10
-#define NSP_MAJOR             0
+#define NSP_MAGIC		0xab10
+#define NSP_MAJOR		0
+#define NSP_MINOR		(__MAX_SPCODE - 1)
 
-#define NSP_CODE_MAJOR_of(code)	(((code) >> 12) & 0xf)
-#define NSP_CODE_MINOR_of(code)	(((code) >>  0) & 0xfff)
+#define NSP_CODE_MAJOR		GENMASK(15, 12)
+#define NSP_CODE_MINOR		GENMASK(11, 0)
 
 struct nfp_nsp {
 	struct nfp_cpp *cpp;
 	struct nfp_resource *res;
 };
+
+static int nfp_nsp_check(struct nfp_nsp *state)
+{
+	struct nfp_cpp *cpp = state->cpp;
+	u64 nsp_status, reg;
+	u32 nsp_cpp;
+	int err;
+
+	nsp_cpp = nfp_resource_cpp_id(state->res);
+	nsp_status = nfp_resource_address(state->res) + NSP_STATUS;
+
+	err = nfp_cpp_readq(cpp, nsp_cpp, nsp_status, &reg);
+	if (err < 0)
+		return err;
+
+	if (FIELD_GET(NSP_STATUS_MAGIC, reg) != NSP_MAGIC) {
+		nfp_err(cpp, "Cannot detect NFP Service Processor\n");
+		return -ENODEV;
+	}
+
+	if (FIELD_GET(NSP_STATUS_MAJOR, reg) != NSP_MAJOR ||
+	    FIELD_GET(NSP_STATUS_MINOR, reg) < NSP_MINOR) {
+		nfp_err(cpp, "Unsupported ABI %lld.%lld\n",
+			FIELD_GET(NSP_STATUS_MAJOR, reg),
+			FIELD_GET(NSP_STATUS_MINOR, reg));
+		return -EINVAL;
+	}
+
+	if (reg & NSP_STATUS_BUSY) {
+		nfp_err(cpp, "Service processor busy!\n");
+		return -EBUSY;
+	}
+
+	return 0;
+}
 
 /**
  * nfp_nsp_open() - Prepare for communication and lock the NSP resource.
@@ -97,8 +130,9 @@ struct nfp_nsp *nfp_nsp_open(struct nfp_cpp *cpp)
 {
 	struct nfp_resource *res;
 	struct nfp_nsp *state;
+	int err;
 
-	res = nfp_resource_acquire(cpp, NSP_RESOURCE);
+	res = nfp_resource_acquire(cpp, NFP_RESOURCE_NSP);
 	if (IS_ERR(res))
 		return (void *)res;
 
@@ -109,6 +143,12 @@ struct nfp_nsp *nfp_nsp_open(struct nfp_cpp *cpp)
 	}
 	state->cpp = cpp;
 	state->res = res;
+
+	err = nfp_nsp_check(state);
+	if (err) {
+		nfp_nsp_close(state);
+		return ERR_PTR(err);
+	}
 
 	return state;
 }
@@ -123,37 +163,57 @@ void nfp_nsp_close(struct nfp_nsp *state)
 	kfree(state);
 }
 
+static int
+nfp_nsp_wait_reg(struct nfp_cpp *cpp, u64 *reg,
+		 u32 nsp_cpp, u64 addr, u64 mask, u64 val)
+{
+	const unsigned long wait_until = jiffies + 30 * HZ;
+	int err;
+
+	for (;;) {
+		const unsigned long start_time = jiffies;
+
+		err = nfp_cpp_readq(cpp, nsp_cpp, addr, reg);
+		if (err < 0)
+			return err;
+
+		if ((*reg & mask) == val)
+			return 0;
+
+		err = msleep_interruptible(100);
+		if (err)
+			return err;
+
+		if (time_after(start_time, wait_until))
+			return -ETIMEDOUT;
+	}
+}
+
 /**
  * nfp_nsp_command() - Execute a command on the NFP Service Processor
  * @state:	NFP SP state
- * @code:	NSP Command Code
+ * @code:	NFP SP Command Code
+ * @option:	NFP SP Command Argument
+ * @buff_cpp:	NFP SP Buffer CPP Address info
+ * @buff_addr:	NFP SP Buffer Host address
  *
  * Return: 0 for success with no result
  *
- *         1..255 for NSP completion with a result code
+ *	 1..255 for NSP completion with a result code
  *
- *         -EAGAIN if the NSP is not yet present
- *
- *         -ENODEV if the NSP is not a supported model
- *
- *         -EBUSY if the NSP is stuck
- *
- *         -EINTR if interrupted while waiting for completion
- *
- *         -ETIMEDOUT if the NSP took longer than 30 seconds to complete
+ *	-EAGAIN if the NSP is not yet present
+ *	-ENODEV if the NSP is not a supported model
+ *	-EBUSY if the NSP is stuck
+ *	-EINTR if interrupted while waiting for completion
+ *	-ETIMEDOUT if the NSP took longer than 30 seconds to complete
  */
 int nfp_nsp_command(struct nfp_nsp *state, u16 code, u32 option,
 		    u32 buff_cpp, u64 buff_addr)
 {
+	u64 reg, nsp_base, nsp_buffer, nsp_status, nsp_command;
 	struct nfp_cpp *cpp = state->cpp;
 	u32 nsp_cpp;
-	u64 nsp_base;
-	u64 nsp_status;
-	u64 nsp_command;
-	u64 nsp_buffer;
-	int err, ok;
-	u64 tmp;
-	int timeout = 30 * 10;	/* 30 seconds total */
+	int err;
 
 	nsp_cpp = nfp_resource_cpp_id(state->res);
 	nsp_base = nfp_resource_address(state->res);
@@ -161,95 +221,59 @@ int nfp_nsp_command(struct nfp_nsp *state, u16 code, u32 option,
 	nsp_command = nsp_base + NSP_COMMAND;
 	nsp_buffer = nsp_base + NSP_BUFFER;
 
-	err = nfp_cpp_readq(cpp, nsp_cpp, nsp_status, &tmp);
-	if (err < 0)
+	err = nfp_nsp_check(state);
+	if (err)
 		return err;
 
-	if (NSP_MAGIC != NSP_STATUS_MAGIC_of(tmp)) {
-		nfp_err(cpp, "NSP: Cannot detect NFP Service Processor\n");
-		return -ENODEV;
-	}
-
-	ok = NSP_STATUS_MAJOR_of(tmp) == NSP_CODE_MAJOR_of(code) &&
-	     NSP_STATUS_MINOR_of(tmp) >= NSP_CODE_MINOR_of(code);
-	if (!ok) {
-		nfp_err(cpp, "NSP: Code 0x%04x not supported (ABI %d.%d)\n",
-			code,
-			(int)NSP_STATUS_MAJOR_of(tmp),
-			(int)NSP_STATUS_MINOR_of(tmp));
+	if (!FIELD_FIT(NSP_BUFFER_CPP, buff_cpp >> 8) ||
+	    !FIELD_FIT(NSP_BUFFER_ADDRESS, buff_addr)) {
+		nfp_err(cpp, "Host buffer out of reach %08x %016llx\n",
+			buff_cpp, buff_addr);
 		return -EINVAL;
 	}
 
-	if (tmp & NSP_STATUS_BUSY) {
-		nfp_err(cpp, "NSP: Service processor busy!\n");
-		return -EBUSY;
-	}
-
 	err = nfp_cpp_writeq(cpp, nsp_cpp, nsp_buffer,
-			     NSP_BUFFER_CPP(buff_cpp) |
-			     NSP_BUFFER_ADDRESS(buff_addr));
+			     FIELD_PREP(NSP_BUFFER_CPP, buff_cpp >> 8) |
+			     FIELD_PREP(NSP_BUFFER_ADDRESS, buff_addr));
 	if (err < 0)
 		return err;
 
 	err = nfp_cpp_writeq(cpp, nsp_cpp, nsp_command,
-			     NSP_COMMAND_OPTION(option) |
-			     NSP_COMMAND_CODE(code) | NSP_COMMAND_START);
+			     FIELD_PREP(NSP_COMMAND_OPTION, option) |
+			     FIELD_PREP(NSP_COMMAND_CODE, code) |
+			     FIELD_PREP(NSP_COMMAND_START, 1));
 	if (err < 0)
 		return err;
 
 	/* Wait for NSP_COMMAND_START to go to 0 */
-	for (; timeout > 0; timeout--) {
-		err = nfp_cpp_readq(cpp, nsp_cpp, nsp_command, &tmp);
-		if (err < 0)
-			return err;
-
-		if (!(tmp & NSP_COMMAND_START))
-			break;
-
-		if (msleep_interruptible(100) > 0) {
-			nfp_warn(cpp, "NSP: Interrupt waiting for code 0x%04x to start\n",
-				 code);
-			return -EINTR;
-		}
-	}
-
-	if (timeout < 0) {
-		nfp_warn(cpp, "NSP: Timeout waiting for code 0x%04x to start\n",
-			 code);
-		return -ETIMEDOUT;
+	err = nfp_nsp_wait_reg(cpp, &reg,
+			       nsp_cpp, nsp_command, NSP_COMMAND_START, 0);
+	if (err) {
+		nfp_err(cpp, "Error %d waiting for code 0x%04x to start\n",
+			err, code);
+		return err;
 	}
 
 	/* Wait for NSP_STATUS_BUSY to go to 0 */
-	for (; timeout > 0; timeout--) {
-		err = nfp_cpp_readq(cpp, nsp_cpp, nsp_status, &tmp);
-		if (err < 0)
-			return err;
-
-		if (!(tmp & NSP_STATUS_BUSY))
-			break;
-
-		if (msleep_interruptible(100) > 0) {
-			nfp_warn(cpp, "NSP: Interrupt waiting for code 0x%04x to complete\n",
-				 code);
-			return -EINTR;
-		}
+	err = nfp_nsp_wait_reg(cpp, &reg,
+			       nsp_cpp, nsp_status, NSP_STATUS_BUSY, 0);
+	if (err) {
+		nfp_err(cpp, "Error %d waiting for code 0x%04x to complete\n",
+			err, code);
+		return err;
 	}
 
-	if (timeout < 0) {
-		nfp_warn(cpp, "NSP: Timeout waiting for code 0x%04x to complete\n",
-			 code);
-		return -ETIMEDOUT;
-	}
-
-	err = NSP_STATUS_RESULT_of(tmp);
-	if (err > 0)
+	err = FIELD_GET(NSP_STATUS_RESULT, reg);
+	if (err) {
+		nfp_warn(cpp, "Result code set: %d\n", err);
 		return -err;
+	}
 
-	err = nfp_cpp_readq(cpp, nsp_cpp, nsp_command, &tmp);
+	err = nfp_cpp_readq(cpp, nsp_cpp, nsp_command, &reg);
 	if (err < 0)
 		return err;
 
-	return NSP_COMMAND_OPTION_of(tmp);
+	return FIELD_GET(NSP_COMMAND_OPTION, reg);
 }
 
 int nfp_nsp_command_buf(struct nfp_nsp *nsp, u16 code, u32 option,
@@ -258,45 +282,46 @@ int nfp_nsp_command_buf(struct nfp_nsp *nsp, u16 code, u32 option,
 {
 	struct nfp_cpp *cpp = nsp->cpp;
 	unsigned int max_size;
-	u64 tmp, cpp_buf;
+	u64 reg, cpp_buf;
 	int ret, err;
 	u32 cpp_id;
 
 	err = nfp_cpp_readq(cpp, nfp_resource_cpp_id(nsp->res),
-			    nfp_resource_address(nsp->res) + NSP_STATUS, &tmp);
+			    nfp_resource_address(nsp->res) + NSP_STATUS, &reg);
 	if (err < 0)
 		return err;
 
-	if (NSP_STATUS_MINOR_of(tmp) < 13) {
+	if (FIELD_GET(NSP_STATUS_MINOR, reg) < 13) {
 		nfp_err(cpp, "NSP: Code 0x%04x with buffer not supported (ABI %lld.%lld)\n",
-			code, NSP_STATUS_MAJOR_of(tmp),
-			NSP_STATUS_MINOR_of(tmp));
+			code, FIELD_GET(NSP_STATUS_MAJOR, reg),
+			FIELD_GET(NSP_STATUS_MINOR, reg));
 		return -EOPNOTSUPP;
 	}
 
 	err = nfp_cpp_readq(cpp, nfp_resource_cpp_id(nsp->res),
 			    nfp_resource_address(nsp->res) +
-			    NSP_DEFAULT_BUFFER_CONFIG,
-			    &tmp);
+			    NSP_DFLT_BUFFER_CONFIG,
+			    &reg);
 	if (err < 0)
 		return err;
 
 	max_size = max(in_size, out_size);
-	if (NSP_DEF_BUFFER_SIZE_MB_of(tmp) * SZ_1M < max_size) {
+	if (FIELD_GET(NSP_DFLT_BUFFER_SIZE_MB, reg) * SZ_1M < max_size) {
 		nfp_err(cpp, "NSP: default buffer too small for command (%llu < %u)\n",
-			NSP_DEF_BUFFER_SIZE_MB_of(tmp) * SZ_1M, max_size);
+			FIELD_GET(NSP_DFLT_BUFFER_SIZE_MB, reg) * SZ_1M,
+			max_size);
 		return -EINVAL;
 	}
 
 	err = nfp_cpp_readq(cpp, nfp_resource_cpp_id(nsp->res),
 			    nfp_resource_address(nsp->res) +
-			    NSP_DEFAULT_BUFFER,
-			    &tmp);
+			    NSP_DFLT_BUFFER,
+			    &reg);
 	if (err < 0)
 		return err;
 
-	cpp_id = NSP_BUFFER_CPP_of(tmp);
-	cpp_buf = NSP_BUFFER_ADDRESS_of(tmp);
+	cpp_id = FIELD_GET(NSP_BUFFER_CPP, reg) << 8;
+	cpp_buf = FIELD_GET(NSP_BUFFER_ADDRESS, reg);
 
 	if (in_buf && in_size) {
 		err = nfp_cpp_write(cpp, cpp_id, cpp_buf, in_buf, in_size);

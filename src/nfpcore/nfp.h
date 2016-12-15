@@ -152,17 +152,20 @@ int nfp_power_set(struct nfp_cpp *cpp, unsigned int subdevice, int state);
 
 int nfp_reset_soft(struct nfp_cpp *cpp);
 
-/* Implemented in nfp_armsp.c */
+/* Implemented in nfp_nsp.c */
 
-#define SPCODE_NOOP             0       /* No operation */
-#define SPCODE_SOFT_RESET       1       /* Soft reset the NFP */
-#define SPCODE_FW_DEFAULT       2       /* Load default (UNDI) FW */
-#define SPCODE_PHY_INIT         3       /* Initialize the PHY */
-#define SPCODE_MAC_INIT         4       /* Initialize the MAC */
-#define SPCODE_PHY_RXADAPT      5       /* Re-run PHY RX Adaptation */
-#define SPCODE_FW_LOAD          6       /* Load fw from buffer, len in option */
-#define SPCODE_ETH_RESCAN       7       /* Rescan ETHs, update ETH_TABLE */
-#define SPCODE_ETH_CONTROL      8       /* Perform ETH control action */
+enum nfp_nsp_cmd {
+	SPCODE_NOOP             = 0, /* No operation */
+	SPCODE_SOFT_RESET       = 1, /* Soft reset the NFP */
+	SPCODE_FW_DEFAULT       = 2, /* Load default (UNDI) FW */
+	SPCODE_PHY_INIT         = 3, /* Initialize the PHY */
+	SPCODE_MAC_INIT         = 4, /* Initialize the MAC */
+	SPCODE_PHY_RXADAPT      = 5, /* Re-run PHY RX Adaptation */
+	SPCODE_FW_LOAD          = 6, /* Load fw from buffer, len in option */
+	SPCODE_ETH_RESCAN       = 7, /* Rescan ETHs, update ETH_TABLE */
+	SPCODE_ETH_CONTROL      = 8, /* Perform ETH control action */
+	__MAX_SPCODE,
+};
 
 struct nfp_nsp;
 
@@ -240,6 +243,9 @@ struct nfp_resource_entry {
  * ARM Diagnostic Area
  */
 #define NFP_RESOURCE_ARM_DIAGNOSTIC     "arm.diag"
+
+/* Service Processor */
+#define NFP_RESOURCE_NSP		"nfp.sp"
 
 /**
  * Netronone Flow Firmware Table
