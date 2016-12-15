@@ -33,7 +33,8 @@
 
 /*
  * nfp_nffw.c
- * Authors: Jason McMullan <jason.mcmullan@netronome.com>
+ * Authors: Jakub Kicinski <jakub.kicinski@netronome.com>
+ *          Jason McMullan <jason.mcmullan@netronome.com>
  *          Francois H. Theron <francois.theron@netronome.com>
  */
 
@@ -110,9 +111,6 @@ struct nfp_nffw_info {
 	struct nfp_nffw_info_data fwinf;
 };
 
-/* NFFW_FWID_BASE is a firmware ID is the index
- * into the table plus this base */
-
 /* flg_info_version = flags[0]<27:16>
  * This is a small version counter intended only to detect if the current
  * implementation can read the current struct. Struct changes should be very
@@ -157,12 +155,9 @@ static u64 nffw_fwinfo_mip_offset_get(const struct nffw_fwinfo *fi)
 	return (mip_off_hi & 0xFF) << 32 | le32_to_cpu(fi->mip_offset_lo);
 }
 
-static unsigned int nffw_res_fwinfos(struct nfp_nffw_info_data *fwinf,
-				     struct nffw_fwinfo **arr)
+static unsigned int
+nffw_res_fwinfos(struct nfp_nffw_info_data *fwinf, struct nffw_fwinfo **arr)
 {
-	struct nffw_fwinfo *fwinfo = NULL;
-	unsigned int cnt = 0;
-
 	/* For the this code, version 0 is most likely to be
 	 * version 1 in this case. Since the kernel driver
 	 * does not take responsibility for initialising the
@@ -173,19 +168,15 @@ static unsigned int nffw_res_fwinfos(struct nfp_nffw_info_data *fwinf,
 	switch (nffw_res_info_version_get(fwinf)) {
 	case 0:
 	case 1:
-		fwinfo = &fwinf->info.v1.fwinfo[0];
-		cnt = NFFW_FWINFO_CNT_V1;
-		break;
+		*arr = &fwinf->info.v1.fwinfo[0];
+		return NFFW_FWINFO_CNT_V1;
 	case 2:
-		fwinfo = &fwinf->info.v2.fwinfo[0];
-		cnt = NFFW_FWINFO_CNT_V2;
-		break;
+		*arr = &fwinf->info.v2.fwinfo[0];
+		return NFFW_FWINFO_CNT_V2;
 	default:
-		break;
+		*arr = NULL;
+		return 0;
 	}
-
-	*arr = fwinfo;
-	return cnt;
 }
 
 /**
@@ -198,54 +189,43 @@ struct nfp_nffw_info *nfp_nffw_info_open(struct nfp_cpp *cpp)
 {
 	struct nfp_nffw_info_data *fwinf;
 	struct nfp_nffw_info *state;
-	struct nfp_resource *res;
+	u32 info_ver;
 	int err;
 
 	state = kzalloc(sizeof(*state), GFP_KERNEL);
 	if (!state)
 		return ERR_PTR(-ENOMEM);
 
-	res = nfp_resource_acquire(cpp, NFP_RESOURCE_NFP_NFFW);
-	if (!IS_ERR(res)) {
-		u32 cpp_id = nfp_resource_cpp_id(res);
-		u64 addr = nfp_resource_address(res);
-		u32 info_ver;
+	state->res = nfp_resource_acquire(cpp, NFP_RESOURCE_NFP_NFFW);
+	if (IS_ERR(state->res))
+		goto err_free;
 
-		fwinf = &state->fwinf;
+	fwinf = &state->fwinf;
 
-		if (sizeof(*fwinf) > nfp_resource_size(res)) {
-			nfp_resource_release(res);
-			kfree(state);
-			return ERR_PTR(-ERANGE);
-		}
+	if (sizeof(*fwinf) > nfp_resource_size(state->res))
+		goto err_release;
 
-		err = nfp_cpp_read(cpp, cpp_id, addr, fwinf, sizeof(*fwinf));
-		if (err < 0) {
-			nfp_resource_release(res);
-			kfree(state);
-			return ERR_PTR(err);
-		}
+	err = nfp_cpp_read(cpp, nfp_resource_cpp_id(state->res),
+			   nfp_resource_address(state->res),
+			   fwinf, sizeof(*fwinf));
+	if (err < sizeof(*fwinf))
+		goto err_release;
 
-		if (!nffw_res_flg_init_get(fwinf)) {
-			nfp_resource_release(res);
-			kfree(state);
-			return ERR_PTR(-EINVAL);
-		}
+	if (!nffw_res_flg_init_get(fwinf))
+		goto err_release;
 
-		info_ver = nffw_res_info_version_get(fwinf);
-		if (info_ver > NFFW_INFO_VERSION_CURRENT) {
-			nfp_resource_release(res);
-			kfree(state);
-			return ERR_PTR(-EIO);
-		}
-	} else {
-		kfree(state);
-		return ERR_PTR(-ENODEV);
-	}
+	info_ver = nffw_res_info_version_get(fwinf);
+	if (info_ver > NFFW_INFO_VERSION_CURRENT)
+		goto err_release;
 
-	state->res = res;
 	state->cpp = cpp;
 	return state;
+
+err_release:
+	nfp_resource_release(state->res);
+err_free:
+	kfree(state);
+	return ERR_PTR(-EIO);
 }
 
 /**
@@ -256,24 +236,7 @@ struct nfp_nffw_info *nfp_nffw_info_open(struct nfp_cpp *cpp)
  */
 void nfp_nffw_info_close(struct nfp_nffw_info *state)
 {
-	struct nfp_nffw_info_data *fwinf = &state->fwinf;
-	struct nfp_cpp *cpp = state->cpp;
-	struct nfp_resource *res;
-	int err;
-
-	res = state->res;
-	if (res) {
-		u32 cpp_id = nfp_resource_cpp_id(res);
-		u64 addr = nfp_resource_address(res);
-
-		err = nfp_cpp_write(cpp, cpp_id, addr, fwinf, sizeof(*fwinf));
-		nfp_resource_release(res);
-		/* Clear the device's nffw_info data to invalidate it */
-		memset(fwinf, 0, sizeof(*fwinf));
-		if (err < 0)
-			nfp_err(cpp, "NFFW info write back failed\n");
-	}
-
+	nfp_resource_release(state->res);
 	kfree(state);
 }
 
