@@ -45,17 +45,29 @@
  */
 
 #include <asm/byteorder.h>
+#include <asm/unaligned.h>
+#include <linux/delay.h>
+#include <linux/log2.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/log2.h>
-#include <linux/crc32.h>
-#include <linux/delay.h>
+#include <linux/slab.h>
+
+#define NFP_SUBSYS "[HWINFO] "
 
 #include "crc32.h"
 #include "nfp.h"
 #include "nfp_cpp.h"
 
 #define HWINFO_SIZE_MIN	0x100
+
+static int hwinfo_wait = 20;	/* seconds */
+module_param(hwinfo_wait, int, S_IRUGO);
+MODULE_PARM_DESC(hwinfo_wait,
+		 "-1 for no timeout, or N seconds to wait for hwinfo");
+
+static int hwinfo_debug;
+module_param(hwinfo_debug, int, S_IRUGO);
+MODULE_PARM_DESC(hwinfo_debug, "Enable to log hwinfo contents on load");
 
 /*
  * The Hardware Info Table defines the properties of the system.
@@ -106,265 +118,202 @@
  * Unsorted.
  */
 
-/* Hardware Info Version 1.0 */
-#define NFP_HWINFO_VERSION_1 \
-	(('H' << 24) | ('I' << 16) | (1 << 8) | (0 << 1) | 0)
-/* Hardware Info Version 2.0 */
-#define NFP_HWINFO_VERSION_2 \
-	(('H' << 24) | ('I' << 16) | (2 << 8) | (0 << 1) | 0)
-#define NFP_HWINFO_VERSION_UPDATING(ver)   ((ver) & 1)
+#define NFP_HWINFO_VERSION_1 ('H' << 24 | 'I' << 16 | 1 << 8 | 0 << 1 | 0)
+#define NFP_HWINFO_VERSION_2 ('H' << 24 | 'I' << 16 | 2 << 8 | 0 << 1 | 0)
+#define NFP_HWINFO_VERSION_UPDATING	BIT(0)
 
-#define NFP_HWINFO_VERSION_IN(base) __le32_to_cpu(((u32 *)(base))[0])
-#define NFP_HWINFO_VERSION_SET(base, val) \
-	(((u32 *)(base))[0] = __cpu_to_le32(val))
+struct nfp_hwinfo {
+	u8 start[0];
 
-/***************** HWInfo v1 ****************/
+	__le32 version;
+	__le32 size;
+	union {
+		struct {
+			__le32 table_off;
+			__le32 keys_off;
+		} v1;
+		struct {
+			__le32 limit;
+			__le32 resv;
+		} v2;
+	};
+	char data[];
+};
 
-/* Hardware Info Table Version 1.x */
-#define NFP_HWINFO_SIZE_IN(base)      __le32_to_cpu(((u32 *)(base))[1])
-#define NFP_HWINFO_V1_TABLE_IN(base)  __le32_to_cpu(((u32 *)(base))[2])
-#define NFP_HWINFO_V1_KEYS_IN(base)   __le32_to_cpu(((u32 *)(base))[3])
-#define NFP_HWINFO_V2_LIMIT_IN(base)  __le32_to_cpu(((u32 *)(base))[2])
-#define NFP_HWINFO_CRC32_IN(base) \
-	__le32_to_cpu(((u32 *)NFP_HWINFO_DATA_END(base))[0])
-
-#define NFP_HWINFO_SIZE_SET(base, val) \
-		(((u32 *)(base))[1] = __cpu_to_le32(val))
-
-#define NFP_HWINFO_V1_TABLE_SET(base, val) \
-	(((u32 *)(base))[2] = __cpu_to_le32(val))
-#define NFP_HWINFO_V1_KEYS_SET(base, val) \
-	(((u32 *)(base))[3] = __cpu_to_le32(val))
-
-#define NFP_HWINFO_V2_LIMIT_SET(base, val) \
-	(((u32 *)(base))[2] = __cpu_to_le32(val))
-#define NFP_HWINFO_V2_RESERVED_SET(base, val) \
-	(((u32 *)(base))[3] = __cpu_to_le32(val))
-
-#define NFP_HWINFO_CRC32_SET(base, val) \
-	(((u32 *)NFP_HWINFO_DATA_END(base))[0] = __cpu_to_le32(val))
-
-#define NFP_HWINFO_DATA_START(base) ((void *)&(((u32 *)base)[4]))
-#define NFP_HWINFO_DATA_END(base) \
-	((void *)(((char *)(base)) + NFP_HWINFO_SIZE_IN(base) - sizeof(u32)))
-
-/* Key/Value Table Version 1.x */
-#define NFP_HWINFO_V1_KEY_IN(base, key_id) \
-	((const char *)((char *)(base) + \
-		__le32_to_cpu(((u32 *)((base) + \
-			      NFP_HWINFO_V1_TABLE_IN(base)))[(key_id) * 2 + \
-							     0])))
-#define NFP_HWINFO_V1_VAL_IN(base, key_id) \
-	((const char *)((char *)(base) + \
-		__le32_to_cpu(((u32 *)((base) + \
-			      NFP_HWINFO_V1_TABLE_IN(base)))[(key_id) * 2 + \
-							     1])))
-
-#undef NFP_SUBSYS
-#define NFP_SUBSYS "[HWINFO] "
-
-static int hwinfo_wait = 20;	/* 20 seconds (NFP6000 boot is slow) */
-module_param(hwinfo_wait, int, S_IRUGO);
-MODULE_PARM_DESC(hwinfo_wait, "-1 for no timeout, or N seconds to wait for board.state match");
-
-static int hwinfo_debug;
-module_param(hwinfo_debug, int, S_IRUGO);
-MODULE_PARM_DESC(hwinfo_debug, "Enable to log hwinfo contents on load");
-
-#define NFP_HWINFO_DEBUG	hwinfo_debug
-
-/* NOTE: This should be 15 (SKUSE_POWER)
- */
-static int board_state = 15;	/* board.state to match against */
-module_param(board_state, int, S_IRUGO);
-MODULE_PARM_DESC(board_state, "board.state to wait for");
-
-static void hwinfo_db_parse(struct nfp_cpp *cpp, void *hwinfo)
+static bool nfp_hwinfo_is_updating(struct nfp_hwinfo *hwinfo)
 {
-	const char *key;
-	const char *val;
-
-	for (key = NFP_HWINFO_DATA_START(hwinfo);
-	     *key && key < (const char *)NFP_HWINFO_DATA_END(hwinfo);
-	     key = val + strlen(val) + 1) {
-		val = key + strlen(key) + 1;
-
-		nfp_dbg(cpp, "%s=%s\n", key, val);
-	}
+	return le32_to_cpu(hwinfo->version) & NFP_HWINFO_VERSION_UPDATING;
 }
 
-static int hwinfo_db_validate(struct nfp_cpp *cpp, void *db, u32 len)
+static int
+hwinfo_db_walk(struct nfp_cpp *cpp, struct nfp_hwinfo *hwinfo, u32 size)
 {
-	u32 crc;
+	const char *key, *val, *end = hwinfo->data + size;
 
-	if (NFP_HWINFO_VERSION_IN(db) != NFP_HWINFO_VERSION_1 &&
-	    NFP_HWINFO_VERSION_IN(db) != NFP_HWINFO_VERSION_2) {
-		nfp_err(cpp, "Unknown hwinfo version 0x%x, expected 0x%x or 0x%x\n",
-			NFP_HWINFO_VERSION_IN(db),
-			NFP_HWINFO_VERSION_1, NFP_HWINFO_VERSION_2);
-		return -EINVAL;
-	}
+	for (key = hwinfo->data; *key && key < end;
+	     key = val + strlen(val) + 1) {
 
-	if (NFP_HWINFO_SIZE_IN(db) > len) {
-		nfp_err(cpp, "Unsupported hwinfo size %u > %u\n",
-			NFP_HWINFO_SIZE_IN(db), len);
-		return -EINVAL;
-	}
+		val = key + strlen(key) + 1;
+		if (val >= end) {
+			nfp_warn(cpp, "Bad HWINFO - overflowing key\n");
+			return -EINVAL;
+		}
 
-	crc = crc32_posix(db, len);
-	if (crc != NFP_HWINFO_CRC32_IN(db)) {
-		nfp_err(cpp, "Corrupt hwinfo table (CRC mismatch), calculated 0x%x, expected 0x%x\n",
-			crc, NFP_HWINFO_CRC32_IN(db));
-		return -EINVAL;
+		if (val + strlen(val) + 1 > end) {
+			nfp_warn(cpp, "Bad HWINFO - overflowing value\n");
+			return -EINVAL;
+		}
+
+		if (hwinfo_debug)
+			nfp_info(cpp, "%s=%s\n", key, val);
 	}
 
 	return 0;
 }
 
-static int hwinfo_fetch_nowait(struct nfp_cpp *cpp,
-			       void **hwdb, size_t *hwdb_size)
+static int
+hwinfo_db_validate(struct nfp_cpp *cpp, struct nfp_hwinfo *db, u32 len)
+{
+	u32 size, crc;
+
+	size = le32_to_cpu(db->size);
+	if (size > len) {
+		nfp_err(cpp, "Unsupported hwinfo size %u > %u\n", size, len);
+		return -EINVAL;
+	}
+
+	size -= sizeof(u32);
+	crc = crc32_posix(db, size);
+	if (crc != get_unaligned_le32(db->start + size)) {
+		nfp_err(cpp, "Corrupt hwinfo table (CRC mismatch), calculated 0x%x, expected 0x%x\n",
+			crc, get_unaligned_le32(db->start + size));
+
+		return -EINVAL;
+	}
+
+	return hwinfo_db_walk(cpp, db, size);
+}
+
+static int hwinfo_try_fetch(struct nfp_cpp *cpp, size_t *cpp_size)
 {
 	struct nfp_cpp_area *area;
 	struct nfp_resource *res;
-	size_t   cpp_size;
-	u8 header[16];
+	struct nfp_hwinfo header;
+	u32 cpp_id, ver;
 	u64 cpp_addr;
-	void *tmpdb;
-	u32 cpp_id;
-	int r = 0;
-	u32 ver;
+	void *db;
+	int err;
 
 	res = nfp_resource_acquire(cpp, NFP_RESOURCE_NFP_HWINFO);
 	if (!IS_ERR(res)) {
 		cpp_id = nfp_resource_cpp_id(res);
 		cpp_addr = nfp_resource_address(res);
-		cpp_size = nfp_resource_size(res);
+		*cpp_size = nfp_resource_size(res);
 
 		nfp_resource_release(res);
 
-		if (cpp_size < HWINFO_SIZE_MIN)
+		if (*cpp_size < HWINFO_SIZE_MIN)
 			return -ENOENT;
 	} else if (PTR_ERR(res) == -ENOENT) {
 		/* Try getting the HWInfo table from the 'classic' location */
 		cpp_id = NFP_CPP_ISLAND_ID(NFP_CPP_TARGET_MU,
 					   NFP_CPP_ACTION_RW, 0, 1);
 		cpp_addr = 0x30000;
-		cpp_size = 0x0e000;
+		*cpp_size = 0x0e000;
 	} else {
 		return PTR_ERR(res);
 	}
 
-	/* Fetch the hardware table from the ARM's SRAM (scratch).  It
-	 * occupies 0x0000 - 0x1fff.
-	 */
 	area = nfp_cpp_area_alloc_with_name(cpp, cpp_id, "nfp.hwinfo",
-					    cpp_addr, cpp_size);
+					    cpp_addr, *cpp_size);
 	if (!area)
 		return -EIO;
 
-	r = nfp_cpp_area_acquire(area);
-	if (r < 0)
+	err = nfp_cpp_area_acquire(area);
+	if (err < 0)
 		goto exit_area_free;
 
-	r = nfp_cpp_area_read(area, 0, header, sizeof(header));
-	if (r < 0) {
-		nfp_err(cpp, "Can't read version: %d\n", r);
+	err = nfp_cpp_area_read(area, 0, &header, sizeof(header));
+	if (err < 0) {
+		nfp_err(cpp, "Can't read header: %d\n", err);
 		goto exit_area_release;
 	}
 
-	ver = NFP_HWINFO_VERSION_IN(header);
-
-	if (NFP_HWINFO_VERSION_UPDATING(ver)) {
-		r = -EBUSY;
-		goto exit_area_release;
-	}
-
-	if (ver != NFP_HWINFO_VERSION_2 && ver != NFP_HWINFO_VERSION_1) {
+	ver = le32_to_cpu(header.version) & ~NFP_HWINFO_VERSION_UPDATING;
+	if (ver != NFP_HWINFO_VERSION_1 && ver != NFP_HWINFO_VERSION_2) {
 		nfp_err(cpp, "Unknown HWInfo version: 0x%08x\n", ver);
-		r = -EINVAL;
+		err = -EINVAL;
 		goto exit_area_release;
 	}
 
-	tmpdb = kmalloc(cpp_size, GFP_KERNEL);
-	if (!tmpdb) {
-		r = -ENOMEM;
+	if (nfp_hwinfo_is_updating(&header)) {
+		err = -EBUSY;
 		goto exit_area_release;
 	}
 
-	memset(tmpdb, 0xff, cpp_size);
-
-	r = nfp_cpp_area_read(area, 0, tmpdb, cpp_size);
-	if (r >= 0 && r != cpp_size) {
-		kfree(tmpdb);
-		r = (r < 0) ? r : -EIO;
+	db = kmalloc(*cpp_size, GFP_KERNEL);
+	if (!db) {
+		err = -ENOMEM;
 		goto exit_area_release;
 	}
 
-	*hwdb = tmpdb;
-	*hwdb_size = cpp_size;
+	err = nfp_cpp_area_read(area, 0, db, *cpp_size);
+	if (err != *cpp_size) {
+		kfree(db);
+		err = err < 0 ? err : -EIO;
+		goto exit_area_release;
+	}
+	err = 0;
+
+	nfp_hwinfo_cache_set(cpp, db);
 
 exit_area_release:
 	nfp_cpp_area_release(area);
-
 exit_area_free:
 	nfp_cpp_area_free(area);
 
-	return r;
+	return err;
 }
 
-static int hwinfo_fetch(struct nfp_cpp *cpp, void **hwdb, size_t *hwdb_size)
+static int hwinfo_fetch(struct nfp_cpp *cpp, size_t *hwdb_size)
 {
 	const unsigned long wait_until = jiffies + hwinfo_wait * HZ;
-	int r;
+	int err;
 
 	for (;;) {
 		const unsigned long start_time = jiffies;
 
-		r = hwinfo_fetch_nowait(cpp, hwdb, hwdb_size);
-		if (r >= 0)
-			break;
+		err = hwinfo_try_fetch(cpp, hwdb_size);
+		if (!err)
+			return 0;
 
-		r = msleep_interruptible(100);
-		if (r != 0 || time_after(start_time, wait_until)) {
-			r = -EIO;
-			break;
+		err = msleep_interruptible(100);
+		if (err || time_after(start_time, wait_until)) {
+			nfp_err(cpp, "NFP access error\n");
+			return -EIO;
 		}
 	}
-
-	if (r < 0)
-		nfp_err(cpp, "NFP access error detected\n");
-
-	return r;
 }
 
-static const void *nfp_hwinfo_db(struct nfp_cpp *cpp)
+static int nfp_hwinfo_load(struct nfp_cpp *cpp)
 {
+	struct nfp_hwinfo *db;
 	size_t hwdb_size = 0;
-	void *hwdb = NULL;
-	int r = 0;
+	int err;
 
-	hwdb = nfp_hwinfo_cache(cpp);
-	if (hwdb)
-		return hwdb;
+	err = hwinfo_fetch(cpp, &hwdb_size);
+	if (err)
+		return err;
 
-	r = hwinfo_fetch(cpp, &hwdb, &hwdb_size);
-	if (r < 0)
-		goto err;
+	db = nfp_hwinfo_cache(cpp);
+	err = hwinfo_db_validate(cpp, db, hwdb_size);
+	if (err) {
+		kfree(db);
+		nfp_hwinfo_cache_set(cpp, NULL);
+		return err;
+	}
 
-	r = hwinfo_db_validate(cpp, hwdb, hwdb_size);
-	if (r < 0)
-		goto err;
-
-	if (NFP_HWINFO_DEBUG)
-		hwinfo_db_parse(cpp, hwdb);
-
-err:
-	if (r < 0 && hwdb)
-		kfree(hwdb);
-	else
-		nfp_hwinfo_cache_set(cpp, hwdb);
-
-	return nfp_hwinfo_cache(cpp);
+	return 0;
 }
 
 /**
@@ -376,22 +325,31 @@ err:
  */
 const char *nfp_hwinfo_lookup(struct nfp_cpp *cpp, const char *lookup)
 {
-	const char *db = nfp_hwinfo_db(cpp);
-	const char *val = NULL;
-	const char *key;
+	const char *key, *val, *end;
+	struct nfp_hwinfo *hwinfo;
+	int err;
 
-	if (!db || !lookup)
+	hwinfo = nfp_hwinfo_cache(cpp);
+	if (!hwinfo) {
+		err = nfp_hwinfo_load(cpp);
+		if (err)
+			return NULL;
+		hwinfo = nfp_hwinfo_cache(cpp);
+	}
+
+	if (!hwinfo || !lookup)
 		return NULL;
 
-	for (key = NFP_HWINFO_DATA_START(db);
-		*key &&
-		key < (const char *)NFP_HWINFO_DATA_END(db);
-		key = val + strlen(val) + 1, val = NULL) {
+	end = hwinfo->data + le32_to_cpu(hwinfo->size) - sizeof(u32);
+
+	for (key = hwinfo->data; *key && key < end;
+	     key = val + strlen(val) + 1) {
+
 		val = key + strlen(key) + 1;
 
 		if (strcmp(key, lookup) == 0)
-			break;
+			return val;
 	}
 
-	return val;
+	return NULL;
 }
