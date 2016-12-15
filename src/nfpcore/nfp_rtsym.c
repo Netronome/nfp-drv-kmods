@@ -105,13 +105,8 @@ static int __nfp_rtsymtab_probe(struct nfp_cpp *cpp)
 	if (!mip)
 		return -EIO;
 
-	err = nfp_mip_strtab(mip, &strtab_addr, &strtab_size);
-	if (err < 0)
-		return err;
-
-	err = nfp_mip_symtab(mip, &symtab_addr, &symtab_size);
-	if (err < 0)
-		return err;
+	nfp_mip_strtab(mip, &strtab_addr, &strtab_size);
+	nfp_mip_symtab(mip, &symtab_addr, &symtab_size);
 
 	if (symtab_size == 0 || strtab_size == 0 ||
 	    (symtab_size % sizeof(*rtsymtab)) != 0)

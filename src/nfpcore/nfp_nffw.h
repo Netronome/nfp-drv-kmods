@@ -56,10 +56,9 @@ struct nfp_mip;
 
 void nfp_mip_reload(struct nfp_cpp *cpp);
 const struct nfp_mip *nfp_mip(struct nfp_cpp *cpp);
-int nfp_mip_probe(struct nfp_cpp *cpp);
 
-int nfp_mip_symtab(const struct nfp_mip *mip, u32 *addr, u32 *size);
-int nfp_mip_strtab(const struct nfp_mip *mip, u32 *addr, u32 *size);
+void nfp_mip_symtab(const struct nfp_mip *mip, u32 *addr, u32 *size);
+void nfp_mip_strtab(const struct nfp_mip *mip, u32 *addr, u32 *size);
 
 /* Implemented in nfp_rtsym.c */
 
