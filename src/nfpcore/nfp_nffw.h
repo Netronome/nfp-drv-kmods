@@ -46,9 +46,7 @@ struct nfp_nffw_info;
 
 struct nfp_nffw_info *nfp_nffw_info_open(struct nfp_cpp *cpp);
 void nfp_nffw_info_close(struct nfp_nffw_info *state);
-int nfp_nffw_info_fw_mip(struct nfp_nffw_info *state, u8 fwid,
-			 u32 *cpp_id, u64 *off);
-u8 nfp_nffw_info_fwid_first(struct nfp_nffw_info *state);
+int nfp_nffw_info_mip_first(struct nfp_nffw_info *state, u32 *cpp_id, u64 *off);
 
 /* Implemented in nfp_mip.c */
 

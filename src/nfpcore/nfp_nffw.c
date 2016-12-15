@@ -278,65 +278,48 @@ void nfp_nffw_info_close(struct nfp_nffw_info *state)
 }
 
 /**
- * nfp_nffw_info_fw_mip() - Retrieve the location of the MIP of a firmware
+ * nfp_nffw_info_fwid_first() - Return the first firmware ID in the NFFW
  * @state:	NFP FW info state
- * @fwid:	NFFW firmware ID
+ *
+ * Return: First NFFW firmware info, NULL on failure
+ */
+static struct nffw_fwinfo *nfp_nffw_info_fwid_first(struct nfp_nffw_info *state)
+{
+	struct nffw_fwinfo *fwinfo;
+	unsigned int cnt, i;
+
+	cnt = nffw_res_fwinfos(&state->fwinf, &fwinfo);
+	if (!cnt)
+		return NULL;
+
+	for (i = 0; i < cnt; i++)
+		if (nffw_fwinfo_loaded_get(&fwinfo[i]))
+			return &fwinfo[i];
+
+	return NULL;
+}
+
+/**
+ * nfp_nffw_info_mip_first() - Retrieve the location of the first FW's MIP
+ * @state:	NFP FW info state
  * @cpp_id:	Pointer to the CPP ID of the MIP
  * @off:	Pointer to the CPP Address of the MIP
  *
  * Return: 0, or -ERRNO
  */
-int nfp_nffw_info_fw_mip(struct nfp_nffw_info *state, u8 fwid,
-			 u32 *cpp_id, u64 *off)
+int nfp_nffw_info_mip_first(struct nfp_nffw_info *state, u32 *cpp_id, u64 *off)
 {
-	unsigned int fwidx = fwid - NFFW_FWID_BASE;
 	struct nffw_fwinfo *fwinfo;
-	unsigned int cnt;
 
-	cnt = nffw_res_fwinfos(&state->fwinf, &fwinfo);
-
-	if (!cnt)
-		return -ENODEV;
-
-	if (fwid < NFFW_FWID_BASE || fwidx >= cnt)
+	fwinfo = nfp_nffw_info_fwid_first(state);
+	if (!fwinfo)
 		return -EINVAL;
 
-	fwinfo = &fwinfo[fwidx];
-	if (!nffw_fwinfo_loaded_get(fwinfo))
-		return -ENOENT;
-
-	if (cpp_id)
-		*cpp_id = nffw_fwinfo_mip_cppid_get(fwinfo);
-	if (off)
-		*off = nffw_fwinfo_mip_offset_get(fwinfo);
+	*cpp_id = nffw_fwinfo_mip_cppid_get(fwinfo);
+	*off = nffw_fwinfo_mip_offset_get(fwinfo);
 
 	if (nffw_fwinfo_mip_mu_da_get(fwinfo))
 		*off |= 1ULL << 63;
-
-	return 0;
-}
-
-/**
- * nfp_nffw_info_fwid_first() - Return the first firmware ID in the NFFW
- * @state:	NFP FW info state
- *
- * Return: First NFFW firmware ID
- */
-u8 nfp_nffw_info_fwid_first(struct nfp_nffw_info *state)
-{
-	struct nffw_fwinfo *fwinfo;
-	unsigned int idx;
-	unsigned int cnt;
-
-	cnt = nffw_res_fwinfos(&state->fwinf, &fwinfo);
-
-	if (!cnt)
-		return 0;
-
-	for (idx = 0; idx < cnt; idx++) {
-		if (nffw_fwinfo_loaded_get(&fwinfo[idx]))
-			return idx + NFFW_FWID_BASE;
-	}
 
 	return 0;
 }

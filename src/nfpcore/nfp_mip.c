@@ -111,8 +111,8 @@ nfp_mip_try_read(struct nfp_cpp *cpp, u32 cpp_id, u64 addr, struct nfp_mip *mip)
 static int nfp_mip_read_resource(struct nfp_cpp *cpp, struct nfp_mip *mip)
 {
 	struct nfp_nffw_info *nffw_info;
-	u32 cpp_id, fwid;
 	int mu_lsb, err;
+	u32 cpp_id;
 	u64 addr;
 
 	nffw_info = nfp_nffw_info_open(cpp);
@@ -124,13 +124,7 @@ static int nfp_mip_read_resource(struct nfp_cpp *cpp, struct nfp_mip *mip)
 		goto exit_close_nffw;
 	mu_lsb = err;
 
-	fwid = nfp_nffw_info_fwid_first(nffw_info);
-	if (!fwid) {
-		err = -EIO;
-		goto exit_close_nffw;
-	}
-
-	err = nfp_nffw_info_fw_mip(nffw_info, fwid, &cpp_id, &addr);
+	err = nfp_nffw_info_mip_first(nffw_info, &cpp_id, &addr);
 	if (err)
 		goto exit_close_nffw;
 
