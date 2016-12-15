@@ -208,54 +208,29 @@ struct nfp_resource_entry {
 	} region;
 } __attribute__((__packed__));
 
-/**
- * NFP Resource Table self-identifier
- */
-#define NFP_RESOURCE_TABLE_NAME     "nfp.res"
-#define NFP_RESOURCE_TABLE_KEY      0x00000000  /* Special key for entry 0 */
+/* NFP Resource Table self-identifier */
+#define NFP_RESOURCE_TABLE_NAME		"nfp.res"
+#define NFP_RESOURCE_TABLE_KEY		0x00000000 /* Special key for entry 0 */
 
 /* All other keys are CRC32-POSIX of the 8-byte identification string */
 
-/**
- * ARM Linux/Application Workspace
- */
-#define NFP_RESOURCE_ARM_WORKSPACE      "arm.mem"
+/* ARM/PCI vNIC Interfaces 0..3 */
+#define NFP_RESOURCE_VNIC_PCI_0		"vnic.p0"
+#define NFP_RESOURCE_VNIC_PCI_1		"vnic.p1"
+#define NFP_RESOURCE_VNIC_PCI_2		"vnic.p2"
+#define NFP_RESOURCE_VNIC_PCI_3		"vnic.p3"
 
-/**
- * ARM Linux Flattended Device Tree
- */
-#define NFP_RESOURCE_ARM_FDT            "arm.fdt"
-
-/**
- * ARM/PCI vNIC Interfaces 0..3
- */
-#define NFP_RESOURCE_VNIC_PCI_0         "vnic.p0"
-#define NFP_RESOURCE_VNIC_PCI_1         "vnic.p1"
-#define NFP_RESOURCE_VNIC_PCI_2         "vnic.p2"
-#define NFP_RESOURCE_VNIC_PCI_3         "vnic.p3"
-
-/**
- * NFP Hardware Info Database
- */
-#define NFP_RESOURCE_NFP_HWINFO         "nfp.info"
-
-/**
- * ARM Diagnostic Area
- */
-#define NFP_RESOURCE_ARM_DIAGNOSTIC     "arm.diag"
+/* NFP Hardware Info Database */
+#define NFP_RESOURCE_NFP_HWINFO		"nfp.info"
 
 /* Service Processor */
 #define NFP_RESOURCE_NSP		"nfp.sp"
 
-/**
- * Netronone Flow Firmware Table
- */
-#define NFP_RESOURCE_NFP_NFFW           "nfp.nffw"
+/* Netronone Flow Firmware Table */
+#define NFP_RESOURCE_NFP_NFFW		"nfp.nffw"
 
-/**
- * MAC Statistics Accumulator
- */
-#define NFP_RESOURCE_MAC_STATISTICS     "mac.stat"
+/* MAC Statistics Accumulator */
+#define NFP_RESOURCE_MAC_STATISTICS	"mac.stat"
 
 struct nfp_resource *
 nfp_resource_acquire(struct nfp_cpp *cpp, const char *name);
