@@ -42,6 +42,7 @@
 
 #include "nfp.h"
 #include "nfp_nbi_phymod.h"
+#include "nfp6000/nfp6000.h"
 
 #define NSP_ETH_MAX_COUNT		48
 #define NSP_ETH_TX_STATE_ENABLED	BIT_ULL(1)

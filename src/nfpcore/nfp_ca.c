@@ -45,10 +45,10 @@
 #include <linux/slab.h>
 #include <linux/vmalloc.h>
 
+#include "crc32.h"
 #include "nfp.h"
 #include "nfp_cpp.h"
-
-#include "crc32.h"
+#include "nfp6000/nfp6000.h"
 
 /* Define to 1 to dump CPP CA Replay statistics
  */

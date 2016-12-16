@@ -51,6 +51,7 @@
 
 #include "nfp.h"
 #include "nfp_cpp.h"
+#include "nfp6000/nfp6000.h"
 #include "nfp6000/nfp_xpb.h"
 
 /* NFP6000 PL */

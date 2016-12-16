@@ -52,6 +52,7 @@
 #include "nfp.h"
 #include "nfp_cpp.h"
 #include "nfp_nffw.h"
+#include "nfp6000/nfp6000.h"
 
 /* These need to match the linker */
 #define SYM_TGT_LMEM		0

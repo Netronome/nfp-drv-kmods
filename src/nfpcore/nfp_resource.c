@@ -39,9 +39,10 @@
 #include <linux/kernel.h>
 #include <linux/slab.h>
 
+#include "crc32.h"
 #include "nfp.h"
 #include "nfp_cpp.h"
-#include "crc32.h"
+#include "nfp6000/nfp6000.h"
 
 #define NFP_RESOURCE_ENTRY_NAME_SZ	8
 

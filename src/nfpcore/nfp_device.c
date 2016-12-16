@@ -46,6 +46,7 @@
 #include <linux/ctype.h>
 
 #include "nfp.h"
+#include "nfp6000/nfp6000.h"
 
 /* Retrieve the Global NFP Lock, located at the first
  * High Locality address in the first MU/EMU.

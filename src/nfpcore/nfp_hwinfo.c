@@ -57,6 +57,7 @@
 #include "crc32.h"
 #include "nfp.h"
 #include "nfp_cpp.h"
+#include "nfp6000/nfp6000.h"
 
 #define HWINFO_SIZE_MIN	0x100
 

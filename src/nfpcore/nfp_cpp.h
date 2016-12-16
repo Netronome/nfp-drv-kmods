@@ -550,8 +550,6 @@ void nfp_em_manager_release(struct nfp_em_manager *evm, int filter);
 
 /* Implemented in nfp_cpplib.c */
 
-#include "nfp6000/nfp6000.h"
-
 int nfp_cpp_model_autodetect(struct nfp_cpp *cpp, u32 *model);
 
 int nfp_cpp_explicit_read(struct nfp_cpp *cpp, u32 cpp_id,
