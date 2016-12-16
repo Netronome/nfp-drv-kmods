@@ -1182,7 +1182,7 @@ static int nfp6000_area_read(struct nfp_cpp_area *area, void *kernel_vaddr,
 
 	/* Unaligned? Translate to an explicit access */
 	if ((priv->offset + offset) & (width - 1))
-		return __nfp_cpp_explicit_read(nfp_cpp_area_cpp(area),
+		return nfp_cpp_explicit_read(nfp_cpp_area_cpp(area),
 				NFP_CPP_ID(priv->target,
 					   priv->action,
 					   priv->token),
@@ -1244,7 +1244,7 @@ static int nfp6000_area_write(struct nfp_cpp_area *area,
 
 	/* Unaligned? Translate to an explicit access */
 	if ((priv->offset + offset) & (width - 1))
-		return __nfp_cpp_explicit_write(nfp_cpp_area_cpp(area),
+		return nfp_cpp_explicit_write(nfp_cpp_area_cpp(area),
 				NFP_CPP_ID(priv->target,
 					   priv->action,
 					   priv->token),

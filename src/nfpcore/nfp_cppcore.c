@@ -1543,7 +1543,7 @@ nfp_cpp_from_operations(const struct nfp_cpp_operations *ops,
 		}
 	}
 
-	err = __nfp_cpp_model_autodetect(cpp, &cpp->model);
+	err = nfp_cpp_model_autodetect(cpp, &cpp->model);
 	if (err < 0) {
 		dev_err(parent, "NFP model detection failed\n");
 		goto err_out;

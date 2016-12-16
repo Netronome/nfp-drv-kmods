@@ -552,24 +552,15 @@ void nfp_em_manager_release(struct nfp_em_manager *evm, int filter);
 
 #include "nfp6000/nfp6000.h"
 
-int __nfp_cpp_model_autodetect(struct nfp_cpp *cpp, u32 *model);
+int nfp_cpp_model_autodetect(struct nfp_cpp *cpp, u32 *model);
 
-/* Helpers for the nfpXXXX_pcie.c interfaces */
+int nfp_cpp_explicit_read(struct nfp_cpp *cpp, u32 cpp_id,
+			  u64 addr, void *buff, size_t len,
+			  int width_read);
 
-static inline int __nfp_cpp_id_is_prefetchable(u32 cpp_id)
-{
-	return (NFP_CPP_ID_TARGET_of(cpp_id) == NFP_CPP_TARGET_MU &&
-		(NFP_CPP_ID_ACTION_of(cpp_id) == NFP_CPP_ACTION_RW ||
-		 NFP_CPP_ID_ACTION_of(cpp_id) == 0));
-}
-
-int __nfp_cpp_explicit_read(struct nfp_cpp *cpp, u32 cpp_id,
-			    u64 addr, void *buff, size_t len,
-			    int width_read);
-
-int __nfp_cpp_explicit_write(struct nfp_cpp *cpp, u32 cpp_id,
-			     u64 addr, const void *buff, size_t len,
-			     int width_write);
+int nfp_cpp_explicit_write(struct nfp_cpp *cpp, u32 cpp_id,
+			   u64 addr, const void *buff, size_t len,
+			   int width_write);
 
 /* nfp_cppcore.c */
 
