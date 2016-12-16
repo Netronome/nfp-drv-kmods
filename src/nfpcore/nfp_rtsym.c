@@ -34,15 +34,14 @@
 /*
  * nfp_rtsym.c
  * Interface for accessing run-time symbol table
- * Authors: Jason McMullan <jason.mcmullan@netronome.com>
+ * Authors: Jakub Kicinski <jakub.kicinski@netronome.com>
+ *          Jason McMullan <jason.mcmullan@netronome.com>
  *          Espen Skoglund <espen.skoglund@netronome.com>
  *          Francois H. Theron <francois.theron@netronome.com>
  */
-
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/slab.h>
-
 #include <linux/version.h>
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0)
 #include <asm-generic/io-64-nonatomic-hi-lo.h>
@@ -55,27 +54,19 @@
 #include "nfp_nffw.h"
 
 /* These need to match the linker */
-#define _SYM_TGT_LMEM	   0
-#define _SYM_TGT_UMEM	   0xFE /* Only NFP-32xx */
-#define _SYM_TGT_EMU_CACHE  0x17
+#define SYM_TGT_LMEM		0
+#define SYM_TGT_EMU_CACHE	0x17
 
-struct _rtsym {
-	u8  type;
-	u8  target;
-	union {
-		u8  val;
-		/* 0xff if N/A */
-		u8  nfp6000_island;
-	} domain1;
-	u8  addr_hi;
-	u32 addr_lo;
-	u16 name;
-	union {
-		u8  val;
-		u8  nfp6000_menum;
-	} domain2;
-	u8  size_hi;
-	u32 size_lo;
+struct nfp_rtsym_entry {
+	u8	type;
+	u8	target;
+	u8	island;
+	u8	addr_hi;
+	__le32	addr_lo;
+	__le16	name;
+	u8	menum;
+	u8	size_hi;
+	__le32	size_lo;
 };
 
 struct nfp_rtsym_cache {
@@ -84,22 +75,50 @@ struct nfp_rtsym_cache {
 	struct nfp_rtsym symtab[];
 };
 
-static int nfp6000_meid(u8 island_id, u8 menum)
+static int nfp_meid(u8 island_id, u8 menum)
 {
 	return (island_id & 0x3F) == island_id && menum < 12 ?
 		(island_id << 4) | (menum + 4) : -1;
 }
 
-static int __nfp_rtsymtab_probe(struct nfp_cpp *cpp)
+static void
+nfp_rtsym_sw_entry_init(struct nfp_rtsym_cache *cache, u32 strtab_size,
+			struct nfp_rtsym *sw, struct nfp_rtsym_entry *fw)
 {
-	const u32 dram = NFP_CPP_ID(NFP_CPP_TARGET_MU, NFP_CPP_ACTION_RW, 0);
+	sw->type = fw->type;
+	sw->name = cache->strtab + le16_to_cpu(fw->name) % strtab_size;
+	sw->addr = ((u64)fw->addr_hi << 32) | le32_to_cpu(fw->addr_lo);
+	sw->size = ((u64)fw->size_hi << 32) | le32_to_cpu(fw->size_lo);
+
+	switch (fw->target) {
+	case SYM_TGT_LMEM:
+		sw->target = NFP_RTSYM_TARGET_LMEM;
+		break;
+	case SYM_TGT_EMU_CACHE:
+		sw->target = NFP_RTSYM_TARGET_EMU_CACHE;
+		break;
+	default:
+		sw->target = fw->target;
+		break;
+	}
+
+	if (fw->menum != 0xff)
+		sw->domain = nfp_meid(fw->island, fw->menum);
+	else if (fw->island != 0xff)
+		sw->domain = fw->island;
+	else
+		sw->domain = -1;
+}
+
+static int nfp_rtsymtab_probe(struct nfp_cpp *cpp)
+{
+	const u32 dram = NFP_CPP_ID(NFP_CPP_TARGET_MU, NFP_CPP_ACTION_RW, 0) |
+		NFP_ISL_EMEM0;
+	u32 strtab_addr, symtab_addr, strtab_size, symtab_size;
+	struct nfp_rtsym_entry *rtsymtab;
 	struct nfp_rtsym_cache *cache;
-	u32 strtab_addr, symtab_addr;
-	u32 strtab_size, symtab_size;
 	const struct nfp_mip *mip;
-	struct _rtsym *rtsymtab;
 	int err, n, size;
-	u32 *wptr;
 
 	mip = nfp_mip(cpp);
 	if (!mip)
@@ -108,13 +127,12 @@ static int __nfp_rtsymtab_probe(struct nfp_cpp *cpp)
 	nfp_mip_strtab(mip, &strtab_addr, &strtab_size);
 	nfp_mip_symtab(mip, &symtab_addr, &symtab_size);
 
-	if (symtab_size == 0 || strtab_size == 0 ||
-	    (symtab_size % sizeof(*rtsymtab)) != 0)
+	if (!symtab_size || !strtab_size || symtab_size % sizeof(*rtsymtab))
 		return -ENXIO;
 
 	/* Align to 64 bits */
-	symtab_size = (symtab_size + 7) & ~7;
-	strtab_size = (strtab_size + 7) & ~7;
+	symtab_size = round_up(symtab_size, 8);
+	strtab_size = round_up(strtab_size, 8);
 
 	rtsymtab = kmalloc(symtab_size, GFP_KERNEL);
 	if (!rtsymtab)
@@ -132,52 +150,18 @@ static int __nfp_rtsymtab_probe(struct nfp_cpp *cpp)
 	cache->num = symtab_size / sizeof(*rtsymtab);
 	cache->strtab = (void *)&cache->symtab[cache->num];
 
-	err = nfp_cpp_read(cpp, dram | 24, symtab_addr, rtsymtab, symtab_size);
+	err = nfp_cpp_read(cpp, dram, symtab_addr, rtsymtab, symtab_size);
 	if (err != symtab_size)
 		goto err_free_cache;
 
-	err = nfp_cpp_read(cpp, dram | 24, strtab_addr,
-			   cache->strtab, strtab_size);
+	err = nfp_cpp_read(cpp, dram, strtab_addr, cache->strtab, strtab_size);
 	if (err != strtab_size)
 		goto err_free_cache;
 	cache->strtab[strtab_size] = '\0';
 
-	for (wptr = (u32 *)rtsymtab, n = 0; n < cache->num; n++)
-		wptr[n] = le32_to_cpu(wptr[n]);
-
-	for (n = 0; n < cache->num; n++) {
-		cache->symtab[n].type = rtsymtab[n].type;
-		cache->symtab[n].name = cache->strtab +
-			(rtsymtab[n].name % strtab_size);
-		cache->symtab[n].addr = (((u64)rtsymtab[n].addr_hi) << 32) +
-			rtsymtab[n].addr_lo;
-		cache->symtab[n].size = (((u64)rtsymtab[n].size_hi) << 32) +
-			rtsymtab[n].size_lo;
-
-		switch (rtsymtab[n].target) {
-		case _SYM_TGT_LMEM:
-			cache->symtab[n].target = NFP_RTSYM_TARGET_LMEM;
-			break;
-		case _SYM_TGT_EMU_CACHE:
-			cache->symtab[n].target = NFP_RTSYM_TARGET_EMU_CACHE;
-			break;
-		case _SYM_TGT_UMEM:
-			goto err_free_cache;
-		default:
-			cache->symtab[n].target = rtsymtab[n].target;
-			break;
-		}
-
-		if (rtsymtab[n].domain2.nfp6000_menum != 0xff)
-			cache->symtab[n].domain = nfp6000_meid(
-				rtsymtab[n].domain1.nfp6000_island,
-				rtsymtab[n].domain2.nfp6000_menum);
-		else if (rtsymtab[n].domain1.nfp6000_island != 0xff)
-			cache->symtab[n].domain =
-				rtsymtab[n].domain1.nfp6000_island;
-		else
-			cache->symtab[n].domain = -1;
-	}
+	for (n = 0; n < cache->num; n++)
+		nfp_rtsym_sw_entry_init(cache, strtab_size,
+					&cache->symtab[n], &rtsymtab[n]);
 
 	kfree(rtsymtab);
 	nfp_rtsym_cache_set(cpp, cache);
@@ -199,7 +183,7 @@ static struct nfp_rtsym_cache *nfp_rtsym(struct nfp_cpp *cpp)
 	if (cache)
 		return cache;
 
-	err = __nfp_rtsymtab_probe(cpp);
+	err = nfp_rtsymtab_probe(cpp);
 	if (err < 0)
 		return ERR_PTR(err);
 
@@ -208,7 +192,7 @@ static struct nfp_rtsym_cache *nfp_rtsym(struct nfp_cpp *cpp)
 
 /**
  * nfp_rtsym_count() - Get the number of RTSYM descriptors
- * @cpp:		NFP CPP handle
+ * @cpp:	NFP CPP handle
  *
  * Return: Number of RTSYM descriptors, or -ERRNO
  */
@@ -225,8 +209,8 @@ int nfp_rtsym_count(struct nfp_cpp *cpp)
 
 /**
  * nfp_rtsym_get() - Get the Nth RTSYM descriptor
- * @cpp:		NFP CPP handle
- * @idx:		Index (0-based) of the RTSYM descriptor
+ * @cpp:	NFP CPP handle
+ * @idx:	Index (0-based) of the RTSYM descriptor
  *
  * Return: const pointer to a struct nfp_rtsym descriptor, or NULL
  */
@@ -246,8 +230,8 @@ const struct nfp_rtsym *nfp_rtsym_get(struct nfp_cpp *cpp, int idx)
 
 /**
  * nfp_rtsym_lookup() - Return the RTSYM descriptor for a symbol name
- * @cpp:		NFP CPP handle
- * @name:		Symbol name
+ * @cpp:	NFP CPP handle
+ * @name:	Symbol name
  *
  * Return: const pointer to a struct nfp_rtsym descriptor, or NULL
  */
