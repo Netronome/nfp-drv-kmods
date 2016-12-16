@@ -42,24 +42,6 @@
 #ifndef _NFP_NET_COMPAT_H_
 #define _NFP_NET_COMPAT_H_
 
-#ifndef LINUX_VERSION_CODE
-#include <linux/version.h>
-#else
-#define KERNEL_VERSION(a, b, c) (((a) << 16) + ((b) << 8) + (c))
-#endif
-
-#ifndef RHEL_RELEASE_VERSION
-#define RHEL_RELEASE_VERSION(a, b) (((a) << 8) + (b))
-#endif
-#ifndef RHEL_RELEASE_CODE
-#define RHEL_RELEASE_CODE 0
-#endif
-
-#define VER_VANILLA_LT(x, y)						\
-	(!RHEL_RELEASE_CODE && LINUX_VERSION_CODE < KERNEL_VERSION(x, y, 0))
-#define VER_RHEL_LT(x, y)						\
-	(RHEL_RELEASE_CODE && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(x, y))
-
 #include <asm/barrier.h>
 #include <linux/bitops.h>
 #include <linux/ethtool.h>
@@ -74,11 +56,10 @@
 #include <linux/pci.h>
 #include <linux/skbuff.h>
 #include <linux/udp.h>
+#include <linux/version.h>
 
+#include "nfpcore/kcompat.h"
 #include "nfp_net.h"
-
-/* TODO: change to >= 4.11 when released */
-#define LINUX_RELEASE_4_11 defined(AF_SMC)
 
 #define COMPAT__HAVE_VXLAN_OFFLOAD \
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0))
@@ -90,19 +71,6 @@
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0))
 #define COMPAT__HAVE_XDP_ADJUST_HEAD \
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
-
-#ifndef GENMASK
-#define GENMASK(h, l) \
-	((~0UL << (l)) & (~0UL >> (BITS_PER_LONG - (h) - 1)))
-#endif
-
-#ifndef dma_rmb
-#define dma_rmb() rmb()
-#endif
-
-#ifndef PCI_VENDOR_ID_NETRONOME
-#define PCI_VENDOR_ID_NETRONOME		0x19ee
-#endif
 
 #ifndef NETIF_F_HW_VLAN_CTAG_RX
 #define NETIF_F_HW_VLAN_CTAG_RX NETIF_F_HW_VLAN_RX
@@ -118,10 +86,6 @@
 #endif
 #ifndef ETH_RSS_HASH_TOP
 #define ETH_RSS_HASH_TOP	0
-#endif
-
-#ifndef READ_ONCE
-#define READ_ONCE(x)	(x)
 #endif
 
 #ifndef NETIF_F_CSUM_MASK
@@ -191,66 +155,6 @@ ns___vlan_hwaccel_put_tag(struct sk_buff *skb, __be16 vlan_proto,
 }
 
 #define __vlan_hwaccel_put_tag ns___vlan_hwaccel_put_tag
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0)
-static inline int compat_pci_enable_msix_range(struct pci_dev *dev,
-					       struct msix_entry *entries,
-					       int minvec, int maxvec)
-{
-	int nvec = maxvec;
-	int rc;
-
-	if (maxvec < minvec)
-		return -ERANGE;
-
-	do {
-		rc = pci_enable_msix(dev, entries, nvec);
-		if (rc < 0) {
-			return rc;
-		} else if (rc > 0) {
-			if (rc < minvec)
-				return -ENOSPC;
-			nvec = rc;
-		}
-	} while (rc);
-
-	return nvec;
-}
-
-#define pci_enable_msix_range(dev, entries, minv, maxv) \
-	compat_pci_enable_msix_range(dev, entries, minv, maxv)
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0)
-static inline int compat_pci_enable_msi_range(struct pci_dev *dev,
-					      int minvec, int maxvec)
-{
-	int nvec = maxvec;
-	int rc;
-
-	if (maxvec < minvec)
-		return -ERANGE;
-
-	do {
-		rc = pci_enable_msi_block(dev, nvec);
-		if (rc < 0) {
-			return rc;
-		} else if (rc > 0) {
-			if (rc < minvec)
-				return -ENOSPC;
-			nvec = rc;
-		}
-	} while (rc);
-
-	return nvec;
-}
-
-/* Check in case we also pull in kcompat.h from nfpcore */
-#ifndef pci_enable_msi_range
-#define pci_enable_msi_range(dev, minv, maxv) \
-	compat_pci_enable_msi_range(dev, minv, maxv)
-#endif
 #endif
 
 #if VER_VANILLA_LT(3, 14)
@@ -484,17 +388,6 @@ static inline int nfp_net_xdp_offload(struct nfp_net *nn, struct bpf_prog *prog)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0)
 #define is_tcf_mirred_egress_redirect is_tcf_mirred_redirect
 #define bpf_prog_run_xdp	BPF_PROG_RUN
-
-#if COMPAT__HAVE_XDP
-static inline const struct file_operations *
-compat_debugfs_real_fops(const struct file *file)
-{
-	return file->f_path.dentry->d_fsdata;
-}
-#define debugfs_real_fops compat_debugfs_real_fops
-#else
-#define debugfs_real_fops(x) (void *)1 /* Can't do NULL b/c of -Waddress */
-#endif /* COMPAT__HAVE_XDP */
 #endif
 
 #if LINUX_RELEASE_4_11

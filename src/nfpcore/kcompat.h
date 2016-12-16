@@ -46,12 +46,31 @@
 #include <linux/err.h>
 #include <linux/etherdevice.h>
 
-#ifndef PCI_VENDOR_ID_NETRONOME
-#define PCI_VENDOR_ID_NETRONOME		0x19ee
+#define VER_VANILLA_LT(x, y)						\
+	(!RHEL_RELEASE_CODE && LINUX_VERSION_CODE < KERNEL_VERSION(x, y, 0))
+#define VER_RHEL_LT(x, y)						\
+	(RHEL_RELEASE_CODE && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(x, y))
+
+/* RHEL has a tendency to heavily patch their kernels.  Sometimes it
+ * is necessary to check for specific RHEL releases and not just for
+ * Linux kernel version.  Define RHEL version macros for Linux kernels
+ * which don't have them. */
+#ifndef RHEL_RELEASE_VERSION
+#define RHEL_RELEASE_VERSION(a, b) (((a) << 8) + (b))
 #endif
+#ifndef RHEL_RELEASE_CODE
+#define RHEL_RELEASE_CODE 0
+#endif
+
+/* TODO: change to >= 4.11 when released */
+#define LINUX_RELEASE_4_11 defined(AF_SMC)
 
 #define COMPAT__CAN_HAVE_MULTIPLE_MOD_TABLES \
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
+
+#ifndef PCI_VENDOR_ID_NETRONOME
+#define PCI_VENDOR_ID_NETRONOME		0x19ee
+#endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 6, 0))
 #include <linux/sizes.h>
@@ -72,15 +91,17 @@
 #define BIT_ULL(nr)		(1ULL << (nr))
 #endif
 
-/* RHEL has a tendency to heavily patch their kernels.  Sometimes it
- * is necessary to check for specific RHEL releases and not just for
- * Linux kernel version.  Define RHEL version macros for Linux kernels
- * which don't have them. */
-#ifndef RHEL_RELEASE_VERSION
-#define RHEL_RELEASE_VERSION(a, b) (((a) << 8) + (b))
+#ifndef GENMASK
+#define GENMASK(h, l) \
+	((~0UL << (l)) & (~0UL >> (BITS_PER_LONG - (h) - 1)))
 #endif
-#ifndef RHEL_RELEASE_CODE
-#define RHEL_RELEASE_CODE 0
+
+#ifndef dma_rmb
+#define dma_rmb() rmb()
+#endif
+
+#ifndef READ_ONCE
+#define READ_ONCE(x)	(x)
 #endif
 
 #if (LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 27))
@@ -207,7 +228,34 @@ static inline int _pci_enable_msi_range(struct pci_dev *dev,
 
 #define pci_enable_msi_range(dev, minv, maxv) \
 	_pci_enable_msi_range(dev, minv, maxv)
-#endif
+
+static inline int compat_pci_enable_msix_range(struct pci_dev *dev,
+					       struct msix_entry *entries,
+					       int minvec, int maxvec)
+{
+	int nvec = maxvec;
+	int rc;
+
+	if (maxvec < minvec)
+		return -ERANGE;
+
+	do {
+		rc = pci_enable_msix(dev, entries, nvec);
+		if (rc < 0) {
+			return rc;
+		} else if (rc > 0) {
+			if (rc < minvec)
+				return -ENOSPC;
+			nvec = rc;
+		}
+	} while (rc);
+
+	return nvec;
+}
+
+#define pci_enable_msix_range(dev, entries, minv, maxv) \
+	compat_pci_enable_msix_range(dev, entries, minv, maxv)
+#endif /* < 3.14 */
 
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
 #include <linux/mm.h>
@@ -550,6 +598,19 @@ netif_trans_update(struct net_device *netdev)
 {
 	netdev->trans_start = jiffies;
 }
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0)
+static inline const struct file_operations *
+compat_debugfs_real_fops(const struct file *file)
+{
+	return file->f_path.dentry->d_fsdata;
+}
+#define debugfs_real_fops compat_debugfs_real_fops
+#else
+#define debugfs_real_fops(x) (void *)1 /* Can't do NULL b/c of -Waddress */
+#endif /* >= 4.8 */
 #endif
 
 static inline unsigned long compat_vmf_get_addr(struct vm_fault *vmf)
