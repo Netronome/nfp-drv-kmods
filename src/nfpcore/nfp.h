@@ -179,38 +179,12 @@ int nfp_nsp_command_buf(struct nfp_nsp *state, u16 code, u32 option,
 
 /* Implemented in nfp_resource.c */
 
-#define NFP_RESOURCE_ENTRY_NAME_SZ	8
-
 #define NFP_RESOURCE_TBL_TARGET		NFP_CPP_TARGET_MU
 #define NFP_RESOURCE_TBL_BASE		0x8100000000ULL
-#define NFP_RESOURCE_TBL_SIZE		4096
-#define NFP_RESOURCE_TBL_ENTRIES	(NFP_RESOURCE_TBL_SIZE /	\
-					 sizeof(struct nfp_resource_entry))
-
-/* NFP BSP Resource Reservation Entry
- */
-struct nfp_resource_entry {
-	struct nfp_resource_entry_mutex {
-		u32 owner;       /* NFP CPP Lock, interface owner */
-		u32 key;         /* NFP CPP Lock, posix_crc32(name, 8) */
-	} mutex;
-	struct nfp_resource_entry_region {
-		/* ASCII, zero padded name */
-		u8  name[NFP_RESOURCE_ENTRY_NAME_SZ];
-		u32 reserved_0x10;     /* -- reserved -- */
-		u8  reserved_0x11;     /* -- reserved -- */
-		u8  cpp_action;        /* CPP Action */
-		u8  cpp_token;         /* CPP Token */
-		u8  cpp_target;        /* CPP Target ID */
-		u32 page_offset;       /* 256-byte page offset into
-					     * target's CPP address */
-		u32 page_size;         /* size, in 256-byte pages */
-	} region;
-} __attribute__((__packed__));
 
 /* NFP Resource Table self-identifier */
-#define NFP_RESOURCE_TABLE_NAME		"nfp.res"
-#define NFP_RESOURCE_TABLE_KEY		0x00000000 /* Special key for entry 0 */
+#define NFP_RESOURCE_TBL_NAME		"nfp.res"
+#define NFP_RESOURCE_TBL_KEY		0x00000000 /* Special key for entry 0 */
 
 /* All other keys are CRC32-POSIX of the 8-byte identification string */
 

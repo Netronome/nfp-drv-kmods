@@ -33,22 +33,50 @@
 
 /*
  * nfp_resource.c
- * Author: Jason McMullan <jason.mcmullan@netronome.com>
+ * Author: Jakub Kicinski <jakub.kicinski@netronome.com>
+ *         Jason McMullan <jason.mcmullan@netronome.com>
  */
-
 #include <linux/kernel.h>
-#include <linux/module.h>
 #include <linux/slab.h>
-#include <linux/sched.h>
-#include <linux/delay.h>
 
 #include "nfp.h"
 #include "nfp_cpp.h"
-
 #include "crc32.h"
 
-#define NFP_XPB_OVERLAY(island)  (((island) & 0x3f) << 24)
-#define NFP_XPB_ISLAND(island)   (NFP_XPB_OVERLAY(island) + 0x60000)
+#define NFP_RESOURCE_ENTRY_NAME_SZ	8
+
+/**
+ * struct nfp_resource_entry - Resource table entry
+ * @owner:		NFP CPP Lock, interface owner
+ * @key:		NFP CPP Lock, posix_crc32(name, 8)
+ * @region:		Memory region descriptor
+ * @name:		ASCII, zero padded name
+ * @reserved
+ * @cpp_action:		CPP Action
+ * @cpp_token:		CPP Token
+ * @cpp_target:		CPP Target ID
+ * @page_offset:	256-byte page offset into target's CPP address
+ * @page_size:		size, in 256-byte pages
+ */
+struct nfp_resource_entry {
+	struct nfp_resource_entry_mutex {
+		u32 owner;
+		u32 key;
+	} mutex;
+	struct nfp_resource_entry_region {
+		u8  name[NFP_RESOURCE_ENTRY_NAME_SZ];
+		u8  reserved[5];
+		u8  cpp_action;
+		u8  cpp_token;
+		u8  cpp_target;
+		u32 page_offset;
+		u32 page_size;
+	} region;
+};
+
+#define NFP_RESOURCE_TBL_SIZE		4096
+#define NFP_RESOURCE_TBL_ENTRIES	(NFP_RESOURCE_TBL_SIZE /	\
+					 sizeof(struct nfp_resource_entry))
 
 struct nfp_resource {
 	char name[NFP_RESOURCE_ENTRY_NAME_SZ + 1];
@@ -62,23 +90,15 @@ static int nfp_cpp_resource_acquire(struct nfp_cpp *cpp, const char *name,
 				    u32 *r_cpp, u64 *r_addr, u64 *r_size,
 				    struct nfp_cpp_mutex **resource_mutex)
 {
-	struct nfp_resource_entry_region region;
-	struct nfp_resource_entry tmp;
+	char name_pad[NFP_RESOURCE_ENTRY_NAME_SZ] = {};
+	struct nfp_resource_entry entry;
 	struct nfp_cpp_mutex *mutex;
+	u32 cpp_id, key;
 	int err, i;
-	u32 key;
-	u32 cpp_id;
-
-	for (i = 0; i < sizeof(region.name); i++) {
-		if (*name != 0)
-			region.name[i] = *(name++);
-		else
-			region.name[i] = 0;
-	}
 
 	cpp_id = NFP_CPP_ID(NFP_RESOURCE_TBL_TARGET, 3, 0);  /* Atomic read */
 
-	key = NFP_RESOURCE_TABLE_KEY;
+	key = NFP_RESOURCE_TBL_KEY;
 	mutex = nfp_cpp_mutex_alloc(cpp, NFP_RESOURCE_TBL_TARGET,
 				    NFP_RESOURCE_TBL_BASE, key);
 	if (!mutex)
@@ -86,69 +106,63 @@ static int nfp_cpp_resource_acquire(struct nfp_cpp *cpp, const char *name,
 
 	/* Wait for the lock.. */
 	err = nfp_cpp_mutex_lock(mutex);
-	if (err < 0) {
+	if (err) {
 		nfp_cpp_mutex_free(mutex);
 		return err;
 	}
 
+	strncpy(name_pad, name, sizeof(name_pad));
+
 	/* Search for a matching entry */
-	if (memcmp(region.name,
-		   NFP_RESOURCE_TABLE_NAME "\0\0\0\0\0\0\0\0", 8) != 0)
-		key = crc32_posix(&region.name[0], sizeof(region.name));
+	if (memcmp(name_pad, NFP_RESOURCE_TBL_NAME "\0\0\0\0\0\0\0\0", 8))
+		key = crc32_posix(name_pad, sizeof(name_pad));
+
+	err = -ENOENT;
 	for (i = 0; i < NFP_RESOURCE_TBL_ENTRIES; i++) {
 		u64 addr = NFP_RESOURCE_TBL_BASE +
 			sizeof(struct nfp_resource_entry) * i;
 
-		err = nfp_cpp_read(cpp, cpp_id, addr, &tmp, sizeof(tmp));
-		if (err < 0) {
-			/* Unlikely to work if the read failed,
-			 * but we should at least try... */
-			nfp_cpp_mutex_unlock(mutex);
-			nfp_cpp_mutex_free(mutex);
-			return err;
+		err = nfp_cpp_read(cpp, cpp_id, addr, &entry, sizeof(entry));
+		if (err != sizeof(entry)) {
+			err = -EIO;
+			goto exit_unlock;
 		}
 
-		if (tmp.mutex.key == key) {
-			/* Found key! */
-			if (resource_mutex)
-				*resource_mutex = nfp_cpp_mutex_alloc(cpp,
-							NFP_RESOURCE_TBL_TARGET, addr, key);
+		if (entry.mutex.key != key)
+			continue;
 
-			if (r_cpp)
-				*r_cpp = NFP_CPP_ID(tmp.region.cpp_target,
-						tmp.region.cpp_action,
-						tmp.region.cpp_token);
+		/* Found key! */
+		*resource_mutex =
+			nfp_cpp_mutex_alloc(cpp,
+					    NFP_RESOURCE_TBL_TARGET, addr, key);
+		*r_cpp = NFP_CPP_ID(entry.region.cpp_target,
+				    entry.region.cpp_action,
+				    entry.region.cpp_token);
+		*r_addr = (u64)entry.region.page_offset << 8;
+		*r_size = (u64)entry.region.page_size << 8;
 
-			if (r_addr)
-				*r_addr = (u64)tmp.region.page_offset << 8;
-
-			if (r_size)
-				*r_size = (u64)tmp.region.page_size << 8;
-
-			nfp_cpp_mutex_unlock(mutex);
-			nfp_cpp_mutex_free(mutex);
-
-			return 0;
-		}
+		err = 0;
+		break;
 	}
 
+exit_unlock:
 	nfp_cpp_mutex_unlock(mutex);
 	nfp_cpp_mutex_free(mutex);
 
-	return -ENOENT;
+	return err;
 }
 
 /**
  * nfp_resource_acquire() - Acquire a resource handle
- * @cpp:		NFP CPP handle
- * @name:		Name of the resource
+ * @cpp:	NFP CPP handle
+ * @name:	Name of the resource
  *
- * NOTE: This function implictly locks the acquired resource
+ * NOTE: This function locks the acquired resource
  *
  * Return: NFP Resource handle, or ERR_PTR()
  */
-struct nfp_resource *nfp_resource_acquire(struct nfp_cpp *cpp,
-					  const char *name)
+struct nfp_resource *
+nfp_resource_acquire(struct nfp_cpp *cpp, const char *name)
 {
 	struct nfp_cpp_mutex *mutex;
 	struct nfp_resource *res;
@@ -158,17 +172,18 @@ struct nfp_resource *nfp_resource_acquire(struct nfp_cpp *cpp,
 
 	err = nfp_cpp_resource_acquire(cpp, name, &cpp_id, &addr,
 				       &size, &mutex);
-	if (err < 0)
+	if (err)
 		return ERR_PTR(err);
 
 	err = nfp_cpp_mutex_lock(mutex);
-	if (err < 0) {
+	if (err) {
 		nfp_cpp_mutex_free(mutex);
 		return ERR_PTR(err);
 	}
 
 	res = kzalloc(sizeof(*res), GFP_KERNEL);
 	if (!res) {
+		nfp_cpp_mutex_unlock(mutex);
 		nfp_cpp_mutex_free(mutex);
 		return ERR_PTR(-ENOMEM);
 	}
