@@ -34,28 +34,26 @@
 /*
  * nfp_cppcore.c
  * Provides low-level access to the NFP's internal CPP bus
- * Authors: Jason McMullan <jason.mcmullan@netronome.com>
+ * Authors: Jakub Kicinski <jakub.kicinski@netronome.com>
+ *          Jason McMullan <jason.mcmullan@netronome.com>
  *          Rolf Neugebauer <rolf.neugebauer@netronome.com>
  */
 
+#include <linux/device.h>
+#include <linux/ioport.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/slab.h>
+#include <linux/mutex.h>
+#include <linux/platform_device.h>
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
-#include <linux/device.h>
-#include <linux/platform_device.h>
-#include <linux/ioport.h>
-
 #include <linux/sched.h>
+#include <linux/slab.h>
 #include <linux/wait.h>
-#include <linux/mutex.h>
 
 #include "nfp_arm.h"
 #include "nfp_cpp.h"
 #include "nfp_target.h"
-
-#define NFP_CPP_DIR_NAME	"nfp_cpp"
 
 #define NFP_ARM_GCSR_SOFTMODEL2                              0x0000014c
 #define NFP_ARM_GCSR_SOFTMODEL3                              0x00000150
@@ -97,8 +95,8 @@ struct nfp_cpp {
 	u8 serial[NFP_SERIAL_LEN];
 
 	const struct nfp_cpp_operations *op;
-	struct list_head resource_list;	/** NFP CPP resource list */
-	struct list_head mutex_cache;	/** Mutex cache */
+	struct list_head resource_list;	/* NFP CPP resource list */
+	struct list_head mutex_cache;	/* Mutex cache */
 	rwlock_t resource_lock;
 	struct list_head list;
 	wait_queue_head_t waitq;
@@ -163,9 +161,7 @@ struct nfp_cpp_event {
 
 #define NFP_CPP_MAX	256
 
-static unsigned long nfp_cpp_id[
-	(NFP_CPP_MAX + sizeof(unsigned long) * 8 - 1)
-		/ (sizeof(unsigned long) * 8)];
+static DECLARE_BITMAP(nfp_cpp_id, NFP_CPP_MAX);
 static struct mutex nfp_cpp_id_lock;
 static struct list_head nfp_cpp_list;
 static rwlock_t nfp_cpp_list_lock;
@@ -218,7 +214,8 @@ static int nfp_cpp_id_acquire(void)
 	if (id < NFP_CPP_MAX)
 		set_bit(id, nfp_cpp_id);
 	mutex_unlock(&nfp_cpp_id_lock);
-	return (id < NFP_CPP_MAX) ? id : -1;
+
+	return id < NFP_CPP_MAX ? id : -1;
 }
 
 static void nfp_cpp_id_release(int id)
@@ -234,17 +231,15 @@ static void __nfp_cpp_release(struct kref *kref)
 {
 	struct nfp_cpp *cpp = container_of(kref, struct nfp_cpp, kref);
 	struct nfp_cpp_area_cache *cache, *ctmp;
-	struct nfp_cpp_mutex *mutex, *mtmp;
 	struct nfp_cpp_resource *res, *rtmp;
+	struct nfp_cpp_mutex *mutex, *mtmp;
 
 	if (cpp->dev_mutex)
 		nfp_cpp_mutex_free(cpp->dev_mutex);
 
-	/* There should be no mutexes in the cache at this point.
-	 */
+	/* There should be no mutexes in the cache at this point. */
 	WARN_ON(!list_empty(&cpp->mutex_cache));
-	/* .. but if there are, unlock them and complain.
-	 */
+	/* .. but if there are, unlock them and complain. */
 	list_for_each_entry_safe(mutex, mtmp, &cpp->mutex_cache, list) {
 		dev_err(cpp->dev.parent, "Dangling mutex: @%d::0x%llx, %d locks held by %d owners\n",
 			mutex->target, (unsigned long long)mutex->address,
@@ -270,12 +265,10 @@ static void __nfp_cpp_release(struct kref *kref)
 		kfree(cache);
 	}
 
-	/* There should be no dangling areas at this point
-	 */
+	/* There should be no dangling areas at this point */
 	WARN_ON(!list_empty(&cpp->resource_list));
 
-	/* .. but if they weren't, try to clean up.
-	 */
+	/* .. but if they weren't, try to clean up. */
 	list_for_each_entry_safe(res, rtmp, &cpp->resource_list, list) {
 		struct nfp_cpp_area *area = container_of(res,
 							 struct nfp_cpp_area,
@@ -314,19 +307,16 @@ static void __nfp_cpp_release(struct kref *kref)
 	kfree(cpp);
 }
 
-#define CPP_GET(cpp)	kref_get(&(cpp)->kref)
-#define CPP_PUT(cpp)	kref_put(&(cpp)->kref, __nfp_cpp_release)
-
 static struct nfp_cpp *nfp_cpp_get(struct nfp_cpp *cpp)
 {
-	CPP_GET(cpp);
+	kref_get(&cpp->kref);
 
 	return cpp;
 }
 
 static void nfp_cpp_put(struct nfp_cpp *cpp)
 {
-	CPP_PUT(cpp);
+	kref_put(&cpp->kref, __nfp_cpp_release);
 }
 
 /**
@@ -353,7 +343,7 @@ struct nfp_cpp *nfp_cpp_from_device_id(int id)
 
 /**
  * nfp_cpp_free() - free the CPP handle
- * @cpp:   CPP handle
+ * @cpp:	CPP handle
  */
 void nfp_cpp_free(struct nfp_cpp *cpp)
 {
@@ -362,7 +352,7 @@ void nfp_cpp_free(struct nfp_cpp *cpp)
 
 /**
  * nfp_cpp_device_id() - get device ID of CPP handle
- * @cpp:   CPP handle
+ * @cpp:	CPP handle
  *
  * Return: NFP CPP device ID
  */
@@ -373,19 +363,18 @@ int nfp_cpp_device_id(struct nfp_cpp *cpp)
 
 /**
  * nfp_cpp_model() - Retrieve the Model ID of the NFP
- * @cpp:   NFP CPP handle
+ * @cpp:	NFP CPP handle
  *
  * Return: NFP CPP Model ID
  */
 u32 nfp_cpp_model(struct nfp_cpp *cpp)
 {
-	/* Check the cached model */
 	return cpp->model;
 }
 
 /**
  * nfp_cpp_interface() - Retrieve the Interface ID of the NFP
- * @cpp:   NFP CPP handle
+ * @cpp:	NFP CPP handle
  *
  * Return: NFP CPP Interface ID
  */
@@ -396,8 +385,8 @@ u16 nfp_cpp_interface(struct nfp_cpp *cpp)
 
 /**
  * nfp_cpp_serial() - Retrieve the Serial ID of the NFP
- * @cpp:    NFP CPP handle
- * @serial: Pointer to NFP serial number
+ * @cpp:	NFP CPP handle
+ * @serial:	Pointer to NFP serial number
  *
  * Return:  Length of NFP serial number
  */
@@ -478,8 +467,7 @@ static void __resource_add(struct list_head *head, struct nfp_cpp_resource *res)
 		if (tmp->cpp_id > res->cpp_id)
 			break;
 
-		if (tmp->cpp_id == res->cpp_id &&
-		    tmp->start > res->start)
+		if (tmp->cpp_id == res->cpp_id && tmp->start > res->start)
 			break;
 	}
 
@@ -508,24 +496,23 @@ static void __release_cpp_area(struct kref *kref)
 
 static void nfp_cpp_area_put(struct nfp_cpp_area *area)
 {
-	BUG_ON(!area);
 	kref_put(&area->kref, __release_cpp_area);
 }
 
 static struct nfp_cpp_area *nfp_cpp_area_get(struct nfp_cpp_area *area)
 {
-	BUG_ON(!area);
 	kref_get(&area->kref);
+
 	return area;
 }
 
 /**
  * nfp_cpp_area_alloc_with_name() - allocate a new CPP area
- * @cpp:        CPP device handle
- * @dest:       NFP CPP ID
- * @name:       Name of region
- * @address:    Address of region
- * @size:       Size of region
+ * @cpp:	CPP device handle
+ * @dest:	NFP CPP ID
+ * @name:	Name of region
+ * @address:	Address of region
+ * @size:	Size of region
  *
  * Allocate and initialize a CPP area structure.  The area must later
  * be locked down with an 'acquire' before it can be safely accessed.
@@ -534,41 +521,34 @@ static struct nfp_cpp_area *nfp_cpp_area_get(struct nfp_cpp_area *area)
  *
  * Return: NFP CPP area handle, or NULL
  */
-struct nfp_cpp_area *nfp_cpp_area_alloc_with_name(
-	struct nfp_cpp *cpp, u32 dest,
-	const char *name,
-	unsigned long long address, unsigned long size)
+struct nfp_cpp_area *
+nfp_cpp_area_alloc_with_name(struct nfp_cpp *cpp, u32 dest, const char *name,
+			     unsigned long long address, unsigned long size)
 {
 	struct nfp_cpp_area *area;
-	u64 tmp64 = (u64)address;
+	u64 tmp64 = address;
 	int err, name_len;
-
-	BUG_ON(!cpp);
 
 	/* Remap from cpp_island to cpp_target */
 	err = nfp_target_cpp(dest, tmp64, &dest, &tmp64, cpp->imb_cat_table);
 	if (err < 0)
 		return NULL;
 
-	address = (unsigned long long)tmp64;
+	address = tmp64;
 
 	if (!name)
 		name = "(reserved)";
 
 	name_len = strlen(name) + 1;
-	area = kmalloc(sizeof(*area) +
-			cpp->op->area_priv_size +
-			name_len, GFP_KERNEL);
+	area = kzalloc(sizeof(*area) + cpp->op->area_priv_size + name_len,
+		       GFP_KERNEL);
 	if (!area)
 		return NULL;
 
-	/* Zero out area */
-	memset(area, 0, sizeof(*area) + cpp->op->area_priv_size);
-
 	area->cpp = cpp;
 	area->resource.name = (void *)area + sizeof(*area) +
-				cpp->op->area_priv_size;
-	memcpy((char *)(area->resource.name), name, name_len);
+		cpp->op->area_priv_size;
+	memcpy((char *)area->resource.name, name, name_len);
 
 	area->resource.cpp_id = dest;
 	area->resource.start = address;
@@ -601,10 +581,10 @@ struct nfp_cpp_area *nfp_cpp_area_alloc_with_name(
 
 /**
  * nfp_cpp_area_alloc() - allocate a new CPP area
- * @cpp:        CPP handle
- * @dest:       CPP id
- * @address:    start address on CPP target
- * @size:       size of area in bytes
+ * @cpp:	CPP handle
+ * @dest:	CPP id
+ * @address:	Start address on CPP target
+ * @size:	Size of area in bytes
  *
  * Allocate and initialize a CPP area structure.  The area must later
  * be locked down with an 'acquire' before it can be safely accessed.
@@ -613,19 +593,19 @@ struct nfp_cpp_area *nfp_cpp_area_alloc_with_name(
  *
  * Return: NFP CPP Area handle, or NULL
  */
-struct nfp_cpp_area *nfp_cpp_area_alloc(
-	struct nfp_cpp *cpp, u32 dest,
-	unsigned long long address, unsigned long size)
+struct nfp_cpp_area *
+nfp_cpp_area_alloc(struct nfp_cpp *cpp, u32 dest,
+		   unsigned long long address, unsigned long size)
 {
 	return nfp_cpp_area_alloc_with_name(cpp, dest, NULL, address, size);
 }
 
 /**
  * nfp_cpp_area_alloc_acquire() - allocate a new CPP area and lock it down
- * @cpp:        CPP handle
- * @dest:       CPP id
- * @address:    start address on CPP target
- * @size:       size of area
+ * @cpp:	CPP handle
+ * @dest:	CPP id
+ * @address:	Start address on CPP target
+ * @size:	Size of area
  *
  * Allocate and initilizae a CPP area structure, and lock it down so
  * that it can be accessed directly.
@@ -636,10 +616,9 @@ struct nfp_cpp_area *nfp_cpp_area_alloc(
  *
  * Return: NFP CPP Area handle, or NULL
  */
-struct nfp_cpp_area *nfp_cpp_area_alloc_acquire(
-		  struct nfp_cpp *cpp, u32 dest,
-		  unsigned long long address,
-		  unsigned long size)
+struct nfp_cpp_area *
+nfp_cpp_area_alloc_acquire(struct nfp_cpp *cpp, u32 dest,
+			   unsigned long long address, unsigned long size)
 {
 	struct nfp_cpp_area *area;
 
@@ -657,7 +636,7 @@ struct nfp_cpp_area *nfp_cpp_area_alloc_acquire(
 
 /**
  * nfp_cpp_area_free() - free up the CPP area
- * @area:       CPP area handle
+ * @area:	CPP area handle
  *
  * Frees up memory resources held by the CPP area.
  */
@@ -668,7 +647,7 @@ void nfp_cpp_area_free(struct nfp_cpp_area *area)
 
 /**
  * nfp_cpp_area_acquire() - lock down a CPP area for access
- * @area:       CPP area handle
+ * @area:	CPP area handle
  *
  * Locks down the CPP area for a potential long term activity.  Area
  * must always be locked down before being accessed.
@@ -702,7 +681,7 @@ int nfp_cpp_area_acquire(struct nfp_cpp_area *area)
 
 /**
  * nfp_cpp_area_acquire_nonblocking() - lock down a CPP area for access
- * @area:       CPP area handle
+ * @area:	CPP area handle
  *
  * Locks down the CPP area for a potential long term activity.  Area
  * must always be locked down before being accessed.
@@ -716,8 +695,9 @@ int nfp_cpp_area_acquire_nonblocking(struct nfp_cpp_area *area)
 	mutex_lock(&area->mutex);
 	if (atomic_inc_return(&area->refcount) == 1) {
 		if (area->cpp->op->area_acquire) {
-			int err = area->cpp->op->area_acquire(area);
+			int err;
 
+			err = area->cpp->op->area_acquire(area);
 			if (err < 0) {
 				atomic_dec(&area->refcount);
 				mutex_unlock(&area->mutex);
@@ -733,7 +713,7 @@ int nfp_cpp_area_acquire_nonblocking(struct nfp_cpp_area *area)
 
 /**
  * nfp_cpp_area_release() - release a locked down CPP area
- * @area:       CPP area handle
+ * @area:	CPP area handle
  *
  * Releases a previously locked down CPP area.
  */
@@ -755,7 +735,7 @@ void nfp_cpp_area_release(struct nfp_cpp_area *area)
 
 /**
  * nfp_cpp_area_release_free() - release CPP area and free it
- * @area:       CPP area handle
+ * @area:	CPP area handle
  *
  * Releases CPP area and frees up memory resources held by the it.
  */
@@ -789,10 +769,10 @@ int nfp_cpp_area_read(struct nfp_cpp_area *area,
 
 /**
  * nfp_cpp_area_write() - write data to CPP area
- * @area:         CPP area handle
- * @offset:       offset into CPP area
+ * @area:	CPP area handle
+ * @offset:	offset into CPP area
  * @kernel_vaddr: kernel address to read data from
- * @length:       number of bytes to write
+ * @length:	number of bytes to write
  *
  * Write data to indicated CPP region.
  *
@@ -811,9 +791,9 @@ int nfp_cpp_area_write(struct nfp_cpp_area *area,
 
 /**
  * nfp_cpp_area_check_range() - check if address range fits in CPP area
- * @area:       CPP area handle
- * @offset:     offset into CPP target
- * @length:     size of address range in bytes
+ * @area:	CPP area handle
+ * @offset:	offset into CPP target
+ * @length:	size of address range in bytes
  *
  * Check if address range fits within CPP area.  Return 0 if area
  * fits or -EFAULT on error.
@@ -823,15 +803,16 @@ int nfp_cpp_area_write(struct nfp_cpp_area *area,
 int nfp_cpp_area_check_range(struct nfp_cpp_area *area,
 			     unsigned long long offset, unsigned long length)
 {
-	if ((offset < area->offset) ||
-	    ((offset + length) > (area->offset + area->size)))
+	if (offset < area->offset ||
+	    offset + length > area->offset + area->size)
 		return -EFAULT;
+
 	return 0;
 }
 
 /**
  * nfp_cpp_area_name() - return name of a CPP area
- * @cpp_area:   CPP area handle
+ * @cpp_area:	CPP area handle
  *
  * Return: Name of the area, or NULL
  */
@@ -842,7 +823,7 @@ const char *nfp_cpp_area_name(struct nfp_cpp_area *cpp_area)
 
 /**
  * nfp_cpp_area_priv() - return private struct for CPP area
- * @cpp_area:   CPP area handle
+ * @cpp_area:	CPP area handle
  *
  * Return: Private data for the CPP area
  */
@@ -853,7 +834,7 @@ void *nfp_cpp_area_priv(struct nfp_cpp_area *cpp_area)
 
 /**
  * nfp_cpp_area_cpp() - return CPP handle for CPP area
- * @cpp_area:   CPP area handle
+ * @cpp_area:	CPP area handle
  *
  * Return: NFP CPP handle
  */
@@ -864,7 +845,7 @@ struct nfp_cpp *nfp_cpp_area_cpp(struct nfp_cpp_area *cpp_area)
 
 /**
  * nfp_cpp_area_resource() - get resource
- * @area:       CPP area handle
+ * @area:	CPP area handle
  *
  * NOTE: Area must have been locked down with an 'acquire'.
  *
@@ -882,7 +863,7 @@ struct resource *nfp_cpp_area_resource(struct nfp_cpp_area *area)
 
 /**
  * nfp_cpp_area_phys() - get physical address of CPP area
- * @area:       CPP area handle
+ * @area:	CPP area handle
  *
  * NOTE: Area must have been locked down with an 'acquire'.
  *
@@ -900,7 +881,7 @@ phys_addr_t nfp_cpp_area_phys(struct nfp_cpp_area *area)
 
 /**
  * nfp_cpp_area_iomem() - get IOMEM region for CPP area
- * @area:       CPP area handle
+ * @area:	CPP area handle
  *
  * Returns an iomem pointer for use with readl()/writel() style
  * operations.
@@ -921,80 +902,86 @@ void __iomem *nfp_cpp_area_iomem(struct nfp_cpp_area *area)
 
 /**
  * nfp_cpp_area_readl() - Read a u32 word from an area
- * @area:       CPP Area handle
- * @offset:     Offset into area
- * @value:      Pointer to read buffer
+ * @area:	CPP Area handle
+ * @offset:	Offset into area
+ * @value:	Pointer to read buffer
  *
  * Return: length of the io, or -ERRNO
  */
 int nfp_cpp_area_readl(struct nfp_cpp_area *area,
 		       unsigned long offset, u32 *value)
 {
+	u8 tmp[4];
 	int err;
-	u32 tmp;
 
 	err = nfp_cpp_area_read(area, offset, &tmp, sizeof(tmp));
-	*value = le32_to_cpu(tmp);
+	*value = get_unaligned_le32(tmp);
 
 	return err;
 }
 
 /**
  * nfp_cpp_area_writel() - Write a u32 word to an area
- * @area:       CPP Area handle
- * @offset:     Offset into area
- * @value:      Value to write
+ * @area:	CPP Area handle
+ * @offset:	Offset into area
+ * @value:	Value to write
  *
  * Return: length of the io, or -ERRNO
  */
 int nfp_cpp_area_writel(struct nfp_cpp_area *area,
 			unsigned long offset, u32 value)
 {
-	value = cpu_to_le32(value);
-	return nfp_cpp_area_write(area, offset, &value, sizeof(value));
+	u8 tmp[4];
+
+	put_unaligned_le32(value, tmp);
+
+	return nfp_cpp_area_write(area, offset, &tmp, sizeof(tmp));
 }
 
 /**
  * nfp_cpp_area_readq() - Read a u64 word from an area
- * @area:       CPP Area handle
- * @offset:     Offset into area
- * @value:      Pointer to read buffer
+ * @area:	CPP Area handle
+ * @offset:	Offset into area
+ * @value:	Pointer to read buffer
  *
  * Return: length of the io, or -ERRNO
  */
 int nfp_cpp_area_readq(struct nfp_cpp_area *area,
 		       unsigned long offset, u64 *value)
 {
+	u8 tmp[8];
 	int err;
-	u64 tmp;
 
 	err = nfp_cpp_area_read(area, offset, &tmp, sizeof(tmp));
-	*value = le64_to_cpu(tmp);
+	*value = get_unaligned_le64(tmp);
 
 	return err;
 }
 
 /**
  * nfp_cpp_area_writeq() - Write a u64 word to an area
- * @area:       CPP Area handle
- * @offset:     Offset into area
- * @value:      Value to write
+ * @area:	CPP Area handle
+ * @offset:	Offset into area
+ * @value:	Value to write
  *
  * Return: length of the io, or -ERRNO
  */
 int nfp_cpp_area_writeq(struct nfp_cpp_area *area,
 			unsigned long offset, u64 value)
 {
-	value = cpu_to_le64(value);
-	return nfp_cpp_area_write(area, offset, &value, sizeof(value));
+	u8 tmp[8];
+
+	put_unaligned_le64(value, tmp);
+
+	return nfp_cpp_area_write(area, offset, &tmp, sizeof(tmp));
 }
 
 /**
  * nfp_cpp_area_fill() - fill a CPP area with a value
- * @area:       CPP area
- * @offset:     offset into CPP area
- * @value:      value to fill with
- * @length:     length of area to fill
+ * @area:	CPP area
+ * @offset:	offset into CPP area
+ * @value:	value to fill with
+ * @length:	length of area to fill
  *
  * Fill indicated area with given value.
  *
@@ -1003,17 +990,17 @@ int nfp_cpp_area_writeq(struct nfp_cpp_area *area,
 int nfp_cpp_area_fill(struct nfp_cpp_area *area,
 		      unsigned long offset, u32 value, size_t length)
 {
+	u8 tmp[4];
 	size_t i;
 	int k;
 
-	value = cpu_to_le32(value);
+	put_unaligned_le32(value, tmp);
 
-	if ((offset % sizeof(u32)) != 0 ||
-	    (length % sizeof(u32)) != 0)
+	if (offset % sizeof(tmp) || length % sizeof(tmp))
 		return -EINVAL;
 
-	for (i = 0; i < length; i += sizeof(value)) {
-		k = nfp_cpp_area_write(area, offset + i, &value, sizeof(value));
+	for (i = 0; i < length; i += sizeof(tmp)) {
+		k = nfp_cpp_area_write(area, offset + i, &tmp, sizeof(tmp));
 		if (k < 0)
 			return k;
 	}
@@ -1023,8 +1010,8 @@ int nfp_cpp_area_fill(struct nfp_cpp_area *area,
 
 /**
  * nfp_cpp_area_cache_add() - Permanently reserve and area for the hot cache
- * @cpp:       NFP CPP handle
- * @size:      Size of the area - MUST BE A POWER OF 2.
+ * @cpp:	NFP CPP handle
+ * @size:	Size of the area - MUST BE A POWER OF 2.
  */
 int nfp_cpp_area_cache_add(struct nfp_cpp *cpp, size_t size)
 {
@@ -1054,10 +1041,9 @@ int nfp_cpp_area_cache_add(struct nfp_cpp *cpp, size_t size)
 	return 0;
 }
 
-static struct nfp_cpp_area_cache *area_cache_get(struct nfp_cpp *cpp,
-						 u32 id, u64 addr,
-						 unsigned long *offset,
-						 size_t length)
+static struct nfp_cpp_area_cache *
+area_cache_get(struct nfp_cpp *cpp, u32 id,
+	       u64 addr, unsigned long *offset, size_t length)
 {
 	struct nfp_cpp_area_cache *cache;
 	int err;
@@ -1084,8 +1070,8 @@ static struct nfp_cpp_area_cache *area_cache_get(struct nfp_cpp *cpp,
 	/* See if we have a match */
 	list_for_each_entry(cache, &cpp->area_cache_list, entry) {
 		if (id == cache->id &&
-		    (addr >= cache->addr) &&
-		    (addr + length <= (cache->addr + cache->size)))
+		    addr >= cache->addr &&
+		    addr + length <= cache->addr + cache->size)
 			goto exit;
 	}
 
@@ -1130,12 +1116,12 @@ static struct nfp_cpp_area_cache *area_cache_get(struct nfp_cpp *cpp,
 
 exit:
 	/* Adjust offset */
-	*offset = (addr - cache->addr);
+	*offset = addr - cache->addr;
 	return cache;
 }
 
-static void area_cache_put(struct nfp_cpp *cpp,
-			   struct nfp_cpp_area_cache *cache)
+static void
+area_cache_put(struct nfp_cpp *cpp, struct nfp_cpp_area_cache *cache)
 {
 	if (!cache)
 		return;
@@ -1149,20 +1135,19 @@ static void area_cache_put(struct nfp_cpp *cpp,
 
 /**
  * nfp_cpp_read() - read from CPP target
- * @cpp:               CPP handle
- * @destination:       CPP id
- * @address:           offset into CPP target
- * @kernel_vaddr:      kernel buffer for result
- * @length:            number of bytes to read
+ * @cpp:		CPP handle
+ * @destination:	CPP id
+ * @address:		offset into CPP target
+ * @kernel_vaddr:	kernel buffer for result
+ * @length:		number of bytes to read
  *
  * Return: length of io, or -ERRNO
  */
 int nfp_cpp_read(struct nfp_cpp *cpp, u32 destination,
-		 unsigned long long address,
-		 void *kernel_vaddr, size_t length)
+		 unsigned long long address, void *kernel_vaddr, size_t length)
 {
-	struct nfp_cpp_area *area;
 	struct nfp_cpp_area_cache *cache;
+	struct nfp_cpp_area *area;
 	unsigned long offset = 0;
 	int err;
 
@@ -1191,11 +1176,11 @@ out:
 
 /**
  * nfp_cpp_write() - write to CPP target
- * @cpp:               CPP handle
- * @destination:       CPP id
- * @address:           offset into CPP target
- * @kernel_vaddr:      kernel buffer to read from
- * @length:            number of bytes to write
+ * @cpp:		CPP handle
+ * @destination:	CPP id
+ * @address:		offset into CPP target
+ * @kernel_vaddr:	kernel buffer to read from
+ * @length:		number of bytes to write
  *
  * Return: length of io, or -ERRNO
  */
@@ -1203,8 +1188,8 @@ int nfp_cpp_write(struct nfp_cpp *cpp, u32 destination,
 		  unsigned long long address,
 		  const void *kernel_vaddr, size_t length)
 {
-	struct nfp_cpp_area *area;
 	struct nfp_cpp_area_cache *cache;
+	struct nfp_cpp_area *area;
 	unsigned long offset = 0;
 	int err;
 
@@ -1267,9 +1252,9 @@ static u32 nfp_xpb_to_cpp(struct nfp_cpp *cpp, u32 *xpb_addr)
 
 /**
  * nfp_xpb_readl() - Read a u32 word from a XPB location
- * @cpp:        CPP device handle
- * @xpb_addr:   Address for operation
- * @value:      Pointer to read buffer
+ * @cpp:	CPP device handle
+ * @xpb_addr:	Address for operation
+ * @value:	Pointer to read buffer
  *
  * Return: length of the io, or -ERRNO
  */
@@ -1282,9 +1267,9 @@ int nfp_xpb_readl(struct nfp_cpp *cpp, u32 xpb_addr, u32 *value)
 
 /**
  * nfp_xpb_writel() - Write a u32 word to a XPB location
- * @cpp:        CPP device handle
- * @xpb_addr:   Address for operation
- * @value:      Value to write
+ * @cpp:	CPP device handle
+ * @xpb_addr:	Address for operation
+ * @value:	Value to write
  *
  * Return: length of the io, or -ERRNO
  */
@@ -1297,10 +1282,10 @@ int nfp_xpb_writel(struct nfp_cpp *cpp, u32 xpb_addr, u32 value)
 
 /**
  * nfp_xpb_writelm() - Modify bits of a 32-bit value from the XPB bus
- * @cpp:        NFP CPP device handle
- * @xpb_tgt:    XPB target and address
- * @mask:       mask of bits to alter
- * @value:      value to modify
+ * @cpp:	NFP CPP device handle
+ * @xpb_tgt:	XPB target and address
+ * @mask:	mask of bits to alter
+ * @value:	value to modify
  *
  * KERNEL: This operation is safe to call in interrupt or softirq context.
  *
@@ -1317,13 +1302,13 @@ int nfp_xpb_writelm(struct nfp_cpp *cpp, u32 xpb_tgt,
 		return err;
 
 	tmp &= ~mask;
-	tmp |= (mask & value);
+	tmp |= mask & value;
 	return nfp_xpb_writel(cpp, xpb_tgt, tmp);
 }
 
 /**
  * nfp_cpp_event_priv() - return private struct for CPP event
- * @cpp_event:  CPP event handle
+ * @cpp_event:	CPP event handle
  *
  * Return: Private data of the event, or NULL
  */
@@ -1334,7 +1319,7 @@ void *nfp_cpp_event_priv(struct nfp_cpp_event *cpp_event)
 
 /**
  * nfp_cpp_event_cpp() - return CPP handle for CPP event
- * @cpp_event:  CPP event handle
+ * @cpp_event:	CPP event handle
  *
  * Return: NFP CPP handle of the event
  */
@@ -1345,20 +1330,18 @@ struct nfp_cpp *nfp_cpp_event_cpp(struct nfp_cpp_event *cpp_event)
 
 /**
  * nfp_cpp_event_alloc() - Allocate an event monitor
- * @cpp:        CPP device handle
- * @match:      Event match bits
- * @mask:       Event match bits to compare against
- * @type:       Event filter type
+ * @cpp:	CPP device handle
+ * @match:	Event match bits
+ * @mask:	Event match bits to compare against
+ * @type:	Event filter type
  *
  * Return: NFP CPP event handle, or ERR_PTR()
  */
-struct nfp_cpp_event *nfp_cpp_event_alloc(
-	struct nfp_cpp *cpp, u32 match, u32 mask, int type)
+struct nfp_cpp_event *
+nfp_cpp_event_alloc(struct nfp_cpp *cpp, u32 match, u32 mask, int type)
 {
 	struct nfp_cpp_event *event;
 	int err;
-
-	BUG_ON(!cpp);
 
 	if (!cpp->op->event_acquire)
 		return ERR_PTR(-ENODEV);
@@ -1369,20 +1352,18 @@ struct nfp_cpp_event *nfp_cpp_event_alloc(
 	if (type > 7)
 		return ERR_PTR(-EINVAL);
 
-	event = kzalloc(sizeof(*event) +
-			cpp->op->event_priv_size,
+	event = kzalloc(sizeof(*event) + cpp->op->event_priv_size,
 			GFP_KERNEL);
 	if (!event)
 		return ERR_PTR(-ENOMEM);
 
-	CPP_GET(cpp);
-	event->cpp = cpp;
+	event->cpp = nfp_cpp_get(cpp);
 
 	spin_lock_init(&event->callback.lock);
 
 	err = cpp->op->event_acquire(event, mask, match, type);
 	if (err < 0) {
-		CPP_PUT(cpp);
+		nfp_cpp_put(cpp);
 		kfree(event);
 		return ERR_PTR(err);
 	}
@@ -1392,9 +1373,9 @@ struct nfp_cpp_event *nfp_cpp_event_alloc(
 
 /**
  * nfp_cpp_event_as_callback() - Execute callback when event is triggered
- * @event:      Event handle
- * @func:       Function to call on trigger
- * @priv:       Private data for function
+ * @event:	Event handle
+ * @func:	Function to call on trigger
+ * @priv:	Private data for function
  *
  * Return: 0, or -ERRNO
  */
@@ -1413,15 +1394,15 @@ int nfp_cpp_event_as_callback(struct nfp_cpp_event *event,
 
 /**
  * nfp_cpp_event_callback() - Execute the event's callback
- * @event:      Event handle
+ * @event:	Event handle
  *
  * This function should be called by the NFP CPP implementation
  * when it's Event Monitor wants to trigger the event's action.
  */
 void nfp_cpp_event_callback(struct nfp_cpp_event *event)
 {
-	unsigned long flags;
 	void (*func)(void *);
+	unsigned long flags;
 	void *priv;
 
 	if (!event)
@@ -1439,7 +1420,7 @@ void nfp_cpp_event_callback(struct nfp_cpp_event *event)
 
 /**
  * nfp_cpp_event_free() - Free an event, releasing the event monitor
- * @event:      Event handle
+ * @event:	Event handle
  */
 void nfp_cpp_event_free(struct nfp_cpp_event *event)
 {
@@ -1448,7 +1429,7 @@ void nfp_cpp_event_free(struct nfp_cpp_event *event)
 	if (cpp->op->event_release)
 		cpp->op->event_release(event);
 
-	CPP_PUT(cpp);
+	nfp_cpp_put(cpp);
 	kfree(event);
 }
 
@@ -1465,9 +1446,9 @@ static void nfp_cpp_dev_release(struct device *dev)
 /**
  * nfp_cpp_from_operations() - Create a NFP CPP handle
  *                             from an operations structure
- * @ops:       NFP CPP operations structure
- * @parent:    Parent device
- * @priv:      Private data of low-level implementation
+ * @ops:	NFP CPP operations structure
+ * @parent:	Parent device
+ * @priv:	Private data of low-level implementation
  *
  * NOTE: On failure, cpp_ops->free will be called!
  *
@@ -1478,13 +1459,11 @@ nfp_cpp_from_operations(const struct nfp_cpp_operations *ops,
 			struct device *parent, void *priv)
 {
 	const u32 arm = NFP_CPP_ID(NFP_CPP_TARGET_ARM, NFP_CPP_ACTION_RW, 0);
-	int id, err;
 	struct nfp_cpp *cpp;
+	int id, err;
 	u32 mask[2];
 	u32 xpbaddr;
 	size_t tgt;
-
-	BUG_ON(!parent);
 
 	id = nfp_cpp_id_acquire();
 	if (id < 0) {
@@ -1566,7 +1545,7 @@ nfp_cpp_from_operations(const struct nfp_cpp_operations *ops,
 	nfp_cpp_readl(cpp, arm, NFP_ARM_GCSR + NFP_ARM_GCSR_SOFTMODEL3,
 		      &mask[1]);
 
-	cpp->island_mask = (((u64)mask[1] << 32) | mask[0]);
+	cpp->island_mask = (u64)mask[1] << 32 | mask[0];
 
 	write_lock(&nfp_cpp_list_lock);
 	list_add_tail(&cpp->list, &nfp_cpp_list);
@@ -1590,7 +1569,7 @@ err_malloc:
 
 /**
  * nfp_cpp_priv() - Get the operations private data of a CPP handle
- * @cpp:        CPP handle
+ * @cpp:	CPP handle
  *
  * Return: Private data for the NFP CPP handle
  */
@@ -1601,7 +1580,7 @@ void *nfp_cpp_priv(struct nfp_cpp *cpp)
 
 /**
  * nfp_cpp_device() - Get the Linux device handle of a CPP handle
- * @cpp:        CPP handle
+ * @cpp:	CPP handle
  *
  * Return: Device for the NFP CPP bus
  */
@@ -1612,7 +1591,7 @@ struct device *nfp_cpp_device(struct nfp_cpp *cpp)
 
 /**
  * nfp_cpp_island_mask() - Return the island mask
- * @cpp:        NFP CPP handle
+ * @cpp:	NFP CPP handle
  *
  * Return: 64-bit island mask
  */
@@ -1621,31 +1600,35 @@ u64 nfp_cpp_island_mask(struct nfp_cpp *cpp)
 	return cpp->island_mask;
 }
 
-#define NFP_EXPL_OP(err, func, expl, args...) \
-	do { \
+#define NFP_EXPL_OP(func, expl, args...)			  \
+	({							  \
 		struct nfp_cpp *cpp = nfp_cpp_explicit_cpp(expl); \
-		if (cpp->op->func) { \
-			CPP_GET(cpp); \
-			err = cpp->op->func(expl, ##args); \
-			CPP_PUT(cpp); \
-		} \
-	} while (0)
+		int err = -ENODEV;				  \
+								  \
+		if (cpp->op->func) {				  \
+			nfp_cpp_get(cpp);			  \
+			err = cpp->op->func(expl, ##args);	  \
+			nfp_cpp_put(cpp);			  \
+		}						  \
+		err;						  \
+	})
 
-#define NFP_EXPL_OP_NR(func, expl, args...) \
-	do { \
+#define NFP_EXPL_OP_NR(func, expl, args...)			  \
+	({							  \
 		struct nfp_cpp *cpp = nfp_cpp_explicit_cpp(expl); \
-		if (cpp->op->func) { \
-			CPP_GET(cpp); \
-			cpp->op->func(expl, ##args); \
-			CPP_PUT(cpp); \
-		} \
-	} while (0)
+								  \
+		if (cpp->op->func) {				  \
+			nfp_cpp_get(cpp);			  \
+			cpp->op->func(expl, ##args);		  \
+			nfp_cpp_put(cpp);			  \
+		}						  \
+	})
 
 /**
  * nfp_cpp_explicit_acquire() - Acquire explicit access handle
- * @cpp:        NFP CPP handle
- * @data_ref:   Pointer to the resulting 'data_ref'
- * @signal_ref: Pointer to the resulting 'signal_ref'
+ * @cpp:	NFP CPP handle
+ * @data_ref:	Pointer to the resulting 'data_ref'
+ * @signal_ref:	Pointer to the resulting 'signal_ref'
  *
  * The 'data_ref' and 'signal_ref' values are useful when
  * constructing the NFP_EXPL_CSR1 and NFP_EXPL_POST values.
@@ -1655,17 +1638,17 @@ u64 nfp_cpp_island_mask(struct nfp_cpp *cpp)
 struct nfp_cpp_explicit *nfp_cpp_explicit_acquire(struct nfp_cpp *cpp)
 {
 	struct nfp_cpp_explicit *expl;
+	int err;
 
 	expl = kzalloc(sizeof(*expl) + cpp->op->explicit_priv_size, GFP_KERNEL);
-	if (expl) {
-		int err = -ENODEV;
+	if (!expl)
+		return NULL;
 
-		expl->cpp = cpp;
-		NFP_EXPL_OP(err, explicit_acquire, expl);
-		if (err < 0) {
-			kfree(expl);
-			expl = NULL;
-		}
+	expl->cpp = cpp;
+	err = NFP_EXPL_OP(explicit_acquire, expl);
+	if (err < 0) {
+		kfree(expl);
+		return NULL;
 	}
 
 	return expl;
@@ -1673,10 +1656,10 @@ struct nfp_cpp_explicit *nfp_cpp_explicit_acquire(struct nfp_cpp *cpp)
 
 /**
  * nfp_cpp_explicit_set_target() - Set target fields for explicit
- * @expl:       Explicit handle
- * @cpp_id:     CPP ID field
- * @len:        CPP Length field
- * @mask:       CPP Mask field
+ * @expl:	Explicit handle
+ * @cpp_id:	CPP ID field
+ * @len:	CPP Length field
+ * @mask:	CPP Mask field
  *
  * Return: 0, or -ERRNO
  */
@@ -1692,9 +1675,9 @@ int nfp_cpp_explicit_set_target(struct nfp_cpp_explicit *expl,
 
 /**
  * nfp_cpp_explicit_set_data() - Set data fields for explicit
- * @expl:        Explicit handle
+ * @expl:	Explicit handle
  * @data_master: CPP Data Master field
- * @data_ref:    CPP Data Ref field
+ * @data_ref:	CPP Data Ref field
  *
  * Return: 0, or -ERRNO
  */
@@ -1709,9 +1692,9 @@ int nfp_cpp_explicit_set_data(struct nfp_cpp_explicit *expl,
 
 /**
  * nfp_cpp_explicit_set_signal() - Set signal fields for explicit
- * @expl:          Explicit handle
+ * @expl:	Explicit handle
  * @signal_master: CPP Signal Master field
- * @signal_ref:    CPP Signal Ref field
+ * @signal_ref:	CPP Signal Ref field
  *
  * Return: 0, or -ERRNO
  */
@@ -1726,12 +1709,12 @@ int nfp_cpp_explicit_set_signal(struct nfp_cpp_explicit *expl,
 
 /**
  * nfp_cpp_explicit_set_posted() - Set completion fields for explicit
- * @expl:       Explicit handle
- * @posted:     True for signaled completion, false otherwise
- * @siga:       CPP Signal A field
- * @siga_mode:  CPP Signal A Mode field
- * @sigb:       CPP Signal B field
- * @sigb_mode:  CPP Signal B Mode field
+ * @expl:	Explicit handle
+ * @posted:	True for signaled completion, false otherwise
+ * @siga:	CPP Signal A field
+ * @siga_mode:	CPP Signal A Mode field
+ * @sigb:	CPP Signal B field
+ * @sigb_mode:	CPP Signal B Mode field
  *
  * Return: 0, or -ERRNO
  */
@@ -1752,9 +1735,9 @@ int nfp_cpp_explicit_set_posted(struct nfp_cpp_explicit *expl, int posted,
 
 /**
  * nfp_cpp_explicit_put() - Set up the write (pull) data for a explicit access
- * @expl:       NFP CPP Explicit handle
- * @buff:       Data to have the target pull in the transaction
- * @len:        Length of data, in bytes
+ * @expl:	NFP CPP Explicit handle
+ * @buff:	Data to have the target pull in the transaction
+ * @len:	Length of data, in bytes
  *
  * The 'len' parameter must be less than or equal to 128 bytes.
  *
@@ -1766,17 +1749,13 @@ int nfp_cpp_explicit_set_posted(struct nfp_cpp_explicit *expl, int posted,
 int nfp_cpp_explicit_put(struct nfp_cpp_explicit *expl,
 			 const void *buff, size_t len)
 {
-	int err = -EINVAL;
-
-	NFP_EXPL_OP(err, explicit_put, expl, buff, len);
-
-	return err;
+	return NFP_EXPL_OP(explicit_put, expl, buff, len);
 }
 
 /**
  * nfp_cpp_explicit_do() - Execute a transaction, and wait for it to complete
- * @expl:       NFP CPP Explicit handle
- * @address:    Address to send in the explicit transaction
+ * @expl:	NFP CPP Explicit handle
+ * @address:	Address to send in the explicit transaction
  *
  * If this function is called before the configuration
  * registers are set, it will return -1, with an errno of EINVAL.
@@ -1785,18 +1764,14 @@ int nfp_cpp_explicit_put(struct nfp_cpp_explicit *expl,
  */
 int nfp_cpp_explicit_do(struct nfp_cpp_explicit *expl, u64 address)
 {
-	int err = -EINVAL;
-
-	NFP_EXPL_OP(err, explicit_do, expl, &expl->cmd, address);
-
-	return err;
+	return NFP_EXPL_OP(explicit_do, expl, &expl->cmd, address);
 }
 
 /**
  * nfp_cpp_explicit_get() - Get the 'push' (read) data from a explicit access
- * @expl:       NFP CPP Explicit handle
- * @buff:       Data that the target pushed in the transaction
- * @len:        Length of data, in bytes
+ * @expl:	NFP CPP Explicit handle
+ * @buff:	Data that the target pushed in the transaction
+ * @len:	Length of data, in bytes
  *
  * The 'len' parameter must be less than or equal to 128 bytes.
  *
@@ -1810,16 +1785,12 @@ int nfp_cpp_explicit_do(struct nfp_cpp_explicit *expl, u64 address)
  */
 int nfp_cpp_explicit_get(struct nfp_cpp_explicit *expl, void *buff, size_t len)
 {
-	int err = -EINVAL;
-
-	NFP_EXPL_OP(err, explicit_get, expl, buff, len);
-
-	return err;
+	return NFP_EXPL_OP(explicit_get, expl, buff, len);
 }
 
 /**
  * nfp_cpp_explicit_release() - Release explicit access handle
- * @expl:       NFP CPP Explicit handle
+ * @expl:	NFP CPP Explicit handle
  *
  */
 void nfp_cpp_explicit_release(struct nfp_cpp_explicit *expl)
@@ -1830,7 +1801,7 @@ void nfp_cpp_explicit_release(struct nfp_cpp_explicit *expl)
 
 /**
  * nfp_cpp_explicit_cpp() - return CPP handle for CPP explicit
- * @cpp_explicit: CPP explicit handle
+ * @cpp_explicit:	CPP explicit handle
  *
  * Return: NFP CPP handle of the explicit
  */
@@ -1841,7 +1812,7 @@ struct nfp_cpp *nfp_cpp_explicit_cpp(struct nfp_cpp_explicit *cpp_explicit)
 
 /**
  * nfp_cpp_explicit_priv() - return private struct for CPP explicit
- * @cpp_explicit: CPP explicit handle
+ * @cpp_explicit:	CPP explicit handle
  *
  * Return: private data of the explicit, or NULL
  */
@@ -1851,19 +1822,31 @@ void *nfp_cpp_explicit_priv(struct nfp_cpp_explicit *cpp_explicit)
 }
 
 /* THIS FUNCTION IS NOT EXPORTED */
-#define MUTEX_LOCKED(interface)  ((((u32)(interface)) << 16) | 0x000f)
-#define MUTEX_UNLOCK(interface)  ((((u32)(interface)) << 16) | 0x0000)
+static u32 nfp_mutex_locked(u16 interface)
+{
+	return (u32)interface << 16 | 0x000f;
+}
 
-#define MUTEX_IS_LOCKED(value)   (((value) & 0xffff) == 0x000f)
-#define MUTEX_IS_UNLOCKED(value) (((value) & 0xffff) == 0x0000)
+static u32 nfp_mutex_unlocked(u16 interface)
+{
+	return (u32)interface << 16 | 0x0000;
+}
 
-/* If you need more than 65536 recursive locks, please
- * rethink your code.
- */
+static bool nfp_mutex_is_locked(u32 val)
+{
+	return (val & 0xffff) == 0x000f;
+}
+
+static bool nfp_mutex_is_unlocked(u32 val)
+{
+	return (val & 0xffff) == 0000;
+}
+
+/* If you need more than 65536 recursive locks, please rethink your code. */
 #define MUTEX_DEPTH_MAX         0xffff
 
 static int
-_nfp_cpp_mutex_validate(u16 interface, int *target, unsigned long long address)
+nfp_cpp_mutex_validate(u16 interface, int *target, unsigned long long address)
 {
 	/* Not permitted on invalid interfaces */
 	if (NFP_CPP_INTERFACE_TYPE_of(interface) ==
@@ -1901,11 +1884,11 @@ _nfp_cpp_mutex_validate(u16 interface, int *target, unsigned long long address)
 int nfp_cpp_mutex_init(struct nfp_cpp *cpp,
 		       int target, unsigned long long address, u32 key)
 {
+	const u32 muw = NFP_CPP_ID(target, 4, 0);    /* atomic_write */
 	u16 interface = nfp_cpp_interface(cpp);
-	u32 muw = NFP_CPP_ID(target, 4, 0);    /* atomic_write */
 	int err;
 
-	err = _nfp_cpp_mutex_validate(interface, &target, address);
+	err = nfp_cpp_mutex_validate(interface, &target, address);
 	if (err)
 		return err;
 
@@ -1913,8 +1896,7 @@ int nfp_cpp_mutex_init(struct nfp_cpp *cpp,
 	if (err)
 		return err;
 
-	err = nfp_cpp_writel(cpp, muw, address,
-			     MUTEX_LOCKED(nfp_cpp_interface(cpp)));
+	err = nfp_cpp_writel(cpp, muw, address, nfp_mutex_locked(interface));
 	if (err)
 		return err;
 
@@ -1939,20 +1921,19 @@ int nfp_cpp_mutex_init(struct nfp_cpp *cpp,
 struct nfp_cpp_mutex *nfp_cpp_mutex_alloc(struct nfp_cpp *cpp, int target,
 					  unsigned long long address, u32 key)
 {
+	const u32 mur = NFP_CPP_ID(target, 3, 0);    /* atomic_read */
 	u16 interface = nfp_cpp_interface(cpp);
-	u32 mur = NFP_CPP_ID(target, 3, 0);    /* atomic_read */
 	struct nfp_cpp_mutex *mutex;
 	int err;
 	u32 tmp;
 
-	err = _nfp_cpp_mutex_validate(interface, &target, address);
+	err = nfp_cpp_mutex_validate(interface, &target, address);
 	if (err)
 		return NULL;
 
 	/* Look for mutex on cache list */
 	list_for_each_entry(mutex, &cpp->mutex_cache, list) {
-		if (mutex->target == target &&
-		    mutex->address == address) {
+		if (mutex->target == target && mutex->address == address) {
 			mutex->usage++;
 			return mutex;
 		}
@@ -1988,11 +1969,12 @@ struct nfp_cpp_mutex *nfp_cpp_mutex_alloc(struct nfp_cpp *cpp, int target,
  */
 void nfp_cpp_mutex_free(struct nfp_cpp_mutex *mutex)
 {
-	if (--mutex->usage == 0) {
-		/* Remove mutex from cache */
-		list_del(&mutex->list);
-		kfree(mutex);
-	}
+	if (--mutex->usage)
+		return;
+
+	/* Remove mutex from cache */
+	list_del(&mutex->list);
+	kfree(mutex);
 }
 
 /**
@@ -2003,9 +1985,9 @@ void nfp_cpp_mutex_free(struct nfp_cpp_mutex *mutex)
  */
 int nfp_cpp_mutex_lock(struct nfp_cpp_mutex *mutex)
 {
-	int err;
-	unsigned int timeout_ms = 1;	/* Sleep for 1ms */
 	unsigned long warn_at = jiffies + 15 * HZ;
+	unsigned int timeout_ms = 1;
+	int err;
 
 	/* We can't use a waitqueue here, because the unlocker
 	 * might be on a separate CPU.
@@ -2041,12 +2023,14 @@ int nfp_cpp_mutex_lock(struct nfp_cpp_mutex *mutex)
  */
 int nfp_cpp_mutex_unlock(struct nfp_cpp_mutex *mutex)
 {
-	u32 muw = NFP_CPP_ID(mutex->target, 4, 0);    /* atomic_write */
-	u32 mur = NFP_CPP_ID(mutex->target, 3, 0);    /* atomic_read */
+	const u32 muw = NFP_CPP_ID(mutex->target, 4, 0);    /* atomic_write */
+	const u32 mur = NFP_CPP_ID(mutex->target, 3, 0);    /* atomic_read */
 	struct nfp_cpp *cpp = mutex->cpp;
 	u32 key, value;
-	u16 interface = nfp_cpp_interface(cpp);
+	u16 interface;
 	int err;
+
+	interface = nfp_cpp_interface(cpp);
 
 	if (mutex->depth > 1) {
 		mutex->depth--;
@@ -2064,10 +2048,11 @@ int nfp_cpp_mutex_unlock(struct nfp_cpp_mutex *mutex)
 	if (err < 0)
 		return err;
 
-	if (value != MUTEX_LOCKED(interface))
+	if (value != nfp_mutex_locked(interface))
 		return -EACCES;
 
-	err = nfp_cpp_writel(cpp, muw, mutex->address, MUTEX_UNLOCK(interface));
+	err = nfp_cpp_writel(cpp, muw, mutex->address,
+			     nfp_mutex_unlocked(interface));
 	if (err < 0)
 		return err;
 
@@ -2083,9 +2068,9 @@ int nfp_cpp_mutex_unlock(struct nfp_cpp_mutex *mutex)
  */
 int nfp_cpp_mutex_trylock(struct nfp_cpp_mutex *mutex)
 {
-	u32 mur = NFP_CPP_ID(mutex->target, 3, 0);    /* atomic_read */
-	u32 muw = NFP_CPP_ID(mutex->target, 4, 0);    /* atomic_write */
-	u32 mus = NFP_CPP_ID(mutex->target, 5, 3);    /* test_set_imm */
+	const u32 muw = NFP_CPP_ID(mutex->target, 4, 0);    /* atomic_write */
+	const u32 mus = NFP_CPP_ID(mutex->target, 5, 3);    /* test_set_imm */
+	const u32 mur = NFP_CPP_ID(mutex->target, 3, 0);    /* atomic_read */
 	struct nfp_cpp *cpp = mutex->cpp;
 	u32 key, value, tmp;
 	int err;
@@ -2109,7 +2094,7 @@ int nfp_cpp_mutex_trylock(struct nfp_cpp_mutex *mutex)
 	 * write the interface id into the top 16 bits, and
 	 * mark as locked.
 	 */
-	value = MUTEX_LOCKED(nfp_cpp_interface(cpp));
+	value = nfp_mutex_locked(nfp_cpp_interface(cpp));
 
 	/* We use test_set_imm here, as it implies a read
 	 * of the current state, and sets the bits in the
@@ -2128,7 +2113,7 @@ int nfp_cpp_mutex_trylock(struct nfp_cpp_mutex *mutex)
 		return err;
 
 	/* Was it unlocked? */
-	if (MUTEX_IS_UNLOCKED(tmp)) {
+	if (nfp_mutex_is_unlocked(tmp)) {
 		/* The read value can only be 0x....0000 in the unlocked state.
 		 * If there was another contending for this lock, then
 		 * the lock state would be 0x....000f
@@ -2152,7 +2137,7 @@ int nfp_cpp_mutex_trylock(struct nfp_cpp_mutex *mutex)
 		return 0;
 	}
 
-	return MUTEX_IS_LOCKED(tmp) ? -EBUSY : -EINVAL;
+	return nfp_mutex_is_locked(tmp) ? -EBUSY : -EINVAL;
 }
 
 /**

@@ -60,7 +60,7 @@
 #define PCI_64BIT_BAR_COUNT             3
 
 /*
- * NFP hardware vendor/device ids.  Should be added to Linux.
+ * NFP hardware vendor/device ids.
  */
 #define PCI_DEVICE_NFP4000              0x4000
 #define PCI_DEVICE_NFP6000              0x6000
