@@ -52,7 +52,7 @@
 #include <linux/module.h>
 #include <linux/slab.h>
 
-#define NFP_SUBSYS "[HWINFO] "
+#define NFP_SUBSYS "nfp_hwinfo"
 
 #include "crc32.h"
 #include "nfp.h"

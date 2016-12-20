@@ -45,7 +45,7 @@
 #include <linux/kernel.h>
 #include <linux/kthread.h>
 
-#define NFP_SUBSYS "[NSP] "
+#define NFP_SUBSYS "nfp_nsp"
 
 #include "nfp.h"
 #include "nfp_cpp.h"

@@ -37,7 +37,7 @@
  *          Jason McMullan <jason.mcmullan@netronome.com>
  */
 
-#define NFP_SUBSYS	"nfp_reset: "
+#define NFP_SUBSYS "nfp_reset"
 
 #include "nfp.h"
 
