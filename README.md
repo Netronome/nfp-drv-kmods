@@ -184,7 +184,5 @@ All sources are in `src/nfpcore/`:
 | nfp_nffw.c          | API       | NFP NFP Flow Firmware interface           |
 | nfp_nsp.c           | API       | NIC Service Processor interface           |
 | nfp_platform.c      | API       | NFP CPP bus device registration           |
-| nfp_power.c         | API       | NFP subsystem power control               |
-| nfp_reset.c         | API       | NFP controlled soft reset                 |
 | nfp_resource.c      | API       | NFP Resource management                   |
 | nfp_rtsym.c         | API       | NFP Firmware Runtime Symbol access        |

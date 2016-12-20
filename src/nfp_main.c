@@ -380,15 +380,13 @@ static int nfp_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
 		goto exit_release_fw;
 	}
 
-	if (fw) {
-		err = nfp_nsp_wait(nsp);
-		if (err)
-			goto exit_nsp_close;
-	}
+	err = nfp_nsp_wait(nsp);
+	if (err)
+		goto exit_nsp_close;
 
 	dev_info(&pdev->dev, "NFP soft-reset (implied:%d forced:%d)\n",
 		 !!fw, nfp_reset);
-	err = nfp_reset_soft(cpp);
+	err = nfp_nsp_device_soft_reset(nsp);
 	if (err < 0) {
 		dev_err(&pdev->dev, "Failed to soft reset the NFP: %d\n",
 			err);
@@ -429,13 +427,22 @@ exit_release_fw:
 
 static void nfp_fw_unload(struct nfp_pf *pf)
 {
+	struct nfp_nsp *nsp;
 	int err;
 
-	err = nfp_reset_soft(pf->cpp);
+	nsp = nfp_nsp_open(pf->cpp);
+	if (IS_ERR(nsp)) {
+		nfp_err(pf->cpp, "Reset failed, can't open NSP\n");
+		return;
+	}
+
+	err = nfp_nsp_device_soft_reset(nsp);
 	if (err < 0)
 		dev_warn(&pf->pdev->dev, "Couldn't unload firmware: %d\n", err);
 	else
 		dev_info(&pf->pdev->dev, "Firmware safely unloaded\n");
+
+	nfp_nsp_close(nsp);
 }
 
 static void nfp_register_vnic(struct nfp_pf *pf)

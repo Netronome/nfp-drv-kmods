@@ -387,6 +387,17 @@ int nfp_nsp_wait(struct nfp_nsp *state)
 	return err;
 }
 
+int nfp_nsp_device_soft_reset(struct nfp_nsp *state)
+{
+	int err;
+
+	err = nfp_nsp_command(state, SPCODE_SOFT_RESET, 0, 0, 0);
+
+	nfp_nffw_cache_flush(state->cpp);
+
+	return err;
+}
+
 int nfp_nsp_read_eth_table(struct nfp_nsp *state, void *buf, unsigned int size)
 {
 	return nfp_nsp_command_buf(state, SPCODE_ETH_RESCAN, size, NULL, 0,
