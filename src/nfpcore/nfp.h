@@ -148,28 +148,14 @@ int nfp_reset_soft(struct nfp_cpp *cpp);
 
 /* Implemented in nfp_nsp.c */
 
-enum nfp_nsp_cmd {
-	SPCODE_NOOP             = 0, /* No operation */
-	SPCODE_SOFT_RESET       = 1, /* Soft reset the NFP */
-	SPCODE_FW_DEFAULT       = 2, /* Load default (UNDI) FW */
-	SPCODE_PHY_INIT         = 3, /* Initialize the PHY */
-	SPCODE_MAC_INIT         = 4, /* Initialize the MAC */
-	SPCODE_PHY_RXADAPT      = 5, /* Re-run PHY RX Adaptation */
-	SPCODE_FW_LOAD          = 6, /* Load fw from buffer, len in option */
-	SPCODE_ETH_RESCAN       = 7, /* Rescan ETHs, update ETH_TABLE */
-	SPCODE_ETH_CONTROL      = 8, /* Perform ETH control action */
-	__MAX_SPCODE,
-};
-
 struct nfp_nsp;
 
 struct nfp_nsp *nfp_nsp_open(struct nfp_cpp *cpp);
 void nfp_nsp_close(struct nfp_nsp *state);
-int nfp_nsp_command(struct nfp_nsp *state, uint16_t spcode, u32 option,
-		    u32 buff_cpp, u64 buff_addr);
-int nfp_nsp_command_buf(struct nfp_nsp *state, u16 code, u32 option,
-			const void *in_buf, unsigned int in_size,
-			void *out_buf, unsigned int out_size);
+int nfp_nsp_wait(struct nfp_nsp *state);
+int nfp_nsp_read_eth_table(struct nfp_nsp *state, void *buf, unsigned int size);
+int nfp_nsp_write_eth_table(struct nfp_nsp *state,
+			    const void *buf, unsigned int size);
 
 /* Implemented in nfp_resource.c */
 

@@ -354,7 +354,6 @@ static int nfp_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
 {
 	const struct firmware *fw;
 	struct nfp_nsp *nsp;
-	int timeout = 30;
 	u16 interface;
 	int err;
 
@@ -382,21 +381,9 @@ static int nfp_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
 	}
 
 	if (fw) {
-		dev_info(&pdev->dev,
-			 "Waiting for NSP to respond (%d sec max).\n", timeout);
-		for (; timeout > 0; timeout--) {
-			err = nfp_nsp_command(nsp, SPCODE_NOOP, 0, 0, 0);
-			if (err != -EAGAIN)
-				break;
-			if (msleep_interruptible(1000) > 0) {
-				err = -ETIMEDOUT;
-				break;
-			}
-		}
-		if (err < 0) {
-			dev_err(&pdev->dev, "NSP failed to respond\n");
+		err = nfp_nsp_wait(nsp);
+		if (err)
 			goto exit_nsp_close;
-		}
 	}
 
 	dev_info(&pdev->dev, "NFP soft-reset (implied:%d forced:%d)\n",

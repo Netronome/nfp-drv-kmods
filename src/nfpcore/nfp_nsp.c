@@ -84,6 +84,20 @@
 #define NSP_CODE_MAJOR		GENMASK(15, 12)
 #define NSP_CODE_MINOR		GENMASK(11, 0)
 
+enum nfp_nsp_cmd {
+	SPCODE_NOOP		= 0, /* No operation */
+	SPCODE_SOFT_RESET	= 1, /* Soft reset the NFP */
+	SPCODE_FW_DEFAULT	= 2, /* Load default (UNDI) FW */
+	SPCODE_PHY_INIT		= 3, /* Initialize the PHY */
+	SPCODE_MAC_INIT		= 4, /* Initialize the MAC */
+	SPCODE_PHY_RXADAPT	= 5, /* Re-run PHY RX Adaptation */
+	SPCODE_FW_LOAD		= 6, /* Load fw from buffer, len in option */
+	SPCODE_ETH_RESCAN	= 7, /* Rescan ETHs, write ETH_TABLE to buf */
+	SPCODE_ETH_CONTROL	= 8, /* Update media config from buffer */
+
+	__MAX_SPCODE,
+};
+
 struct nfp_nsp {
 	struct nfp_cpp *cpp;
 	struct nfp_resource *res;
@@ -209,8 +223,8 @@ nfp_nsp_wait_reg(struct nfp_cpp *cpp, u64 *reg,
  *	-EINTR if interrupted while waiting for completion
  *	-ETIMEDOUT if the NSP took longer than 30 seconds to complete
  */
-int nfp_nsp_command(struct nfp_nsp *state, u16 code, u32 option,
-		    u32 buff_cpp, u64 buff_addr)
+static int nfp_nsp_command(struct nfp_nsp *state, u16 code, u32 option,
+			   u32 buff_cpp, u64 buff_addr)
 {
 	u64 reg, nsp_base, nsp_buffer, nsp_status, nsp_command;
 	struct nfp_cpp *cpp = state->cpp;
@@ -278,9 +292,9 @@ int nfp_nsp_command(struct nfp_nsp *state, u16 code, u32 option,
 	return FIELD_GET(NSP_COMMAND_OPTION, reg);
 }
 
-int nfp_nsp_command_buf(struct nfp_nsp *nsp, u16 code, u32 option,
-			const void *in_buf, unsigned int in_size,
-			void *out_buf, unsigned int out_size)
+static int nfp_nsp_command_buf(struct nfp_nsp *nsp, u16 code, u32 option,
+			       const void *in_buf, unsigned int in_size,
+			       void *out_buf, unsigned int out_size)
 {
 	struct nfp_cpp *cpp = nsp->cpp;
 	unsigned int max_size;
@@ -342,4 +356,46 @@ int nfp_nsp_command_buf(struct nfp_nsp *nsp, u16 code, u32 option,
 	}
 
 	return ret;
+}
+
+int nfp_nsp_wait(struct nfp_nsp *state)
+{
+	const unsigned long wait_until = jiffies + 30 * HZ;
+	int err;
+
+	nfp_info(state->cpp, "Waiting for NSP to respond (30 sec max).\n");
+
+	for (;;) {
+		const unsigned long start_time = jiffies;
+
+		err = nfp_nsp_command(state, SPCODE_NOOP, 0, 0, 0);
+		if (err != -EAGAIN)
+			break;
+
+		err = msleep_interruptible(100);
+		if (err)
+			break;
+
+		if (time_after(start_time, wait_until)) {
+			err = -ETIMEDOUT;
+			break;
+		}
+	}
+	if (err)
+		nfp_err(state->cpp, "NSP failed to respond %d\n", err);
+
+	return err;
+}
+
+int nfp_nsp_read_eth_table(struct nfp_nsp *state, void *buf, unsigned int size)
+{
+	return nfp_nsp_command_buf(state, SPCODE_ETH_RESCAN, size, NULL, 0,
+				   buf, size);
+}
+
+int nfp_nsp_write_eth_table(struct nfp_nsp *state,
+			    const void *buf, unsigned int size)
+{
+	return nfp_nsp_command_buf(state, SPCODE_ETH_CONTROL, size, buf, size,
+				   NULL, 0);
 }

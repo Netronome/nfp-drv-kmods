@@ -169,8 +169,7 @@ struct nfp_eth_table *nfp_eth_read_ports(struct nfp_cpp *cpp)
 	if (IS_ERR(nsp))
 		return NULL;
 
-	ret = nfp_nsp_command_buf(nsp, SPCODE_ETH_RESCAN, NSP_ETH_TABLE_SIZE,
-				  NULL, 0, entries, NSP_ETH_TABLE_SIZE);
+	ret = nfp_nsp_read_eth_table(nsp, entries, NSP_ETH_TABLE_SIZE);
 	nfp_nsp_close(nsp);
 	if (ret < 0) {
 		nfp_err(cpp, "reading port table failed %d\n", ret);
@@ -232,8 +231,7 @@ int nfp_eth_set_mod_enable(struct nfp_cpp *cpp, unsigned int idx, bool enable)
 		return PTR_ERR(nsp);
 	}
 
-	ret = nfp_nsp_command_buf(nsp, SPCODE_ETH_RESCAN, NSP_ETH_TABLE_SIZE,
-				  NULL, 0, entries, NSP_ETH_TABLE_SIZE);
+	ret = nfp_nsp_read_eth_table(nsp, entries, NSP_ETH_TABLE_SIZE);
 	if (ret < 0) {
 		nfp_err(cpp, "reading port table failed %d\n", ret);
 		goto exit_close_nsp;
@@ -258,8 +256,7 @@ int nfp_eth_set_mod_enable(struct nfp_cpp *cpp, unsigned int idx, bool enable)
 	reg |= FIELD_PREP(NSP_ETH_CTRL_ENABLED, enable);
 	entries[idx].control = cpu_to_le64(reg);
 
-	ret = nfp_nsp_command_buf(nsp, SPCODE_ETH_CONTROL, NSP_ETH_TABLE_SIZE,
-				  entries, NSP_ETH_TABLE_SIZE, NULL, 0);
+	ret = nfp_nsp_write_eth_table(nsp, entries, NSP_ETH_TABLE_SIZE);
 exit_close_nsp:
 	nfp_nsp_close(nsp);
 	kfree(entries);
