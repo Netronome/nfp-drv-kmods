@@ -717,8 +717,8 @@ exit:
 	return err;
 }
 
-static int do_cpp_identification(struct nfp_dev_cpp_channel *chan,
-				 struct nfp_cpp_identification *ident)
+static void do_cpp_identification(struct nfp_dev_cpp_channel *chan,
+				  struct nfp_cpp_identification *ident)
 {
 	int total;
 
@@ -754,8 +754,6 @@ static int do_cpp_identification(struct nfp_dev_cpp_channel *chan,
 
 	/* Modify size to our actual size */
 	ident->size = total;
-
-	return 0;
 }
 
 static int do_cpp_area_request(struct nfp_dev_cpp *cdev, u16 interface,
@@ -843,52 +841,61 @@ static int nfp_dev_cpp_ioctl(struct inode *inode, struct file *filp,
 	struct nfp_cpp_explicit_request explicit_req;
 	struct nfp_cpp_identification ident;
 	void __user *data = (void __user *)arg;
-	int err;
 	const struct firmware *fw;
+	int err;
 
 	switch (cmd) {
 	case NFP_IOCTL_CPP_IDENTIFICATION:
 		/* Get the size parameter */
-		if (arg == 0) {
-			err = sizeof(ident);
-			break;
-		}
-		err = copy_from_user(&ident.size, data, sizeof(ident.size));
-		if (err >= 0)
-			err = do_cpp_identification(chan, &ident);
-		if (err >= 0) {
-			/* Write back the data */
-			err = copy_to_user(data, &ident, ident.size);
-			if (err >= 0)
-				err = sizeof(ident);
-		}
-		break;
+		if (!arg)
+			return sizeof(ident);
+
+		if (copy_from_user(&ident.size, data, sizeof(ident.size)))
+			return -EFAULT;
+
+		do_cpp_identification(chan, &ident);
+
+		/* Write back the data */
+		if (copy_to_user(data, &ident, ident.size))
+			return -EFAULT;
+
+		return sizeof(ident);
+
 	case NFP_IOCTL_FIRMWARE_LOAD:
-		err = copy_from_user(cdev->firmware, data,
-				     sizeof(cdev->firmware));
-		if (err < 0)
-			break;
+		if (copy_from_user(cdev->firmware, data,
+				   sizeof(cdev->firmware)))
+			return -EFAULT;
+
 		cdev->firmware[sizeof(cdev->firmware) - 1] = 0;
 		err = request_firmware(&fw, cdev->firmware, cdev->dev);
 		if (err < 0)
-			break;
+			return err;
+
 		err = nfp_ca_replay(cdev->cpp, fw->data, fw->size);
 		release_firmware(fw);
-		break;
-	case NFP_IOCTL_FIRMWARE_LAST:
-		err = copy_to_user(data, cdev->firmware,
-				   sizeof(cdev->firmware));
-		break;
-	case NFP_IOCTL_CPP_AREA_REQUEST:
-		err = copy_from_user(&area_req, data, sizeof(area_req));
-		if (err >= 0)
-			err = do_cpp_area_request(chan->cdev, chan->interface,
-						  &area_req);
 
-		if (err >= 0)
-			/* Write back the found slot */
-			err = copy_to_user(data, &area_req, sizeof(area_req));
-		break;
+		return err;
+
+	case NFP_IOCTL_FIRMWARE_LAST:
+		if (copy_to_user(data, cdev->firmware, sizeof(cdev->firmware)))
+			return -EFAULT;
+
+		return 0;
+
+	case NFP_IOCTL_CPP_AREA_REQUEST:
+		if (copy_from_user(&area_req, data, sizeof(area_req)))
+			return -EFAULT;
+
+		err = do_cpp_area_request(chan->cdev, chan->interface,
+					  &area_req);
+		if (err < 0)
+			return err;
+
+		/* Write back the found slot */
+		if (copy_to_user(data, &area_req, sizeof(area_req)))
+			return -EFAULT;
+
+		return 0;
 
 	case NFP_IOCTL_CPP_AREA_RELEASE:
 	case NFP_IOCTL_CPP_AREA_RELEASE_OBSOLETE:
@@ -899,41 +906,40 @@ static int nfp_dev_cpp_ioctl(struct inode *inode, struct file *filp,
 			err = copy_from_user(&area_req.offset, data,
 					     sizeof(area_req.offset));
 		}
-		if (err < 0)
-			break;
+		if (err)
+			return -EFAULT;
 
-		err = do_cpp_area_release(cdev, chan->interface, &area_req);
+		return do_cpp_area_release(cdev, chan->interface, &area_req);
 
-		break;
 	case NFP_IOCTL_CPP_EXPL_REQUEST:
-		err = copy_from_user(&explicit_req, data, sizeof(explicit_req));
-		if (err >= 0) {
-			err = do_cpp_expl_request(chan, &explicit_req);
-			if (err >= 0)
-				err = copy_to_user(data, &explicit_req,
-						   sizeof(explicit_req));
-		}
+		if (copy_from_user(&explicit_req, data, sizeof(explicit_req)))
+			return -EFAULT;
 
-		break;
+		err = do_cpp_expl_request(chan, &explicit_req);
+		if (err < 0)
+			return err;
+
+		if (copy_to_user(data, &explicit_req, sizeof(explicit_req)))
+			return -EFAULT;
+
+		return 0;
+
 	case NFP_IOCTL_CPP_EVENT_ACQUIRE:
-		err = copy_from_user(&event_req, data, sizeof(event_req));
-		if (err >= 0)
-			err = do_cpp_event_acquire(chan->cdev, chan->interface,
-						   &event_req);
-		break;
+		if (copy_from_user(&event_req, data, sizeof(event_req)))
+			return -EFAULT;
+
+		return do_cpp_event_acquire(chan->cdev, chan->interface,
+					    &event_req);
+
 	case NFP_IOCTL_CPP_EVENT_RELEASE:
-		err = copy_from_user(&event_req, data, sizeof(event_req));
-		if (err >= 0)
-			err = do_cpp_event_release(chan->cdev, chan->interface,
-						   &event_req);
+		if (copy_from_user(&event_req, data, sizeof(event_req)))
+			return -EFAULT;
 
-		break;
+		return do_cpp_event_release(chan->cdev, chan->interface,
+					    &event_req);
 	default:
-		err = -EINVAL;
-		break;
+		return -EINVAL;
 	}
-
-	return err;
 }
 
 static int nfp_cpp_mmap_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
