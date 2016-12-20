@@ -31,7 +31,7 @@ Once acquired, install the firmware to `/lib/firmware`:
 For the NFP4000/NFP6000 device family:
 
     # mkdir -p /lib/firmware/netronome
-    # cp nfp6000_net.cat /lib/firmware/netronome
+    # cp nfp6000_net.nffw /lib/firmware/netronome
 
 # Building and Installing
 
@@ -169,7 +169,6 @@ All sources are in `src/nfpcore/`:
 | Source              | Type      | Description                               |
 | ------------------- | ----------|------------------------------------------ |
 | nfp6000_pcie.c      | Transport | NFP6000 PCIe interface                    |
-| nfp_ca.c            | API       | CPP Action firmware file parser           |
 | nfp_cppcore.c       | API       | CPP bus core                              |
 | nfp_cpplib.c        | API       | CPP bus helper                            |
 | nfp_device.c        | API       | NFP chip interface                        |

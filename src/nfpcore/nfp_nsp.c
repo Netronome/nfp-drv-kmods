@@ -42,6 +42,7 @@
 #include <linux/bitfield.h>
 #endif
 #include <linux/delay.h>
+#include <linux/firmware.h>
 #include <linux/kernel.h>
 #include <linux/kthread.h>
 #include <linux/sizes.h>
@@ -396,6 +397,12 @@ int nfp_nsp_device_soft_reset(struct nfp_nsp *state)
 	nfp_nffw_cache_flush(state->cpp);
 
 	return err;
+}
+
+int nfp_nsp_load_fw(struct nfp_nsp *state, const struct firmware *fw)
+{
+	return nfp_nsp_command_buf(state, SPCODE_FW_LOAD, fw->size, fw->data,
+				   fw->size, NULL, 0);
 }
 
 int nfp_nsp_read_eth_table(struct nfp_nsp *state, void *buf, unsigned int size)

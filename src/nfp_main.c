@@ -110,7 +110,7 @@ MODULE_PARM_DESC(nfp6000_firmware, "(non-netdev mode) NFP6000 firmware to load f
 
 /* Default FW names */
 #define NFP_NET_FW_DEFAULT	"nfp6000_net"
-MODULE_FIRMWARE("netronome/" NFP_NET_FW_DEFAULT ".cat");
+MODULE_FIRMWARE("netronome/" NFP_NET_FW_DEFAULT ".nffw");
 
 static const char nfp_driver_name[] = "nfp";
 const char nfp_driver_version[] = "0.1";
@@ -304,13 +304,13 @@ static int nfp_net_fw_find(struct pci_dev *pdev, struct nfp_cpp *cpp,
 
 	if (fw_model) {
 		snprintf(fw_name,
-			 sizeof(fw_name), "netronome/%s.cat", fw_model);
+			 sizeof(fw_name), "netronome/%s.nffw", fw_model);
 		fw_name[sizeof(fw_name) - 1] = 0;
 		err = request_firmware(&fw, fw_name, &pdev->dev);
 	}
 	if (!fw_model || err < 0) {
 		snprintf(fw_name, sizeof(fw_name),
-			 "netronome/%s.cat", NFP_NET_FW_DEFAULT);
+			 "netronome/%s.nffw", NFP_NET_FW_DEFAULT);
 		fw_name[sizeof(fw_name) - 1] = 0;
 		err = request_firmware(&fw, fw_name, &pdev->dev);
 	}
@@ -394,20 +394,7 @@ static int nfp_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
 	}
 
 	if (fw) {
-		struct nfp_cpp_mutex *mutex;
-
-		/* Lock the NFP, prevent others from touching it while we
-		 * load the firmware.
-		 */
-		mutex = nfp_device_lock(cpp);
-		if (!mutex) {
-			dev_err(&pdev->dev, "Can't lock NFP device\n");
-			goto exit_nsp_close;
-		}
-
-		err = nfp_ca_replay(cpp, fw->data, fw->size);
-		nfp_device_unlock(cpp, mutex);
-
+		err = nfp_nsp_load_fw(nsp, fw);
 		if (err < 0) {
 			dev_err(&pdev->dev, "FW loading failed: %d\n",
 				err);

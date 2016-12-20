@@ -756,6 +756,31 @@ static void do_cpp_identification(struct nfp_dev_cpp_channel *chan,
 	ident->size = total;
 }
 
+static int do_fw_load(struct nfp_dev_cpp *cdev)
+{
+	const struct firmware *fw;
+	struct nfp_nsp *nsp;
+	int err;
+
+	err = request_firmware(&fw, cdev->firmware, cdev->dev);
+	if (err < 0)
+		return err;
+
+	nsp = nfp_nsp_open(cdev->cpp);
+	if (IS_ERR(nsp)) {
+		err = PTR_ERR(nsp);
+		goto exit_release_fw;
+	}
+
+	err = nfp_nsp_load_fw(nsp, fw);
+	nfp_nsp_close(nsp);
+
+exit_release_fw:
+	release_firmware(fw);
+
+	return err;
+}
+
 static int do_cpp_area_request(struct nfp_dev_cpp *cdev, u16 interface,
 			       struct nfp_cpp_area_request *area_req)
 {
@@ -841,7 +866,6 @@ static int nfp_dev_cpp_ioctl(struct inode *inode, struct file *filp,
 	struct nfp_cpp_explicit_request explicit_req;
 	struct nfp_cpp_identification ident;
 	void __user *data = (void __user *)arg;
-	const struct firmware *fw;
 	int err;
 
 	switch (cmd) {
@@ -867,14 +891,8 @@ static int nfp_dev_cpp_ioctl(struct inode *inode, struct file *filp,
 			return -EFAULT;
 
 		cdev->firmware[sizeof(cdev->firmware) - 1] = 0;
-		err = request_firmware(&fw, cdev->firmware, cdev->dev);
-		if (err < 0)
-			return err;
 
-		err = nfp_ca_replay(cdev->cpp, fw->data, fw->size);
-		release_firmware(fw);
-
-		return err;
+		return do_fw_load(cdev);
 
 	case NFP_IOCTL_FIRMWARE_LAST:
 		if (copy_to_user(data, cdev->firmware, sizeof(cdev->firmware)))
@@ -1142,7 +1160,6 @@ static ssize_t store_firmware(struct device *dev, struct device_attribute *attr,
 			      const char *buf, size_t count)
 {
 	struct nfp_dev_cpp *cdev = dev_get_drvdata(dev);
-	const struct firmware *fw;
 	const char *cp;
 	int err;
 
@@ -1156,11 +1173,7 @@ static ssize_t store_firmware(struct device *dev, struct device_attribute *attr,
 	memcpy(&cdev->firmware[0], buf, (cp - buf));
 	cdev->firmware[cp - buf] = 0;
 
-	err = request_firmware(&fw, cdev->firmware, cdev->dev);
-	if (err < 0)
-		return err;
-	err = nfp_ca_replay(cdev->cpp, fw->data, fw->size);
-	release_firmware(fw);
+	err = do_fw_load(cdev);
 
 	return (err < 0) ? err : count;
 }
