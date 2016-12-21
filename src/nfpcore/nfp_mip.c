@@ -246,24 +246,3 @@ void nfp_mip_strtab(const struct nfp_mip *mip, u32 *addr, u32 *size)
 	*addr = le32_to_cpu(mip->strtab_addr);
 	*size = le32_to_cpu(mip->strtab_size);
 }
-
-/**
- * nfp_mip_reload() - Invalidate the current MIP, if any, and related entries.
- * @cpp:	NFP CPP Handle
- *
- * The next nfp_mip() probe will then do the actual reload of MIP data.
- * Calling nfp_mip_reload() will also invalidate:
- * * rtsyms
- */
-void nfp_mip_reload(struct nfp_cpp *cpp)
-{
-	struct nfp_mip *mip;
-
-	mip = nfp_mip_cache(cpp);
-	if (!mip)
-		return;
-
-	nfp_rtsym_reload(cpp);
-	kfree(mip);
-	nfp_mip_cache_set(cpp, NULL);
-}

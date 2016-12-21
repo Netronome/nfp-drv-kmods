@@ -446,6 +446,22 @@ void nfp_phymod_state_set(struct nfp_cpp *cpp, void *val)
 	cpp->phymod = val;
 }
 
+/**
+ * nfp_nffw_cache_flush() - Flush cached firmware information
+ * @cpp:	NFP CPP handle
+ *
+ * Flush cached firmware information.  This function should be called
+ * every time firmware is loaded on unloaded.
+ */
+void nfp_nffw_cache_flush(struct nfp_cpp *cpp)
+{
+	kfree(nfp_rtsym_cache(cpp));
+	nfp_rtsym_cache_set(cpp, NULL);
+
+	kfree(nfp_mip_cache(cpp));
+	nfp_mip_cache_set(cpp, NULL);
+}
+
 struct nfp_cpp_mutex *nfp_device_mutex_cache(struct nfp_cpp *cpp)
 {
 	return cpp->dev_mutex;

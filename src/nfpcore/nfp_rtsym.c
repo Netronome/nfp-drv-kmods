@@ -324,13 +324,3 @@ err:
 		*error = err;
 	return ~0ULL;
 }
-
-/**
- * nfp_rtsym_reload() - Force a reload of the RTSYM table
- * @cpp:	NFP CPP handle
- */
-void nfp_rtsym_reload(struct nfp_cpp *cpp)
-{
-	kfree(nfp_rtsym_cache(cpp));
-	nfp_rtsym_cache_set(cpp, NULL);
-}

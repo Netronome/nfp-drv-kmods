@@ -52,7 +52,6 @@ int nfp_nffw_info_mip_first(struct nfp_nffw_info *state, u32 *cpp_id, u64 *off);
 
 struct nfp_mip;
 
-void nfp_mip_reload(struct nfp_cpp *cpp);
 const struct nfp_mip *nfp_mip(struct nfp_cpp *cpp);
 
 void nfp_mip_symtab(const struct nfp_mip *mip, u32 *addr, u32 *size);
@@ -88,7 +87,6 @@ struct nfp_rtsym {
 	int domain;
 };
 
-void nfp_rtsym_reload(struct nfp_cpp *cpp);
 int nfp_rtsym_count(struct nfp_cpp *cpp);
 const struct nfp_rtsym *nfp_rtsym_get(struct nfp_cpp *cpp, int idx);
 const struct nfp_rtsym *nfp_rtsym_lookup(struct nfp_cpp *cpp, const char *name);
