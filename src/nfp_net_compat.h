@@ -84,8 +84,19 @@
 #ifndef ETH_RSS_HASH_NO_CHANGE
 #define ETH_RSS_HASH_NO_CHANGE	0
 #endif
+#ifndef ETH_RSS_HASH_UNKNOWN
+#define ETH_RSS_HASH_UNKNOWN	0
+#endif
 #ifndef ETH_RSS_HASH_TOP
-#define ETH_RSS_HASH_TOP	0
+#define ETH_RSS_HASH_TOP_BIT	0
+#define ETH_RSS_HASH_TOP	(1 << ETH_RSS_HASH_TOP_BIT)
+#endif
+#ifndef ETH_RSS_HASH_XOR
+#define ETH_RSS_HASH_FUNCS_COUNT	1
+#define ETH_RSS_HASH_XOR	2
+#endif
+#ifndef ETH_RSS_HASH_CRC32
+#define ETH_RSS_HASH_CRC32	4
 #endif
 
 #ifndef NETIF_F_CSUM_MASK
