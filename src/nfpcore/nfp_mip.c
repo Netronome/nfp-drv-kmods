@@ -98,11 +98,21 @@ nfp_mip_try_read(struct nfp_cpp *cpp, u32 cpp_id, u64 addr, struct nfp_mip *mip)
 	int ret;
 
 	ret = nfp_cpp_read(cpp, cpp_id, addr, mip, sizeof(*mip));
-	if (ret != sizeof(*mip))
+	if (ret != sizeof(*mip)) {
+		nfp_err(cpp, "Failed to read MIP data (%d, %zu)\n",
+			ret, sizeof(*mip));
 		return -EIO;
-	if (mip->signature != NFP_MIP_SIGNATURE ||
-	    mip->mip_version != NFP_MIP_VERSION)
+	}
+	if (mip->signature != NFP_MIP_SIGNATURE) {
+		nfp_warn(cpp, "Incorrect MIP signature (0x%08x)\n",
+			 le32_to_cpu(mip->signature));
 		return -EINVAL;
+	}
+	if (mip->mip_version != NFP_MIP_VERSION) {
+		nfp_warn(cpp, "Unsupported MIP version (%d)\n",
+			 le32_to_cpu(mip->mip_version));
+		return -EINVAL;
+	}
 
 	return 0;
 }
