@@ -143,25 +143,6 @@ exit_close_nffw:
 	return err;
 }
 
-/* Try to locate MIP by scanning memory for the signature */
-static int nfp_mip_read_mem_scan(struct nfp_cpp *cpp, struct nfp_mip *mip)
-{
-	u32 cpp_id;
-	u64 addr;
-	int err;
-
-	cpp_id = NFP_CPP_ID(NFP_CPP_TARGET_MU, NFP_CPP_ACTION_RW, 0) |
-		NFP_ISL_EMEM0;
-
-	for (addr = 0; addr < NFP_MIP_MAX_OFFSET; addr += 4096) {
-		err = nfp_mip_try_read(cpp, cpp_id, addr, mip);
-		if (!err)
-			return 0;
-	}
-
-	return err;
-}
-
 /**
  * nfp_mip_probe() - Check if MIP has been updated.
  * @cpp:	NFP CPP Handle
@@ -183,10 +164,6 @@ static int nfp_mip_probe(struct nfp_cpp *cpp)
 		return -ENOMEM;
 
 	err = nfp_mip_read_resource(cpp, new_mip);
-	if (err) {
-		nfp_dbg(cpp, "Couldn't locate MIP using resource table, trying memory scan\n");
-		err = nfp_mip_read_mem_scan(cpp, new_mip);
-	}
 	if (err) {
 		kfree(new_mip);
 		return err;
