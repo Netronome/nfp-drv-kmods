@@ -114,7 +114,6 @@ struct nfp_cpp {
 
 	/* Cached information */
 	void *hwinfo;
-	void *mip;
 	void *rtsym;
 	void *nbi;
 	void *phymod;
@@ -292,7 +291,6 @@ static void __nfp_cpp_release(struct kref *kref)
 		cpp->op->free(cpp);
 
 	kfree(cpp->hwinfo);
-	kfree(cpp->mip);
 	kfree(cpp->rtsym);
 	kfree(cpp->nbi);
 	kfree(cpp->phymod);
@@ -406,16 +404,6 @@ void nfp_hwinfo_cache_set(struct nfp_cpp *cpp, void *val)
 	cpp->hwinfo = val;
 }
 
-void *nfp_mip_cache(struct nfp_cpp *cpp)
-{
-	return cpp->mip;
-}
-
-void nfp_mip_cache_set(struct nfp_cpp *cpp, void *val)
-{
-	cpp->mip = val;
-}
-
 void *nfp_rtsym_cache(struct nfp_cpp *cpp)
 {
 	return cpp->rtsym;
@@ -457,9 +445,6 @@ void nfp_nffw_cache_flush(struct nfp_cpp *cpp)
 {
 	kfree(nfp_rtsym_cache(cpp));
 	nfp_rtsym_cache_set(cpp, NULL);
-
-	kfree(nfp_mip_cache(cpp));
-	nfp_mip_cache_set(cpp, NULL);
 }
 
 struct nfp_cpp_mutex *nfp_device_mutex_cache(struct nfp_cpp *cpp)

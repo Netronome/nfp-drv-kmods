@@ -121,12 +121,13 @@ static int nfp_rtsymtab_probe(struct nfp_cpp *cpp)
 	const struct nfp_mip *mip;
 	int err, n, size;
 
-	mip = nfp_mip(cpp);
+	mip = nfp_mip_open(cpp);
 	if (!mip)
 		return -EIO;
 
 	nfp_mip_strtab(mip, &strtab_addr, &strtab_size);
 	nfp_mip_symtab(mip, &symtab_addr, &symtab_size);
+	nfp_mip_close(mip);
 
 	if (!symtab_size || !strtab_size || symtab_size % sizeof(*rtsymtab))
 		return -ENXIO;

@@ -292,8 +292,6 @@ int nfp_cpp_serial(struct nfp_cpp *cpp, const u8 **serial);
 
 void *nfp_hwinfo_cache(struct nfp_cpp *cpp);
 void nfp_hwinfo_cache_set(struct nfp_cpp *cpp, void *val);
-void *nfp_mip_cache(struct nfp_cpp *cpp);
-void nfp_mip_cache_set(struct nfp_cpp *cpp, void *val);
 void *nfp_rtsym_cache(struct nfp_cpp *cpp);
 void nfp_rtsym_cache_set(struct nfp_cpp *cpp, void *val);
 void *nfp_nbi_cache(struct nfp_cpp *cpp);

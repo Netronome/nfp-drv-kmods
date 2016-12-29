@@ -144,60 +144,36 @@ exit_close_nffw:
 }
 
 /**
- * nfp_mip_probe() - Check if MIP has been updated.
- * @cpp:	NFP CPP Handle
- *
- * Check if currently cached MIP needs to be updated, and read potential
- * new contents.  If a call to nfp_mip_probe() returns non-zero, the old
- * MIP structure returned by a previous callto nfp_mip() is no longer
- * guaranteed to be present and any references to the old structure is invalid.
- *
- * Return: 1 if MIP has been updated, 0 if no update has occurred, or -ERRNO
- */
-static int nfp_mip_probe(struct nfp_cpp *cpp)
-{
-	struct nfp_mip *new_mip, *old_mip;
-	int err;
-
-	new_mip = kmalloc(sizeof(*new_mip), GFP_KERNEL);
-	if (!new_mip)
-		return -ENOMEM;
-
-	err = nfp_mip_read_resource(cpp, new_mip);
-	if (err) {
-		kfree(new_mip);
-		return err;
-	}
-
-	old_mip = nfp_mip_cache(cpp);
-	if (old_mip && old_mip->loadtime == new_mip->loadtime) {
-		kfree(new_mip);
-		return 0;
-	}
-
-	kfree(old_mip);
-	nfp_mip_cache_set(cpp, new_mip);
-	return 1;
-}
-
-/**
- * nfp_mip() - Get device MIP structure
+ * nfp_mip_open() - Get device MIP structure
  * @cpp:	NFP CPP Handle
  *
  * Copy MIP structure from NFP device and return it.  The returned
- * structure is handled internally by the library and should not be
- * explicitly freed by the caller. Any subsequent call to nfp_mip_probe()
- * returning non-zero renders references to any previously returned MIP
- * structure invalid.
+ * structure is handled internally by the library and should be
+ * freed by calling nfp_mip_close().
  *
  * Return: pointer to mip, NULL on failure.
  */
-const struct nfp_mip *nfp_mip(struct nfp_cpp *cpp)
+const struct nfp_mip *nfp_mip_open(struct nfp_cpp *cpp)
 {
-	if (!nfp_mip_cache(cpp))
-		nfp_mip_probe(cpp);
+	struct nfp_mip *mip;
+	int err;
 
-	return nfp_mip_cache(cpp);
+	mip = kmalloc(sizeof(*mip), GFP_KERNEL);
+	if (!mip)
+		return NULL;
+
+	err = nfp_mip_read_resource(cpp, mip);
+	if (err) {
+		kfree(mip);
+		return NULL;
+	}
+
+	return mip;
+}
+
+void nfp_mip_close(const struct nfp_mip *mip)
+{
+	kfree(mip);
 }
 
 /**
