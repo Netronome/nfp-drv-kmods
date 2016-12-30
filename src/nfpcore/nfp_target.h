@@ -38,8 +38,8 @@
  *          Francois H. Theron <francois.theron@netronome.com>
  */
 
-#ifndef NFP_BSP_NFP_TARGET_H
-#define NFP_BSP_NFP_TARGET_H
+#ifndef NFP_TARGET_H
+#define NFP_TARGET_H
 
 #include "nfp_cpp.h"
 
@@ -48,7 +48,7 @@
 #define P32 1
 #define P64 2
 
-#define PUSHPULL(_pull, _push)        ((_pull << 4) | (_push << 0))
+#define PUSHPULL(_pull, _push)        ((_pull) << 4 | (_push) << 0)
 
 static inline int pushpull_width(int pp)
 {
@@ -62,13 +62,13 @@ static inline int pushpull_width(int pp)
 #define PUSH_WIDTH(_pushpull)      pushpull_width((_pushpull) >> 0)
 #define PULL_WIDTH(_pushpull)      pushpull_width((_pushpull) >> 4)
 
-/* This structure ONLY includes items
- * that can be done with a read or write of
+/* This structure ONLY includes items that can be done with a read or write of
  * 32-bit or 64-bit words. All others are not listed.
  */
 
-#define AT(_action, _token, _pull, _push)\
-	case NFP_CPP_ID(0, _action, _token): return PUSHPULL(_pull, _push)
+#define AT(_action, _token, _pull, _push)				\
+	case NFP_CPP_ID(0, (_action), (_token)):			\
+		return PUSHPULL((_pull), (_push))
 
 static inline int target_rw(u32 cpp_id, int pp, int start, int len)
 {
@@ -138,8 +138,7 @@ static inline int nfp6000_nbi(u32 cpp_id, u64 address)
 	return nfp6000_nbi_ppc(cpp_id);
 }
 
-/* This structure ONLY includes items
- * that can be done with a read or write of
+/* This structure ONLY includes items that can be done with a read or write of
  * 32-bit or 64-bit words. All others are not listed.
  */
 static inline int nfp6000_mu_common(u32 cpp_id)
@@ -366,30 +365,18 @@ static inline int nfp6000_target_pushpull(u32 cpp_id, u64 address)
 	}
 }
 
-static inline int nfp_target_pushpull_width(int pp, int write_not_read)
-{
-	if (pp < 0)
-		return pp;
+#undef AT
+#undef P32
+#undef P64
 
-	if (write_not_read)
-		return PULL_WIDTH(pp);
-	else
-		return PUSH_WIDTH(pp);
-}
-
-static inline int _nfp6000_cppat_mu_locality_lsb(int mode, int addr40)
+static inline int __nfp6000_cppat_mu_locality_lsb(int mode, bool addr40)
 {
 	switch (mode) {
-	case 0:
-	case 1:
-	case 2:
-	case 3:
+	case 0 ... 3:
 		return (addr40) ? 38 : 30;
 	default:
-		break;
+		return -EINVAL;
 	}
-
-	return -EINVAL;
 }
 
 /*
@@ -404,39 +391,15 @@ static inline int _nfp6000_cppat_mu_locality_lsb(int mode, int addr40)
 
 #define _NIC_NFP6000_MU_LOCALITY_DIRECT     2
 
-static u64 _nic_mask64(int msb, int lsb, int at0)
-{
-	u64 v;
-	int w = msb - lsb + 1;
-
-	if (w == 64)
-		return ~0ULL;
-
-	if ((lsb + w) > 64)
-		return 0;
-
-	v = (1ULL << w) - 1;
-
-	if (at0)
-		return v;
-
-	return v << lsb;
-}
-
-static inline int _nfp6000_decode_basic(u64 addr, int *dest_island,
-					int cpp_tgt, int mode, int addr40,
-					int isld1, int isld0)
+static inline int
+__nfp6000_decode_basic(u64 addr, int *dest_island, int cpp_tgt,
+		       int mode, bool addr40, int isld1, int isld0)
 {
 	int iid_lsb, idx_lsb;
 
-	switch (cpp_tgt) {
-	case NFP_CPP_TARGET_MU:
-		return -EINVAL; /* This function doesn't handle MU */
-	case NFP_CPP_TARGET_CT_XPB:
-		return -EINVAL; /* Also not CTXPB */
-	default:
-		break;
-	}
+	/* This function doesn't handle MU or CTXBP */
+	if (cpp_tgt == NFP_CPP_TARGET_MU || cpp_tgt == NFP_CPP_TARGET_CT_XPB)
+		return -EINVAL;
 
 	switch (mode) {
 	case 0:
@@ -448,8 +411,8 @@ static inline int _nfp6000_decode_basic(u64 addr, int *dest_island,
 		 * anyway since this is decoding an address that is already
 		 * assumed to be used as-is to get to sram.
 		 */
-		iid_lsb = (addr40) ? 34 : 26;
-		*dest_island = (int)(addr >> iid_lsb) & 0x3F;
+		iid_lsb = addr40 ? 34 : 26;
+		*dest_island = (addr >> iid_lsb) & 0x3F;
 		return 0;
 	case 1:
 		/* For VQDR 32-bit, this would decode as:
@@ -460,8 +423,8 @@ static inline int _nfp6000_decode_basic(u64 addr, int *dest_island,
 		 * That would be valid as long as both islands
 		 * have VQDR. Let's allow this.
 		 */
-		idx_lsb = (addr40) ? 39 : 31;
-		if (addr & _nic_mask64(idx_lsb, idx_lsb, 0))
+		idx_lsb = addr40 ? 39 : 31;
+		if (addr & BIT_ULL(idx_lsb))
 			*dest_island = isld1;
 		else
 			*dest_island = isld0;
@@ -481,10 +444,10 @@ static inline int _nfp6000_decode_basic(u64 addr, int *dest_island,
 		isld0 &= ~1;
 		isld1 &= ~1;
 
-		idx_lsb = (addr40) ? 39 : 31;
+		idx_lsb = addr40 ? 39 : 31;
 		iid_lsb = idx_lsb - 1;
 
-		if (addr & _nic_mask64(idx_lsb, idx_lsb, 0))
+		if (addr & BIT_ULL(idx_lsb))
 			*dest_island = isld1 | (int)((addr >> iid_lsb) & 1);
 		else
 			*dest_island = isld0 | (int)((addr >> iid_lsb) & 1);
@@ -503,105 +466,117 @@ static inline int _nfp6000_decode_basic(u64 addr, int *dest_island,
 		isld0 &= ~3;
 		isld1 &= ~3;
 
-		idx_lsb = (addr40) ? 39 : 31;
+		idx_lsb = addr40 ? 39 : 31;
 		iid_lsb = idx_lsb - 2;
 
-		if (addr & _nic_mask64(idx_lsb, idx_lsb, 0))
+		if (addr & BIT_ULL(idx_lsb))
 			*dest_island = isld1 | (int)((addr >> iid_lsb) & 3);
 		else
 			*dest_island = isld0 | (int)((addr >> iid_lsb) & 3);
 
 		return 0;
 	default:
-		break;
+		return -EINVAL;
 	}
+}
 
-	return -EINVAL;
+static inline int
+__nfp6000_encode_basic_qdr(u64 addr, int dest_island, int cpp_tgt,
+			   int mode, bool addr40, int isld1, int isld0)
+{
+	int v, ret;
+
+	ret = __nfp6000_decode_basic(addr, &v, cpp_tgt, mode,
+				     addr40, isld1, isld0);
+
+	/* Full Island ID and channel bits overlap? */
+	if (ret)
+		return ret;
+
+	/* The current address won't go where expected? */
+	if (dest_island != -1 && dest_island != v)
+		return -EINVAL;
+
+	/* If dest_island was -1, we don't care where it goes. */
+	return 0;
+}
+
+/* Try each option, take first one that fits.
+ * Not sure if we would want to do some smarter
+ * searching and prefer 0 or non-0 island IDs.
+ */
+static inline int
+__nfp6000_encode_basic_search(u64 *addr, int dest_island,
+			      int *isld, int iid_lsb, int idx_lsb, int v_max)
+{
+	int i, v;
+
+	for (i = 0; i < 2; i++)
+		for (v = 0; v < v_max; v++) {
+			if (dest_island != (isld[i] | v))
+				continue;
+
+			*addr &= ~GENMASK_ULL(idx_lsb, iid_lsb);
+			*addr |= ((u64)i << idx_lsb);
+			*addr |= ((u64)v << iid_lsb);
+			return 0;
+		}
+
+	return -ENODEV;
 }
 
 /*
  * For VQDR, we may not modify the Channel bits, which might overlap
  *  with the Index bit. When it does, we need to ensure that isld0 == isld1.
  */
-static inline int _nfp6000_encode_basic(u64 *addr, int dest_island, int cpp_tgt,
-					int mode, int addr40,
-					int isld1, int isld0)
+static inline int
+__nfp6000_encode_basic(u64 *addr, int dest_island, int cpp_tgt,
+		       int mode, bool addr40, int isld1, int isld0)
 {
-	u64 v64;
 	int iid_lsb, idx_lsb;
-	int i, v = 0;
 	int isld[2];
+	u64 v64;
 
 	isld[0] = isld0;
 	isld[1] = isld1;
 
-	switch (cpp_tgt) {
-	case NFP_CPP_TARGET_MU:
-		return -EINVAL; /* This function doesn't handle MU */
-	case NFP_CPP_TARGET_CT_XPB:
-		return -EINVAL; /* Also not CTXPB */
-	default:
-		break;
-	}
+	/* This function doesn't handle MU or CTXBP */
+	if (cpp_tgt == NFP_CPP_TARGET_MU || cpp_tgt == NFP_CPP_TARGET_CT_XPB)
+		return -EINVAL;
 
 	switch (mode) {
 	case 0:
-		if ((cpp_tgt == NFP_CPP_TARGET_QDR) && !addr40) {
+		if (cpp_tgt == NFP_CPP_TARGET_QDR && !addr40)
 			/* In this specific mode we'd rather not modify
 			 * the address but we can verify if the existing
 			 * contents will point to a valid island.
 			 */
-			i = _nfp6000_decode_basic(*addr, &v, cpp_tgt, mode,
-						  addr40, isld1, isld0);
+			return __nfp6000_encode_basic_qdr(*addr, cpp_tgt,
+							  dest_island, mode,
+							  addr40, isld1, isld0);
 
-			/* Full Island ID and channel bits overlap? */
-			if (i != 0)
-				return i;
-
-			/* The current address won't go where expected? */
-			if ((dest_island != -1) && (dest_island != v))
-				return -EINVAL;
-
-			/* If dest_island was -1, we don't
-			 * care where it goes.
-			 */
-			return 0;
-		}
-
-		iid_lsb = (addr40) ? 34 : 26;
+		iid_lsb = addr40 ? 34 : 26;
 		/* <39:34> or <31:26> */
-		v64 = _nic_mask64((iid_lsb + 5), iid_lsb, 0);
+		v64 = GENMASK_ULL(iid_lsb + 5, iid_lsb);
 		*addr &= ~v64;
-		*addr |= (((u64)dest_island) << iid_lsb) & v64;
+		*addr |= ((u64)dest_island << iid_lsb) & v64;
 		return 0;
 	case 1:
-		if ((cpp_tgt == NFP_CPP_TARGET_QDR) && !addr40) {
-			i = _nfp6000_decode_basic(*addr, &v, cpp_tgt, mode,
-						  addr40, isld1, isld0);
-			/* Full Island ID and channel bits overlap? */
-			if (i != 0)
-				return i;
+		if (cpp_tgt == NFP_CPP_TARGET_QDR && !addr40)
+			return __nfp6000_encode_basic_qdr(*addr, cpp_tgt,
+							  dest_island, mode,
+							  addr40, isld1, isld0);
 
-			/* The current address won't go where expected? */
-			if ((dest_island != -1) && (dest_island != v))
-				return -EINVAL;
-
-			/* If dest_island was -1, we don't
-			 * care where it goes.
-			 */
-			return 0;
-		}
-
-		idx_lsb = (addr40) ? 39 : 31;
+		idx_lsb = addr40 ? 39 : 31;
 		if (dest_island == isld0) {
 			/* Only need to clear the Index bit */
-			*addr &= ~_nic_mask64(idx_lsb, idx_lsb, 0);
+			*addr &= ~BIT_ULL(idx_lsb);
 			return 0;
 		}
 
 		if (dest_island == isld1) {
 			/* Only need to set the Index bit */
-			*addr |= (1ULL << idx_lsb);
+			*addr |= BIT_ULL(idx_lsb);
 			return 0;
 		}
 
@@ -610,21 +585,14 @@ static inline int _nfp6000_encode_basic(u64 *addr, int dest_island, int cpp_tgt,
 		/* iid<0> = addr<30> = channel<0>
 		 * channel<1> = addr<31> = Index
 		 */
-		if ((cpp_tgt == NFP_CPP_TARGET_QDR) && !addr40) {
+		if (cpp_tgt == NFP_CPP_TARGET_QDR && !addr40)
 			/* Special case where we allow channel bits to
 			 * be set before hand and with them select an island.
 			 * So we need to confirm that it's at least plausible.
 			 */
-			i = _nfp6000_decode_basic(*addr, &v, cpp_tgt, mode,
-						  addr40, isld1, isld0);
-			if (i != 0)
-				return i;
-
-			if ((dest_island != -1) && (dest_island != v))
-				return -EINVAL;
-
-			return 0;
-		}
+			return __nfp6000_encode_basic_qdr(*addr, cpp_tgt,
+							  dest_island, mode,
+							  addr40, isld1, isld0);
 
 		/* Make sure we compare against isldN values
 		 * by clearing the LSB.
@@ -633,79 +601,45 @@ static inline int _nfp6000_encode_basic(u64 *addr, int dest_island, int cpp_tgt,
 		isld[0] &= ~1;
 		isld[1] &= ~1;
 
-		idx_lsb = (addr40) ? 39 : 31;
+		idx_lsb = addr40 ? 39 : 31;
 		iid_lsb = idx_lsb - 1;
-		/* Try each option, take first one that fits.
-		 * Not sure if we would want to do some smarter
-		 * searching and prefer 0 or non-0 island IDs.
-		 */
 
-		for (i = 0; i < 2; i++)
-			for (v = 0; v < 2; v++) {
-				if (dest_island == (isld[i] | v)) {
-					*addr &= ~_nic_mask64(idx_lsb,
-							      iid_lsb,
-							      0);
-					*addr |= (((u64)i) << idx_lsb);
-					*addr |= (((u64)v) << iid_lsb);
-					return 0;
-				}
-			}
-
-		return -ENODEV;
+		return __nfp6000_encode_basic_search(addr, dest_island, isld,
+						     iid_lsb, idx_lsb, 2);
 	case 3:
-		if ((cpp_tgt == NFP_CPP_TARGET_QDR) && !addr40) {
+		if (cpp_tgt == NFP_CPP_TARGET_QDR && !addr40)
 			/* iid<0> = addr<29> = data
 			 * iid<1> = addr<30> = channel<0>
 			 * channel<1> = addr<31> = Index
 			 */
-			i = _nfp6000_decode_basic(*addr, &v, cpp_tgt, mode,
-						  addr40, isld1, isld0);
-			if (i != 0)
-				return i;
-
-			if ((dest_island != -1) && (dest_island != v))
-				return -EINVAL;
-
-			return 0;
-		}
+			return __nfp6000_encode_basic_qdr(*addr, cpp_tgt,
+							  dest_island, mode,
+							  addr40, isld1, isld0);
 
 		isld[0] &= ~3;
 		isld[1] &= ~3;
 
-		idx_lsb = (addr40) ? 39 : 31;
+		idx_lsb = addr40 ? 39 : 31;
 		iid_lsb = idx_lsb - 2;
 
-		for (i = 0; i < 2; i++)
-			for (v = 0; v < 4; v++) {
-				if (dest_island == (isld[i] | v)) {
-					*addr &= ~_nic_mask64(idx_lsb,
-							      iid_lsb, 0);
-					*addr |= (((u64)i) << idx_lsb);
-					*addr |= (((u64)v) << iid_lsb);
-					return 0;
-				}
-			}
-		return -ENODEV;
+		return __nfp6000_encode_basic_search(addr, dest_island, isld,
+						     iid_lsb, idx_lsb, 4);
 	default:
-		break;
+		return -EINVAL;
 	}
-
-	return -EINVAL;
 }
 
-static inline int _nfp6000_encode_mu(u64 *addr, int dest_island, int mode,
-				     int addr40, int isld1, int isld0)
+static inline int __nfp6000_encode_mu(u64 *addr, int dest_island, int mode,
+				      bool addr40, int isld1, int isld0)
 {
-	u64 v64;
 	int iid_lsb, idx_lsb, locality_lsb;
-	int i, v;
 	int isld[2];
+	u64 v64;
 	int da;
 
 	isld[0] = isld0;
 	isld[1] = isld1;
-	locality_lsb = _nfp6000_cppat_mu_locality_lsb(mode, addr40);
+	locality_lsb = __nfp6000_cppat_mu_locality_lsb(mode, addr40);
 
 	if (((*addr >> locality_lsb) & 3) == _NIC_NFP6000_MU_LOCALITY_DIRECT)
 		da = 1;
@@ -714,36 +648,36 @@ static inline int _nfp6000_encode_mu(u64 *addr, int dest_island, int mode,
 
 	switch (mode) {
 	case 0:
-		iid_lsb = (addr40) ? 32 : 24;
-		v64 = _nic_mask64((iid_lsb + 5), iid_lsb, 0);
+		iid_lsb = addr40 ? 32 : 24;
+		v64 = GENMASK_ULL(iid_lsb + 5, iid_lsb);
 		*addr &= ~v64;
 		*addr |= (((u64)dest_island) << iid_lsb) & v64;
 		return 0;
 	case 1:
 		if (da) {
-			iid_lsb = (addr40) ? 32 : 24;
-			v64 = _nic_mask64((iid_lsb + 5), iid_lsb, 0);
+			iid_lsb = addr40 ? 32 : 24;
+			v64 = GENMASK_ULL(iid_lsb + 5, iid_lsb);
 			*addr &= ~v64;
 			*addr |= (((u64)dest_island) << iid_lsb) & v64;
 			return 0;
 		}
 
-		idx_lsb = (addr40) ? 37 : 29;
+		idx_lsb = addr40 ? 37 : 29;
 		if (dest_island == isld0) {
-			*addr &= ~_nic_mask64(idx_lsb, idx_lsb, 0);
+			*addr &= ~BIT_ULL(idx_lsb);
 			return 0;
 		}
 
 		if (dest_island == isld1) {
-			*addr |= (1ULL << idx_lsb);
+			*addr |= BIT_ULL(idx_lsb);
 			return 0;
 		}
 
 		return -ENODEV;
 	case 2:
 		if (da) {
-			iid_lsb = (addr40) ? 32 : 24;
-			v64 = _nic_mask64((iid_lsb + 5), iid_lsb, 0);
+			iid_lsb = addr40 ? 32 : 24;
+			v64 = GENMASK_ULL(iid_lsb + 5, iid_lsb);
 			*addr &= ~v64;
 			*addr |= (((u64)dest_island) << iid_lsb) & v64;
 			return 0;
@@ -756,25 +690,11 @@ static inline int _nfp6000_encode_mu(u64 *addr, int dest_island, int mode,
 		isld[0] &= ~1;
 		isld[1] &= ~1;
 
-		idx_lsb = (addr40) ? 37 : 29;
+		idx_lsb = addr40 ? 37 : 29;
 		iid_lsb = idx_lsb - 1;
 
-		/* Try each option, take first one that fits.
-		 * Not sure if we would want to do some smarter
-		 * searching and prefer 0 or non-0 island IDs.
-		 */
-		for (i = 0; i < 2; i++)
-			for (v = 0; v < 2; v++) {
-				if (dest_island == (isld[i] | v)) {
-					*addr &= ~_nic_mask64(idx_lsb,
-							      iid_lsb, 0);
-					*addr |= (((u64)i) << idx_lsb);
-					*addr |= (((u64)v) << iid_lsb);
-					return 0;
-				}
-			}
-
-		return -ENODEV;
+		return __nfp6000_encode_basic_search(addr, dest_island, isld,
+						     iid_lsb, idx_lsb, 2);
 	case 3:
 		/* Only the EMU will use 40 bit addressing. Silently
 		 * set the direct locality bit for everyone else.
@@ -784,16 +704,15 @@ static inline int _nfp6000_encode_mu(u64 *addr, int dest_island, int mode,
 		 * is effewctively ignored and just used for
 		 * routing to island #0).
 		 */
-		if ((dest_island > 0) &&
-		    ((dest_island < 24) || (dest_island > 26))) {
+		if (dest_island > 0 && (dest_island < 24 || dest_island > 26)) {
 			*addr |= ((u64)_NIC_NFP6000_MU_LOCALITY_DIRECT)
 							<< locality_lsb;
 			da = 1;
 		}
 
 		if (da) {
-			iid_lsb = (addr40) ? 32 : 24;
-			v64 = _nic_mask64((iid_lsb + 5), iid_lsb, 0);
+			iid_lsb = addr40 ? 32 : 24;
+			v64 = GENMASK_ULL(iid_lsb + 5, iid_lsb);
 			*addr &= ~v64;
 			*addr |= (((u64)dest_island) << iid_lsb) & v64;
 			return 0;
@@ -802,30 +721,19 @@ static inline int _nfp6000_encode_mu(u64 *addr, int dest_island, int mode,
 		isld[0] &= ~3;
 		isld[1] &= ~3;
 
-		idx_lsb = (addr40) ? 37 : 29;
+		idx_lsb = addr40 ? 37 : 29;
 		iid_lsb = idx_lsb - 2;
 
-		for (i = 0; i < 2; i++)
-			for (v = 0; v < 4; v++) {
-				if (dest_island == (isld[i] | v)) {
-					*addr &= ~_nic_mask64(idx_lsb,
-							      iid_lsb, 0);
-					*addr |= (((u64)i) << idx_lsb);
-					*addr |= (((u64)v) << iid_lsb);
-					return 0;
-				}
-			}
-		return -ENODEV;
+		return __nfp6000_encode_basic_search(addr, dest_island, isld,
+						     iid_lsb, idx_lsb, 4);
 	default:
-		break;
+		return -EINVAL;
 	}
-
-	return -EINVAL;
 }
 
-static inline int _nfp6000_cppat_addr_encode(u64 *addr, int dest_island,
-					     int cpp_tgt, int mode, int addr40,
-					     int isld1, int isld0)
+static inline int
+__nfp6000_cppat_addr_encode(u64 *addr, int dest_island, int cpp_tgt,
+			    int mode, bool addr40, int isld1, int isld0)
 {
 	switch (cpp_tgt) {
 	case NFP_CPP_TARGET_NBI:
@@ -835,37 +743,33 @@ static inline int _nfp6000_cppat_addr_encode(u64 *addr, int dest_island,
 	case NFP_CPP_TARGET_ARM:
 	case NFP_CPP_TARGET_CRYPTO:
 	case NFP_CPP_TARGET_CLS:
-		return _nfp6000_encode_basic(addr, dest_island, cpp_tgt, mode,
-					     addr40, isld1, isld0);
+		return __nfp6000_encode_basic(addr, dest_island, cpp_tgt, mode,
+					      addr40, isld1, isld0);
 
 	case NFP_CPP_TARGET_MU:
-		return _nfp6000_encode_mu(addr, dest_island, mode,
-					  addr40, isld1, isld0);
+		return __nfp6000_encode_mu(addr, dest_island, mode,
+					   addr40, isld1, isld0);
 
 	case NFP_CPP_TARGET_CT_XPB:
-		if ((mode != 1) || (addr40 != 0))
+		if (mode != 1 || addr40)
 			return -EINVAL;
-		*addr &= ~_nic_mask64(29, 24, 0);
-		*addr |= (((u64)dest_island) << 24) &
-			 _nic_mask64(29, 24, 0);
+		*addr &= ~GENMASK_ULL(29, 24);
+		*addr |= ((u64)dest_island << 24) & GENMASK_ULL(29, 24);
 		return 0;
 	default:
-		break;
+		return -EINVAL;
 	}
-
-	return -EINVAL;
 }
 
-static inline int nfp_target_cpp(u32 cpp_island_id,
-				 u64 cpp_island_address,
-				 u32 *cpp_target_id,
-				 u64 *cpp_target_address,
-				 const u32 *imb_table)
+static inline int
+nfp_target_cpp(u32 cpp_island_id, u64 cpp_island_address,
+	       u32 *cpp_target_id, u64 *cpp_target_address,
+	       const u32 *imb_table)
 {
-	int err;
-	int island = NFP_CPP_ID_ISLAND_of(cpp_island_id);
-	int target = NFP_CPP_ID_TARGET_of(cpp_island_id);
+	const int island = NFP_CPP_ID_ISLAND_of(cpp_island_id);
+	const int target = NFP_CPP_ID_TARGET_of(cpp_island_id);
 	u32 imb;
+	int err;
 
 	if (target < 0 || target >= 16)
 		return -EINVAL;
@@ -884,17 +788,19 @@ static inline int nfp_target_cpp(u32 cpp_island_id,
 	imb = imb_table[target];
 
 	*cpp_target_address = cpp_island_address;
-	err = _nfp6000_cppat_addr_encode(cpp_target_address, island, target,
-					 ((imb >> 13) & 7),
-					 ((imb >> 12) & 1),
-					 ((imb >> 6)  & 0x3f),
-					 ((imb >> 0)  & 0x3f));
-	if (err == 0)
-		*cpp_target_id = NFP_CPP_ID(target,
-					    NFP_CPP_ID_ACTION_of(cpp_island_id),
-					    NFP_CPP_ID_TOKEN_of(cpp_island_id));
+	err = __nfp6000_cppat_addr_encode(cpp_target_address, island, target,
+					  ((imb >> 13) & 7),
+					  ((imb >> 12) & 1),
+					  ((imb >> 6)  & 0x3f),
+					  ((imb >> 0)  & 0x3f));
+	if (err)
+		return err;
 
-	return err;
+	*cpp_target_id = NFP_CPP_ID(target,
+				    NFP_CPP_ID_ACTION_of(cpp_island_id),
+				    NFP_CPP_ID_TOKEN_of(cpp_island_id));
+
+	return 0;
 }
 
-#endif /* NFP_BSP_NFP_TARGET_H */
+#endif /* NFP_TARGET_H */

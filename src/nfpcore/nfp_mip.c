@@ -88,7 +88,7 @@ static int nfp_mip_nfp6000_mu_locality_lsb(struct nfp_cpp *cpp)
 	mode = NFP_IMB_TGTADDRESSMODECFG_MODE_of(imbcppat);
 	addr40 = !!(imbcppat & NFP_IMB_TGTADDRESSMODECFG_ADDRMODE);
 
-	return _nfp6000_cppat_mu_locality_lsb(mode, addr40);
+	return __nfp6000_cppat_mu_locality_lsb(mode, addr40);
 }
 
 /* Read memory and check if it could be a valid MIP */
