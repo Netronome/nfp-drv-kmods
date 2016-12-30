@@ -42,7 +42,7 @@
 #include "nfp.h"
 #include "nfp_cpp.h"
 #include "nfp_nffw.h"
-#include "nfp_target.h"
+#include "nfp6000/nfp6000.h"
 
 #define NFP_MIP_SIGNATURE	cpu_to_le32(0x0050494d)  /* "MIP\0" */
 #define NFP_MIP_VERSION		cpu_to_le32(1)
@@ -73,7 +73,7 @@ struct nfp_mip {
 #define   NFP_IMB_TGTADDRESSMODECFG_ADDRMODE_32_BIT	0
 #define   NFP_IMB_TGTADDRESSMODECFG_ADDRMODE_40_BIT	BIT(12)
 
-static int nfp_mip_nfp6000_mu_locality_lsb(struct nfp_cpp *cpp)
+static int nfp_mip_mu_locality_lsb(struct nfp_cpp *cpp)
 {
 	unsigned int mode, addr40;
 	u32 xpbaddr, imbcppat;
@@ -88,7 +88,7 @@ static int nfp_mip_nfp6000_mu_locality_lsb(struct nfp_cpp *cpp)
 	mode = NFP_IMB_TGTADDRESSMODECFG_MODE_of(imbcppat);
 	addr40 = !!(imbcppat & NFP_IMB_TGTADDRESSMODECFG_ADDRMODE);
 
-	return __nfp6000_cppat_mu_locality_lsb(mode, addr40);
+	return nfp_cppat_mu_locality_lsb(mode, addr40);
 }
 
 /* Read memory and check if it could be a valid MIP */
@@ -129,7 +129,7 @@ static int nfp_mip_read_resource(struct nfp_cpp *cpp, struct nfp_mip *mip)
 	if (IS_ERR(nffw_info))
 		return PTR_ERR(nffw_info);
 
-	err = nfp_mip_nfp6000_mu_locality_lsb(cpp);
+	err = nfp_mip_mu_locality_lsb(cpp);
 	if (err < 0)
 		goto exit_close_nffw;
 	mu_lsb = err;

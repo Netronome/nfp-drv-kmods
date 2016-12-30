@@ -58,7 +58,6 @@
 #include <linux/pci.h>
 
 #include "nfp_cpp.h"
-#include "nfp_target.h"
 
 #include "nfp6000/nfp6000.h"
 
@@ -932,8 +931,7 @@ static int nfp6000_area_init(struct nfp_cpp_area *area, u32 dest,
 	u32 token = NFP_CPP_ID_TOKEN_of(dest);
 	int pp;
 
-	pp = nfp6000_target_pushpull(NFP_CPP_ID(target, action, token),
-				     address);
+	pp = nfp_target_pushpull(NFP_CPP_ID(target, action, token), address);
 	if (pp < 0)
 		return pp;
 

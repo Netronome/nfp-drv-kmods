@@ -67,6 +67,7 @@ nfp-objs := \
 	    nfpcore/nfp_reset.o \
 	    nfpcore/nfp_resource.o \
 	    nfpcore/nfp_rtsym.o \
+	    nfpcore/nfp_target.o \
 	    nfpcore/nfp_nbi_mac_eth.o \
 	    nfpcore/nfp_net_vnic.o \
 	    nfp_plat.o \

@@ -57,7 +57,7 @@
 #include "nfpcore/nfp_arm.h"
 #include "nfpcore/nfp_cpp.h"
 
-#include "nfpcore/nfp_target.h"
+#include "nfpcore/nfp6000/nfp6000.h"
 
 #include "nfpcore/nfp_net_vnic.h"
 
@@ -915,7 +915,7 @@ static const struct nfp_cpp_operations nfp_plat_ops = {
 static const struct of_device_id nfp_plat_match[] = {
 	{
 		.compatible = "netronome,nfp6000-arm-cpp",
-		.data = nfp6000_target_pushpull
+		.data = nfp_target_pushpull
 	}, {
 	},
 };

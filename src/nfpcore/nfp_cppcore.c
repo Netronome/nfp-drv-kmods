@@ -53,7 +53,7 @@
 
 #include "nfp_arm.h"
 #include "nfp_cpp.h"
-#include "nfp_target.h"
+#include "nfp6000/nfp6000.h"
 
 #define NFP_ARM_GCSR_SOFTMODEL2                              0x0000014c
 #define NFP_ARM_GCSR_SOFTMODEL3                              0x00000150
