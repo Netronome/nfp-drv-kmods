@@ -45,8 +45,6 @@
 
 #include "nfp_cpp.h"
 
-struct nfp_cpp;
-
 /* Implemented in nfp_device.c */
 
 int nfp_device_lock(struct nfp_cpp *cpp);
