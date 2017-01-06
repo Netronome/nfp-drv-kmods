@@ -97,7 +97,7 @@ struct resource;
 
 #define NFP_CPP_TARGET_ID_MASK          0x1f
 
-/*
+/**
  * NFP_CPP_ID() - pack target, token, and action into a CPP ID.
  * @target:     NFP CPP target id
  * @action:     NFP CPP action id
@@ -110,11 +110,11 @@ struct resource;
  *
  * Return:      NFP CPP ID
  */
-#define NFP_CPP_ID(target, action, token) \
+#define NFP_CPP_ID(target, action, token)			 \
 	((((target) & 0x7f) << 24) | (((token)  & 0xff) << 16) | \
 	 (((action) & 0xff) <<  8))
 
-/*
+/**
  * NFP_CPP_ISLAND_ID() - pack target, token, action, and island into a CPP ID.
  * @target:     NFP CPP target id
  * @action:     NFP CPP action id
@@ -128,7 +128,7 @@ struct resource;
  *
  * Return:      NFP CPP ID
  */
-#define NFP_CPP_ISLAND_ID(target, action, token, island) \
+#define NFP_CPP_ISLAND_ID(target, action, token, island)	 \
 	((((target) & 0x7f) << 24) | (((token)  & 0xff) << 16) | \
 	 (((action) & 0xff) <<  8) | (((island) & 0xff) << 0))
 
@@ -221,7 +221,7 @@ static inline int NFP_CPP_STEPPING_decode(const char *_str_major_minor)
  *
  * Return:      true if model is in the NFP6000 family, false otherwise.
  */
-#define NFP_CPP_MODEL_IS_6000(model) \
+#define NFP_CPP_MODEL_IS_6000(model)		     \
 	((0x4000 <= NFP_CPP_MODEL_CHIP_of(model)) && \
 	 (NFP_CPP_MODEL_CHIP_of(model) < 0x7000))
 
@@ -252,8 +252,8 @@ static inline int NFP_CPP_STEPPING_decode(const char *_str_major_minor)
  * Return:      Interface ID
  */
 #define NFP_CPP_INTERFACE(type, unit, channel)	\
-	((((type) & 0xf) << 12) | \
-	 (((unit) & 0xf) <<  8) | \
+	((((type) & 0xf) << 12) |		\
+	 (((unit) & 0xf) <<  8) |		\
 	 (((channel) & 0xff) << 0))
 
 /**
