@@ -68,6 +68,8 @@
 
 #define NFP_CPP_NUM_TARGETS             16
 
+struct device;
+
 /*
  * NFP CPP device area handle
  */
