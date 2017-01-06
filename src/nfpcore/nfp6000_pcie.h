@@ -36,11 +36,11 @@
  * Author: Jason McMullan <jason.mcmullan@netronome.com>
  */
 
-#ifndef KERNEL_NFP6000_PCIE_H
-#define KERNEL_NFP6000_PCIE_H
+#ifndef NFP6000_PCIE_H
+#define NFP6000_PCIE_H
 
 #include "nfp_cpp.h"
 
 struct nfp_cpp *nfp_cpp_from_nfp6000_pcie(struct pci_dev *pdev, int event_irq);
 
-#endif /* KERNEL_NFP6000_PCIE_H */
+#endif /* NFP6000_PCIE_H */
