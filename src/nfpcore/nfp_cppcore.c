@@ -1436,10 +1436,8 @@ void nfp_cpp_event_free(struct nfp_cpp_event *event)
 	kfree(event);
 }
 
-#ifdef CONFIG_LOCKDEP
 /* Lockdep markers */
 static struct lock_class_key nfp_cpp_resource_lock_key;
-#endif
 
 static void nfp_cpp_dev_release(struct device *dev)
 {
@@ -1491,9 +1489,7 @@ nfp_cpp_from_operations(const struct nfp_cpp_operations *ops,
 	kref_init(&cpp->kref);
 	rwlock_init(&cpp->resource_lock);
 	init_waitqueue_head(&cpp->waitq);
-#ifdef CONFIG_LOCKDEP
 	lockdep_set_class(&cpp->resource_lock, &nfp_cpp_resource_lock_key);
-#endif
 	INIT_LIST_HEAD(&cpp->mutex_cache);
 	INIT_LIST_HEAD(&cpp->resource_list);
 	INIT_LIST_HEAD(&cpp->area_cache_list);
