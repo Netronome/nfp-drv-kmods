@@ -70,22 +70,6 @@ static struct nfp_cpp_mutex *nfp_device_mutex(struct nfp_cpp *cpp)
 }
 
 /**
- * nfp_device_trylock() - perform an advisory trylock on the NFP device
- * @cpp:	NFP CPP handle
- *
- * Return 0 on success, or -ERRNO on failure
- */
-int nfp_device_trylock(struct nfp_cpp *cpp)
-{
-	struct nfp_cpp_mutex *m = nfp_device_mutex(cpp);
-
-	if (!m)
-		return -EINVAL;
-
-	return nfp_cpp_mutex_trylock(m);
-}
-
-/**
  * nfp_device_lock() - perform an advisory lock on the NFP device
  * @cpp:	NFP CPP handle
  *

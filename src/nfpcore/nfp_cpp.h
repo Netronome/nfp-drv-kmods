@@ -175,11 +175,6 @@ static inline u8 NFP_CPP_ID_ISLAND_of(u32 id)
 	return (id >> 0) & 0xff;
 }
 
-/*
- * NFP_CPP_MODEL_INVALID - invalid model id
- */
-#define NFP_CPP_MODEL_INVALID   0xffffffff
-
 /**
  * NFP_CPP_MODEL_CHIP_of() - retrieve the chip ID from the model ID
  * @model:   NFP CPP model id

@@ -47,12 +47,8 @@
 
 struct nfp_cpp;
 
-/* Maximum device number for an NFP device. */
-#define NFP_MAX_DEVICE_NUM              63
-
 /* Implemented in nfp_device.c */
 
-int nfp_device_trylock(struct nfp_cpp *cpp);
 int nfp_device_lock(struct nfp_cpp *cpp);
 int nfp_device_unlock(struct nfp_cpp *cpp);
 
