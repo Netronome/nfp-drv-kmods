@@ -39,6 +39,8 @@
  *          Francois H. Theron <francois.theron@netronome.com>
  */
 
+#include <linux/bitops.h>
+
 #include "nfp_cpp.h"
 
 #include "nfp6000/nfp6000.h"

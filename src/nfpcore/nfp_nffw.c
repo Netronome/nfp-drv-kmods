@@ -39,6 +39,7 @@
  */
 
 #include <linux/kernel.h>
+#include <linux/slab.h>
 
 #include "nfp.h"
 #include "nfp_cpp.h"

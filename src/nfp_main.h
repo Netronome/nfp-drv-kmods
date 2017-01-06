@@ -42,6 +42,7 @@
 #include <linux/list.h>
 #include <linux/types.h>
 #include <linux/msi.h>
+#include <linux/pci.h>
 
 struct dentry;
 struct pci_dev;

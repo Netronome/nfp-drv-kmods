@@ -40,6 +40,7 @@
  *          Rolf Neugebauer <rolf.neugebauer@netronome.com>
  */
 
+#include <linux/etherdevice.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/pci.h>

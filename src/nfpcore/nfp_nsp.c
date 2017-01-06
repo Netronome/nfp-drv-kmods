@@ -44,6 +44,8 @@
 #include <linux/delay.h>
 #include <linux/kernel.h>
 #include <linux/kthread.h>
+#include <linux/sizes.h>
+#include <linux/slab.h>
 
 #define NFP_SUBSYS "nfp_nsp"
 

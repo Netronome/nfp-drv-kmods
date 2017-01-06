@@ -38,6 +38,7 @@
 #ifndef NFP6000_NFP6000_H
 #define NFP6000_NFP6000_H
 
+#include <linux/errno.h>
 #include <linux/types.h>
 
 /* CPP Target IDs */

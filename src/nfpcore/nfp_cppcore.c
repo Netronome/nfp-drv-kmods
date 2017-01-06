@@ -39,6 +39,8 @@
  *          Rolf Neugebauer <rolf.neugebauer@netronome.com>
  */
 
+#include <asm/unaligned.h>
+#include <linux/delay.h>
 #include <linux/device.h>
 #include <linux/ioport.h>
 #include <linux/kernel.h>

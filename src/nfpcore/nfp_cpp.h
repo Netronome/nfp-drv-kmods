@@ -41,6 +41,7 @@
 #define __NFP_CPP_H__
 
 #include <linux/ctype.h>
+#include <linux/types.h>
 
 #include "kcompat.h"
 
