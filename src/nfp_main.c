@@ -378,7 +378,7 @@ static int nfp_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
 	nsp = nfp_nsp_open(cpp);
 	if (IS_ERR(nsp)) {
 		err = PTR_ERR(nsp);
-		goto err_release_fw;
+		goto exit_release_fw;
 	}
 
 	if (fw) {
@@ -395,7 +395,7 @@ static int nfp_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
 		}
 		if (err < 0) {
 			dev_err(&pdev->dev, "NSP failed to respond\n");
-			goto err_nsp_close;
+			goto exit_nsp_close;
 		}
 	}
 
@@ -405,7 +405,7 @@ static int nfp_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
 	if (err < 0) {
 		dev_err(&pdev->dev, "Failed to soft reset the NFP: %d\n",
 			err);
-		goto err_nsp_close;
+		goto exit_nsp_close;
 	}
 
 	if (fw) {
@@ -415,7 +415,7 @@ static int nfp_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
 		err = nfp_device_lock(cpp);
 		if (err < 0) {
 			dev_err(&pdev->dev, "Can't lock NFP device: %d\n", err);
-			goto err_nsp_close;
+			goto exit_nsp_close;
 		}
 
 		err = nfp_ca_replay(cpp, fw->data, fw->size);
@@ -424,18 +424,18 @@ static int nfp_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
 		if (err < 0) {
 			dev_err(&pdev->dev, "FW loading failed: %d\n",
 				err);
-			goto err_nsp_close;
+			goto exit_nsp_close;
 		}
 
 		dev_info(&pdev->dev, "Finished loading FW image\n");
 	}
 
-err_nsp_close:
+exit_nsp_close:
 	nfp_nsp_close(nsp);
-err_release_fw:
+exit_release_fw:
 	release_firmware(fw);
 
-	return err ? err : !!fw;
+	return err ?: !!fw;
 }
 
 static void nfp_fw_unload(struct nfp_pf *pf)
