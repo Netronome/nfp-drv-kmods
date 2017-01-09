@@ -608,12 +608,12 @@ static void nfp_pci_remove(struct pci_dev *pdev)
 }
 
 static struct pci_driver nfp_pci_driver = {
-	.name        = nfp_driver_name,
-	.id_table    = nfp_pci_device_ids,
-	.probe       = nfp_pci_probe,
-	.remove      = nfp_pci_remove,
+	.name			= nfp_driver_name,
+	.id_table		= nfp_pci_device_ids,
+	.probe			= nfp_pci_probe,
+	.remove			= nfp_pci_remove,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
-	.sriov_configure = nfp_pcie_sriov_configure,
+	.sriov_configure	= nfp_pcie_sriov_configure,
 #endif
 };
 
