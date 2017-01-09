@@ -60,24 +60,23 @@ void nfp_mip_strtab(const struct nfp_mip *mip, u32 *addr, u32 *size);
 
 /* Implemented in nfp_rtsym.c */
 
-#define NFP_RTSYM_TYPE_NONE		(0)
-#define NFP_RTSYM_TYPE_OBJECT		(1)
-#define NFP_RTSYM_TYPE_FUNCTION		(2)
-#define NFP_RTSYM_TYPE_ABS		(3)
+#define NFP_RTSYM_TYPE_NONE		0
+#define NFP_RTSYM_TYPE_OBJECT		1
+#define NFP_RTSYM_TYPE_FUNCTION		2
+#define NFP_RTSYM_TYPE_ABS		3
 
-#define NFP_RTSYM_TARGET_NONE		(0)
-#define NFP_RTSYM_TARGET_LMEM		(-1)
-#define NFP_RTSYM_TARGET_USTORE		(-2)
-#define NFP_RTSYM_TARGET_EMU_CACHE	(-7)
+#define NFP_RTSYM_TARGET_NONE		0
+#define NFP_RTSYM_TARGET_LMEM		-1
+#define NFP_RTSYM_TARGET_EMU_CACHE	-7
 
 /**
  * struct nfp_rtsym - RTSYM descriptor
- * @name:		Symbol name
- * @addr:		Address in the domain/target's address space
- * @size:		Size (in bytes) of the symbol
- * @type:		NFP_RTSYM_TYPE_* of the symbol
- * @target:		CPP Target identifier, or NFP_RTSYM_TARGET_*
- * @domain:		CPP Target Domain (island)
+ * @name:	Symbol name
+ * @addr:	Address in the domain/target's address space
+ * @size:	Size (in bytes) of the symbol
+ * @type:	NFP_RTSYM_TYPE_* of the symbol
+ * @target:	CPP Target identifier, or NFP_RTSYM_TARGET_*
+ * @domain:	CPP Target Domain (island)
  */
 struct nfp_rtsym {
 	const char *name;
