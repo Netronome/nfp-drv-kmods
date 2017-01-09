@@ -553,6 +553,8 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 err_dev_cpp_unreg:
 	if (pf->nfp_dev_cpp)
 		nfp_platform_device_unregister(pf->nfp_dev_cpp);
+	if (pf->fw_loaded)
+		nfp_fw_unload(pf);
 err_sriov_remove:
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
 	nfp_sriov_attr_remove(&pdev->dev);
