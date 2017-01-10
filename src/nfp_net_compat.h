@@ -81,6 +81,9 @@
 
 #include "nfp_net.h"
 
+/* TODO: change to >= 4.11 when released */
+#define LINUX_RELEASE_4_11 defined(AF_SMC)
+
 #define COMPAT__HAVE_VXLAN_OFFLOAD \
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0))
 #define COMPAT__HAVE_NDO_FEATURES_CHECK \
@@ -511,6 +514,12 @@ compat_debugfs_real_fops(const struct file *file)
 #else
 #define debugfs_real_fops(x) (void *)1 /* Can't do NULL b/c of -Waddress */
 #endif /* COMPAT__HAVE_XDP */
+#endif
+
+#if LINUX_RELEASE_4_11
+typedef void compat__stat64_ret_t;
+#else
+typedef struct rtnl_link_stats64 *compat__stat64_ret_t;
 #endif
 
 #endif /* _NFP_NET_COMPAT_H_ */

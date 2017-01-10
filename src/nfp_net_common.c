@@ -2671,8 +2671,8 @@ static int nfp_net_change_mtu(struct net_device *netdev, int new_mtu)
 	return nfp_net_ring_reconfig(nn, &nn->xdp_prog, &rx, NULL);
 }
 
-static struct rtnl_link_stats64 *nfp_net_stat64(struct net_device *netdev,
-						struct rtnl_link_stats64 *stats)
+static compat__stat64_ret_t nfp_net_stat64(struct net_device *netdev,
+					   struct rtnl_link_stats64 *stats)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
 	int r;
@@ -2703,7 +2703,9 @@ static struct rtnl_link_stats64 *nfp_net_stat64(struct net_device *netdev,
 		stats->tx_errors += data[2];
 	}
 
+#if !LINUX_RELEASE_4_11
 	return stats;
+#endif
 }
 
 static bool nfp_net_ebpf_capable(struct nfp_net *nn)
