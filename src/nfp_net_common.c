@@ -3319,7 +3319,7 @@ int nfp_net_netdev_init(struct net_device *netdev)
 	netdev->netdev_ops = &nfp_net_netdev_ops;
 	netdev->watchdog_timeo = msecs_to_jiffies(5 * 1000);
 
-#if LINUX_RELEASE_4_10
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
 	/* MTU range: 68 - hw-specific max */
 	netdev->min_mtu = ETH_MIN_MTU;
 	netdev->max_mtu = nn->max_mtu;

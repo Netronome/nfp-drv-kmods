@@ -81,9 +81,6 @@
 
 #include "nfp_net.h"
 
-/* TODO: change to >= 4.10 when released */
-#define LINUX_RELEASE_4_10 defined(ETH_MIN_MTU)
-
 #define COMPAT__HAVE_VXLAN_OFFLOAD \
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0))
 #define COMPAT__HAVE_NDO_FEATURES_CHECK \
@@ -500,7 +497,7 @@ static inline int nfp_net_xdp_offload(struct nfp_net *nn, struct bpf_prog *prog)
 }
 #endif
 
-#if !LINUX_RELEASE_4_10
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0)
 #define is_tcf_mirred_egress_redirect is_tcf_mirred_redirect
 
 #if COMPAT__HAVE_XDP
