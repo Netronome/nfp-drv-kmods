@@ -87,21 +87,15 @@ struct nfp_resource {
 	struct nfp_cpp_mutex *mutex;
 };
 
-static int nfp_cpp_resource_acquire(struct nfp_cpp *cpp, const char *name,
-				    u32 *r_cpp, u64 *r_addr, u64 *r_size,
-				    struct nfp_cpp_mutex **resource_mutex)
+static int nfp_cpp_resource_find(struct nfp_cpp *cpp, const char *name,
+				 struct nfp_resource *res)
 {
 	char name_pad[NFP_RESOURCE_ENTRY_NAME_SZ] = {};
 	struct nfp_resource_entry entry;
-	struct nfp_cpp_mutex *mutex;
 	u32 cpp_id, key;
-	int err, i;
+	int ret, i;
 
 	cpp_id = NFP_CPP_ID(NFP_RESOURCE_TBL_TARGET, 3, 0);  /* Atomic read */
-
-	mutex = nfp_device_lock(cpp);
-	if (!mutex)
-		return -ENOMEM;
 
 	strncpy(name_pad, name, sizeof(name_pad));
 
@@ -110,38 +104,31 @@ static int nfp_cpp_resource_acquire(struct nfp_cpp *cpp, const char *name,
 	if (memcmp(name_pad, NFP_RESOURCE_TBL_NAME "\0\0\0\0\0\0\0\0", 8))
 		key = crc32_posix(name_pad, sizeof(name_pad));
 
-	err = -ENOENT;
 	for (i = 0; i < NFP_RESOURCE_TBL_ENTRIES; i++) {
 		u64 addr = NFP_RESOURCE_TBL_BASE +
 			sizeof(struct nfp_resource_entry) * i;
 
-		err = nfp_cpp_read(cpp, cpp_id, addr, &entry, sizeof(entry));
-		if (err != sizeof(entry)) {
-			err = -EIO;
-			goto exit_unlock;
-		}
+		ret = nfp_cpp_read(cpp, cpp_id, addr, &entry, sizeof(entry));
+		if (ret != sizeof(entry))
+			return -EIO;
 
 		if (entry.mutex.key != key)
 			continue;
 
 		/* Found key! */
-		*resource_mutex =
+		res->mutex =
 			nfp_cpp_mutex_alloc(cpp,
 					    NFP_RESOURCE_TBL_TARGET, addr, key);
-		*r_cpp = NFP_CPP_ID(entry.region.cpp_target,
-				    entry.region.cpp_action,
-				    entry.region.cpp_token);
-		*r_addr = (u64)entry.region.page_offset << 8;
-		*r_size = (u64)entry.region.page_size << 8;
+		res->cpp_id = NFP_CPP_ID(entry.region.cpp_target,
+					 entry.region.cpp_action,
+					 entry.region.cpp_token);
+		res->addr = (u64)entry.region.page_offset << 8;
+		res->size = (u64)entry.region.page_size << 8;
 
-		err = 0;
-		break;
+		return 0;
 	}
 
-exit_unlock:
-	nfp_device_unlock(cpp, mutex);
-
-	return err;
+	return -ENOENT;
 }
 
 /**
@@ -156,37 +143,41 @@ exit_unlock:
 struct nfp_resource *
 nfp_resource_acquire(struct nfp_cpp *cpp, const char *name)
 {
-	struct nfp_cpp_mutex *mutex;
+	struct nfp_cpp_mutex *dev_mutex;
 	struct nfp_resource *res;
-	u64 addr, size;
-	u32 cpp_id;
 	int err;
 
-	err = nfp_cpp_resource_acquire(cpp, name, &cpp_id, &addr,
-				       &size, &mutex);
-	if (err)
-		return ERR_PTR(err);
-
-	err = nfp_cpp_mutex_lock(mutex);
-	if (err) {
-		nfp_cpp_mutex_free(mutex);
-		return ERR_PTR(err);
-	}
-
 	res = kzalloc(sizeof(*res), GFP_KERNEL);
-	if (!res) {
-		nfp_cpp_mutex_unlock(mutex);
-		nfp_cpp_mutex_free(mutex);
+	if (!res)
 		return ERR_PTR(-ENOMEM);
-	}
 
 	strncpy(res->name, name, NFP_RESOURCE_ENTRY_NAME_SZ);
-	res->cpp_id = cpp_id;
-	res->addr = addr;
-	res->size = size;
-	res->mutex = mutex;
+
+	dev_mutex = nfp_device_lock(cpp);
+	if (!dev_mutex) {
+		err = -ENOMEM;
+		goto err_free_res;
+	}
+
+	err = nfp_cpp_resource_find(cpp, name, res);
+	if (err)
+		goto err_unlock_dev;
+
+	err = nfp_cpp_mutex_lock(res->mutex);
+	if (err)
+		goto err_res_mutex_free;
+
+	nfp_device_unlock(cpp, dev_mutex);
 
 	return res;
+
+err_res_mutex_free:
+	nfp_cpp_mutex_free(res->mutex);
+err_unlock_dev:
+	nfp_device_unlock(cpp, dev_mutex);
+err_free_res:
+	kfree(res);
+	return ERR_PTR(err);
 }
 
 /**
