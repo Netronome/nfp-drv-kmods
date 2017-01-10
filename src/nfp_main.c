@@ -138,40 +138,19 @@ static int nfp_pcie_sriov_enable(struct pci_dev *pdev, int num_vfs)
 {
 #ifdef CONFIG_PCI_IOV
 	struct nfp_pf *pf = pci_get_drvdata(pdev);
-	int err = 0;
-	int max_vfs;
-
-	switch (pdev->device) {
-	case PCI_DEVICE_NFP4000:
-	case PCI_DEVICE_NFP6000:
-		max_vfs = 64;
-		break;
-	case PCI_DEVICE_NFP6010:
-		max_vfs = 248;
-		break;
-	default:
-		return -ENOTSUPP;
-	}
-
-	if (num_vfs > max_vfs) {
-		err = -EPERM;
-		goto err_out;
-	}
-
-	pf->num_vfs = num_vfs;
+	int err;
 
 	err = pci_enable_sriov(pdev, num_vfs);
 	if (err) {
 		dev_warn(&pdev->dev, "Failed to enable PCI sriov: %d\n", err);
-		goto err_out;
+		return err;
 	}
+
+	pf->num_vfs = num_vfs;
 
 	dev_dbg(&pdev->dev, "Created %d VFs.\n", pf->num_vfs);
 
 	return num_vfs;
-
-err_out:
-	return err;
 #endif
 	return 0;
 }
