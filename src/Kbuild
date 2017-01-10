@@ -86,7 +86,7 @@ ifeq ($(CONFIG_NFP_EXPORTS),y)
 endif
 
 ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
-  ccflags-y += -DCONFIG_NFP_NET_DEBUG
+  ccflags-y += -DCONFIG_NFP_DEBUG
 
   nfp-objs += \
 		nfp_net_common.o \
