@@ -99,22 +99,14 @@ static int nfp_cpp_resource_acquire(struct nfp_cpp *cpp, const char *name,
 
 	cpp_id = NFP_CPP_ID(NFP_RESOURCE_TBL_TARGET, 3, 0);  /* Atomic read */
 
-	key = NFP_RESOURCE_TBL_KEY;
-	mutex = nfp_cpp_mutex_alloc(cpp, NFP_RESOURCE_TBL_TARGET,
-				    NFP_RESOURCE_TBL_BASE, key);
+	mutex = nfp_device_lock(cpp);
 	if (!mutex)
 		return -ENOMEM;
-
-	/* Wait for the lock.. */
-	err = nfp_cpp_mutex_lock(mutex);
-	if (err) {
-		nfp_cpp_mutex_free(mutex);
-		return err;
-	}
 
 	strncpy(name_pad, name, sizeof(name_pad));
 
 	/* Search for a matching entry */
+	key = NFP_RESOURCE_TBL_KEY;
 	if (memcmp(name_pad, NFP_RESOURCE_TBL_NAME "\0\0\0\0\0\0\0\0", 8))
 		key = crc32_posix(name_pad, sizeof(name_pad));
 
@@ -147,8 +139,7 @@ static int nfp_cpp_resource_acquire(struct nfp_cpp *cpp, const char *name,
 	}
 
 exit_unlock:
-	nfp_cpp_mutex_unlock(mutex);
-	nfp_cpp_mutex_free(mutex);
+	nfp_device_unlock(cpp, mutex);
 
 	return err;
 }
