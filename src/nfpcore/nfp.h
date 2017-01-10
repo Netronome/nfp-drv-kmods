@@ -47,8 +47,8 @@
 
 /* Implemented in nfp_device.c */
 
-int nfp_device_lock(struct nfp_cpp *cpp);
-int nfp_device_unlock(struct nfp_cpp *cpp);
+struct nfp_cpp_mutex *nfp_device_lock(struct nfp_cpp *cpp);
+void nfp_device_unlock(struct nfp_cpp *cpp, struct nfp_cpp_mutex *mutex);
 
 /* Implemented in nfp_hwinfo.c */
 

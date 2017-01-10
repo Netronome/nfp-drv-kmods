@@ -409,17 +409,19 @@ static int nfp_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
 	}
 
 	if (fw) {
+		struct nfp_cpp_mutex *mutex;
+
 		/* Lock the NFP, prevent others from touching it while we
 		 * load the firmware.
 		 */
-		err = nfp_device_lock(cpp);
-		if (err < 0) {
-			dev_err(&pdev->dev, "Can't lock NFP device: %d\n", err);
+		mutex = nfp_device_lock(cpp);
+		if (!mutex) {
+			dev_err(&pdev->dev, "Can't lock NFP device\n");
 			goto exit_nsp_close;
 		}
 
 		err = nfp_ca_replay(cpp, fw->data, fw->size);
-		nfp_device_unlock(cpp);
+		nfp_device_unlock(cpp, mutex);
 
 		if (err < 0) {
 			dev_err(&pdev->dev, "FW loading failed: %d\n",
