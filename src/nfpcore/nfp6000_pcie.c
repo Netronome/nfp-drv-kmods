@@ -1555,7 +1555,7 @@ struct nfp_cpp *nfp_cpp_from_nfp6000_pcie(struct pci_dev *pdev, int event_irq)
 
 	/*  Finished with card initialization. */
 	dev_info(&pdev->dev,
-		 "Netronome Flow Processor NFP6000 PCIe Card Probe\n");
+		 "Netronome Flow Processor NFP4000/NFP6000 PCIe Card Probe\n");
 
 	nfp = kzalloc(sizeof(*nfp), GFP_KERNEL);
 	if (!nfp) {
@@ -1602,7 +1602,6 @@ struct nfp_cpp *nfp_cpp_from_nfp6000_pcie(struct pci_dev *pdev, int event_irq)
 	}
 
 	/* Probe for all the common NFP devices */
-	dev_info(&pdev->dev, "Found a NFP6000 on the PCIe bus.\n");
 	return nfp_cpp_from_operations(&nfp6000_pcie_ops, &pdev->dev, nfp);
 
 err_bar_disable:
