@@ -387,7 +387,6 @@ static inline int nfp_net_xdp_offload(struct nfp_net *nn, struct bpf_prog *prog)
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0)
 #define is_tcf_mirred_egress_redirect is_tcf_mirred_redirect
-#define bpf_prog_run_xdp	BPF_PROG_RUN
 #endif
 
 #if LINUX_RELEASE_4_11

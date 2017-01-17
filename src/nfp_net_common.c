@@ -1535,7 +1535,7 @@ static int nfp_net_run_xdp(struct bpf_prog *prog, void *data, unsigned int len)
 	xdp.data = data;
 	xdp.data_end = data + len;
 
-	return bpf_prog_run_xdp(prog, (void *)&xdp);
+	return bpf_prog_run_xdp(prog, &xdp);
 }
 #endif
 
