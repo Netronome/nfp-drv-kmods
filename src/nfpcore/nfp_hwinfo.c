@@ -111,7 +111,7 @@ MODULE_PARM_DESC(hwinfo_debug, "Enable to log hwinfo contents on load");
  * N+c: u32 val_2		Offset to the second value
  * ...
  *
- * HWInfo v1 Key/Value Table
+ * HWInfo v2 Key/Value Table
  * -------------------------
  *
  * Packed UTF8Z strings, ie 'key1\000value1\000key2\000value2\000'
@@ -128,16 +128,11 @@ struct nfp_hwinfo {
 
 	__le32 version;
 	__le32 size;
-	union {
-		struct {
-			__le32 table_off;
-			__le32 keys_off;
-		} v1;
-		struct {
-			__le32 limit;
-			__le32 resv;
-		} v2;
-	};
+
+	/* v2 specific fields */
+	__le32 limit;
+	__le32 resv;
+
 	char data[];
 };
 
@@ -200,8 +195,8 @@ static int hwinfo_try_fetch(struct nfp_cpp *cpp, size_t *cpp_size)
 	struct nfp_cpp_area *area;
 	struct nfp_resource *res;
 	struct nfp_hwinfo header;
-	u32 cpp_id, ver;
 	u64 cpp_addr;
+	u32 cpp_id;
 	void *db;
 	int err;
 
@@ -240,15 +235,15 @@ static int hwinfo_try_fetch(struct nfp_cpp *cpp, size_t *cpp_size)
 		goto exit_area_release;
 	}
 
-	ver = le32_to_cpu(header.version) & ~NFP_HWINFO_VERSION_UPDATING;
-	if (ver != NFP_HWINFO_VERSION_1 && ver != NFP_HWINFO_VERSION_2) {
-		nfp_err(cpp, "Unknown HWInfo version: 0x%08x\n", ver);
-		err = -EINVAL;
+	if (nfp_hwinfo_is_updating(&header)) {
+		err = -EBUSY;
 		goto exit_area_release;
 	}
 
-	if (nfp_hwinfo_is_updating(&header)) {
-		err = -EBUSY;
+	if (le32_to_cpu(header.version) != NFP_HWINFO_VERSION_2) {
+		nfp_err(cpp, "Unknown HWInfo version: 0x%08x\n",
+			le32_to_cpu(header.version));
+		err = -EINVAL;
 		goto exit_area_release;
 	}
 
