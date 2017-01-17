@@ -197,8 +197,8 @@ static int hwinfo_try_fetch(struct nfp_cpp *cpp, size_t *cpp_size)
 	struct nfp_hwinfo header;
 	u64 cpp_addr;
 	u32 cpp_id;
-	void *db;
 	int err;
+	u8 *db;
 
 	res = nfp_resource_acquire(cpp, NFP_RESOURCE_NFP_HWINFO);
 	if (!IS_ERR(res)) {
@@ -247,7 +247,7 @@ static int hwinfo_try_fetch(struct nfp_cpp *cpp, size_t *cpp_size)
 		goto exit_area_release;
 	}
 
-	db = kmalloc(*cpp_size, GFP_KERNEL);
+	db = kmalloc(*cpp_size + 1, GFP_KERNEL);
 	if (!db) {
 		err = -ENOMEM;
 		goto exit_area_release;
@@ -260,6 +260,8 @@ static int hwinfo_try_fetch(struct nfp_cpp *cpp, size_t *cpp_size)
 		goto exit_area_release;
 	}
 	err = 0;
+	/* NULL-terminate for safety */
+	db[*cpp_size] = '\0';
 
 	nfp_hwinfo_cache_set(cpp, db);
 
