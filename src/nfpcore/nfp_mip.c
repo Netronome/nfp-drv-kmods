@@ -43,7 +43,6 @@
 #include "nfp.h"
 #include "nfp_cpp.h"
 #include "nfp_nffw.h"
-#include "nfp6000/nfp6000.h"
 
 #define NFP_MIP_SIGNATURE	cpu_to_le32(0x0050494d)  /* "MIP\0" */
 #define NFP_MIP_VERSION		cpu_to_le32(1)
@@ -68,29 +67,6 @@ struct nfp_mip {
 	char name[16];
 	char toolchain[32];
 };
-
-#define NFP_IMB_TGTADDRESSMODECFG_MODE_of(_x)		(((_x) >> 13) & 0x7)
-#define NFP_IMB_TGTADDRESSMODECFG_ADDRMODE		BIT(12)
-#define   NFP_IMB_TGTADDRESSMODECFG_ADDRMODE_32_BIT	0
-#define   NFP_IMB_TGTADDRESSMODECFG_ADDRMODE_40_BIT	BIT(12)
-
-static int nfp_mip_mu_locality_lsb(struct nfp_cpp *cpp)
-{
-	unsigned int mode, addr40;
-	u32 xpbaddr, imbcppat;
-	int err;
-
-	/* Hardcoded XPB IMB Base, island 0 */
-	xpbaddr = 0x000a0000 + NFP_CPP_TARGET_MU * 4;
-	err = nfp_xpb_readl(cpp, xpbaddr, &imbcppat);
-	if (err < 0)
-		return err;
-
-	mode = NFP_IMB_TGTADDRESSMODECFG_MODE_of(imbcppat);
-	addr40 = !!(imbcppat & NFP_IMB_TGTADDRESSMODECFG_ADDRMODE);
-
-	return nfp_cppat_mu_locality_lsb(mode, addr40);
-}
 
 /* Read memory and check if it could be a valid MIP */
 static int
@@ -122,31 +98,17 @@ nfp_mip_try_read(struct nfp_cpp *cpp, u32 cpp_id, u64 addr, struct nfp_mip *mip)
 static int nfp_mip_read_resource(struct nfp_cpp *cpp, struct nfp_mip *mip)
 {
 	struct nfp_nffw_info *nffw_info;
-	int mu_lsb, err;
 	u32 cpp_id;
 	u64 addr;
+	int err;
 
 	nffw_info = nfp_nffw_info_open(cpp);
 	if (IS_ERR(nffw_info))
 		return PTR_ERR(nffw_info);
 
-	err = nfp_mip_mu_locality_lsb(cpp);
-	if (err < 0)
-		goto exit_close_nffw;
-	mu_lsb = err;
-
 	err = nfp_nffw_info_mip_first(nffw_info, &cpp_id, &addr);
 	if (err)
 		goto exit_close_nffw;
-
-	if (cpp_id &&
-	    NFP_CPP_ID_TARGET_of(cpp_id) == NFP_CPP_TARGET_MU &&
-	    addr & BIT_ULL(63)) {
-		addr &= ~BIT_ULL(63);
-		/* Direct Access */
-		addr &= ~(3ULL << mu_lsb);
-		addr |= 2ULL << mu_lsb;
-	}
 
 	err = nfp_mip_try_read(cpp, cpp_id, addr, mip);
 exit_close_nffw:

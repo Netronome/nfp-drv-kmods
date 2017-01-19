@@ -58,6 +58,9 @@
 
 #define NFP_ISL_EMEM0			24
 
+#define NFP_MU_ADDR_ACCESS_TYPE_MASK	3ULL
+#define NFP_MU_ADDR_ACCESS_TYPE_DIRECT	2ULL
+
 #define PUSHPULL(_pull, _push)		((_pull) << 4 | (_push) << 0)
 #define PUSH_WIDTH(_pushpull)		pushpull_width((_pushpull) >> 0)
 #define PULL_WIDTH(_pushpull)		pushpull_width((_pushpull) >> 4)
