@@ -135,45 +135,13 @@ EXPORT_SYMBOL(nfp_nbi_mac_eth_read_mac_addr);
 
 /* Implemented in nfp_nbi_phymod.c */
 
-EXPORT_SYMBOL(nfp_phymod_next);
-EXPORT_SYMBOL(nfp_phymod_get_index);
-EXPORT_SYMBOL(nfp_phymod_get_label);
-EXPORT_SYMBOL(nfp_phymod_get_nbi);
-EXPORT_SYMBOL(nfp_phymod_get_port);
-EXPORT_SYMBOL(nfp_phymod_get_type);
-EXPORT_SYMBOL(nfp_phymod_indicate_link);
-EXPORT_SYMBOL(nfp_phymod_indicate_activity);
-EXPORT_SYMBOL(nfp_phymod_read_status);
-EXPORT_SYMBOL(nfp_phymod_read_status_los);
-EXPORT_SYMBOL(nfp_phymod_read_status_fault);
-EXPORT_SYMBOL(nfp_phymod_read_status_optpower);
-EXPORT_SYMBOL(nfp_phymod_read_status_optbias);
-EXPORT_SYMBOL(nfp_phymod_read_status_voltage);
-EXPORT_SYMBOL(nfp_phymod_read_status_temp);
-EXPORT_SYMBOL(nfp_phymod_read_lanedisable);
-EXPORT_SYMBOL(nfp_phymod_write_lanedisable);
-EXPORT_SYMBOL(nfp_phymod_read8);
-EXPORT_SYMBOL(nfp_phymod_write8);
-EXPORT_SYMBOL(nfp_phymod_verify_sff_checkcode);
-EXPORT_SYMBOL(nfp_phymod_read_vendor);
-EXPORT_SYMBOL(nfp_phymod_read_oui);
-EXPORT_SYMBOL(nfp_phymod_read_product);
-EXPORT_SYMBOL(nfp_phymod_read_serial);
-EXPORT_SYMBOL(nfp_phymod_read_type);
-EXPORT_SYMBOL(nfp_phymod_read_connector);
-EXPORT_SYMBOL(nfp_phymod_read_length);
-EXPORT_SYMBOL(nfp_phymod_read_extended_compliance_code);
-EXPORT_SYMBOL(nfp_phymod_get_active_or_passive);
 EXPORT_SYMBOL(nfp_phymod_eth_next);
 EXPORT_SYMBOL(nfp_phymod_eth_get_index);
-EXPORT_SYMBOL(nfp_phymod_eth_get_phymod);
 EXPORT_SYMBOL(nfp_phymod_eth_get_mac);
 EXPORT_SYMBOL(nfp_phymod_eth_get_label);
 EXPORT_SYMBOL(nfp_phymod_eth_get_nbi);
 EXPORT_SYMBOL(nfp_phymod_eth_get_port);
 EXPORT_SYMBOL(nfp_phymod_eth_get_speed);
-EXPORT_SYMBOL(nfp_phymod_eth_get_fail_to_wire);
-EXPORT_SYMBOL(nfp_phymod_eth_set_fail_to_wire);
 EXPORT_SYMBOL(nfp_phymod_eth_read_disable);
 EXPORT_SYMBOL(nfp_phymod_eth_write_disable);
 

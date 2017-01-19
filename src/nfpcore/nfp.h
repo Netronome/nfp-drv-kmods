@@ -220,6 +220,9 @@ int nfp_reset_soft(struct nfp_device *nfp);
 #define SPCODE_PHY_INIT         3       /* Initialize the PHY */
 #define SPCODE_MAC_INIT         4       /* Initialize the MAC */
 #define SPCODE_PHY_RXADAPT      5       /* Re-run PHY RX Adaptation */
+#define SPCODE_FW_LOAD          6       /* Load fw from buffer, len in option */
+#define SPCODE_ETH_RESCAN       7       /* Rescan ETHs, update ETH_TABLE */
+#define SPCODE_ETH_CONTROL      8       /* Perform ETH control action */
 
 int nfp_nsp_command(struct nfp_device *nfp, uint16_t spcode, u32 option,
 		    u32 buff_cpp, u64 buff_addr);
