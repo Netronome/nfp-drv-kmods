@@ -44,6 +44,46 @@
 struct nfp_phymod;
 struct nfp_phymod_eth;
 
+/**
+ * struct nfp_eth_table - ETH table information
+ * @count:	number of table entries
+ * @ports:	table of ports
+ *
+ * @eth_index:	port index according to legacy ethX numbering
+ * @index:	chip-wide first channel index
+ * @nbi:	NBI index
+ * @base:	first channel index (within NBI)
+ * @lanes:	number of channels
+ * @speed:	interface speed (in Mbps)
+ * @mac_addr:	interface MAC address
+ * @label:	interface id string
+ * @enabled:	is enabled?
+ * @tx_enabled:	is TX enabled?
+ * @rx_enabled:	is RX enabled?
+ */
+struct nfp_eth_table {
+	unsigned int count;
+	struct nfp_eth_table_port {
+		unsigned int eth_index;
+		unsigned int index;
+		unsigned int nbi;
+		unsigned int base;
+		unsigned int lanes;
+		unsigned int speed;
+
+		u8 mac_addr[ETH_ALEN];
+		char label[8];
+
+		bool enabled;
+		bool tx_enabled;
+		bool rx_enabled;
+	} ports[0];
+};
+
+struct nfp_eth_table *nfp_phymod_read_ports(struct nfp_cpp *cpp);
+int nfp_phymod_set_mod_enable(struct nfp_cpp *cpp, unsigned int idx,
+			      bool enable);
+
 struct nfp_phymod_eth *nfp_phymod_eth_next(struct nfp_cpp *dev,
 					   struct nfp_phymod *phy, void **ptr);
 
