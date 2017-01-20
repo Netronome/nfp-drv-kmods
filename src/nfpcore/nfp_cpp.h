@@ -294,8 +294,6 @@ void *nfp_rtsym_cache(struct nfp_cpp *cpp);
 void nfp_rtsym_cache_set(struct nfp_cpp *cpp, void *val);
 void *nfp_nbi_cache(struct nfp_cpp *cpp);
 void nfp_nbi_cache_set(struct nfp_cpp *cpp, void *val);
-void *nfp_phymod_state(struct nfp_cpp *cpp);
-void nfp_phymod_state_set(struct nfp_cpp *cpp, void *val);
 
 void nfp_nffw_cache_flush(struct nfp_cpp *cpp);
 

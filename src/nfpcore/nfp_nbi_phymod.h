@@ -84,18 +84,4 @@ struct nfp_eth_table *nfp_phymod_read_ports(struct nfp_cpp *cpp);
 int nfp_phymod_set_mod_enable(struct nfp_cpp *cpp, unsigned int idx,
 			      bool enable);
 
-struct nfp_phymod_eth *nfp_phymod_eth_next(struct nfp_cpp *dev,
-					   struct nfp_phymod *phy, void **ptr);
-
-int nfp_phymod_eth_get_index(struct nfp_phymod_eth *eth, int *index);
-int nfp_phymod_eth_get_mac(struct nfp_phymod_eth *eth, const u8 **mac);
-int nfp_phymod_eth_get_label(struct nfp_phymod_eth *eth, const char **label);
-int nfp_phymod_eth_get_nbi(struct nfp_phymod_eth *eth, int *nbi);
-int nfp_phymod_eth_get_port(struct nfp_phymod_eth *eth, int *base, int *lanes);
-int nfp_phymod_eth_get_speed(struct nfp_phymod_eth *eth, int *speed);
-int nfp_phymod_eth_read_disable(struct nfp_phymod_eth *eth,
-				u32 *txstatus, u32 *rxstatus);
-int nfp_phymod_eth_write_disable(struct nfp_phymod_eth *eth,
-				 u32 txstate, u32 rxstate);
-
 #endif

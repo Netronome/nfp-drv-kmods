@@ -126,15 +126,8 @@ EXPORT_SYMBOL(nfp_nbi_mac_eth_read_mac_addr);
 
 /* Implemented in nfp_nbi_phymod.c */
 
-EXPORT_SYMBOL(nfp_phymod_eth_next);
-EXPORT_SYMBOL(nfp_phymod_eth_get_index);
-EXPORT_SYMBOL(nfp_phymod_eth_get_mac);
-EXPORT_SYMBOL(nfp_phymod_eth_get_label);
-EXPORT_SYMBOL(nfp_phymod_eth_get_nbi);
-EXPORT_SYMBOL(nfp_phymod_eth_get_port);
-EXPORT_SYMBOL(nfp_phymod_eth_get_speed);
-EXPORT_SYMBOL(nfp_phymod_eth_read_disable);
-EXPORT_SYMBOL(nfp_phymod_eth_write_disable);
+EXPORT_SYMBOL(nfp_phymod_read_ports);
+EXPORT_SYMBOL(nfp_phymod_set_mod_enable);
 
 /* Implemented in nfp_rtsym.c */
 
