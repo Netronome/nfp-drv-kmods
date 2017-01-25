@@ -324,4 +324,7 @@ u64 nfp_resource_address(struct nfp_resource *res);
 
 u64 nfp_resource_size(struct nfp_resource *res);
 
+int nfp_resource_lock(struct nfp_resource *res);
+int nfp_resource_unlock(struct nfp_resource *res);
+
 #endif /* !__NFP_H__ */

@@ -92,6 +92,7 @@ static void nfp_nsp_des(void *ptr)
 {
 	struct nfp_nsp *priv = ptr;
 
+	nfp_resource_lock(priv->res);
 	nfp_resource_release(priv->res);
 }
 
@@ -99,13 +100,21 @@ static void *nfp_nsp_con(struct nfp_device *nfp)
 {
 	struct nfp_resource *res;
 	struct nfp_nsp *priv;
+	int err;
 
 	res = nfp_resource_acquire(nfp, NSP_RESOURCE);
 	if (IS_ERR(res))
 		return NULL;
 
+	err = nfp_resource_unlock(res);
+	if (err) {
+		nfp_resource_release(res);
+		return NULL;
+	}
+
 	priv = nfp_device_private_alloc(nfp, sizeof(*priv), nfp_nsp_des);
 	if (!priv) {
+		nfp_resource_lock(res);
 		nfp_resource_release(res);
 		return priv;
 	}
@@ -134,8 +143,8 @@ static void *nfp_nsp_con(struct nfp_device *nfp)
  *
  *         -ETIMEDOUT if the NSP took longer than 30 seconds to complete
  */
-int nfp_nsp_command(struct nfp_device *nfp, u16 code, u32 option,
-		    u32 buff_cpp, u64 buff_addr)
+static int __nfp_nsp_command(struct nfp_device *nfp, u16 code, u32 option,
+			     u32 buff_cpp, u64 buff_addr)
 {
 	struct nfp_cpp *cpp = nfp_device_cpp(nfp);
 	struct nfp_nsp *nsp;
@@ -249,9 +258,28 @@ int nfp_nsp_command(struct nfp_device *nfp, u16 code, u32 option,
 	return NSP_COMMAND_OPTION_of(tmp);
 }
 
-int nfp_nsp_command_buf(struct nfp_device *nfp, u16 code, u32 option,
-			const void *in_buf, unsigned int in_size,
-			void *out_buf, unsigned int out_size)
+int nfp_nsp_command(struct nfp_device *nfp, u16 code, u32 option,
+		    u32 buff_cpp, u64 buff_addr)
+{
+	struct nfp_nsp *nsp;
+	int ret;
+
+	nsp = nfp_device_private(nfp, nfp_nsp_con);
+	if (!nsp)
+		return -EAGAIN;
+
+	ret = nfp_resource_lock(nsp->res);
+	if (ret)
+		return ret;
+	ret = __nfp_nsp_command(nfp, code, option, buff_cpp, buff_addr);
+	nfp_resource_unlock(nsp->res);
+
+	return ret;
+}
+
+static int __nfp_nsp_command_buf(struct nfp_device *nfp, u16 code, u32 option,
+				 const void *in_buf, unsigned int in_size,
+				 void *out_buf, unsigned int out_size)
 {
 	unsigned int max_size;
 	struct nfp_nsp *nsp;
@@ -316,6 +344,27 @@ int nfp_nsp_command_buf(struct nfp_device *nfp, u16 code, u32 option,
 		if (err < 0)
 			return err;
 	}
+
+	return ret;
+}
+
+int nfp_nsp_command_buf(struct nfp_device *nfp, u16 code, u32 option,
+			const void *in_buf, unsigned int in_size,
+			void *out_buf, unsigned int out_size)
+{
+	struct nfp_nsp *nsp;
+	int ret;
+
+	nsp = nfp_device_private(nfp, nfp_nsp_con);
+	if (!nsp)
+		return -EAGAIN;
+
+	ret = nfp_resource_lock(nsp->res);
+	if (ret)
+		return ret;
+	ret = __nfp_nsp_command_buf(nfp, code, option, in_buf, in_size,
+				    out_buf, out_size);
+	nfp_resource_unlock(nsp->res);
 
 	return ret;
 }
