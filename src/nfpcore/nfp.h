@@ -226,6 +226,9 @@ int nfp_reset_soft(struct nfp_device *nfp);
 
 int nfp_nsp_command(struct nfp_device *nfp, uint16_t spcode, u32 option,
 		    u32 buff_cpp, u64 buff_addr);
+int nfp_nsp_command_buf(struct nfp_device *nfp, u16 code, u32 option,
+			const void *in_buf, unsigned int in_size,
+			void *out_buf, unsigned int out_size);
 
 /* Implemented in nfp_resource.c */
 

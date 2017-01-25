@@ -44,8 +44,6 @@
 #include "nfp_nbi_phymod.h"
 
 #define NSP_ETH_MAX_COUNT		48
-#define NSP_ETH_TABLE_SIZE		(NSP_ETH_MAX_COUNT * \
-					 sizeof(struct eth_table_entry))
 #define NSP_ETH_CONTROL_ENABLE_RX	BIT_ULL(3)
 #define NSP_ETH_CONTROL_ENABLE_TX	BIT_ULL(2)
 #define NSP_ETH_STATE_ENABLED		BIT_ULL(1)
@@ -63,12 +61,6 @@ enum eth_rate {
 	RATE_25G,
 };
 
-struct nsp_dma_buff {
-	dma_addr_t dma_addr;
-	void *vaddr;
-	unsigned long size;
-};
-
 struct eth_table_entry {
 	__le64 port;
 	__le64 state;
@@ -83,48 +75,11 @@ struct eth_priv {
 	char label[8];
 	u8 mac[6];
 
-	u32 cpp_id;
-	u64 cpp_addr;
-
-	struct nsp_dma_buff ndb;
-
-	struct eth_table_entry *eths;
+	struct eth_table_entry eths[NSP_ETH_MAX_COUNT];
 };
 
 static void eth_private_free(void *_priv)
 {
-	struct eth_priv *priv = _priv;
-	struct device *ppdev;
-
-	if (!priv->ndb.vaddr)
-		return;
-
-	ppdev = nfp_cpp_device(nfp_device_cpp(priv->nfp))->parent;
-
-	dma_free_coherent(ppdev, priv->ndb.size, priv->ndb.vaddr,
-			  priv->ndb.dma_addr);
-}
-
-static int alloc_nsp_dma_page_buffer(struct eth_priv *priv)
-{
-	struct device *ppdev;
-
-	ppdev = nfp_cpp_device(nfp_device_cpp(priv->nfp))->parent;
-
-	priv->ndb.size = NSP_ETH_TABLE_SIZE;
-
-	priv->ndb.vaddr = dma_zalloc_coherent(ppdev, priv->ndb.size,
-					      &priv->ndb.dma_addr,
-					      GFP_KERNEL);
-	if (!priv->ndb.vaddr)
-		return -ENOMEM;
-
-	priv->cpp_id = NFP_CPP_ID(NFP_CPP_TARGET_PCIE, NFP_CPP_ACTION_RW, 0);
-	priv->cpp_addr = priv->ndb.dma_addr;
-
-	priv->eths = priv->ndb.vaddr;
-
-	return 0;
 }
 
 static void *eth_private(struct nfp_device *nfp)
@@ -137,8 +92,6 @@ static void *eth_private(struct nfp_device *nfp)
 		return NULL;
 
 	priv->nfp = nfp;
-	if (alloc_nsp_dma_page_buffer(priv))
-		return NULL;
 
 	return priv;
 }
@@ -166,10 +119,9 @@ struct nfp_phymod_eth *nfp_phymod_eth_next(struct nfp_device *nfp,
 		return NULL;
 
 	if (!*ptr) {
-		err = nfp_nsp_command(nfp, SPCODE_ETH_RESCAN,
-				      priv->ndb.size,
-				      priv->cpp_id,
-				      priv->cpp_addr);
+		err = nfp_nsp_command_buf(nfp, SPCODE_ETH_RESCAN,
+					  sizeof(priv->eths), NULL, 0,
+					  priv->eths, sizeof(priv->eths));
 		if (err)
 			return NULL;
 		priv->eth_idx = 0;
@@ -392,10 +344,9 @@ int nfp_phymod_eth_write_disable(struct nfp_phymod_eth *eth,
 
 	priv->eths[idx].control = cpu_to_le64(control);
 
-	err = nfp_nsp_command(priv->nfp, SPCODE_ETH_CONTROL,
-			      priv->ndb.size,
-			      priv->cpp_id,
-			      priv->cpp_addr);
+	err = nfp_nsp_command_buf(priv->nfp, SPCODE_ETH_CONTROL,
+				  sizeof(priv->eths), priv->eths,
+				  sizeof(priv->eths), NULL, 0);
 	if (err)
 		return -1;
 	return 0;

@@ -73,6 +73,11 @@
 #define   NSP_BUFFER_ADDRESS(x)       (((x) & ((1ULL << 40) - 1)) << 0)
 #define   NSP_BUFFER_ADDRESS_of(x)    (((x) >> 0) & ((1ULL << 40) - 1))
 
+#define NSP_DEFAULT_BUFFER	0x18
+
+#define NSP_DEFAULT_BUFFER_CONFIG 0x20
+#define   NSP_DEF_BUFFER_SIZE_MB_of(x)	(((x) >> 0) & (0xff))
+
 #define NSP_MAGIC             0xab10
 #define NSP_MAJOR             0
 
@@ -242,4 +247,75 @@ int nfp_nsp_command(struct nfp_device *nfp, u16 code, u32 option,
 		return err;
 
 	return NSP_COMMAND_OPTION_of(tmp);
+}
+
+int nfp_nsp_command_buf(struct nfp_device *nfp, u16 code, u32 option,
+			const void *in_buf, unsigned int in_size,
+			void *out_buf, unsigned int out_size)
+{
+	unsigned int max_size;
+	struct nfp_nsp *nsp;
+	u64 tmp, cpp_buf;
+	int ret, err;
+	u32 cpp_id;
+
+	nsp = nfp_device_private(nfp, nfp_nsp_con);
+	if (!nsp)
+		return -EAGAIN;
+
+	err = nfp_cpp_readq(nfp_device_cpp(nfp), nfp_resource_cpp_id(nsp->res),
+			    nfp_resource_address(nsp->res) + NSP_STATUS, &tmp);
+	if (err < 0)
+		return err;
+
+	if (NSP_STATUS_MINOR_of(tmp) < 13) {
+		nfp_err(nfp, "NSP: Code 0x%04x with buffer not supported (ABI %lld.%lld)\n",
+			code, NSP_STATUS_MAJOR_of(tmp),
+			NSP_STATUS_MINOR_of(tmp));
+		return -EOPNOTSUPP;
+	}
+
+	err = nfp_cpp_readq(nfp_device_cpp(nfp), nfp_resource_cpp_id(nsp->res),
+			    nfp_resource_address(nsp->res) +
+			    NSP_DEFAULT_BUFFER_CONFIG,
+			    &tmp);
+	if (err < 0)
+		return err;
+
+	max_size = max(in_size, out_size);
+	if (NSP_DEF_BUFFER_SIZE_MB_of(tmp) * SZ_1M < max_size) {
+		nfp_err(nfp, "NSP: default buffer too small for command (%llu < %u)\n",
+			NSP_DEF_BUFFER_SIZE_MB_of(tmp) * SZ_1M, max_size);
+		return -EINVAL;
+	}
+
+	err = nfp_cpp_readq(nfp_device_cpp(nfp), nfp_resource_cpp_id(nsp->res),
+			    nfp_resource_address(nsp->res) +
+			    NSP_DEFAULT_BUFFER,
+			    &tmp);
+	if (err < 0)
+		return err;
+
+	cpp_id = NSP_BUFFER_CPP_of(tmp);
+	cpp_buf = NSP_BUFFER_ADDRESS_of(tmp);
+
+	if (in_buf && in_size) {
+		err = nfp_cpp_write(nfp_device_cpp(nfp), cpp_id, cpp_buf,
+				    in_buf, in_size);
+		if (err < 0)
+			return err;
+	}
+
+	ret = nfp_nsp_command(nfp, code, option, cpp_id, cpp_buf);
+	if (ret < 0)
+		return ret;
+
+	if (out_buf && out_size) {
+		err = nfp_cpp_read(nfp_device_cpp(nfp), cpp_id, cpp_buf,
+				   out_buf, out_size);
+		if (err < 0)
+			return err;
+	}
+
+	return ret;
 }
