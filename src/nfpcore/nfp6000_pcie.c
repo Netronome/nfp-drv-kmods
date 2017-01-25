@@ -809,9 +809,8 @@ static int enable_bars(struct nfp6000_pcie *nfp, u16 interface)
 
 	/* Configure, and lock, BAR0.0 for General Target use (MSI-X SRAM) */
 	bar = &nfp->bar[0];
-	bar->iomem = devm_ioremap_nocache(&nfp->pdev->dev,
-					  nfp_bar_resource_start(bar),
-					  nfp_bar_resource_len(bar));
+	bar->iomem = ioremap_nocache(nfp_bar_resource_start(bar),
+				     nfp_bar_resource_len(bar));
 	if (bar->iomem) {
 		dev_info(nfp->dev,
 			 "BAR0.0 RESERVED: General Mapping/MSI-X SRAM\n");
@@ -853,9 +852,8 @@ static int enable_bars(struct nfp6000_pcie *nfp, u16 interface)
 		}
 
 		bar = &nfp->bar[4 + i];
-		bar->iomem = devm_ioremap_nocache(&nfp->pdev->dev,
-						  nfp_bar_resource_start(bar),
-						  nfp_bar_resource_len(bar));
+		bar->iomem = ioremap_nocache(nfp_bar_resource_start(bar),
+					     nfp_bar_resource_len(bar));
 		if (bar->iomem) {
 			dev_info(nfp->dev,
 				 "BAR0.%d RESERVED: Explicit%d Mapping\n",
@@ -890,7 +888,7 @@ static void disable_bars(struct nfp6000_pcie *nfp)
 
 	for (n = 0; n < nfp->bars; n++, bar++) {
 		if (bar->iomem) {
-			devm_iounmap(&nfp->pdev->dev, bar->iomem);
+			iounmap(bar->iomem);
 			bar->iomem = NULL;
 		}
 	}
@@ -1035,8 +1033,7 @@ static int nfp6000_area_acquire(struct nfp_cpp_area *area)
 		priv->iomem = priv->bar->iomem + priv->bar_offset;
 	else
 		/* Must have been too big. Sub-allocate. */
-		priv->iomem = devm_ioremap_nocache(&nfp->pdev->dev, priv->phys,
-						   priv->size);
+		priv->iomem = ioremap_nocache(priv->phys, priv->size);
 
 	if (IS_ERR_OR_NULL(priv->iomem)) {
 		dev_err(nfp->dev, "Can't ioremap() a %d byte region of BAR %d\n",
@@ -1065,7 +1062,7 @@ static void nfp6000_area_release(struct nfp_cpp_area *area)
 		return;
 
 	if (!priv->bar->iomem)
-		devm_iounmap(&nfp->pdev->dev, priv->iomem);
+		iounmap(priv->iomem);
 
 	nfp_bar_put(nfp, priv->bar);
 
