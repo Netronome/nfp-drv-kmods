@@ -393,6 +393,12 @@ static inline int nfp_net_xdp_offload(struct nfp_net *nn, struct bpf_prog *prog)
 typedef void compat__stat64_ret_t;
 #else
 typedef struct rtnl_link_stats64 *compat__stat64_ret_t;
+
+static inline void
+trace_xdp_exception(const struct net_device *netdev,
+		    const struct bpf_prog *prog, u32 act)
+{
+}
 #endif
 
 #endif /* _NFP_NET_COMPAT_H_ */
