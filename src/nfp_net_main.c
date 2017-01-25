@@ -57,6 +57,7 @@
 #include "nfpcore/nfp_nffw.h"
 #include "nfpcore/nfp6000_pcie.h"
 #include "nfpcore/nfp_dev_cpp.h"
+#include "nfpcore/nfp_nbi_phymod.h"
 
 #include "nfp_net_compat.h"
 #include "nfp_net_ctrl.h"
@@ -550,18 +551,9 @@ err_area:
 	return (u8 __iomem *)ERR_PTR(err);
 }
 
-/**
- * nfp_net_get_mac_addr() - Get the MAC address.
- * @nn:       NFP Network structure
- * @nfp_dev:  NFP Device structure
- * @id:	      NFP port id
- *
- * First try to look up the MAC address in the HWINFO table. If that
- * fails generate a random address.
- */
 static void
-nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_device *nfp_dev,
-		     unsigned int id)
+nfp_net_get_mac_addr_hwinfo(struct nfp_net *nn, struct nfp_device *nfp_dev,
+			    unsigned int id)
 {
 	u8 mac_addr[ETH_ALEN];
 	const char *mac_str;
@@ -588,6 +580,40 @@ nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_device *nfp_dev,
 
 	ether_addr_copy(nn->netdev->dev_addr, mac_addr);
 	ether_addr_copy(nn->netdev->perm_addr, mac_addr);
+}
+
+/**
+ * nfp_net_get_mac_addr() - Get the MAC address.
+ * @nn:       NFP Network structure
+ * @nfp_dev:  NFP Device structure
+ * @port_iter:	PHYMod iteration state
+ * @id:	      NFP port id
+ *
+ * First try to get the MAC address from NSP ETH table. If that
+ * fails try HWInfo.  As a last resort generate a random address.
+ */
+static void
+nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_device *nfp_dev,
+		     struct nfp_phymod_eth **port_iter, unsigned int id)
+{
+	const u8 *mac_addr;
+	int index;
+
+	while ((*port_iter = nfp_phymod_eth_next(nfp_dev, NULL,
+						 (void **)port_iter))) {
+		if (nfp_phymod_eth_get_index(*port_iter, &index))
+			break;
+		if (index != id)
+			continue;
+		if (nfp_phymod_eth_get_mac(*port_iter, &mac_addr))
+			break;
+
+		ether_addr_copy(nn->netdev->dev_addr, mac_addr);
+		ether_addr_copy(nn->netdev->perm_addr, mac_addr);
+		return;
+	}
+
+	nfp_net_get_mac_addr_hwinfo(nn, nfp_dev, id);
 }
 
 static unsigned int
@@ -723,12 +749,13 @@ nfp_net_pf_alloc_port_netdev(struct nfp_net_pf *pf, void __iomem *ctrl_bar,
 
 static int
 nfp_net_pf_init_port_netdev(struct nfp_net_pf *pf, struct nfp_net *nn,
-			    struct nfp_device *nfp_dev, unsigned int id)
+			    struct nfp_device *nfp_dev,
+			    struct nfp_phymod_eth **port_iter, unsigned int id)
 {
 	int err;
 
 	/* Get MAC address */
-	nfp_net_get_mac_addr(nn, nfp_dev, id);
+	nfp_net_get_mac_addr(nn, nfp_dev, port_iter, id);
 
 	/* Get ME clock frequency from ctrl BAR
 	 * XXX for now frequency is hardcoded until we figure out how
@@ -796,6 +823,7 @@ nfp_net_pf_spawn_netdevs(struct nfp_net_pf *pf, struct nfp_device *nfp_dev,
 			 struct nfp_net_fw_version *fw_ver)
 {
 	unsigned int id, wanted_irqs, num_irqs, ports_left, irqs_left;
+	struct nfp_phymod_eth *port_iter = NULL;
 	struct nfp_net *nn;
 	int err;
 
@@ -841,7 +869,8 @@ nfp_net_pf_spawn_netdevs(struct nfp_net_pf *pf, struct nfp_device *nfp_dev,
 	/* Finish netdev init and register */
 	id = 0;
 	list_for_each_entry(nn, &pf->ports, port_list) {
-		err = nfp_net_pf_init_port_netdev(pf, nn, nfp_dev, id);
+		err = nfp_net_pf_init_port_netdev(pf, nn, nfp_dev, &port_iter,
+						  id);
 		if (err)
 			goto err_prev_deinit;
 
