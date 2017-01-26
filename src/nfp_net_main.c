@@ -51,8 +51,8 @@
 #include "nfpcore/nfp.h"
 #include "nfpcore/nfp_cpp.h"
 #include "nfpcore/nfp_nffw.h"
+#include "nfpcore/nfp_nsp_eth.h"
 #include "nfpcore/nfp6000_pcie.h"
-#include "nfpcore/nfp_nbi_phymod.h"
 
 #include "nfp_net_compat.h"
 #include "nfp_net_ctrl.h"
@@ -436,7 +436,7 @@ nfp_net_pf_spawn_netdevs(struct nfp_pf *pf,
 
 	/* Finish netdev init and register */
 	id = 0;
-	eth_table = nfp_phymod_read_ports(pf->cpp);
+	eth_table = nfp_eth_read_ports(pf->cpp);
 	list_for_each_entry(nn, &pf->ports, port_list) {
 		err = nfp_net_pf_init_port_netdev(pf, nn, eth_table, id);
 		if (err)

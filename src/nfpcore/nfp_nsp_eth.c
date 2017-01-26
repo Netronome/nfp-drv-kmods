@@ -32,9 +32,9 @@
  */
 
 /*
- * nfp_phymod.c
- * Authors: Jason Mcmullan <jason.mcmullan@netronome.com>
- *          David Brunecz <david.brunecz@netronome.com>
+ * Authors: David Brunecz <david.brunecz@netronome.com>
+ *          Jakub Kicinski <jakub.kicinski@netronome.com>
+ *          Jason Mcmullan <jason.mcmullan@netronome.com>
  */
 
 #include <linux/version.h>
@@ -47,7 +47,7 @@
 #include <linux/module.h>
 
 #include "nfp.h"
-#include "nfp_nbi_phymod.h"
+#include "nfp_nsp_eth.h"
 #include "nfp6000/nfp6000.h"
 #include "../nfp_net_compat.h"
 
@@ -89,7 +89,7 @@ struct eth_table_entry {
 	__le64 control;
 };
 
-static unsigned int nfp_phymod_rate(enum nfp_eth_rate rate)
+static unsigned int nfp_eth_rate(enum nfp_eth_rate rate)
 {
 	unsigned int rate_xlate[] = {
 		[RATE_INVALID]		= 0,
@@ -106,7 +106,7 @@ static unsigned int nfp_phymod_rate(enum nfp_eth_rate rate)
 	return rate_xlate[rate];
 }
 
-static void nfp_phymod_copy_mac_reverse(u8 *dst, const u8 *src)
+static void nfp_eth_copy_mac_reverse(u8 *dst, const u8 *src)
 {
 	int i;
 
@@ -115,8 +115,8 @@ static void nfp_phymod_copy_mac_reverse(u8 *dst, const u8 *src)
 }
 
 static void
-nfp_phymod_port_translate(const struct eth_table_entry *src, unsigned int index,
-			  struct nfp_eth_table_port *dst)
+nfp_eth_port_translate(const struct eth_table_entry *src, unsigned int index,
+		       struct nfp_eth_table_port *dst)
 {
 	unsigned int rate;
 	u64 port, state;
@@ -134,10 +134,10 @@ nfp_phymod_port_translate(const struct eth_table_entry *src, unsigned int index,
 	dst->tx_enabled = FIELD_GET(NSP_ETH_STATE_TX_ENABLED, state);
 	dst->rx_enabled = FIELD_GET(NSP_ETH_STATE_RX_ENABLED, state);
 
-	rate = nfp_phymod_rate(FIELD_GET(NSP_ETH_STATE_RATE, state));
+	rate = nfp_eth_rate(FIELD_GET(NSP_ETH_STATE_RATE, state));
 	dst->speed = dst->lanes * rate;
 
-	nfp_phymod_copy_mac_reverse(dst->mac_addr, src->mac_addr);
+	nfp_eth_copy_mac_reverse(dst->mac_addr, src->mac_addr);
 
 	snprintf(dst->label, sizeof(dst->label) - 1, "%llu.%llu",
 		 FIELD_GET(NSP_ETH_PORT_PHYLABEL, port),
@@ -145,7 +145,7 @@ nfp_phymod_port_translate(const struct eth_table_entry *src, unsigned int index,
 }
 
 /**
- * nfp_phymod_read_ports() - retrieve port information
+ * nfp_eth_read_ports() - retrieve port information
  * @cpp:	NFP CPP handle
  *
  * Read the port information from the device.  Returned structure should
@@ -153,7 +153,7 @@ nfp_phymod_port_translate(const struct eth_table_entry *src, unsigned int index,
  *
  * Return: populated ETH table or NULL on error.
  */
-struct nfp_eth_table *nfp_phymod_read_ports(struct nfp_cpp *cpp)
+struct nfp_eth_table *nfp_eth_read_ports(struct nfp_cpp *cpp)
 {
 	struct eth_table_entry *entries;
 	struct nfp_eth_table *table;
@@ -196,8 +196,8 @@ struct nfp_eth_table *nfp_phymod_read_ports(struct nfp_cpp *cpp)
 	table->count = cnt;
 	for (i = 0, j = 0; i < NSP_ETH_MAX_COUNT; i++)
 		if (entries[i].port & NSP_ETH_PORT_LANES_MASK)
-			nfp_phymod_port_translate(&entries[i], i,
-						  &table->ports[j++]);
+			nfp_eth_port_translate(&entries[i], i,
+					       &table->ports[j++]);
 
 	kfree(entries);
 
@@ -205,7 +205,7 @@ struct nfp_eth_table *nfp_phymod_read_ports(struct nfp_cpp *cpp)
 }
 
 /**
- * nfp_phymod_set_mod_enable() - set PHY module enable control bit
+ * nfp_eth_set_mod_enable() - set PHY module enable control bit
  * @cpp:	NFP CPP handle
  * @idx:	NFP chip-wide port index
  * @enable:	Desired state
@@ -215,8 +215,7 @@ struct nfp_eth_table *nfp_phymod_read_ports(struct nfp_cpp *cpp)
  *
  * Return: 0 or -ERRNO.
  */
-int
-nfp_phymod_set_mod_enable(struct nfp_cpp *cpp, unsigned int idx, bool enable)
+int nfp_eth_set_mod_enable(struct nfp_cpp *cpp, unsigned int idx, bool enable)
 {
 	struct eth_table_entry *entries;
 	struct nfp_nsp *nsp;

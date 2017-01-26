@@ -60,8 +60,8 @@ nfp-objs := \
 	    nfpcore/nfp_hwinfo.o \
 	    nfpcore/nfp_mip.o \
 	    nfpcore/nfp_nbi.o \
-	    nfpcore/nfp_nbi_phymod.o \
 	    nfpcore/nfp_nffw.o \
+	    nfpcore/nfp_nsp_eth.o \
 	    nfpcore/nfp_platform.o \
 	    nfpcore/nfp_power.o \
 	    nfpcore/nfp_reset.o \

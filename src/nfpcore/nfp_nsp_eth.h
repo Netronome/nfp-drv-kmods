@@ -31,18 +31,10 @@
  * SOFTWARE.
  */
 
-/*
- * nfp_nbi_phymod.h
- * Author: Jason McMullan <jason.mcmullan@netronome.com>
- */
+#ifndef NSP_NSP_ETH_H
+#define NSP_NSP_ETH_H 1
 
-#ifndef __NFP_PHYMOD_H__
-#define __NFP_PHYMOD_H__
-
-#include <linux/kernel.h>
-
-struct nfp_phymod;
-struct nfp_phymod_eth;
+#include <linux/types.h>
 
 /**
  * struct nfp_eth_table - ETH table information
@@ -80,8 +72,7 @@ struct nfp_eth_table {
 	} ports[0];
 };
 
-struct nfp_eth_table *nfp_phymod_read_ports(struct nfp_cpp *cpp);
-int nfp_phymod_set_mod_enable(struct nfp_cpp *cpp, unsigned int idx,
-			      bool enable);
+struct nfp_eth_table *nfp_eth_read_ports(struct nfp_cpp *cpp);
+int nfp_eth_set_mod_enable(struct nfp_cpp *cpp, unsigned int idx, bool enable);
 
 #endif

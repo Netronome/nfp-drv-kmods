@@ -179,7 +179,7 @@ All sources are in `src/nfpcore/`:
 | nfp_mip.c           | API       | Microcode Information Page                |
 | nfp_nbi.c           | API       | NFP NBI access                            |
 | nfp_nbi_mac_eth.c   | API       | NFP NBI Ethernet MAC access               |
-| nfp_nbi_phymod.c    | API       | NFP NBI Ethernet PHY access               |
+| nfp_nsp_eth.c       | API       | NFP Ethernet MAC/PHY access via NSP       |
 | nfp_net_vnic.c      | Example   | Pseudo-NIC for interfacing with NFP Linux |
 | nfp_nffw.c          | API       | NFP NFP Flow Firmware interface           |
 | nfp_nsp.c           | API       | NIC Service Processor interface           |

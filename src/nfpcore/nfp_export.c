@@ -40,8 +40,8 @@
 #include "nfp.h"
 #include "nfp_cpp.h"
 #include "nfp_nbi.h"
-#include "nfp_nbi_phymod.h"
 #include "nfp_nffw.h"
+#include "nfp_nsp_eth.h"
 
 /* Implemented in nfp_cppcore.c */
 
@@ -124,10 +124,10 @@ EXPORT_SYMBOL(nfp_nbi_mac_eth_read_mode);
 EXPORT_SYMBOL(nfp_nbi_mac_eth_write_mac_addr);
 EXPORT_SYMBOL(nfp_nbi_mac_eth_read_mac_addr);
 
-/* Implemented in nfp_nbi_phymod.c */
+/* Implemented in nfp_nsp_eth.c */
 
-EXPORT_SYMBOL(nfp_phymod_read_ports);
-EXPORT_SYMBOL(nfp_phymod_set_mod_enable);
+EXPORT_SYMBOL(nfp_eth_read_ports);
+EXPORT_SYMBOL(nfp_eth_set_mod_enable);
 
 /* Implemented in nfp_rtsym.c */
 
