@@ -293,17 +293,20 @@ int nfp_phymod_eth_read_disable(struct nfp_phymod_eth *eth,
 {
 	struct eth_priv *priv = (struct eth_priv *)eth;
 	int idx;
+	u32 val;
 
 	priv = (struct eth_priv *)eth;
 	idx = priv->eth_idx;
 
-	if (NSP_ETH_STATE_ENABLED & le64_to_cpu(priv->eths[idx].state)) {
-		*txstatus = 0;
-		*rxstatus = 0;
-	} else {
-		*txstatus = ~0;
-		*rxstatus = ~0;
-	}
+	if (NSP_ETH_STATE_ENABLED & le64_to_cpu(priv->eths[idx].state))
+		val = 0;
+	else
+		val = ~0;
+
+	if (txstatus)
+		*txstatus = val;
+	if (rxstatus)
+		*rxstatus = val;
 	return 0;
 }
 
