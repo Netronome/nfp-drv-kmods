@@ -942,8 +942,14 @@ static int nfp_dev_cpp_ioctl(struct inode *inode, struct file *filp,
 	}
 }
 
+#if LINUX_RELEASE_4_11_MM
+static int nfp_cpp_mmap_fault(struct vm_fault *vmf)
+{
+	struct vm_area_struct *vma = vmf->vma;
+#else
 static int nfp_cpp_mmap_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 {
+#endif
 	struct nfp_dev_cpp_vma *cvma = vma->vm_private_data;
 	struct nfp_dev_cpp_area *area;
 	struct nfp_dev_cpp *cdev;

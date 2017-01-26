@@ -67,6 +67,7 @@
 
 /* TODO: change to >= 4.11 when released */
 #define LINUX_RELEASE_4_11 defined(AF_SMC)
+#define LINUX_RELEASE_4_11_MM	defined(FAULT_FLAG_TRACE)
 
 #define COMPAT__CAN_HAVE_MULTIPLE_MOD_TABLES \
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
