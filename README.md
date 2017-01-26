@@ -168,7 +168,6 @@ All sources are in `src/nfpcore/`:
 
 | Source              | Type      | Description                               |
 | ------------------- | ----------|------------------------------------------ |
-| crc32.c             | API       | CRC32 library                             |
 | nfp6000_pcie.c      | Transport | NFP6000 PCIe interface                    |
 | nfp_ca.c            | API       | CPP Action firmware file parser           |
 | nfp_cppcore.c       | API       | CPP bus core                              |
@@ -176,9 +175,7 @@ All sources are in `src/nfpcore/`:
 | nfp_device.c        | API       | NFP chip interface                        |
 | nfp_em_manager.c    | API       | NFP Event Monitor                         |
 | nfp_export.c        | API       | List of all EXPORT_SYMBOLs                |
-| nfp_gpio.c          | API       | NFP GPIO access                           |
 | nfp_hwinfo.c        | API       | NFP Hardware Info Database                |
-| nfp_i2c.c           | API       | NFP I2C access                            |
 | nfp_mip.c           | API       | Microcode Information Page                |
 | nfp_nbi.c           | API       | NFP NBI access                            |
 | nfp_nbi_mac_eth.c   | API       | NFP NBI Ethernet MAC access               |
@@ -191,7 +188,3 @@ All sources are in `src/nfpcore/`:
 | nfp_reset.c         | API       | NFP controlled soft reset                 |
 | nfp_resource.c      | API       | NFP Resource management                   |
 | nfp_rtsym.c         | API       | NFP Firmware Runtime Symbol access        |
-| nfp_spi.c           | API       | NFP SPI access                            |
-| sff_8431.c          | PHY       | PHY driver for SFP/SFP+                   |
-| sff_8436.c          | PHY       | PHY driver for QSFP                       |
-| sff_8647.c          | PHY       | PHY driver for CXP                        |
