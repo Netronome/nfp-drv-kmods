@@ -302,7 +302,8 @@ static void __nfp_cpp_release(struct kref *kref)
 
 static struct nfp_cpp *nfp_cpp_get(struct nfp_cpp *cpp)
 {
-	kref_get(&cpp->kref);
+	if (!kref_get_unless_zero(&cpp->kref))
+		return NULL;
 
 	return cpp;
 }
