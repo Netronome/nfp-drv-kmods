@@ -348,8 +348,9 @@ int nfp_phymod_eth_write_disable(struct nfp_phymod_eth *eth,
 	priv->eths[idx].control = cpu_to_le64(control);
 
 	err = nfp_nsp_command_buf(priv->nfp, SPCODE_ETH_CONTROL,
-				  sizeof(priv->eths), priv->eths,
-				  sizeof(priv->eths), NULL, 0);
+				  sizeof(priv->eths),
+				  priv->eths, sizeof(priv->eths),
+				  priv->eths, sizeof(priv->eths));
 	if (err)
 		return -1;
 	return 0;
