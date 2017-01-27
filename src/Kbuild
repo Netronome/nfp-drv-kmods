@@ -126,15 +126,19 @@ ifeq ($(nfp_src_dir),)
 nfp_src_dir := .
 endif
 
-# Get the source control revisions.
-ifeq ($(nfp_src_ver),)
-nfp_src_ver  := $(shell (cd $(nfp_src_dir); git rev-parse --short HEAD))
+# Work out driver version if build from repository
+NFPVER := $(shell git -C $(nfp_src_dir) rev-parse --short HEAD 2> /dev/null)
+ifeq ($(NFPVER),)
+  NFPVER := rev-$(NFPVERREV)
+endif
+ifeq ($(NFPVER),)
+  NFPVER := no-src-ver
 endif
 
 clean-files := $(obj)/nfp_build_info.h
 $(obj)/nfp_build_info.h: FORCE
 	@echo "/* Automatically generated file */" > $@
-	@echo "#define NFP_SRC_VERSION \"$(nfp_src_ver)\"" >> $@
+	@echo "#define NFP_SRC_VERSION \"$(NFPVER) (o-o-t)\"" >> $@
 	@echo "#define NFP_BUILD_USER_ID \"$(shell id -u -n)\"" >> $@
 	@echo "#define NFP_BUILD_USER \"$(shell getent passwd `id -u -n` | cut -d ':' -f 5 | cut -d ',' -f 1)\"" >> $@
 	@echo "#define NFP_BUILD_HOST \"$(shell hostname)\"" >> $@

@@ -1,14 +1,8 @@
 ######################################################
 # Work out driver version if not build from repository
-ifeq (.revision,$(wildcard .git)$(wildcard .revision))
-  ifneq (,$(shell cat .revision))
-    NFPVER := $(shell cat .revision)
-  endif
+ifeq (.revision,$(wildcard .revision))
+  export NFPVERREV := $(shell cat .revision)
 endif
-ifeq (.git,$(wildcard .git))
-  NFPVER :=
-endif
-NFPVER ?= no-src-ver
 
 #####################################
 # Work out where the kernel source is
@@ -47,7 +41,7 @@ EXTRA_CFLAGS += $(CFLAGS_EXTRA)
 ###########################################################################
 # Build rules
 
-COMMON_ARGS := nfp_src_ver:=$(NFPVER) -C $(KSRC) M=`pwd`/src
+COMMON_ARGS := -C $(KSRC) M=`pwd`/src
 
 build:
 	$(MAKE) $(COMMON_ARGS) modules
