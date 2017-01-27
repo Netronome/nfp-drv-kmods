@@ -113,7 +113,7 @@ MODULE_PARM_DESC(nfp6000_firmware, "(non-netdev mode) NFP6000 firmware to load f
 MODULE_FIRMWARE("netronome/" NFP_NET_FW_DEFAULT ".nffw");
 
 static const char nfp_driver_name[] = "nfp";
-const char nfp_driver_version[] = "0.1";
+const char nfp_driver_version[] = NFP_SRC_VERSION;
 
 static const struct pci_device_id nfp_pci_device_ids[] = {
 	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_NFP6010,
