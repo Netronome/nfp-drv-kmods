@@ -44,9 +44,7 @@
 #include "nfp_nbi_phymod.h"
 
 #define NSP_ETH_MAX_COUNT		48
-#define NSP_ETH_CONTROL_ENABLE_RX	BIT_ULL(3)
-#define NSP_ETH_CONTROL_ENABLE_TX	BIT_ULL(2)
-#define NSP_ETH_STATE_ENABLED		BIT_ULL(1)
+#define NSP_ETH_TX_STATE_ENABLED	BIT_ULL(1)
 #define NSP_ETH_PORT_LANES_of(x)	(((x) >>  0) & 0xf)
 #define NSP_ETH_STATE_RATE_of(x)	(((x) >>  8) & 0xf)
 #define NSP_ETH_PORT_PHYLABEL_of(x)	(((x) >> 54) & 0x3f)
@@ -282,7 +280,7 @@ int nfp_phymod_eth_get_speed(struct nfp_phymod_eth *eth, int *speed)
  * nfp_phymod_eth_read_disable() - Read PHY Disable state for an eth port
  * @eth:	PHY module ethernet interface
  * @txstatus:	 Disable status for the ethernet port
- * @rxstatus:	Disable status for the ethernet port
+ * @rxstatus:	Disable status for the ethernet port, not implemented
  *
  * For both rxstatus and txstatus, 0 = active, 1 = disabled
  *
@@ -298,7 +296,7 @@ int nfp_phymod_eth_read_disable(struct nfp_phymod_eth *eth,
 	priv = (struct eth_priv *)eth;
 	idx = priv->eth_idx;
 
-	if (NSP_ETH_STATE_ENABLED & le64_to_cpu(priv->eths[idx].state))
+	if (NSP_ETH_TX_STATE_ENABLED & le64_to_cpu(priv->eths[idx].state))
 		val = 0;
 	else
 		val = ~0;
@@ -306,7 +304,7 @@ int nfp_phymod_eth_read_disable(struct nfp_phymod_eth *eth,
 	if (txstatus)
 		*txstatus = val;
 	if (rxstatus)
-		*rxstatus = val;
+		*rxstatus = 0;
 	return 0;
 }
 
@@ -314,7 +312,7 @@ int nfp_phymod_eth_read_disable(struct nfp_phymod_eth *eth,
  * nfp_phymod_eth_write_disable() - Write PHY Disable state for an eth port
  * @eth:	PHY module ethernet interface
  * @txstate:	Disable states for the ethernet port
- * @rxstate:	Disable states for the ethernet port
+ * @rxstate:	Disable states for the ethernet port, not implemented
  *
  * For both rxstatus and txstatus, 0 = active, 1 = disabled
  *
@@ -324,7 +322,6 @@ int nfp_phymod_eth_write_disable(struct nfp_phymod_eth *eth,
 				 u32 txstate, u32 rxstate)
 {
 	struct eth_priv *priv;
-	int tx_en, rx_en;
 	int idx, err;
 	u64 control;
 
@@ -332,18 +329,13 @@ int nfp_phymod_eth_write_disable(struct nfp_phymod_eth *eth,
 	idx = priv->eth_idx;
 	control = le64_to_cpu(priv->eths[idx].control);
 
-	tx_en = !!(NSP_ETH_CONTROL_ENABLE_TX & control);
-	rx_en = !!(NSP_ETH_CONTROL_ENABLE_RX & control);
-
-	if ((!!txstate == tx_en) && (!!rxstate == rx_en))
+	if (!!txstate == !!(NSP_ETH_TX_STATE_ENABLED & control))
 		return 0;
 
-	control &= ~(NSP_ETH_CONTROL_ENABLE_TX | NSP_ETH_CONTROL_ENABLE_RX);
-
 	if (txstate)
-		control |= NSP_ETH_CONTROL_ENABLE_TX;
-	if (rxstate)
-		control |= NSP_ETH_CONTROL_ENABLE_RX;
+		control |= NSP_ETH_TX_STATE_ENABLED;
+	else
+		control &= ~NSP_ETH_TX_STATE_ENABLED;
 
 	priv->eths[idx].control = cpu_to_le64(control);
 
