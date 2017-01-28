@@ -192,9 +192,8 @@ hwinfo_db_validate(struct nfp_cpp *cpp, struct nfp_hwinfo *db, u32 len)
 
 static int hwinfo_try_fetch(struct nfp_cpp *cpp, size_t *cpp_size)
 {
-	struct nfp_cpp_area *area;
+	struct nfp_hwinfo *header;
 	struct nfp_resource *res;
-	struct nfp_hwinfo header;
 	u64 cpp_addr;
 	u32 cpp_id;
 	int err;
@@ -220,57 +219,35 @@ static int hwinfo_try_fetch(struct nfp_cpp *cpp, size_t *cpp_size)
 		return PTR_ERR(res);
 	}
 
-	area = nfp_cpp_area_alloc_with_name(cpp, cpp_id, "nfp.hwinfo",
-					    cpp_addr, *cpp_size);
-	if (!area)
-		return -EIO;
-
-	err = nfp_cpp_area_acquire(area);
-	if (err < 0)
-		goto exit_area_free;
-
-	err = nfp_cpp_area_read(area, 0, &header, sizeof(header));
-	if (err < 0) {
-		nfp_err(cpp, "Can't read header: %d\n", err);
-		goto exit_area_release;
-	}
-
-	if (nfp_hwinfo_is_updating(&header)) {
-		err = -EBUSY;
-		goto exit_area_release;
-	}
-
-	if (le32_to_cpu(header.version) != NFP_HWINFO_VERSION_2) {
-		nfp_err(cpp, "Unknown HWInfo version: 0x%08x\n",
-			le32_to_cpu(header.version));
-		err = -EINVAL;
-		goto exit_area_release;
-	}
-
 	db = kmalloc(*cpp_size + 1, GFP_KERNEL);
-	if (!db) {
-		err = -ENOMEM;
-		goto exit_area_release;
-	}
+	if (!db)
+		return -ENOMEM;
 
-	err = nfp_cpp_area_read(area, 0, db, *cpp_size);
+	err = nfp_cpp_read(cpp, cpp_id, cpp_addr, db, *cpp_size);
 	if (err != *cpp_size) {
 		kfree(db);
-		err = err < 0 ? err : -EIO;
-		goto exit_area_release;
+		return err < 0 ? err : -EIO;
 	}
-	err = 0;
+
+	header = (void *)db;
+	if (nfp_hwinfo_is_updating(header)) {
+		kfree(db);
+		return -EBUSY;
+	}
+
+	if (le32_to_cpu(header->version) != NFP_HWINFO_VERSION_2) {
+		nfp_err(cpp, "Unknown HWInfo version: 0x%08x\n",
+			le32_to_cpu(header->version));
+		kfree(db);
+		return -EINVAL;
+	}
+
 	/* NULL-terminate for safety */
 	db[*cpp_size] = '\0';
 
 	nfp_hwinfo_cache_set(cpp, db);
 
-exit_area_release:
-	nfp_cpp_area_release(area);
-exit_area_free:
-	nfp_cpp_area_free(area);
-
-	return err;
+	return 0;
 }
 
 static int hwinfo_fetch(struct nfp_cpp *cpp, size_t *hwdb_size)
