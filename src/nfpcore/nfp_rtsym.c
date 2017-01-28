@@ -262,66 +262,48 @@ const struct nfp_rtsym *nfp_rtsym_lookup(struct nfp_cpp *cpp, const char *name)
  *
  * Lookup a symbol, map, read it and return it's value. Value of the symbol
  * will be interpreted as a simple little-endian unsigned value. Symbol can
- * be 1, 2, 4 or 8 bytes in size.
+ * be 4 or 8 bytes in size.
  *
  * Return: value read, on error sets the error and returns ~0ULL.
  */
 u64 nfp_rtsym_read_le(struct nfp_cpp *cpp, const char *name, int *error)
 {
 	const struct nfp_rtsym *sym;
-	struct nfp_cpp_area *area;
-	void __iomem *ptr;
-	int err;
+	u32 val32, id;
 	u64 val;
-	u32 id;
+	int err;
 
 	sym = nfp_rtsym_lookup(cpp, name);
-	if (!sym) {
-		err = -ENOENT;
-		goto err;
-	}
+	if (!sym)
+		return -ENOENT;
 
 	id = NFP_CPP_ISLAND_ID(sym->target, NFP_CPP_ACTION_RW, 0, sym->domain);
-	area = nfp_cpp_area_alloc_acquire(cpp, id, sym->addr, sym->size);
-	if (IS_ERR_OR_NULL(area)) {
-		err = area ? PTR_ERR(area) : -ENOMEM;
-		goto err;
-	}
-
-	ptr = nfp_cpp_area_iomem(area);
-	if (IS_ERR_OR_NULL(ptr)) {
-		err = ptr ? PTR_ERR(ptr) : -ENOMEM;
-		goto err_release_free;
-	}
 
 	switch (sym->size) {
-	case 1:
-		val = readb(ptr);
-		break;
-	case 2:
-		val = readw(ptr);
-		break;
 	case 4:
-		val = readl(ptr);
+		err = nfp_cpp_readl(cpp, id, sym->addr, &val32);
+		val = val32;
 		break;
 	case 8:
-		val = readq(ptr);
+		err = nfp_cpp_readq(cpp, id, sym->addr, &val);
 		break;
 	default:
-		nfp_err(cpp, "rtsym '%s' non-scalar size: %lld\n",
+		nfp_err(cpp,
+			"rtsym '%s' unsupported or non-scalar size: %lld\n",
 			name, sym->size);
 		err = -EINVAL;
-		goto err_release_free;
+		break;
 	}
 
-	nfp_cpp_area_release_free(area);
+	if (err == sym->size)
+		err = 0;
+	else if (err >= 0)
+		err = -EIO;
 
-	return val;
-
-err_release_free:
-	nfp_cpp_area_release_free(area);
-err:
 	if (error)
 		*error = err;
-	return ~0ULL;
+
+	if (err)
+		return ~0ULL;
+	return val;
 }
