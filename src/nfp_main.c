@@ -381,7 +381,7 @@ static int nfp_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
 	}
 
 	err = nfp_nsp_wait(nsp);
-	if (err)
+	if (err < 0)
 		goto exit_nsp_close;
 
 	dev_info(&pdev->dev, "NFP soft-reset (implied:%d forced:%d)\n",
@@ -396,8 +396,7 @@ static int nfp_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
 	if (fw) {
 		err = nfp_nsp_load_fw(nsp, fw);
 		if (err < 0) {
-			dev_err(&pdev->dev, "FW loading failed: %d\n",
-				err);
+			dev_err(&pdev->dev, "FW loading failed: %d\n", err);
 			goto exit_nsp_close;
 		}
 
@@ -409,7 +408,7 @@ exit_nsp_close:
 exit_release_fw:
 	release_firmware(fw);
 
-	return err ?: !!fw;
+	return err < 0 ? err : !!fw;
 }
 
 static void nfp_fw_unload(struct nfp_pf *pf)
