@@ -70,8 +70,7 @@ static int hwinfo_debug;
 module_param(hwinfo_debug, int, S_IRUGO);
 MODULE_PARM_DESC(hwinfo_debug, "Enable to log hwinfo contents on load");
 
-/*
- * The Hardware Info Table defines the properties of the system.
+/* The Hardware Info Table defines the properties of the system.
  *
  * HWInfo v1 Table (fixed size)
  *

@@ -31,8 +31,7 @@
  * SOFTWARE.
  */
 
-/*
- * Authors: David Brunecz <david.brunecz@netronome.com>
+/* Authors: David Brunecz <david.brunecz@netronome.com>
  *          Jakub Kicinski <jakub.kicinski@netronome.com>
  *          Jason Mcmullan <jason.mcmullan@netronome.com>
  */

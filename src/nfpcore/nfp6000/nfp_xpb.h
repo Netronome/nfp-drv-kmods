@@ -39,8 +39,7 @@
 #ifndef NFP6000_XPB_H
 #define NFP6000_XPB_H
 
-/*
- * For use with NFP6000 Databook "XPB Addressing" section
+/* For use with NFP6000 Databook "XPB Addressing" section
  */
 #define NFP_XPB_OVERLAY(island)  (((island) & 0x3f) << 24)
 
@@ -48,8 +47,7 @@
 
 #define NFP_XPB_ISLAND_of(offset) (((offset) >> 24) & 0x3F)
 
-/*
- * For use with NFP6000 Databook "XPB Island and Device IDs" chapter
+/* For use with NFP6000 Databook "XPB Island and Device IDs" chapter
  */
 #define NFP_XPB_DEVICE(island, slave, device) \
 	(NFP_XPB_OVERLAY(island) | \

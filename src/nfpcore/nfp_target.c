@@ -355,8 +355,7 @@ int nfp_target_pushpull(u32 cpp_id, u64 address)
 #undef P32
 #undef P64
 
-/*
- * All magic NFP-6xxx IMB 'mode' numbers here are from:
+/* All magic NFP-6xxx IMB 'mode' numbers here are from:
  * Databook (1 August 2013)
  * - System Overview and Connectivity
  * -- Internal Connectivity
@@ -496,8 +495,7 @@ static int nfp_encode_basic_search(u64 *addr, int dest_island, int *isld,
 	return -ENODEV;
 }
 
-/*
- * For VQDR, we may not modify the Channel bits, which might overlap
+/* For VQDR, we may not modify the Channel bits, which might overlap
  *  with the Index bit. When it does, we need to ensure that isld0 == isld1.
  */
 static int nfp_encode_basic(u64 *addr, int dest_island, int cpp_tgt,

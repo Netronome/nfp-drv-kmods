@@ -60,8 +60,7 @@
 
 #define PCI_64BIT_BAR_COUNT             3
 
-/*
- * NFP hardware vendor/device ids.
+/* NFP hardware vendor/device ids.
  */
 #define PCI_DEVICE_NFP4000              0x4000
 #define PCI_DEVICE_NFP6000              0x6000
@@ -86,8 +85,7 @@ struct nfp_cpp;
  */
 struct resource;
 
-/*
- * Wildcard indicating a CPP read or write action
+/* Wildcard indicating a CPP read or write action
  *
  * The action used will be either read or write depending on whether a
  * read or write instruction/call is performed on the NFP_CPP_ID.  It
@@ -228,8 +226,7 @@ static inline int NFP_CPP_STEPPING_decode(const char *_str_major_minor)
 	((0x4000 <= NFP_CPP_MODEL_CHIP_of(model)) && \
 	 (NFP_CPP_MODEL_CHIP_of(model) < 0x7000))
 
-/*
- * NFP Interface types - logical interface for this CPP connection
+/* NFP Interface types - logical interface for this CPP connection
  * 4 bits are reserved for interface type.
  */
 #define NFP_CPP_INTERFACE_TYPE_INVALID      0x0
@@ -477,13 +474,11 @@ void *nfp_cpp_priv(struct nfp_cpp *priv);
 
 int nfp_cpp_area_cache_add(struct nfp_cpp *cpp, size_t size);
 
-/*
- * The following section contains extensions to the
+/* The following section contains extensions to the
  * NFP CPP API, to be used in a Linux kernel-space context.
  */
 
-/*
- * Use this channel ID for multiple virtual channel interfaces
+/* Use this channel ID for multiple virtual channel interfaces
  * (ie ARM and PCIe) when setting up the interface field.
  */
 #define NFP_CPP_INTERFACE_CHANNEL_PEROPENER	255
@@ -496,8 +491,7 @@ void *nfp_cpp_event_priv(struct nfp_cpp_event *cpp_event);
 
 u64 nfp_cpp_island_mask(struct nfp_cpp *cpp);
 
-/*
- * Return code masks for nfp_cpp_explicit_do()
+/* Return code masks for nfp_cpp_explicit_do()
  */
 #define NFP_SIGNAL_MASK_A	BIT(0)	/* Signal A fired */
 #define NFP_SIGNAL_MASK_B	BIT(1)	/* Signal B fired */

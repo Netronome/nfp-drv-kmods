@@ -332,9 +332,6 @@ nfp_net_pf_init_port_netdev(struct nfp_pf *pf, struct nfp_net *nn,
 	 */
 	nn->me_freq_mhz = 1200;
 
-	/*
-	 * Finalise
-	 */
 	err = nfp_net_netdev_init(nn->netdev);
 	if (err)
 		return err;

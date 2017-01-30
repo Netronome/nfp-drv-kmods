@@ -725,8 +725,7 @@ static int bar_cmp(const void *aptr, const void *bptr)
 		return a->bitsize - b->bitsize;
 }
 
-/*
- * Map all PCI bars and fetch the actual BAR configurations from the
+/* Map all PCI bars and fetch the actual BAR configurations from the
  * board.  We assume that the BAR with the PCIe config block is
  * already mapped.
  *
