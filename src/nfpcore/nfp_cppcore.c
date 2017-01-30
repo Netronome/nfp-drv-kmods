@@ -223,7 +223,55 @@ static void nfp_cpp_id_release(int id)
 	mutex_unlock(&nfp_cpp_id_lock);
 }
 
-static void __release_cpp_area(struct kref *kref);
+static void __resource_add(struct list_head *head, struct nfp_cpp_resource *res)
+{
+	struct nfp_cpp_resource *tmp;
+	struct list_head *pos;
+
+	list_for_each(pos, head) {
+		tmp = container_of(pos, struct nfp_cpp_resource, list);
+
+		if (tmp->cpp_id > res->cpp_id)
+			break;
+
+		if (tmp->cpp_id == res->cpp_id && tmp->start > res->start)
+			break;
+	}
+
+	list_add_tail(&res->list, pos);
+}
+
+static void __resource_del(struct nfp_cpp_resource *res)
+{
+	list_del_init(&res->list);
+}
+
+static void __release_cpp_area(struct kref *kref)
+{
+	struct nfp_cpp_area *area =
+		container_of(kref, struct nfp_cpp_area, kref);
+	struct nfp_cpp *cpp = nfp_cpp_area_cpp(area);
+
+	if (area->cpp->op->area_cleanup)
+		area->cpp->op->area_cleanup(area);
+
+	write_lock(&cpp->resource_lock);
+	__resource_del(&area->resource);
+	write_unlock(&cpp->resource_lock);
+	kfree(area);
+}
+
+static void nfp_cpp_area_put(struct nfp_cpp_area *area)
+{
+	kref_put(&area->kref, __release_cpp_area);
+}
+
+static struct nfp_cpp_area *nfp_cpp_area_get(struct nfp_cpp_area *area)
+{
+	kref_get(&area->kref);
+
+	return area;
+}
 
 static void __nfp_cpp_release(struct kref *kref)
 {
@@ -431,56 +479,6 @@ void nfp_nffw_cache_flush(struct nfp_cpp *cpp)
 {
 	kfree(nfp_rtsym_cache(cpp));
 	nfp_rtsym_cache_set(cpp, NULL);
-}
-
-static void __resource_add(struct list_head *head, struct nfp_cpp_resource *res)
-{
-	struct nfp_cpp_resource *tmp;
-	struct list_head *pos;
-
-	list_for_each(pos, head) {
-		tmp = container_of(pos, struct nfp_cpp_resource, list);
-
-		if (tmp->cpp_id > res->cpp_id)
-			break;
-
-		if (tmp->cpp_id == res->cpp_id && tmp->start > res->start)
-			break;
-	}
-
-	list_add_tail(&res->list, pos);
-}
-
-static void __resource_del(struct nfp_cpp_resource *res)
-{
-	list_del_init(&res->list);
-}
-
-static void __release_cpp_area(struct kref *kref)
-{
-	struct nfp_cpp_area *area =
-		container_of(kref, struct nfp_cpp_area, kref);
-	struct nfp_cpp *cpp = nfp_cpp_area_cpp(area);
-
-	if (area->cpp->op->area_cleanup)
-		area->cpp->op->area_cleanup(area);
-
-	write_lock(&cpp->resource_lock);
-	__resource_del(&area->resource);
-	write_unlock(&cpp->resource_lock);
-	kfree(area);
-}
-
-static void nfp_cpp_area_put(struct nfp_cpp_area *area)
-{
-	kref_put(&area->kref, __release_cpp_area);
-}
-
-static struct nfp_cpp_area *nfp_cpp_area_get(struct nfp_cpp_area *area)
-{
-	kref_get(&area->kref);
-
-	return area;
 }
 
 /**
