@@ -87,6 +87,42 @@ struct nfp_resource {
 	struct nfp_cpp_mutex *mutex;
 };
 
+/**
+ * nfp_device_lock() - perform an advisory lock on the NFP device
+ * @cpp:	NFP CPP handle
+ *
+ * Return mutex on success, or NULL on failure
+ */
+static struct nfp_cpp_mutex *nfp_device_lock(struct nfp_cpp *cpp)
+{
+	struct nfp_cpp_mutex *mutex;
+
+	mutex = nfp_cpp_mutex_alloc(cpp, NFP_RESOURCE_TBL_TARGET,
+				    NFP_RESOURCE_TBL_BASE,
+				    NFP_RESOURCE_TBL_KEY);
+	if (!mutex)
+		return NULL;
+
+	if (nfp_cpp_mutex_lock(mutex)) {
+		nfp_cpp_mutex_free(mutex);
+		return NULL;
+	}
+
+	return mutex;
+}
+
+/**
+ * nfp_device_unlock() - perform an advisory unlock on the NFP device
+ * @cpp:	NFP CPP handle
+ * @mutex:	Device mutex returned from nfp_device_lock()
+ */
+static void nfp_device_unlock(struct nfp_cpp *cpp, struct nfp_cpp_mutex *mutex)
+{
+	if (nfp_cpp_mutex_unlock(mutex))
+		nfp_err(cpp, "Failed to unlock device mutex!\n");
+	nfp_cpp_mutex_free(mutex);
+}
+
 static int nfp_cpp_resource_find(struct nfp_cpp *cpp, const char *name,
 				 struct nfp_resource *res)
 {

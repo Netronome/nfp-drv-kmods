@@ -45,11 +45,6 @@
 
 #include "nfp_cpp.h"
 
-/* Implemented in nfp_device.c */
-
-struct nfp_cpp_mutex *nfp_device_lock(struct nfp_cpp *cpp);
-void nfp_device_unlock(struct nfp_cpp *cpp, struct nfp_cpp_mutex *mutex);
-
 /* Implemented in nfp_hwinfo.c */
 
 const char *nfp_hwinfo_lookup(struct nfp_cpp *cpp, const char *lookup);
