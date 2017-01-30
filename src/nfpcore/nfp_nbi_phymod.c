@@ -329,13 +329,13 @@ int nfp_phymod_eth_write_disable(struct nfp_phymod_eth *eth,
 	idx = priv->eth_idx;
 	control = le64_to_cpu(priv->eths[idx].control);
 
-	if (!!txstate == !!(NSP_ETH_TX_STATE_ENABLED & control))
+	if (!txstate == !!(NSP_ETH_TX_STATE_ENABLED & control))
 		return 0;
 
 	if (txstate)
-		control |= NSP_ETH_TX_STATE_ENABLED;
-	else
 		control &= ~NSP_ETH_TX_STATE_ENABLED;
+	else
+		control |= NSP_ETH_TX_STATE_ENABLED;
 
 	priv->eths[idx].control = cpu_to_le64(control);
 
