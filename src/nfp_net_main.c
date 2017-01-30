@@ -99,11 +99,12 @@ static u8 __iomem *nfp_net_map_area(struct nfp_cpp *cpp,
 				    struct nfp_cpp_area **area)
 {
 	u8 __iomem *res;
+	u32 dest;
 	int err;
 
-	*area = nfp_cpp_area_alloc_with_name(
-		cpp, NFP_CPP_ISLAND_ID(target, NFP_CPP_ACTION_RW, 0, isl),
-		name, addr, size);
+	dest = NFP_CPP_ISLAND_ID(target, NFP_CPP_ACTION_RW, 0, isl);
+
+	*area = nfp_cpp_area_alloc_with_name(cpp, dest, name, addr, size);
 	if (!*area) {
 		err = -EIO;
 		goto err_area;
