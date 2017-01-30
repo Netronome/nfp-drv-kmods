@@ -279,15 +279,15 @@ int nfp_phymod_eth_get_speed(struct nfp_phymod_eth *eth, int *speed)
 /**
  * nfp_phymod_eth_read_disable() - Read PHY Disable state for an eth port
  * @eth:	PHY module ethernet interface
- * @txstatus:	 Disable status for the ethernet port
- * @rxstatus:	Disable status for the ethernet port, not implemented
+ * @tx_disable:	Disable status for the ethernet port
+ * @rx_disable:	Disable status for the ethernet port, not implemented
  *
- * For both rxstatus and txstatus, 0 = active, 1 = disabled
+ * For both rx_disable and tx_disable, 0 = active, 1 = disabled
  *
  * Return: 0, or -ERRNO
  */
 int nfp_phymod_eth_read_disable(struct nfp_phymod_eth *eth,
-				u32 *txstatus, u32 *rxstatus)
+				u32 *tx_disable, u32 *rx_disable)
 {
 	struct eth_priv *priv = (struct eth_priv *)eth;
 	int idx;
@@ -301,25 +301,25 @@ int nfp_phymod_eth_read_disable(struct nfp_phymod_eth *eth,
 	else
 		val = ~0;
 
-	if (txstatus)
-		*txstatus = val;
-	if (rxstatus)
-		*rxstatus = 0;
+	if (tx_disable)
+		*tx_disable = val;
+	if (rx_disable)
+		*rx_disable = 0;
 	return 0;
 }
 
 /**
  * nfp_phymod_eth_write_disable() - Write PHY Disable state for an eth port
  * @eth:	PHY module ethernet interface
- * @txstate:	Disable states for the ethernet port
- * @rxstate:	Disable states for the ethernet port, not implemented
+ * @tx_disable:	Disable states for the ethernet port
+ * @rx_disable:	Disable states for the ethernet port, not implemented
  *
- * For both rxstatus and txstatus, 0 = active, 1 = disabled
+ * For both rx_disable and tx_disable, 0 = active, 1 = disabled
  *
  * Return: 0, or -ERRNO
  */
 int nfp_phymod_eth_write_disable(struct nfp_phymod_eth *eth,
-				 u32 txstate, u32 rxstate)
+				 u32 tx_disable, u32 rx_disable)
 {
 	struct eth_priv *priv;
 	int idx, err;
@@ -329,10 +329,10 @@ int nfp_phymod_eth_write_disable(struct nfp_phymod_eth *eth,
 	idx = priv->eth_idx;
 	control = le64_to_cpu(priv->eths[idx].control);
 
-	if (!txstate == !!(NSP_ETH_TX_STATE_ENABLED & control))
+	if (!tx_disable == !!(NSP_ETH_TX_STATE_ENABLED & control))
 		return 0;
 
-	if (txstate)
+	if (tx_disable)
 		control &= ~NSP_ETH_TX_STATE_ENABLED;
 	else
 		control |= NSP_ETH_TX_STATE_ENABLED;
