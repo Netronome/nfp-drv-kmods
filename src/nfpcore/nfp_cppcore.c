@@ -1454,10 +1454,8 @@ nfp_cpp_from_operations(const struct nfp_cpp_operations *ops,
 	cpp->op = ops;
 	cpp->priv = priv;
 	cpp->interface = ops->get_interface(parent);
-	if (ops->read_serial) {
+	if (ops->read_serial)
 		ops->read_serial(parent, cpp->serial);
-		dev_info(parent, "Serial Number: %pM\n", cpp->serial);
-	}
 	kref_init(&cpp->kref);
 	rwlock_init(&cpp->resource_lock);
 	init_waitqueue_head(&cpp->waitq);
@@ -1522,8 +1520,8 @@ nfp_cpp_from_operations(const struct nfp_cpp_operations *ops,
 	list_add_tail(&cpp->list, &nfp_cpp_list);
 	write_unlock(&nfp_cpp_list_lock);
 
-	dev_info(cpp->dev.parent, "Model: 0x%08x, Interface: 0x%04x\n",
-		 nfp_cpp_model(cpp), nfp_cpp_interface(cpp));
+	dev_info(cpp->dev.parent, "Model: 0x%08x, SN: %pM, Ifc: 0x%04x\n",
+		 nfp_cpp_model(cpp), cpp->serial, nfp_cpp_interface(cpp));
 
 	return cpp;
 

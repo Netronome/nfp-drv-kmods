@@ -364,7 +364,7 @@ int nfp_nsp_wait(struct nfp_nsp *state)
 	const unsigned long wait_until = jiffies + 30 * HZ;
 	int err;
 
-	nfp_info(state->cpp, "Waiting for NSP to respond (30 sec max).\n");
+	nfp_dbg(state->cpp, "Waiting for NSP to respond (30 sec max).\n");
 
 	for (;;) {
 		const unsigned long start_time = jiffies;
