@@ -178,7 +178,7 @@ static void *nfp_nbi_priv_con(struct nfp_device *dev)
 		char tx_flags_name[32];
 
 		snprintf(tx_flags_name, sizeof(tx_flags_name),
-			 "i%2x.pause_poll_tx_flush_flags", i);
+			 "i%d.pause_poll_tx_flush_flags", i);
 		tx_flags_name[sizeof(tx_flags_name) - 1] = 0;
 
 		sym = nfp_rtsym_lookup(dev, tx_flags_name);
