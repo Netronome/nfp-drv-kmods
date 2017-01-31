@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Netronome Systems, Inc.
+ * Copyright (C) 2015-2017 Netronome Systems, Inc.
  *
  * This software is dual licensed under the GNU General License Version 2,
  * June 1991 as shown in the file COPYING in the top-level directory of this
@@ -703,7 +703,7 @@ static int __init nfp_main_init(void)
 {
 	int err;
 
-	pr_info("%s: NFP PCIe Driver, Copyright (C) 2014-2015 Netronome Systems\n",
+	pr_info("%s: NFP PCIe Driver, Copyright (C) 2014-2017 Netronome Systems\n",
 		nfp_driver_name);
 	pr_info(NFP_BUILD_DESCRIPTION(nfp));
 
