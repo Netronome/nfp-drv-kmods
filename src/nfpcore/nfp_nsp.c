@@ -282,7 +282,8 @@ static int nfp_nsp_command(struct nfp_nsp *state, u16 code, u32 option,
 
 	err = FIELD_GET(NSP_STATUS_RESULT, reg);
 	if (err) {
-		nfp_warn(cpp, "Result code set: %d\n", err);
+		nfp_warn(cpp, "Result (error) code set: %d command: %d\n",
+			 -err, code);
 		return -err;
 	}
 
@@ -324,8 +325,8 @@ static int nfp_nsp_command_buf(struct nfp_nsp *nsp, u16 code, u32 option,
 
 	max_size = max(in_size, out_size);
 	if (FIELD_GET(NSP_DFLT_BUFFER_SIZE_MB, reg) * SZ_1M < max_size) {
-		nfp_err(cpp, "NSP: default buffer too small for command (%llu < %u)\n",
-			FIELD_GET(NSP_DFLT_BUFFER_SIZE_MB, reg) * SZ_1M,
+		nfp_err(cpp, "NSP: default buffer too small for command 0x%04x (%llu < %u)\n",
+			code, FIELD_GET(NSP_DFLT_BUFFER_SIZE_MB, reg) * SZ_1M,
 			max_size);
 		return -EINVAL;
 	}
