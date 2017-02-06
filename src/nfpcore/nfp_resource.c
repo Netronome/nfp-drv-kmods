@@ -36,6 +36,7 @@
  * Author: Jakub Kicinski <jakub.kicinski@netronome.com>
  *         Jason McMullan <jason.mcmullan@netronome.com>
  */
+#include <linux/delay.h>
 #include <linux/kernel.h>
 #include <linux/slab.h>
 
@@ -87,42 +88,6 @@ struct nfp_resource {
 	struct nfp_cpp_mutex *mutex;
 };
 
-/**
- * nfp_device_lock() - perform an advisory lock on the NFP device
- * @cpp:	NFP CPP handle
- *
- * Return mutex on success, or NULL on failure
- */
-static struct nfp_cpp_mutex *nfp_device_lock(struct nfp_cpp *cpp)
-{
-	struct nfp_cpp_mutex *mutex;
-
-	mutex = nfp_cpp_mutex_alloc(cpp, NFP_RESOURCE_TBL_TARGET,
-				    NFP_RESOURCE_TBL_BASE,
-				    NFP_RESOURCE_TBL_KEY);
-	if (!mutex)
-		return NULL;
-
-	if (nfp_cpp_mutex_lock(mutex)) {
-		nfp_cpp_mutex_free(mutex);
-		return NULL;
-	}
-
-	return mutex;
-}
-
-/**
- * nfp_device_unlock() - perform an advisory unlock on the NFP device
- * @cpp:	NFP CPP handle
- * @mutex:	Device mutex returned from nfp_device_lock()
- */
-static void nfp_device_unlock(struct nfp_cpp *cpp, struct nfp_cpp_mutex *mutex)
-{
-	if (nfp_cpp_mutex_unlock(mutex))
-		nfp_err(cpp, "Failed to unlock device mutex!\n");
-	nfp_cpp_mutex_free(mutex);
-}
-
 static int nfp_cpp_resource_find(struct nfp_cpp *cpp, const char *name,
 				 struct nfp_resource *res)
 {
@@ -167,6 +132,35 @@ static int nfp_cpp_resource_find(struct nfp_cpp *cpp, const char *name,
 	return -ENOENT;
 }
 
+static int
+nfp_resource_try_acquire(struct nfp_cpp *cpp, struct nfp_resource *res,
+			 struct nfp_cpp_mutex *dev_mutex)
+{
+	int err;
+
+	if (nfp_cpp_mutex_lock(dev_mutex))
+		return -EINVAL;
+
+	err = nfp_cpp_resource_find(cpp, res->name, res);
+	if (err)
+		goto err_unlock_dev;
+
+	err = nfp_cpp_mutex_trylock(res->mutex);
+	if (err)
+		goto err_res_mutex_free;
+
+	nfp_cpp_mutex_unlock(dev_mutex);
+
+	return 0;
+
+err_res_mutex_free:
+	nfp_cpp_mutex_free(res->mutex);
+err_unlock_dev:
+	nfp_cpp_mutex_unlock(dev_mutex);
+
+	return err;
+}
+
 /**
  * nfp_resource_acquire() - Acquire a resource handle
  * @cpp:	NFP CPP handle
@@ -179,6 +173,7 @@ static int nfp_cpp_resource_find(struct nfp_cpp *cpp, const char *name,
 struct nfp_resource *
 nfp_resource_acquire(struct nfp_cpp *cpp, const char *name)
 {
+	unsigned long warn_at = jiffies + 15 * HZ;
 	struct nfp_cpp_mutex *dev_mutex;
 	struct nfp_resource *res;
 	int err;
@@ -189,29 +184,40 @@ nfp_resource_acquire(struct nfp_cpp *cpp, const char *name)
 
 	strncpy(res->name, name, NFP_RESOURCE_ENTRY_NAME_SZ);
 
-	dev_mutex = nfp_device_lock(cpp);
+	dev_mutex = nfp_cpp_mutex_alloc(cpp, NFP_RESOURCE_TBL_TARGET,
+					NFP_RESOURCE_TBL_BASE,
+					NFP_RESOURCE_TBL_KEY);
 	if (!dev_mutex) {
-		err = -ENOMEM;
-		goto err_free_res;
+		kfree(res);
+		return ERR_PTR(-ENOMEM);
 	}
 
-	err = nfp_cpp_resource_find(cpp, name, res);
-	if (err)
-		goto err_unlock_dev;
+	for (;;) {
+		err = nfp_resource_try_acquire(cpp, res, dev_mutex);
+		if (!err)
+			break;
+		if (err != -EBUSY)
+			goto err_free;
 
-	err = nfp_cpp_mutex_lock(res->mutex);
-	if (err)
-		goto err_res_mutex_free;
+		err = msleep_interruptible(1);
+		if (err != 0) {
+			err = -ERESTARTSYS;
+			goto err_free;
+		}
 
-	nfp_device_unlock(cpp, dev_mutex);
+		if (time_is_before_eq_jiffies(warn_at)) {
+			warn_at = jiffies + 60 * HZ;
+			nfp_warn(cpp, "Warning: waiting for NFP resource %s\n",
+				 name);
+		}
+	}
+
+	nfp_cpp_mutex_free(dev_mutex);
 
 	return res;
 
-err_res_mutex_free:
-	nfp_cpp_mutex_free(res->mutex);
-err_unlock_dev:
-	nfp_device_unlock(cpp, dev_mutex);
-err_free_res:
+err_free:
+	nfp_cpp_mutex_free(dev_mutex);
 	kfree(res);
 	return ERR_PTR(err);
 }
