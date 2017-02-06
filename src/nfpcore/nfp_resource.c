@@ -88,8 +88,7 @@ struct nfp_resource {
 	struct nfp_cpp_mutex *mutex;
 };
 
-static int nfp_cpp_resource_find(struct nfp_cpp *cpp, const char *name,
-				 struct nfp_resource *res)
+static int nfp_cpp_resource_find(struct nfp_cpp *cpp, struct nfp_resource *res)
 {
 	char name_pad[NFP_RESOURCE_ENTRY_NAME_SZ] = {};
 	struct nfp_resource_entry entry;
@@ -98,7 +97,7 @@ static int nfp_cpp_resource_find(struct nfp_cpp *cpp, const char *name,
 
 	cpp_id = NFP_CPP_ID(NFP_RESOURCE_TBL_TARGET, 3, 0);  /* Atomic read */
 
-	strncpy(name_pad, name, sizeof(name_pad));
+	strncpy(name_pad, res->name, sizeof(name_pad));
 
 	/* Search for a matching entry */
 	key = NFP_RESOURCE_TBL_KEY;
@@ -141,7 +140,7 @@ nfp_resource_try_acquire(struct nfp_cpp *cpp, struct nfp_resource *res,
 	if (nfp_cpp_mutex_lock(dev_mutex))
 		return -EINVAL;
 
-	err = nfp_cpp_resource_find(cpp, res->name, res);
+	err = nfp_cpp_resource_find(cpp, res);
 	if (err)
 		goto err_unlock_dev;
 
