@@ -1981,7 +1981,7 @@ int nfp_cpp_mutex_lock(struct nfp_cpp_mutex *mutex)
 		}
 	}
 
-	return 0;
+	return err;
 }
 
 /**
