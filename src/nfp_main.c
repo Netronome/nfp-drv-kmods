@@ -39,11 +39,16 @@
  *          Rolf Neugebauer <rolf.neugebauer@netronome.com>
  */
 
+#include "nfpcore/kcompat.h"
+
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/pci.h>
 #include <linux/firmware.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
+#include <net/devlink.h>
+#endif
 
 #include "nfp_modinfo.h"
 
@@ -67,6 +72,7 @@ MODULE_PARM_DESC(nfp_pf_netdev, "Create netdevs on PF (requires appropriate firm
 #endif
 #else
 static const bool nfp_pf_netdev;
+const struct devlink_ops nfp_devlink_ops;
 #endif /* CONFIG_NFP_NET_PF */
 
 static int nfp_fallback = -1;
@@ -523,6 +529,7 @@ static void nfp_register_vnic(struct nfp_pf *pf)
 static int nfp_pci_probe(struct pci_dev *pdev,
 			 const struct pci_device_id *pci_id)
 {
+	struct devlink *devlink;
 	struct nfp_pf *pf;
 	int err, irq;
 
@@ -543,11 +550,12 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 		goto err_pci_disable;
 	}
 
-	pf = kzalloc(sizeof(*pf), GFP_KERNEL);
-	if (!pf) {
+	devlink = devlink_alloc(&nfp_devlink_ops, sizeof(*pf));
+	if (!devlink) {
 		err = -ENOMEM;
 		goto err_rel_regions;
 	}
+	pf = devlink_priv(devlink);
 	INIT_LIST_HEAD(&pf->vnics);
 	INIT_LIST_HEAD(&pf->ports);
 	mutex_init(&pf->lock);
@@ -580,10 +588,14 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 		 nfp_hwinfo_lookup(pf->cpp, "assembly.revision"),
 		 nfp_hwinfo_lookup(pf->cpp, "cpld.version"));
 
+	err = devlink_register(devlink, &pdev->dev);
+	if (err)
+		goto err_cpp_free;
+
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
 	err = nfp_sriov_attr_add(&pdev->dev);
 	if (err < 0)
-		goto err_cpp_free;
+		goto err_devlink_unreg;
 #endif
 	err = nfp_nsp_init(pdev, pf);
 	if (err)
@@ -621,15 +633,17 @@ err_dev_cpp_unreg:
 err_sriov_remove:
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
 	nfp_sriov_attr_remove(&pdev->dev);
-err_cpp_free:
+err_devlink_unreg:
 #endif
+	devlink_unregister(devlink);
+err_cpp_free:
 	nfp_cpp_free(pf->cpp);
 err_disable_msix:
 	if (pdev->msix_enabled)
 		pci_disable_msix(pdev);
 	pci_set_drvdata(pdev, NULL);
 	mutex_destroy(&pf->lock);
-	kfree(pf);
+	devlink_free(devlink);
 err_rel_regions:
 	pci_release_regions(pdev);
 err_pci_disable:
@@ -641,6 +655,9 @@ err_pci_disable:
 static void nfp_pci_remove(struct pci_dev *pdev)
 {
 	struct nfp_pf *pf = pci_get_drvdata(pdev);
+	struct devlink *devlink;
+
+	devlink = priv_to_devlink(pf);
 
 	if (nfp_pf_netdev)
 		nfp_net_pci_remove(pf);
@@ -653,6 +670,8 @@ static void nfp_pci_remove(struct pci_dev *pdev)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0) && defined(CONFIG_PCI_IOV)
 	nfp_sriov_attr_remove(&pdev->dev);
 #endif
+
+	devlink_unregister(devlink);
 
 	if (nfp_reset_on_exit || (nfp_pf_netdev && pf->fw_loaded))
 		nfp_fw_unload(pf);
@@ -668,7 +687,7 @@ static void nfp_pci_remove(struct pci_dev *pdev)
 
 	kfree(pf->eth_tbl);
 	mutex_destroy(&pf->lock);
-	kfree(pf);
+	devlink_free(devlink);
 	pci_release_regions(pdev);
 	pci_disable_device(pdev);
 }

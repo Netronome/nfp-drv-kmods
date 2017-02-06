@@ -47,6 +47,7 @@
 #include <linux/workqueue.h>
 
 struct dentry;
+struct devlink_ops;
 struct pci_dev;
 struct platform_device;
 
@@ -118,6 +119,8 @@ extern int nfp_dev_cpp;
 extern bool nfp_net_vnic;
 
 extern struct pci_driver nfp_netvf_pci_driver;
+
+extern const struct devlink_ops nfp_devlink_ops;
 
 #ifdef CONFIG_NFP_NET_PF
 int nfp_net_pci_probe(struct nfp_pf *pf, bool nfp_reset);

@@ -102,6 +102,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 
     nfp-objs += \
 		nfp_app.o \
+		nfp_devlink.o \
 		nfp_net_main.o
   endif
 

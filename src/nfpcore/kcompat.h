@@ -614,12 +614,57 @@ struct net_device *compat_alloc_netdev(int sizeof_priv,
 	list_for_each_entry((_desc), &(_dev)->dev.msi_list, list)
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0)
+struct devlink_ops {
+	int dummy;
+};
+
+struct devlink {
+	int dummy;
+};
+
+static inline struct devlink *
+devlink_alloc(const struct devlink_ops *ops, size_t priv_size)
+{
+	return kzalloc(priv_size, GFP_KERNEL);
+}
+
+static inline void *devlink_priv(struct devlink *p)
+{
+	return p;
+}
+
+static inline struct devlink *priv_to_devlink(void *p)
+{
+	return p;
+}
+
+static inline int devlink_register(struct devlink *p, struct device *d)
+{
+	return 0;
+}
+
+static inline void devlink_unregister(struct devlink *d) { }
+
+static inline void devlink_free(struct devlink *p)
+{
+	kfree(p);
+}
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 7, 0)
 static inline void
 netif_trans_update(struct net_device *netdev)
 {
 	netdev->trans_start = jiffies;
 }
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0)
+enum devlink_eswitch_mode {
+	DEVLINK_ESWITCH_MODE_LEGACY,
+	DEVLINK_ESWITCH_MODE_SWITCHDEV,
+};
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0)
