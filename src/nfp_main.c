@@ -796,6 +796,15 @@ static void __exit nfp_main_exit(void)
 module_init(nfp_main_init);
 module_exit(nfp_main_exit);
 
+MODULE_FIRMWARE("netronome/nic_AMDA0081-0001_1x40.nffw");
+MODULE_FIRMWARE("netronome/nic_AMDA0081-0001_4x10.nffw");
+MODULE_FIRMWARE("netronome/nic_AMDA0096-0001_2x10.nffw");
+MODULE_FIRMWARE("netronome/nic_AMDA0097-0001_2x40.nffw");
+MODULE_FIRMWARE("netronome/nic_AMDA0097-0001_4x10_1x40.nffw");
+MODULE_FIRMWARE("netronome/nic_AMDA0097-0001_8x10.nffw");
+MODULE_FIRMWARE("netronome/nic_AMDA0099-0001_2x10.nffw");
+MODULE_FIRMWARE("netronome/nic_AMDA0099-0001_2x25.nffw");
+
 MODULE_AUTHOR("Netronome Systems <oss-drivers@netronome.com>");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("The Netronome Flow Processor (NFP) driver.");
