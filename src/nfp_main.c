@@ -108,10 +108,6 @@ static char *nfp6000_firmware;
 module_param(nfp6000_firmware, charp, 0444);
 MODULE_PARM_DESC(nfp6000_firmware, "(non-netdev mode) NFP6000 firmware to load from /lib/firmware/ (default = unset to not load FW)");
 
-/* Default FW names */
-#define NFP_NET_FW_DEFAULT	"nfp6000_net"
-MODULE_FIRMWARE("netronome/" NFP_NET_FW_DEFAULT ".nffw");
-
 static const char nfp_driver_name[] = "nfp";
 const char nfp_driver_version[] = NFP_SRC_VERSION;
 
@@ -301,21 +297,15 @@ static int nfp_net_fw_find(struct pci_dev *pdev, struct nfp_cpp *cpp,
 	*fwp = NULL;
 
 	fw_model = nfp_hwinfo_lookup(cpp, "assembly.partno");
-
-	if (fw_model) {
-		snprintf(fw_name,
-			 sizeof(fw_name), "netronome/%s.nffw", fw_model);
-		fw_name[sizeof(fw_name) - 1] = 0;
-		err = request_firmware(&fw, fw_name, &pdev->dev);
-	}
-	if (!fw_model || err < 0) {
-		snprintf(fw_name, sizeof(fw_name),
-			 "netronome/%s.nffw", NFP_NET_FW_DEFAULT);
-		fw_name[sizeof(fw_name) - 1] = 0;
-		err = request_firmware(&fw, fw_name, &pdev->dev);
+	if (!fw_model) {
+		dev_err(&pdev->dev, "Error: can't read part number\n");
+		return fw_load_required ? -EINVAL : 0;
 	}
 
-	if (err < 0)
+	snprintf(fw_name, sizeof(fw_name), "netronome/%s.nffw", fw_model);
+	fw_name[sizeof(fw_name) - 1] = 0;
+	err = request_firmware(&fw, fw_name, &pdev->dev);
+	if (err)
 		return fw_load_required ? err : 0;
 
 	dev_info(&pdev->dev, "Loading FW image: %s\n", fw_name);
