@@ -1596,8 +1596,6 @@ u64 nfp_cpp_island_mask(struct nfp_cpp *cpp)
 /**
  * nfp_cpp_explicit_acquire() - Acquire explicit access handle
  * @cpp:	NFP CPP handle
- * @data_ref:	Pointer to the resulting 'data_ref'
- * @signal_ref:	Pointer to the resulting 'signal_ref'
  *
  * The 'data_ref' and 'signal_ref' values are useful when
  * constructing the NFP_EXPL_CSR1 and NFP_EXPL_POST values.
