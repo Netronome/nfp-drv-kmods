@@ -336,18 +336,19 @@ static int nfp_fw_find(struct pci_dev *pdev, const struct firmware **fwp)
 /**
  * nfp_net_fw_load() - Load the firmware image
  * @pdev:       PCI Device structure
- * @cpp:	NFP CPP structure
+ * @pf:		NFP PF Device structure
+ * @nsp:	NFP SP handle
  *
  * Return: -ERRNO, 0 for no firmware loaded, 1 for firmware loaded
  */
-static int nfp_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
+static int
+nfp_fw_load(struct pci_dev *pdev, struct nfp_pf *pf, struct nfp_nsp *nsp)
 {
 	const struct firmware *fw;
-	struct nfp_nsp *nsp;
 	u16 interface;
 	int err;
 
-	interface = nfp_cpp_interface(cpp);
+	interface = nfp_cpp_interface(pf->cpp);
 	if (NFP_CPP_INTERFACE_UNIT_of(interface) != 0) {
 		/* Only Unit 0 should reset or load firmware */
 		dev_info(&pdev->dev, "Firmware will be loaded by partner\n");
@@ -357,22 +358,12 @@ static int nfp_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
 	if (!nfp_pf_netdev)
 		err = nfp_fw_find(pdev, &fw);
 	else
-		err = nfp_net_fw_find(pdev, cpp, &fw);
+		err = nfp_net_fw_find(pdev, pf->cpp, &fw);
 	if (err)
 		return err;
 
 	if (!fw && !nfp_reset)
 		return 0;
-
-	nsp = nfp_nsp_open(cpp);
-	if (IS_ERR(nsp)) {
-		err = PTR_ERR(nsp);
-		goto exit_release_fw;
-	}
-
-	err = nfp_nsp_wait(nsp);
-	if (err < 0)
-		goto exit_nsp_close;
 
 	dev_info(&pdev->dev, "NFP soft-reset (implied:%d forced:%d)\n",
 		 !!fw, nfp_reset);
@@ -380,21 +371,19 @@ static int nfp_fw_load(struct pci_dev *pdev, struct nfp_cpp *cpp)
 	if (err < 0) {
 		dev_err(&pdev->dev, "Failed to soft reset the NFP: %d\n",
 			err);
-		goto exit_nsp_close;
+		goto exit_release_fw;
 	}
 
 	if (fw) {
 		err = nfp_nsp_load_fw(nsp, fw);
 		if (err < 0) {
 			dev_err(&pdev->dev, "FW loading failed: %d\n", err);
-			goto exit_nsp_close;
+			goto exit_release_fw;
 		}
 
 		dev_info(&pdev->dev, "Finished loading FW image\n");
 	}
 
-exit_nsp_close:
-	nfp_nsp_close(nsp);
 exit_release_fw:
 	release_firmware(fw);
 
@@ -439,6 +428,7 @@ static void nfp_register_vnic(struct nfp_pf *pf)
 static int nfp_pci_probe(struct pci_dev *pdev,
 			 const struct pci_device_id *pci_id)
 {
+	struct nfp_nsp *nsp;
 	struct nfp_pf *pf;
 	int err, irq;
 
@@ -492,8 +482,20 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 	if (err < 0)
 		goto err_cpp_free;
 #endif
+	nsp = nfp_nsp_open(pf->cpp);
+	if (IS_ERR(nsp)) {
+		err = PTR_ERR(nsp);
+		goto err_sriov_remove;
+	}
 
-	err = nfp_fw_load(pdev, pf->cpp);
+	err = nfp_nsp_wait(nsp);
+	if (err < 0) {
+		nfp_nsp_close(nsp);
+		goto err_sriov_remove;
+	}
+
+	err = nfp_fw_load(pdev, pf, nsp);
+	nfp_nsp_close(nsp);
 	if (err < 0) {
 		dev_err(&pdev->dev, "Failed to load FW\n");
 		goto err_sriov_remove;
