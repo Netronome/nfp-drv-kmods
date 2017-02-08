@@ -300,14 +300,14 @@ static int nfp_net_fw_find(struct pci_dev *pdev, struct nfp_cpp *cpp,
 	fw_model = nfp_hwinfo_lookup(cpp, "assembly.partno");
 	if (!fw_model) {
 		dev_err(&pdev->dev, "Error: can't read part number\n");
-		return fw_load_required ? -EINVAL : 0;
+		return -EINVAL;
 	}
 
 	snprintf(fw_name, sizeof(fw_name), "netronome/%s.nffw", fw_model);
 	fw_name[sizeof(fw_name) - 1] = 0;
 	err = request_firmware(&fw, fw_name, &pdev->dev);
 	if (err)
-		return fw_load_required ? err : 0;
+		return err;
 
 	dev_info(&pdev->dev, "Loading FW image: %s\n", fw_name);
 	*fwp = fw;
@@ -327,7 +327,7 @@ static int nfp_fw_find(struct pci_dev *pdev, const struct firmware **fwp)
 
 	err = request_firmware(&fw, nfp6000_firmware, &pdev->dev);
 	if (err < 0)
-		return fw_load_required ? err : 0;
+		return err;
 
 	*fwp = fw;
 
@@ -361,7 +361,7 @@ nfp_fw_load(struct pci_dev *pdev, struct nfp_pf *pf, struct nfp_nsp *nsp)
 	else
 		err = nfp_net_fw_find(pdev, pf->cpp, &fw);
 	if (err)
-		return err;
+		return fw_load_required ? err : 0;
 
 	if (!fw && !nfp_reset)
 		return 0;
