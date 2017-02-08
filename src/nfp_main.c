@@ -282,29 +282,55 @@ static void nfp_sriov_attr_remove(struct device *dev)
 /**
  * nfp_net_fw_find() - Find the correct firmware image for netdev mode
  * @pdev:	PCI Device structure
- * @cpp:	NFP CPP handle
+ * @pf:		NFP PF Device structure
  * @fwp:	Pointer to firmware pointer
  *
  * Return: -ERRNO on error, 0 on FW found or OK to continue without it
  */
-static int nfp_net_fw_find(struct pci_dev *pdev, struct nfp_cpp *cpp,
+static int nfp_net_fw_find(struct pci_dev *pdev, struct nfp_pf *pf,
 			   const struct firmware **fwp)
 {
 	const struct firmware *fw = NULL;
+	struct nfp_eth_table_port *port;
 	const char *fw_model;
-	char fw_name[128];
-	int err = 0;
+	char fw_name[256];
+	int spc, err = 0;
+	int i, j;
 
 	*fwp = NULL;
 
-	fw_model = nfp_hwinfo_lookup(cpp, "assembly.partno");
+	if (!pf->eth_tbl) {
+		dev_err(&pdev->dev, "Error: can't identify media config\n");
+		return -EINVAL;
+	}
+
+	fw_model = nfp_hwinfo_lookup(pf->cpp, "assembly.partno");
 	if (!fw_model) {
 		dev_err(&pdev->dev, "Error: can't read part number\n");
 		return -EINVAL;
 	}
 
-	snprintf(fw_name, sizeof(fw_name), "netronome/%s.nffw", fw_model);
-	fw_name[sizeof(fw_name) - 1] = 0;
+	spc = ARRAY_SIZE(fw_name);
+	spc -= snprintf(fw_name, spc, "netronome/nic_%s", fw_model);
+
+	for (i = 0; spc > 0 && i < pf->eth_tbl->count; i += j) {
+		port = &pf->eth_tbl->ports[i];
+		j = 1;
+		while (i + j < pf->eth_tbl->count &&
+		       port->speed == port[j].speed)
+			j++;
+
+		spc -= snprintf(&fw_name[ARRAY_SIZE(fw_name) - spc], spc,
+				"_%dx%d", j, port->speed / 1000);
+	}
+
+	if (spc <= 0)
+		return -EINVAL;
+
+	spc -= snprintf(&fw_name[ARRAY_SIZE(fw_name) - spc], spc, ".nffw");
+	if (spc <= 0)
+		return -EINVAL;
+
 	err = request_firmware(&fw, fw_name, &pdev->dev);
 	if (err)
 		return err;
@@ -359,7 +385,7 @@ nfp_fw_load(struct pci_dev *pdev, struct nfp_pf *pf, struct nfp_nsp *nsp)
 	if (!nfp_pf_netdev)
 		err = nfp_fw_find(pdev, &fw);
 	else
-		err = nfp_net_fw_find(pdev, pf->cpp, &fw);
+		err = nfp_net_fw_find(pdev, pf, &fw);
 	if (err)
 		return fw_load_required ? err : 0;
 
