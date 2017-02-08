@@ -35,6 +35,7 @@
 #define NSP_NSP_ETH_H 1
 
 #include <linux/types.h>
+#include <linux/if_ether.h>
 
 /**
  * struct nfp_eth_table - ETH table information
@@ -73,6 +74,8 @@ struct nfp_eth_table {
 };
 
 struct nfp_eth_table *nfp_eth_read_ports(struct nfp_cpp *cpp);
+struct nfp_eth_table *
+__nfp_eth_read_ports(struct nfp_cpp *cpp, struct nfp_nsp *nsp);
 int nfp_eth_set_mod_enable(struct nfp_cpp *cpp, unsigned int idx, bool enable);
 
 #endif

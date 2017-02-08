@@ -164,29 +164,27 @@ nfp_net_get_mac_addr_hwinfo(struct nfp_net *nn, struct nfp_cpp *cpp,
 /**
  * nfp_net_get_mac_addr() - Get the MAC address.
  * @nn:       NFP Network structure
- * @cpp:      NFP CPP handle
- * @eth_table:	NFP ETH table
+ * @pf:	      NFP PF device structure
  * @id:	      NFP port id
  *
  * First try to get the MAC address from NSP ETH table. If that
  * fails try HWInfo.  As a last resort generate a random address.
  */
 static void
-nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_cpp *cpp,
-		     struct nfp_eth_table *eth_table, unsigned int id)
+nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_pf *pf, unsigned int id)
 {
 	int i;
 
-	for (i = 0; eth_table && i < eth_table->count; i++)
-		if (eth_table->ports[i].eth_index == id) {
-			const u8 *mac_addr = eth_table->ports[i].mac_addr;
+	for (i = 0; pf->eth_tbl && i < pf->eth_tbl->count; i++)
+		if (pf->eth_tbl->ports[i].eth_index == id) {
+			const u8 *mac_addr = pf->eth_tbl->ports[i].mac_addr;
 
 			ether_addr_copy(nn->netdev->dev_addr, mac_addr);
 			ether_addr_copy(nn->netdev->perm_addr, mac_addr);
 			return;
 		}
 
-	nfp_net_get_mac_addr_hwinfo(nn, cpp, id);
+	nfp_net_get_mac_addr_hwinfo(nn, pf->cpp, id);
 }
 
 static unsigned int nfp_net_pf_get_num_ports(struct nfp_pf *pf)
@@ -319,12 +317,12 @@ nfp_net_pf_alloc_port_netdev(struct nfp_pf *pf, void __iomem *ctrl_bar,
 
 static int
 nfp_net_pf_init_port_netdev(struct nfp_pf *pf, struct nfp_net *nn,
-			    struct nfp_eth_table *eth_table, unsigned int id)
+			    unsigned int id)
 {
 	int err;
 
 	/* Get MAC address */
-	nfp_net_get_mac_addr(nn, pf->cpp, eth_table, id);
+	nfp_net_get_mac_addr(nn, pf, id);
 
 	/* Get ME clock frequency from ctrl BAR
 	 * XXX for now frequency is hardcoded until we figure out how
@@ -389,7 +387,6 @@ nfp_net_pf_spawn_netdevs(struct nfp_pf *pf,
 			 struct nfp_net_fw_version *fw_ver)
 {
 	unsigned int id, wanted_irqs, num_irqs, ports_left, irqs_left;
-	struct nfp_eth_table *eth_table;
 	struct nfp_net *nn;
 	int err;
 
@@ -434,20 +431,17 @@ nfp_net_pf_spawn_netdevs(struct nfp_pf *pf,
 
 	/* Finish netdev init and register */
 	id = 0;
-	eth_table = nfp_eth_read_ports(pf->cpp);
 	list_for_each_entry(nn, &pf->ports, port_list) {
-		err = nfp_net_pf_init_port_netdev(pf, nn, eth_table, id);
+		err = nfp_net_pf_init_port_netdev(pf, nn, id);
 		if (err)
 			goto err_prev_deinit;
 
 		id++;
 	}
-	kfree(eth_table);
 
 	return 0;
 
 err_prev_deinit:
-	kfree(eth_table);
 	list_for_each_entry_continue_reverse(nn, &pf->ports, port_list) {
 		nfp_net_debugfs_dir_clean(&nn->debugfs_dir);
 		nfp_net_netdev_clean(nn->netdev);

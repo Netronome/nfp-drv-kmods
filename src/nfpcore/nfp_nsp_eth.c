@@ -154,9 +154,24 @@ nfp_eth_port_translate(const struct eth_table_entry *src, unsigned int index,
  */
 struct nfp_eth_table *nfp_eth_read_ports(struct nfp_cpp *cpp)
 {
+	struct nfp_eth_table *ret;
+	struct nfp_nsp *nsp;
+
+	nsp = nfp_nsp_open(cpp);
+	if (IS_ERR(nsp))
+		return NULL;
+
+	ret = __nfp_eth_read_ports(cpp, nsp);
+	nfp_nsp_close(nsp);
+
+	return ret;
+}
+
+struct nfp_eth_table *
+__nfp_eth_read_ports(struct nfp_cpp *cpp, struct nfp_nsp *nsp)
+{
 	struct eth_table_entry *entries;
 	struct nfp_eth_table *table;
-	struct nfp_nsp *nsp;
 	unsigned int cnt;
 	int i, j, ret;
 
@@ -164,12 +179,7 @@ struct nfp_eth_table *nfp_eth_read_ports(struct nfp_cpp *cpp)
 	if (!entries)
 		return NULL;
 
-	nsp = nfp_nsp_open(cpp);
-	if (IS_ERR(nsp))
-		return NULL;
-
 	ret = nfp_nsp_read_eth_table(nsp, entries, NSP_ETH_TABLE_SIZE);
-	nfp_nsp_close(nsp);
 	if (ret < 0) {
 		nfp_err(cpp, "reading port table failed %d\n", ret);
 		kfree(entries);

@@ -50,6 +50,7 @@ struct platform_device;
 
 struct nfp_cpp;
 struct nfp_cpp_area;
+struct nfp_eth_table;
 
 /**
  * struct nfp_pf - NFP PF-specific device structure
@@ -64,6 +65,7 @@ struct nfp_cpp_area;
  * @msix:		Single MSI-X entry for non-netdev mode event monitor
  * @num_vfs:		Number of SR-IOV VFs enabled
  * @fw_loaded:		Is the firmware loaded?
+ * @eth_tbl:		NSP ETH table
  * @ddir:		Per-device debugfs directory
  * @num_ports:		Number of adapter ports
  * @ports:		Linked list of port structures (struct nfp_net)
@@ -86,6 +88,8 @@ struct nfp_pf {
 	unsigned int num_vfs;
 
 	bool fw_loaded;
+
+	struct nfp_eth_table *eth_tbl;
 
 	struct dentry *ddir;
 

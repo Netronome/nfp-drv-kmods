@@ -48,6 +48,7 @@
 
 #include "nfpcore/nfp.h"
 #include "nfpcore/nfp_cpp.h"
+#include "nfpcore/nfp_nsp_eth.h"
 
 #include "nfpcore/nfp6000_pcie.h"
 
@@ -494,11 +495,14 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 		goto err_sriov_remove;
 	}
 
+	if (nfp_pf_netdev)
+		pf->eth_tbl = __nfp_eth_read_ports(pf->cpp, nsp);
+
 	err = nfp_fw_load(pdev, pf, nsp);
 	nfp_nsp_close(nsp);
 	if (err < 0) {
 		dev_err(&pdev->dev, "Failed to load FW\n");
-		goto err_sriov_remove;
+		goto err_eth_tbl_free;
 	}
 
 	pf->fw_loaded = !!err;
@@ -529,6 +533,8 @@ err_dev_cpp_unreg:
 		nfp_platform_device_unregister(pf->nfp_dev_cpp);
 	if (pf->fw_loaded)
 		nfp_fw_unload(pf);
+err_eth_tbl_free:
+	kfree(pf->eth_tbl);
 err_sriov_remove:
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
 	nfp_sriov_attr_remove(&pdev->dev);
@@ -576,6 +582,7 @@ static void nfp_pci_remove(struct pci_dev *pdev)
 	if (nfp_mon_event)
 		pci_disable_msix(pdev);
 
+	kfree(pf->eth_tbl);
 	kfree(pf);
 	pci_release_regions(pdev);
 	pci_disable_device(pdev);
