@@ -508,7 +508,7 @@ static void nfp_register_vnic(struct nfp_pf *pf)
 {
 	int pcie_unit;
 
-	pcie_unit = NFP_CPP_INTERFACE_UNIT_of(nfp_cpp_interface(pf->cpp));
+	pcie_unit = nfp_cppcore_pcie_unit(pf->cpp);
 
 	if (!nfp_net_vnic)
 		return;

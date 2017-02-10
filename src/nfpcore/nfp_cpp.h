@@ -375,6 +375,17 @@ int nfp_cpp_event_as_signal(struct nfp_cpp_event *event, int signum,
 			    const struct sigaction *act);
 void nfp_cpp_event_free(struct nfp_cpp_event *event);
 
+/**
+ * nfp_cppcore_pcie_unit() - Get PCI Unit of a CPP handle
+ * @cpp:	CPP handle
+ *
+ * Return: PCI unit for the NFP CPP handle
+ */
+static inline u8 nfp_cppcore_pcie_unit(struct nfp_cpp *cpp)
+{
+	return NFP_CPP_INTERFACE_UNIT_of(nfp_cpp_interface(cpp));
+}
+
 struct nfp_cpp_explicit;
 
 struct nfp_cpp_explicit_command {
