@@ -3,20 +3,15 @@
 These drivers support Netronome's line of Flow Processor devices,
 including the NFP4000 and NFP6000 model lines.
 
-This archive builds the nfp.ko module which can be used to expose
+The repository builds the `nfp.ko` module which can be used to expose
 networking devices (netdevs) and/or user space access to the device
 via a character device.
 
-For more information, please see:
-
-  http://www.netronome.com
+For more information, please visit: http://www.netronome.com
 
 If questions arise or an issue is identified related the released
 driver code, please contact either your local Netronome contact or
-email us on:
-
-  oss-drivers@netronome.com
-
+email us on: oss-drivers@netronome.com
 
 # Acquiring Firmware
 
@@ -26,7 +21,8 @@ specific firmware to function.
 Please contact support@netronome.com for the latest
 firmware for your platform and device.
 
-Once acquired, install the firmware in `/lib/firmware` (firmware files should be placed in netronome/ subdirectory).
+Once acquired, install the firmware in `/lib/firmware`
+(firmware files should be placed in `netronome` subdirectory).
 
 # Building and Installing
 
@@ -97,19 +93,19 @@ be either pre-loaded or available in `/lib/firmware/netronome/` to
 work.  Systems using Netronome SDN products currently do use this
 mode.
 
-Note that in standard build configuration user space access can still
-be enabled for this mode by setting the nfp_dev_cpp parameter to true,
-but is disabled by default.
+Note that in standard build (i.e. not `make nfp_net`) low-level
+user space ABI of non-netdev mode can still be exposed by setting
+the `nfp_dev_cpp` parameter to true, but is disabled by default.
 
 ## VF driver
 
 The nfp.ko contains a driver used to provide NIC-style access to Virtual
 Functions of the device when operating in PCI SR-IOV mode.
 
-For example, if a physical NFP6000 device was running Netronome SDN,
-and had assigned a rule matching 'all 172.16.0.0/24 received' to VF 5,
+*For example, if a physical NFP6000 device was running Netronome SDN,
+and had assigned a rule matching `'all 172.16.0.0/24 received'` to VF 5,
 then the NFP6000's SR-IOV device `#5` would use this driver to provide a
-NIC style interface to the flows that match that rule.
+NIC style interface to the flows that match that rule.*
 
 ## Sources
 
