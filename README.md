@@ -7,6 +7,20 @@ The repository builds the `nfp.ko` module which can be used to expose
 networking devices (netdevs) and/or user space access to the device
 via a character device.
 
+The VF driver for NFP4000 and NFP6000 is available in upstream Linux
+kernel since `4.5` release.  The PF driver was added in Linux `4.11`.
+This repository contains the same driver as upstream with necessary
+compatibility code to make the latest version of the code build for
+older kernels. We currently support kernels back to the `3.8` version,
+support for older versions can be added if necessary.
+
+Compared to upstream drivers this repository contains:
+ - non-PCI transport support to enable building the driver for the
+   on-chip control processor;
+ - support for netdev-based communication with the on-chip control
+   processor;
+ - optional low-level user space ABI for accessing card internals.
+
 For more information, please visit: http://www.netronome.com
 
 If questions arise or an issue is identified related the released
