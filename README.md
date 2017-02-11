@@ -26,12 +26,7 @@ specific firmware to function.
 Please contact support@netronome.com for the latest
 firmware for your platform and device.
 
-Once acquired, install the firmware to `/lib/firmware`:
-
-For the NFP4000/NFP6000 device family:
-
-    # mkdir -p /lib/firmware/netronome
-    # cp nfp6000_net.nffw /lib/firmware/netronome
+Once acquired, install the firmware in `/lib/firmware` (firmware files should be placed in netronome/ subdirectory).
 
 # Building and Installing
 
