@@ -326,13 +326,13 @@ compat_ndo_features_check(struct nfp_net *nn, struct sk_buff *skb)
 			inner_tcp_hdrlen(skb);
 
 		if (unlikely(hdrlen > NFP_NET_LSO_MAX_HDR_SZ)) {
-			nn_warn_ratelimit(nn, "L4 offset too large for TSO!\n");
+			nn_dp_warn(&nn->dp, "L4 offset too large for TSO!\n");
 			return 1;
 		}
 	}
 
 	/* Checksum encap validation */
-	if (!(nn->ctrl & NFP_NET_CFG_CTRL_TXCSUM) ||
+	if (!(nn->dp.ctrl & NFP_NET_CFG_CTRL_TXCSUM) ||
 	    skb->ip_summed != CHECKSUM_PARTIAL)
 		return 0;
 
@@ -344,12 +344,12 @@ compat_ndo_features_check(struct nfp_net *nn, struct sk_buff *skb)
 		l4_hdr = ipv6_hdr(skb)->nexthdr;
 		break;
 	default:
-		nn_warn_ratelimit(nn, "non-IP packet for checksumming!\n");
+		nn_dp_warn(&nn->dp, "non-IP packet for checksumming!\n");
 		return 1;
 	}
 
 	if (!compat_is_vxlan(skb, l4_hdr) && !compat_is_gretap(skb, l4_hdr)) {
-		nn_warn_ratelimit(nn, "checksum on unsupported tunnel type!\n");
+		nn_dp_warn(&nn->dp, "checksum on unsupported tunnel type!\n");
 		return 1;
 	}
 
