@@ -398,6 +398,14 @@ static inline int nfp_net_xdp_offload(struct nfp_net *nn, struct bpf_prog *prog)
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0)
 #define is_tcf_mirred_egress_redirect is_tcf_mirred_redirect
+
+static inline int
+compat__napi_complete_done(struct napi_struct *n, int work_done)
+{
+	napi_complete_done(n, work_done);
+	return true;
+}
+#define napi_complete_done compat__napi_complete_done
 #endif
 
 #if LINUX_RELEASE_4_11
