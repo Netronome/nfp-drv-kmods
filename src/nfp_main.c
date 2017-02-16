@@ -540,6 +540,13 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 		goto err_disable_msix;
 	}
 
+	dev_info(&pdev->dev, "Assembly: %s%s%s-%s CPLD: %s\n",
+		 nfp_hwinfo_lookup(pf->cpp, "assembly.vendor"),
+		 nfp_hwinfo_lookup(pf->cpp, "assembly.partno"),
+		 nfp_hwinfo_lookup(pf->cpp, "assembly.serial"),
+		 nfp_hwinfo_lookup(pf->cpp, "assembly.revision"),
+		 nfp_hwinfo_lookup(pf->cpp, "cpld.version"));
+
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
 	err = nfp_sriov_attr_add(&pdev->dev);
 	if (err < 0)
