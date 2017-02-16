@@ -63,6 +63,7 @@ struct nfp_eth_table;
  * @rx_area:		Pointer to the CPP area for the FL/RX queues
  * @irq_entries:	Array of MSI-X entries for all ports
  * @msix:		Single MSI-X entry for non-netdev mode event monitor
+ * @limit_vfs:		Number of VFs supported by firmware (~0 for PCI limit)
  * @num_vfs:		Number of SR-IOV VFs enabled
  * @fw_loaded:		Is the firmware loaded?
  * @eth_tbl:		NSP ETH table
@@ -85,6 +86,7 @@ struct nfp_pf {
 
 	struct msix_entry msix;
 
+	unsigned int limit_vfs;
 	unsigned int num_vfs;
 
 	bool fw_loaded;
