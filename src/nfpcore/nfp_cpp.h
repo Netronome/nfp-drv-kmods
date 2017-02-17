@@ -62,8 +62,6 @@
 
 /* NFP hardware vendor/device ids.
  */
-#define PCI_DEVICE_NFP4000              0x4000
-#define PCI_DEVICE_NFP6000              0x6000
 #define PCI_DEVICE_NFP6010              0x6010
 
 #define NFP_CPP_NUM_TARGETS             16
