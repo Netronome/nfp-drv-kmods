@@ -117,8 +117,6 @@ EXPORT_SYMBOL(nfp_nbi_mac_release);
 
 /* Implemented in nfp_nbi_mac_eth.c */
 
-EXPORT_SYMBOL(nfp_nbi_mac_eth_ifdown);
-EXPORT_SYMBOL(nfp_nbi_mac_eth_ifup);
 EXPORT_SYMBOL(nfp_nbi_mac_eth_read_linkstate);
 EXPORT_SYMBOL(nfp_nbi_mac_eth_read_mode);
 EXPORT_SYMBOL(nfp_nbi_mac_eth_write_mac_addr);
@@ -128,6 +126,7 @@ EXPORT_SYMBOL(nfp_nbi_mac_eth_read_mac_addr);
 
 EXPORT_SYMBOL(nfp_eth_read_ports);
 EXPORT_SYMBOL(nfp_eth_set_mod_enable);
+EXPORT_SYMBOL(nfp_eth_set_configured);
 
 /* Implemented in nfp_rtsym.c */
 
