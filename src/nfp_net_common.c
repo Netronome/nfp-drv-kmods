@@ -79,6 +79,7 @@
 #include <net/vxlan.h>
 #endif
 
+#include "nfpcore/nfp_nsp_eth.h"
 #include "nfp_net_ctrl.h"
 #include "nfp_net.h"
 
@@ -2866,6 +2867,28 @@ nfp_net_features_check(struct sk_buff *skb, struct net_device *dev,
 }
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
+static int
+nfp_net_get_phys_port_name(struct net_device *netdev, char *name, size_t len)
+{
+	struct nfp_net *nn = netdev_priv(netdev);
+	int err;
+
+	if (!nn->eth_port)
+		return -EOPNOTSUPP;
+
+	if (!nn->eth_port->is_split)
+		err = snprintf(name, len, "p%d", nn->eth_port->label_port);
+	else
+		err = snprintf(name, len, "p%ds%d", nn->eth_port->label_port,
+			       nn->eth_port->label_subport);
+	if (err >= len)
+		return -EINVAL;
+
+	return 0;
+}
+#endif
+
 #if COMPAT__HAVE_VXLAN_OFFLOAD
 /**
  * nfp_net_set_vxlan_port() - set vxlan port in SW and reconfigure HW
@@ -3069,6 +3092,9 @@ static const struct net_device_ops nfp_net_netdev_ops = {
 	.ndo_set_features	= nfp_net_set_features,
 #if COMPAT__HAVE_NDO_FEATURES_CHECK
 	.ndo_features_check	= nfp_net_features_check,
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
+	.ndo_get_phys_port_name	= nfp_net_get_phys_port_name,
 #endif
 #if COMPAT__HAVE_UDP_OFFLOAD
 	.ndo_udp_tunnel_add	= nfp_net_add_vxlan_port,
