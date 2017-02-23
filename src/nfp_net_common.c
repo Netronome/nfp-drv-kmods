@@ -1402,14 +1402,12 @@ static void nfp_net_set_hash(struct net_device *netdev, struct sk_buff *skb,
 
 static void
 nfp_net_set_hash_desc(struct net_device *netdev, struct sk_buff *skb,
-		      struct nfp_net_rx_desc *rxd)
+		      void *data, struct nfp_net_rx_desc *rxd)
 {
-	struct nfp_net_rx_hash *rx_hash;
+	struct nfp_net_rx_hash *rx_hash = data;
 
 	if (!(rxd->rxd.flags & PCIE_DESC_RX_RSS))
 		return;
-
-	rx_hash = (struct nfp_net_rx_hash *)(skb->data - sizeof(*rx_hash));
 
 	nfp_net_set_hash(netdev, skb, get_unaligned_be32(&rx_hash->hash_type),
 			 &rx_hash->hash);
@@ -1417,9 +1415,8 @@ nfp_net_set_hash_desc(struct net_device *netdev, struct sk_buff *skb,
 
 static void *
 nfp_net_parse_meta(struct net_device *netdev, struct sk_buff *skb,
-		   int meta_len)
+		   void *data, int meta_len)
 {
-	u8 *data = skb->data - meta_len;
 	u32 meta_info;
 
 	meta_info = get_unaligned_be32(data);
@@ -1565,6 +1562,7 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 		struct nfp_net_rx_desc *rxd;
 		dma_addr_t new_dma_addr;
 		void *new_frag;
+		u8 *meta;
 
 		idx = rx_ring->rd_p & (rx_ring->cnt - 1);
 
@@ -1607,6 +1605,17 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 		r_vec->rx_pkts++;
 		r_vec->rx_bytes += pkt_len;
 		u64_stats_update_end(&r_vec->rx_sync);
+
+		/* Pointer to start of metadata */
+		meta = rxbuf->frag + data_off - meta_len;
+
+		if (unlikely(meta_len > NFP_NET_MAX_PREPEND ||
+			     (dp->rx_offset && meta_len > dp->rx_offset))) {
+			nn_dp_warn(dp, "oversized RX packet metadata %u\n",
+				   meta_len);
+			nfp_net_rx_drop(r_vec, rx_ring, rxbuf, NULL);
+			continue;
+		}
 
 #if COMPAT__HAVE_XDP
 		if (xdp_prog && !(rxd->rxd.flags & PCIE_DESC_RX_BPF &&
@@ -1662,12 +1671,13 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 		skb_put(skb, pkt_len);
 
 		if (!dp->chained_metadata_format) {
-			nfp_net_set_hash_desc(dp->netdev, skb, rxd);
+			nfp_net_set_hash_desc(dp->netdev, skb, meta, rxd);
 		} else if (meta_len) {
 			void *end;
 
-			end = nfp_net_parse_meta(dp->netdev, skb, meta_len);
-			if (unlikely(end != skb->data)) {
+			end = nfp_net_parse_meta(dp->netdev, skb, meta,
+						 meta_len);
+			if (unlikely(end != meta + meta_len)) {
 				nn_dp_warn(dp, "invalid RX packet metadata\n");
 				nfp_net_rx_drop(r_vec, rx_ring, NULL, skb);
 				continue;
