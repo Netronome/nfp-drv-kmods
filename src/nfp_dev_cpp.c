@@ -38,6 +38,7 @@
  *          Jason McMullan <jason.mcmullan@netronome.com>
  *          Rolf Neugebauer <rolf.neugebauer@netronome.com>
  */
+#include "nfpcore/kcompat.h"
 
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -48,6 +49,9 @@
 #include <linux/cdev.h>
 #include <linux/slab.h>
 #include <linux/sched.h>
+#if LINUX_RELEASE_4_11
+#include <linux/sched/signal.h>
+#endif
 #include <linux/interrupt.h>
 #include <linux/firmware.h>
 #include <linux/platform_device.h>
