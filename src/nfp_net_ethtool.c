@@ -206,9 +206,7 @@ static int nfp_net_get_settings(struct net_device *netdev,
 
 	sts = nn_readl(nn, NFP_NET_CFG_STS);
 
-	ls = (sts >> NFP_NET_CFG_STS_LINK_RATE_SHIFT) &
-		NFP_NET_CFG_STS_LINK_RATE_MASK;
-
+	ls = FIELD_GET(NFP_NET_CFG_STS_LINK_RATE, sts);
 	if (ls == NFP_NET_CFG_STS_LINK_RATE_UNSUPPORTED)
 		return -EOPNOTSUPP;
 
