@@ -624,7 +624,8 @@ compat_debugfs_real_fops(const struct file *file)
 }
 #define debugfs_real_fops compat_debugfs_real_fops
 #else
-#define debugfs_real_fops(x) (void *)1 /* Can't do NULL b/c of -Waddress */
+/* WARNING: this one only works for the DebugFS TX vs XDP ring use case!!! */
+#define debugfs_real_fops(x) &nfp_tx_q_fops
 #endif /* >= 4.8 */
 #endif
 
