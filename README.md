@@ -81,6 +81,41 @@ To override the detected location, set `KSRC`:
 
     $ sudo apt-get install sparse
 
+# Troubleshooting
+
+If you're running the driver with user space access enabled you will be
+able to use all Netronome's proprietary `nfp-*` tools.  This section only
+covers standard debugging interfaces based on kernel infrastructure and
+which are always available.
+
+## Probing output
+
+Most basic set of information is printed when driver probes a device.
+These include versions of various hardware and firmware components.
+
+## Netdev information
+
+`ethtool -i <ifcname>` provides user with basic set of application FW and
+flash FW versions.  Note that driver version for driver built in-tree will
+be equal to the kernel version string and for out-of-tree driver it will
+either contain the git hash if build inside a git repository or contents
+of the `.revision` file.  In both cases out of tree driver build will have
+`(o-o-t)` appended to distinguish from in-tree builds.
+
+## DebugFS
+
+`nfp_net` directory contains information about queue state for all netdevs
+using the driver.  It can be used to inspect contents of memory rings and
+position of driver and hardware pointers for RX, TX and XDP rings.
+
+## PCI BAR access
+
+`ethtool -d <ifcname>` can be used to dump the PCI netdev memory.
+
+## NSP logs access
+
+`ethtool -w <ifcname> data <outfile>` dumps the logs of the Service Processor.
+
 # Kernel Modules
 
 This section describes how kernel modules are structured.
