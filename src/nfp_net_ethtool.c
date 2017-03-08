@@ -178,14 +178,15 @@ static void nfp_net_get_drvinfo(struct net_device *netdev,
 }
 
 /**
- * nfp_get_settings - Get Link Speed settings
+ * nfp_net_get_link_ksettings - Get Link Speed settings
  * @netdev:	network interface device structure
- * @ecmd:	ethtool command
+ * @cmd:	ethtool command
  *
  * Reports speed settings based on info in the BAR provided by the fw.
  */
-static int nfp_net_get_settings(struct net_device *netdev,
-				struct ethtool_cmd *ecmd)
+static int
+nfp_net_get_link_ksettings(struct net_device *netdev,
+			   struct ethtool_link_ksettings *cmd)
 {
 	static const u32 ls_to_ethtool[] = {
 		[NFP_NET_CFG_STS_LINK_RATE_UNSUPPORTED]	= 0,
@@ -208,15 +209,13 @@ static int nfp_net_get_settings(struct net_device *netdev,
 
 	if (ls == NFP_NET_CFG_STS_LINK_RATE_UNKNOWN ||
 	    ls >= ARRAY_SIZE(ls_to_ethtool)) {
-		ethtool_cmd_speed_set(ecmd, SPEED_UNKNOWN);
-		ecmd->duplex = DUPLEX_UNKNOWN;
+		compat__ethtool_cmd_speed_set(cmd, SPEED_UNKNOWN);
+		cmd->base.duplex = DUPLEX_UNKNOWN;
 		return 0;
 	}
 
-	ethtool_cmd_speed_set(ecmd, ls_to_ethtool[ls]);
-
-	/* only support full duplex */
-	ecmd->duplex = DUPLEX_FULL;
+	compat__ethtool_cmd_speed_set(cmd, ls_to_ethtool[sts]);
+	cmd->base.duplex = DUPLEX_FULL;
 
 	return 0;
 }
@@ -917,7 +916,6 @@ static int nfp_net_set_channels(struct net_device *netdev,
 static const struct ethtool_ops nfp_net_ethtool_ops = {
 	.get_drvinfo		= nfp_net_get_drvinfo,
 	.get_link		= ethtool_op_get_link,
-	.get_settings		= nfp_net_get_settings,
 	.get_ringparam		= nfp_net_get_ringparam,
 	.set_ringparam		= nfp_net_set_ringparam,
 	.get_strings		= nfp_net_get_strings,
@@ -945,6 +943,11 @@ static const struct ethtool_ops nfp_net_ethtool_ops = {
 	.set_coalesce           = nfp_net_set_coalesce,
 	.get_channels		= nfp_net_get_channels,
 	.set_channels		= nfp_net_set_channels,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0)
+	.get_settings		= (void *)nfp_net_get_link_ksettings,
+#else
+	.get_link_ksettings	= nfp_net_get_link_ksettings,
+#endif
 };
 
 void nfp_net_set_ethtool_ops(struct net_device *netdev)

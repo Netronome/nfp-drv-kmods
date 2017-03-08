@@ -379,6 +379,26 @@ static inline void udp_tunnel_get_rx_info(struct net_device *netdev)
 }
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0)
+struct compat__ethtool_link_ksettings {
+	struct ethtool_cmd base;
+};
+/* Cheat backports */
+#define ethtool_link_ksettings compat__ethtool_link_ksettings
+
+static inline void
+compat__ethtool_cmd_speed_set(struct ethtool_link_ksettings *cmd, u32 speed)
+{
+	ethtool_cmd_speed_set(&cmd->base, speed);
+}
+#else
+static inline void
+compat__ethtool_cmd_speed_set(struct ethtool_link_ksettings *cmd, u32 speed)
+{
+	cmd->base.speed = speed;
+}
+#endif
+
 #ifndef IFF_RXFH_CONFIGURED
 static inline bool netif_is_rxfh_configured(const struct net_device *netdev)
 {
