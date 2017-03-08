@@ -200,10 +200,6 @@ static int nfp_net_get_settings(struct net_device *netdev,
 	struct nfp_net *nn = netdev_priv(netdev);
 	u32 sts, ls;
 
-	if (nn->fw_ver.major < 4 ||
-	    (nn->fw_ver.major == 4 && nn->fw_ver.minor < 1))
-		return -EOPNOTSUPP;
-
 	sts = nn_readl(nn, NFP_NET_CFG_STS);
 
 	ls = FIELD_GET(NFP_NET_CFG_STS_LINK_RATE, sts);
