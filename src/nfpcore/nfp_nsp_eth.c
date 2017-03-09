@@ -46,7 +46,7 @@
 #include <linux/module.h>
 
 #include "nfp.h"
-#include "nfp_nsp_eth.h"
+#include "nfp_nsp.h"
 #include "nfp6000/nfp6000.h"
 #include "../nfp_net_compat.h"
 

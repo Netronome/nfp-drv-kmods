@@ -41,7 +41,7 @@
 #include "nfp_cpp.h"
 #include "nfp_nbi.h"
 #include "nfp_nffw.h"
-#include "nfp_nsp_eth.h"
+#include "nfp_nsp.h"
 
 /* Implemented in nfp_cppcore.c */
 

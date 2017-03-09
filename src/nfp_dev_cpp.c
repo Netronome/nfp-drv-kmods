@@ -60,6 +60,7 @@
 #include "nfpcore/nfp.h"
 #include "nfpcore/nfp_arm.h"
 #include "nfpcore/nfp_cpp.h"
+#include "nfpcore/nfp_nsp.h"
 
 #include "nfp_ioctl.h"
 #include "nfp_main.h"
