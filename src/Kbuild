@@ -57,6 +57,7 @@ nfp-objs := \
 	    nfpcore/nfp_em_manager.o \
 	    nfpcore/nfp_hwinfo.o \
 	    nfpcore/nfp_mip.o \
+	    nfpcore/nfp_mutex.o \
 	    nfpcore/nfp_nbi.o \
 	    nfpcore/nfp_nffw.o \
 	    nfpcore/nfp_nsp_eth.o \
