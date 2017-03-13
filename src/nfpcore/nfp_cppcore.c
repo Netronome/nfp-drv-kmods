@@ -76,10 +76,8 @@ struct nfp_cpp_resource {
 };
 
 struct nfp_cpp_mutex {
-	struct list_head list;
 	struct nfp_cpp *cpp;
 	int target;
-	u16 usage;
 	u16 depth;
 	unsigned long long address;
 	u32 key;
@@ -98,7 +96,6 @@ struct nfp_cpp {
 
 	const struct nfp_cpp_operations *op;
 	struct list_head resource_list;	/* NFP CPP resource list */
-	struct list_head mutex_cache;	/* Mutex cache */
 	rwlock_t resource_lock;
 	struct list_head list;
 	wait_queue_head_t waitq;
@@ -278,24 +275,6 @@ static void __nfp_cpp_release(struct kref *kref)
 	struct nfp_cpp *cpp = container_of(kref, struct nfp_cpp, kref);
 	struct nfp_cpp_area_cache *cache, *ctmp;
 	struct nfp_cpp_resource *res, *rtmp;
-	struct nfp_cpp_mutex *mutex, *mtmp;
-
-	/* There should be no mutexes in the cache at this point. */
-	WARN_ON(!list_empty(&cpp->mutex_cache));
-	/* .. but if there are, unlock them and complain. */
-	list_for_each_entry_safe(mutex, mtmp, &cpp->mutex_cache, list) {
-		dev_err(cpp->dev.parent, "Dangling mutex: @%d::0x%llx, %d locks held by %d owners\n",
-			mutex->target, (unsigned long long)mutex->address,
-			mutex->depth, mutex->usage);
-
-		/* Forcing an unlock */
-		mutex->depth = 1;
-		nfp_cpp_mutex_unlock(mutex);
-
-		/* Forcing a free */
-		mutex->usage = 1;
-		nfp_cpp_mutex_free(mutex);
-	}
 
 	device_remove_file(&cpp->dev, &dev_attr_area);
 
@@ -1460,7 +1439,6 @@ nfp_cpp_from_operations(const struct nfp_cpp_operations *ops,
 	rwlock_init(&cpp->resource_lock);
 	init_waitqueue_head(&cpp->waitq);
 	lockdep_set_class(&cpp->resource_lock, &nfp_cpp_resource_lock_key);
-	INIT_LIST_HEAD(&cpp->mutex_cache);
 	INIT_LIST_HEAD(&cpp->resource_list);
 	INIT_LIST_HEAD(&cpp->area_cache_list);
 	mutex_init(&cpp->area_cache_mutex);
@@ -1898,14 +1876,6 @@ struct nfp_cpp_mutex *nfp_cpp_mutex_alloc(struct nfp_cpp *cpp, int target,
 	if (err)
 		return NULL;
 
-	/* Look for mutex on cache list */
-	list_for_each_entry(mutex, &cpp->mutex_cache, list) {
-		if (mutex->target == target && mutex->address == address) {
-			mutex->usage++;
-			return mutex;
-		}
-	}
-
 	err = nfp_cpp_readl(cpp, mur, address + 4, &tmp);
 	if (err < 0)
 		return NULL;
@@ -1922,10 +1892,6 @@ struct nfp_cpp_mutex *nfp_cpp_mutex_alloc(struct nfp_cpp *cpp, int target,
 	mutex->address = address;
 	mutex->key = key;
 	mutex->depth = 0;
-	mutex->usage = 1;
-
-	/* Add mutex to cache list */
-	list_add(&mutex->list, &cpp->mutex_cache);
 
 	return mutex;
 }
@@ -1936,11 +1902,6 @@ struct nfp_cpp_mutex *nfp_cpp_mutex_alloc(struct nfp_cpp *cpp, int target,
  */
 void nfp_cpp_mutex_free(struct nfp_cpp_mutex *mutex)
 {
-	if (--mutex->usage)
-		return;
-
-	/* Remove mutex from cache */
-	list_del(&mutex->list);
 	kfree(mutex);
 }
 
@@ -1973,8 +1934,8 @@ int nfp_cpp_mutex_lock(struct nfp_cpp_mutex *mutex)
 		if (time_is_before_eq_jiffies(warn_at)) {
 			warn_at = jiffies + 60 * HZ;
 			dev_warn(mutex->cpp->dev.parent,
-				 "Warning: waiting for NFP mutex [usage:%hd depth:%hd target:%d addr:%llx key:%08x]\n",
-				 mutex->usage, mutex->depth,
+				 "Warning: waiting for NFP mutex [depth:%hd target:%d addr:%llx key:%08x]\n",
+				 mutex->depth,
 				 mutex->target, mutex->address, mutex->key);
 		}
 	}
