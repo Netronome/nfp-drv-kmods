@@ -631,7 +631,7 @@ static void nfp_pci_remove(struct pci_dev *pdev)
 {
 	struct nfp_pf *pf = pci_get_drvdata(pdev);
 
-	if (!list_empty(&pf->ports))
+	if (nfp_pf_netdev)
 		nfp_net_pci_remove(pf);
 
 	if (pf->nfp_net_vnic)
