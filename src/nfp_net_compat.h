@@ -412,7 +412,7 @@ compat__napi_complete_done(struct napi_struct *n, int work_done)
 #define napi_complete_done compat__napi_complete_done
 #endif
 
-#if LINUX_RELEASE_4_11
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
 typedef void compat__stat64_ret_t;
 #else
 typedef struct rtnl_link_stats64 *compat__stat64_ret_t;

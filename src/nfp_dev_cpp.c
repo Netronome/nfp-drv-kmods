@@ -49,7 +49,7 @@
 #include <linux/cdev.h>
 #include <linux/slab.h>
 #include <linux/sched.h>
-#if LINUX_RELEASE_4_11
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
 #include <linux/sched/signal.h>
 #endif
 #include <linux/interrupt.h>
@@ -964,7 +964,7 @@ static int nfp_dev_cpp_ioctl(struct inode *inode, struct file *filp,
 	}
 }
 
-#if LINUX_RELEASE_4_11_MM
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
 static int nfp_cpp_mmap_fault(struct vm_fault *vmf)
 {
 	struct vm_area_struct *vma = vmf->vma;

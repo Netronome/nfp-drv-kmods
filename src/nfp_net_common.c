@@ -49,7 +49,7 @@
 #if COMPAT__HAVE_XDP
 #include <linux/bpf.h>
 #endif
-#if LINUX_RELEASE_4_11
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
 #include <linux/bpf_trace.h>
 #endif
 #include <linux/module.h>
@@ -2653,7 +2653,7 @@ static compat__stat64_ret_t nfp_net_stat64(struct net_device *netdev,
 		stats->tx_errors += data[2];
 	}
 
-#if !LINUX_RELEASE_4_11
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0)
 	return stats;
 #endif
 }
