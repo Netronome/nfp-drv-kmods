@@ -212,9 +212,8 @@ nfp_nsp_wait_reg(struct nfp_cpp *cpp, u64 *reg,
 		if ((*reg & mask) == val)
 			return 0;
 
-		err = msleep_interruptible(100);
-		if (err)
-			return err;
+		if (msleep_interruptible(25))
+			return -ERESTARTSYS;
 
 		if (time_after(start_time, wait_until))
 			return -ETIMEDOUT;
@@ -231,7 +230,7 @@ nfp_nsp_wait_reg(struct nfp_cpp *cpp, u64 *reg,
  *
  * Return: 0 for success with no result
  *
- *	 1..255 for NSP completion with a result code
+ *	 positive value for NSP completion with a result code
  *
  *	-EAGAIN if the NSP is not yet present
  *	-ENODEV if the NSP is not a supported model
@@ -383,9 +382,10 @@ int nfp_nsp_wait(struct nfp_nsp *state)
 		if (err != -EAGAIN)
 			break;
 
-		err = msleep_interruptible(100);
-		if (err)
+		if (msleep_interruptible(25)) {
+			err = -ERESTARTSYS;
 			break;
+		}
 
 		if (time_after(start_time, wait_until)) {
 			err = -ETIMEDOUT;
