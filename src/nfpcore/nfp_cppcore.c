@@ -1156,12 +1156,14 @@ int nfp_cpp_read(struct nfp_cpp *cpp, u32 destination,
 			return -ENOMEM;
 
 		err = nfp_cpp_area_acquire(area);
-		if (err)
-			goto out;
+		if (err) {
+			nfp_cpp_area_free(area);
+			return err;
+		}
 	}
 
 	err = nfp_cpp_area_read(area, offset, kernel_vaddr, length);
-out:
+
 	if (cache)
 		area_cache_put(cpp, cache);
 	else
@@ -1198,13 +1200,14 @@ int nfp_cpp_write(struct nfp_cpp *cpp, u32 destination,
 			return -ENOMEM;
 
 		err = nfp_cpp_area_acquire(area);
-		if (err)
-			goto out;
+		if (err) {
+			nfp_cpp_area_free(area);
+			return err;
+		}
 	}
 
 	err = nfp_cpp_area_write(area, offset, kernel_vaddr, length);
 
-out:
 	if (cache)
 		area_cache_put(cpp, cache);
 	else
