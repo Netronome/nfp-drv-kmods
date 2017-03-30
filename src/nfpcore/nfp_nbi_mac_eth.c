@@ -413,19 +413,19 @@ int nfp_nbi_mac_eth_read_linkstate(struct nfp_nbi_dev *nbi, int core, int port,
 		status |=
 		    NFP_NBI_MAC_ETHCHPCSBASERSTATUS1_BLOCKLOCKED_FALSE;
 
-	r = NFP_MAC_ETH_MACETHSEG_ETHCMDCONFIG(port);
-	ret = nfp_nbi_mac_regr(nbi, NFP_MAC_ETH(core), r, &d);
-	if (ret < 0)
-		return ret;
-
-	if (!(d & NFP_MAC_ETH_MACETHSEG_ETHCMDCONFIG_ETHTXENA))
-		status |= NFP_NBI_MAC_ETHCMDCONFIG_ETHTXENA_FALSE;
-
-	if (!(d & NFP_MAC_ETH_MACETHSEG_ETHCMDCONFIG_ETHRXENA))
-		status |= NFP_NBI_MAC_ETHCMDCONFIG_ETHRXENA_FALSE;
-
-	if (linkstate)
+	if (linkstate) {
 		*linkstate = status;
+		r = NFP_MAC_ETH_MACETHSEG_ETHCMDCONFIG(port);
+		ret = nfp_nbi_mac_regr(nbi, NFP_MAC_ETH(core), r, &d);
+		if (ret < 0)
+			return ret;
+
+		if (!(d & NFP_MAC_ETH_MACETHSEG_ETHCMDCONFIG_ETHTXENA))
+			*linkstate |= NFP_NBI_MAC_ETHCMDCONFIG_ETHTXENA_FALSE;
+
+		if (!(d & NFP_MAC_ETH_MACETHSEG_ETHCMDCONFIG_ETHRXENA))
+			*linkstate |= NFP_NBI_MAC_ETHCMDCONFIG_ETHRXENA_FALSE;
+	}
 
 	return (status) ? 0 : 1;
 }
