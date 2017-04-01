@@ -201,6 +201,8 @@ nfp_net_get_link_ksettings(struct net_device *netdev,
 	struct nfp_net *nn = netdev_priv(netdev);
 	u32 sts, ls;
 
+	ethtool_link_ksettings_add_link_mode(cmd, supported, FIBRE);
+
 	sts = nn_readl(nn, NFP_NET_CFG_STS);
 
 	ls = FIELD_GET(NFP_NET_CFG_STS_LINK_RATE, sts);
