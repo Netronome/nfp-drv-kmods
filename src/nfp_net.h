@@ -819,6 +819,13 @@ struct nfp_net_dp *nfp_net_clone_dp(struct nfp_net *nn);
 int nfp_net_ring_reconfig(struct nfp_net *nn, struct nfp_net_dp *new);
 
 bool nfp_net_link_changed_read_clear(struct nfp_net *nn);
+#ifdef CONFIG_NFP_NET_PF
+void nfp_net_refresh_port_config(struct nfp_net *nn);
+#else
+static inline void nfp_net_refresh_port_config(struct nfp_net *nn)
+{
+}
+#endif
 
 #ifdef CONFIG_NFP_DEBUG
 void nfp_net_debugfs_create(void);
