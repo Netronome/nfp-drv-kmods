@@ -386,6 +386,12 @@ struct compat__ethtool_link_ksettings {
 /* Cheat backports */
 #define ethtool_link_ksettings compat__ethtool_link_ksettings
 
+static inline u32
+compat__ethtool_cmd_speed_get(const struct ethtool_link_ksettings *cmd)
+{
+	return ethtool_cmd_speed(&cmd->base);
+}
+
 static inline void
 compat__ethtool_cmd_speed_set(struct ethtool_link_ksettings *cmd, u32 speed)
 {
@@ -396,6 +402,12 @@ compat__ethtool_cmd_speed_set(struct ethtool_link_ksettings *cmd, u32 speed)
 #define ethtool_link_ksettings_add_link_mode(cmd, memb, type)	\
 		(cmd)->base.memb |= SUPPORTED_ ## type
 #else
+static inline u32
+compat__ethtool_cmd_speed_get(const struct ethtool_link_ksettings *cmd)
+{
+	return cmd->base.speed;
+}
+
 static inline void
 compat__ethtool_cmd_speed_set(struct ethtool_link_ksettings *cmd, u32 speed)
 {
