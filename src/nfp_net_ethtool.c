@@ -202,6 +202,12 @@ nfp_net_get_link_ksettings(struct net_device *netdev,
 	u32 sts, ls;
 
 	ethtool_link_ksettings_add_link_mode(cmd, supported, FIBRE);
+	cmd->base.port = PORT_OTHER;
+	compat__ethtool_cmd_speed_set(cmd, SPEED_UNKNOWN);
+	cmd->base.duplex = DUPLEX_UNKNOWN;
+
+	if (!netif_carrier_ok(netdev))
+		return 0;
 
 	sts = nn_readl(nn, NFP_NET_CFG_STS);
 
@@ -210,11 +216,8 @@ nfp_net_get_link_ksettings(struct net_device *netdev,
 		return -EOPNOTSUPP;
 
 	if (ls == NFP_NET_CFG_STS_LINK_RATE_UNKNOWN ||
-	    ls >= ARRAY_SIZE(ls_to_ethtool)) {
-		compat__ethtool_cmd_speed_set(cmd, SPEED_UNKNOWN);
-		cmd->base.duplex = DUPLEX_UNKNOWN;
+	    ls >= ARRAY_SIZE(ls_to_ethtool))
 		return 0;
-	}
 
 	compat__ethtool_cmd_speed_set(cmd, ls_to_ethtool[sts]);
 	cmd->base.duplex = DUPLEX_FULL;
