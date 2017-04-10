@@ -198,10 +198,10 @@ static unsigned int nfp_net_pf_get_num_ports(struct nfp_pf *pf)
 		 nfp_cppcore_pcie_unit(pf->cpp));
 
 	val = nfp_rtsym_read_le(pf->cpp, name, &err);
-	/* Default to one port */
+	/* Default to one port/vNIC */
 	if (err) {
 		if (err != -ENOENT)
-			nfp_err(pf->cpp, "Unable to read adapter port count\n");
+			nfp_err(pf->cpp, "Unable to read adapter vNIC count\n");
 		val = 1;
 	}
 
@@ -217,7 +217,7 @@ nfp_net_pf_total_qcs(struct nfp_pf *pf, void __iomem *ctrl_bar,
 	min_qc = readl(ctrl_bar + start_off);
 	max_qc = min_qc;
 
-	for (i = 0; i < pf->num_ports; i++) {
+	for (i = 0; i < pf->max_data_vnics; i++) {
 		/* To make our lives simpler only accept configuration where
 		 * queues are allocated to PFs in order (queues of PFn all have
 		 * indexes lower than PFn+1).
@@ -249,17 +249,17 @@ static u8 __iomem *nfp_net_pf_map_ctrl_bar(struct nfp_pf *pf)
 		return NULL;
 	}
 
-	if (ctrl_sym->size < pf->num_ports * NFP_PF_CSR_SLICE_SIZE) {
+	if (ctrl_sym->size < pf->max_data_vnics * NFP_PF_CSR_SLICE_SIZE) {
 		dev_err(&pf->pdev->dev,
-			"PF BAR0 too small to contain %d ports\n",
-			pf->num_ports);
+			"PF BAR0 too small to contain %d vNICs\n",
+			pf->max_data_vnics);
 		return NULL;
 	}
 
 	ctrl_bar = nfp_net_map_area(pf->cpp, "net.ctrl",
 				    ctrl_sym->domain, ctrl_sym->target,
 				    ctrl_sym->addr, ctrl_sym->size,
-				    &pf->ctrl_area);
+				    &pf->data_vnic_bar);
 	if (IS_ERR(ctrl_bar)) {
 		dev_err(&pf->pdev->dev, "Failed to map PF BAR0: %ld\n",
 			PTR_ERR(ctrl_bar));
@@ -269,24 +269,24 @@ static u8 __iomem *nfp_net_pf_map_ctrl_bar(struct nfp_pf *pf)
 	return ctrl_bar;
 }
 
-static void nfp_net_pf_free_netdevs(struct nfp_pf *pf)
+static void nfp_net_pf_free_vnics(struct nfp_pf *pf)
 {
 	struct nfp_net *nn;
 
-	while (!list_empty(&pf->ports)) {
-		nn = list_first_entry(&pf->ports, struct nfp_net, port_list);
-		list_del(&nn->port_list);
-		pf->num_netdevs--;
+	while (!list_empty(&pf->vnics)) {
+		nn = list_first_entry(&pf->vnics, struct nfp_net, vnic_list);
+		list_del(&nn->vnic_list);
+		pf->num_vnics--;
 
 		nfp_net_free(nn);
 	}
 }
 
 static struct nfp_net *
-nfp_net_pf_alloc_port_netdev(struct nfp_pf *pf, void __iomem *ctrl_bar,
-			     void __iomem *tx_bar, void __iomem *rx_bar,
-			     int stride, struct nfp_net_fw_version *fw_ver,
-			     struct nfp_eth_table_port *eth_port)
+nfp_net_pf_alloc_vnic(struct nfp_pf *pf, void __iomem *ctrl_bar,
+		      void __iomem *tx_bar, void __iomem *rx_bar,
+		      int stride, struct nfp_net_fw_version *fw_ver,
+		      struct nfp_eth_table_port *eth_port)
 {
 	u32 n_tx_rings, n_rx_rings;
 	struct nfp_net *nn;
@@ -294,7 +294,7 @@ nfp_net_pf_alloc_port_netdev(struct nfp_pf *pf, void __iomem *ctrl_bar,
 	n_tx_rings = readl(ctrl_bar + NFP_NET_CFG_MAX_TXRINGS);
 	n_rx_rings = readl(ctrl_bar + NFP_NET_CFG_MAX_RXRINGS);
 
-	/* Allocate and initialise the netdev */
+	/* Allocate and initialise the vNIC */
 	nn = nfp_net_alloc(pf->pdev, n_tx_rings, n_rx_rings);
 	if (IS_ERR(nn))
 		return nn;
@@ -313,8 +313,7 @@ nfp_net_pf_alloc_port_netdev(struct nfp_pf *pf, void __iomem *ctrl_bar,
 }
 
 static int
-nfp_net_pf_init_port_netdev(struct nfp_pf *pf, struct nfp_net *nn,
-			    unsigned int id)
+nfp_net_pf_init_vnic(struct nfp_pf *pf, struct nfp_net *nn, unsigned int id)
 {
 	int err;
 
@@ -331,7 +330,7 @@ nfp_net_pf_init_port_netdev(struct nfp_pf *pf, struct nfp_net *nn,
 	if (err)
 		return err;
 
-	nfp_net_debugfs_port_add(nn, pf->ddir, id);
+	nfp_net_debugfs_vnic_add(nn, pf->ddir, id);
 
 	nfp_net_info(nn);
 
@@ -339,9 +338,9 @@ nfp_net_pf_init_port_netdev(struct nfp_pf *pf, struct nfp_net *nn,
 }
 
 static int
-nfp_net_pf_alloc_netdevs(struct nfp_pf *pf, void __iomem *ctrl_bar,
-			 void __iomem *tx_bar, void __iomem *rx_bar,
-			 int stride, struct nfp_net_fw_version *fw_ver)
+nfp_net_pf_alloc_vnics(struct nfp_pf *pf, void __iomem *ctrl_bar,
+		       void __iomem *tx_bar, void __iomem *rx_bar,
+		       int stride, struct nfp_net_fw_version *fw_ver)
 {
 	u32 prev_tx_base, prev_rx_base, tgt_tx_base, tgt_rx_base;
 	struct nfp_eth_table_port *eth_port;
@@ -352,7 +351,7 @@ nfp_net_pf_alloc_netdevs(struct nfp_pf *pf, void __iomem *ctrl_bar,
 	prev_tx_base = readl(ctrl_bar + NFP_NET_CFG_START_TXQ);
 	prev_rx_base = readl(ctrl_bar + NFP_NET_CFG_START_RXQ);
 
-	for (i = 0; i < pf->num_ports; i++) {
+	for (i = 0; i < pf->max_data_vnics; i++) {
 		tgt_tx_base = readl(ctrl_bar + NFP_NET_CFG_START_TXQ);
 		tgt_rx_base = readl(ctrl_bar + NFP_NET_CFG_START_RXQ);
 		tx_bar += (tgt_tx_base - prev_tx_base) * NFP_QCP_QUEUE_ADDR_SZ;
@@ -364,49 +363,48 @@ nfp_net_pf_alloc_netdevs(struct nfp_pf *pf, void __iomem *ctrl_bar,
 		if (eth_port && eth_port->override_changed) {
 			nfp_warn(pf->cpp, "Config changed for port #%d, reboot required before port will be operational\n", i);
 		} else {
-			nn = nfp_net_pf_alloc_port_netdev(pf, ctrl_bar, tx_bar,
-							  rx_bar, stride,
-							  fw_ver, eth_port);
+			nn = nfp_net_pf_alloc_vnic(pf, ctrl_bar, tx_bar, rx_bar,
+						   stride, fw_ver, eth_port);
 			if (IS_ERR(nn)) {
 				err = PTR_ERR(nn);
 				goto err_free_prev;
 			}
-			list_add_tail(&nn->port_list, &pf->ports);
-			pf->num_netdevs++;
+			list_add_tail(&nn->vnic_list, &pf->vnics);
+			pf->num_vnics++;
 		}
 
 		ctrl_bar += NFP_PF_CSR_SLICE_SIZE;
 	}
 
-	if (list_empty(&pf->ports))
+	if (list_empty(&pf->vnics))
 		return -ENODEV;
 
 	return 0;
 
 err_free_prev:
-	nfp_net_pf_free_netdevs(pf);
+	nfp_net_pf_free_vnics(pf);
 	return err;
 }
 
 static int
-nfp_net_pf_spawn_netdevs(struct nfp_pf *pf,
-			 void __iomem *ctrl_bar, void __iomem *tx_bar,
-			 void __iomem *rx_bar, int stride,
-			 struct nfp_net_fw_version *fw_ver)
+nfp_net_pf_spawn_vnics(struct nfp_pf *pf,
+		       void __iomem *ctrl_bar, void __iomem *tx_bar,
+		       void __iomem *rx_bar, int stride,
+		       struct nfp_net_fw_version *fw_ver)
 {
-	unsigned int id, wanted_irqs, num_irqs, ports_left, irqs_left;
+	unsigned int id, wanted_irqs, num_irqs, vnics_left, irqs_left;
 	struct nfp_net *nn;
 	int err;
 
-	/* Allocate the netdevs and do basic init */
-	err = nfp_net_pf_alloc_netdevs(pf, ctrl_bar, tx_bar, rx_bar,
-				       stride, fw_ver);
+	/* Allocate the vnics and do basic init */
+	err = nfp_net_pf_alloc_vnics(pf, ctrl_bar, tx_bar, rx_bar,
+				     stride, fw_ver);
 	if (err)
 		return err;
 
 	/* Get MSI-X vectors */
 	wanted_irqs = 0;
-	list_for_each_entry(nn, &pf->ports, port_list)
+	list_for_each_entry(nn, &pf->vnics, vnic_list)
 		wanted_irqs += NFP_NET_NON_Q_VECTORS + nn->dp.num_r_vecs;
 	pf->irq_entries = kcalloc(wanted_irqs, sizeof(*pf->irq_entries),
 				  GFP_KERNEL);
@@ -416,7 +414,7 @@ nfp_net_pf_spawn_netdevs(struct nfp_pf *pf,
 	}
 
 	num_irqs = nfp_net_irqs_alloc(pf->pdev, pf->irq_entries,
-				      NFP_NET_MIN_PORT_IRQS * pf->num_netdevs,
+				      NFP_NET_MIN_VNIC_IRQS * pf->num_vnics,
 				      wanted_irqs);
 	if (!num_irqs) {
 		nn_warn(nn, "Unable to allocate MSI-X Vectors. Exiting\n");
@@ -424,23 +422,23 @@ nfp_net_pf_spawn_netdevs(struct nfp_pf *pf,
 		goto err_vec_free;
 	}
 
-	/* Distribute IRQs to ports */
+	/* Distribute IRQs to vNICs */
 	irqs_left = num_irqs;
-	ports_left = pf->num_netdevs;
-	list_for_each_entry(nn, &pf->ports, port_list) {
+	vnics_left = pf->num_vnics;
+	list_for_each_entry(nn, &pf->vnics, vnic_list) {
 		unsigned int n;
 
-		n = DIV_ROUND_UP(irqs_left, ports_left);
+		n = DIV_ROUND_UP(irqs_left, vnics_left);
 		nfp_net_irqs_assign(nn, &pf->irq_entries[num_irqs - irqs_left],
 				    n);
 		irqs_left -= n;
-		ports_left--;
+		vnics_left--;
 	}
 
-	/* Finish netdev init and register */
+	/* Finish vNIC init and register */
 	id = 0;
-	list_for_each_entry(nn, &pf->ports, port_list) {
-		err = nfp_net_pf_init_port_netdev(pf, nn, id);
+	list_for_each_entry(nn, &pf->vnics, vnic_list) {
+		err = nfp_net_pf_init_vnic(pf, nn, id);
 		if (err)
 			goto err_prev_deinit;
 
@@ -450,7 +448,7 @@ nfp_net_pf_spawn_netdevs(struct nfp_pf *pf,
 	return 0;
 
 err_prev_deinit:
-	list_for_each_entry_continue_reverse(nn, &pf->ports, port_list) {
+	list_for_each_entry_continue_reverse(nn, &pf->vnics, vnic_list) {
 		nfp_net_debugfs_dir_clean(&nn->debugfs_dir);
 		nfp_net_clean(nn);
 	}
@@ -458,7 +456,7 @@ err_prev_deinit:
 err_vec_free:
 	kfree(pf->irq_entries);
 err_nn_free:
-	nfp_net_pf_free_netdevs(pf);
+	nfp_net_pf_free_vnics(pf);
 	return err;
 }
 
@@ -471,23 +469,23 @@ static void nfp_net_pci_remove_finish(struct nfp_pf *pf)
 
 	nfp_cpp_area_release_free(pf->rx_area);
 	nfp_cpp_area_release_free(pf->tx_area);
-	nfp_cpp_area_release_free(pf->ctrl_area);
+	nfp_cpp_area_release_free(pf->data_vnic_bar);
 }
 
-static void nfp_net_refresh_netdevs(struct work_struct *work)
+static void nfp_net_refresh_vnics(struct work_struct *work)
 {
 	struct nfp_pf *pf = container_of(work, struct nfp_pf,
 					 port_refresh_work);
 	struct nfp_eth_table *eth_table;
 	struct nfp_net *nn, *next;
 
-	mutex_lock(&pf->port_lock);
+	mutex_lock(&pf->lock);
 
 	/* Check for nfp_net_pci_remove() racing against us */
-	if (list_empty(&pf->ports))
+	if (list_empty(&pf->vnics))
 		goto out;
 
-	list_for_each_entry(nn, &pf->ports, port_list)
+	list_for_each_entry(nn, &pf->vnics, vnic_list)
 		nfp_net_link_changed_read_clear(nn);
 
 	eth_table = nfp_eth_read_ports(pf->cpp);
@@ -497,7 +495,7 @@ static void nfp_net_refresh_netdevs(struct work_struct *work)
 	}
 
 	rtnl_lock();
-	list_for_each_entry(nn, &pf->ports, port_list) {
+	list_for_each_entry(nn, &pf->vnics, vnic_list) {
 		if (!nn->eth_port)
 			continue;
 		nn->eth_port = nfp_net_find_port(eth_table,
@@ -508,7 +506,7 @@ static void nfp_net_refresh_netdevs(struct work_struct *work)
 	kfree(pf->eth_tbl);
 	pf->eth_tbl = eth_table;
 
-	list_for_each_entry_safe(nn, next, &pf->ports, port_list) {
+	list_for_each_entry_safe(nn, next, &pf->vnics, vnic_list) {
 		if (!nn->eth_port) {
 			nfp_warn(pf->cpp, "Warning: port not present after reconfig\n");
 			continue;
@@ -521,15 +519,15 @@ static void nfp_net_refresh_netdevs(struct work_struct *work)
 		nfp_net_debugfs_dir_clean(&nn->debugfs_dir);
 		nfp_net_clean(nn);
 
-		list_del(&nn->port_list);
-		pf->num_netdevs--;
+		list_del(&nn->vnic_list);
+		pf->num_vnics--;
 		nfp_net_free(nn);
 	}
 
-	if (list_empty(&pf->ports))
+	if (list_empty(&pf->vnics))
 		nfp_net_pci_remove_finish(pf);
 out:
-	mutex_unlock(&pf->port_lock);
+	mutex_unlock(&pf->lock);
 }
 
 void nfp_net_refresh_port_table(struct nfp_net *nn)
@@ -577,8 +575,8 @@ int nfp_net_pci_probe(struct nfp_pf *pf, bool nfp_reset)
 	int stride;
 	int err;
 
-	INIT_WORK(&pf->port_refresh_work, nfp_net_refresh_netdevs);
-	mutex_init(&pf->port_lock);
+	INIT_WORK(&pf->port_refresh_work, nfp_net_refresh_vnics);
+	mutex_init(&pf->lock);
 
 	/* Verify that the board has completed initialization */
 	if ((!pf->fw_loaded && nfp_reset) || !nfp_is_ready(pf->cpp)) {
@@ -586,8 +584,8 @@ int nfp_net_pci_probe(struct nfp_pf *pf, bool nfp_reset)
 		return 1;
 	}
 
-	mutex_lock(&pf->port_lock);
-	pf->num_ports = nfp_net_pf_get_num_ports(pf);
+	mutex_lock(&pf->lock);
+	pf->max_data_vnics = nfp_net_pf_get_num_ports(pf);
 
 	ctrl_bar = nfp_net_pf_map_ctrl_bar(pf);
 	if (!ctrl_bar) {
@@ -662,12 +660,12 @@ int nfp_net_pci_probe(struct nfp_pf *pf, bool nfp_reset)
 
 	pf->ddir = nfp_net_debugfs_device_add(pf->pdev);
 
-	err = nfp_net_pf_spawn_netdevs(pf, ctrl_bar, tx_bar, rx_bar,
-				       stride, &fw_ver);
+	err = nfp_net_pf_spawn_vnics(pf, ctrl_bar, tx_bar, rx_bar,
+				     stride, &fw_ver);
 	if (err)
 		goto err_clean_ddir;
 
-	mutex_unlock(&pf->port_lock);
+	mutex_unlock(&pf->lock);
 
 	return 0;
 
@@ -677,9 +675,9 @@ err_clean_ddir:
 err_unmap_tx:
 	nfp_cpp_area_release_free(pf->tx_area);
 err_ctrl_unmap:
-	nfp_cpp_area_release_free(pf->ctrl_area);
+	nfp_cpp_area_release_free(pf->data_vnic_bar);
 err_unlock:
-	mutex_unlock(&pf->port_lock);
+	mutex_unlock(&pf->lock);
 	return err;
 }
 
@@ -687,21 +685,21 @@ void nfp_net_pci_remove(struct nfp_pf *pf)
 {
 	struct nfp_net *nn;
 
-	mutex_lock(&pf->port_lock);
-	if (list_empty(&pf->ports))
+	mutex_lock(&pf->lock);
+	if (list_empty(&pf->vnics))
 		goto out;
 
-	list_for_each_entry(nn, &pf->ports, port_list) {
+	list_for_each_entry(nn, &pf->vnics, vnic_list) {
 		nfp_net_debugfs_dir_clean(&nn->debugfs_dir);
 
 		nfp_net_clean(nn);
 	}
 
-	nfp_net_pf_free_netdevs(pf);
+	nfp_net_pf_free_vnics(pf);
 
 	nfp_net_pci_remove_finish(pf);
 out:
-	mutex_unlock(&pf->port_lock);
+	mutex_unlock(&pf->lock);
 
 	cancel_work_sync(&pf->port_refresh_work);
 }
