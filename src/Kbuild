@@ -99,7 +99,9 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
   ifeq ($(CONFIG_NFP_NET_PF),y)
     ccflags-y += -DCONFIG_NFP_NET_PF=1
 
-    nfp-objs += nfp_net_main.o
+    nfp-objs += \
+		nfp_app.o \
+		nfp_net_main.o
   endif
 
   ifeq ($(CONFIG_NFP_NET_VF),y)

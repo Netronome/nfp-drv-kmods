@@ -201,6 +201,15 @@ static inline int compat_kstrtoul(const char *str, int base, unsigned long *res)
 #endif
 #endif /* < KERNEL_VERSION(3, 0, 0) */
 
+#if VER_VANILLA_LT(3, 12) || VER_RHEL_LT(7, 1)
+static inline int PTR_ERR_OR_ZERO(const void *ptr)
+{
+	if (IS_ERR(ptr))
+		return PTR_ERR(ptr);
+	return 0;
+}
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 13, 0)
 static inline
 int compat_dma_set_mask_and_coherent(struct device *dev, u64 mask)
