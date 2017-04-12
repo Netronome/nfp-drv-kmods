@@ -39,9 +39,9 @@
 #include <linux/pkt_cls.h>
 #include <linux/unistd.h>
 
-#include "nfp_asm.h"
-#include "nfp_bpf.h"
-#include "nfpcore/kcompat.h"
+#include "main.h"
+#include "../nfp_asm.h"
+#include "../nfpcore/kcompat.h"
 
 /* --- NFP prog --- */
 /* Foreach "multiple" entries macros provide pos and next<n> pointers.
