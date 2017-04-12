@@ -120,12 +120,12 @@ nfp_net_bpf_get_act(struct nfp_net *nn, struct tc_cls_bpf_offload *cls_bpf)
 		if (tc_no_actions(cls_bpf->exts))
 			return NN_ACT_DIRECT;
 
-		return -ENOTSUPP;
+		return -EOPNOTSUPP;
 	}
 
 	/* TC legacy mode */
 	if (!tc_single_action(cls_bpf->exts))
-		return -ENOTSUPP;
+		return -EOPNOTSUPP;
 
 	tcf_exts_to_list(cls_bpf->exts, &actions);
 	list_for_each_entry(a, &actions, list) {
@@ -137,7 +137,7 @@ nfp_net_bpf_get_act(struct nfp_net *nn, struct tc_cls_bpf_offload *cls_bpf)
 			return NN_ACT_TC_REDIR;
 	}
 
-	return -ENOTSUPP;
+	return -EOPNOTSUPP;
 }
 
 static int
@@ -153,7 +153,7 @@ nfp_net_bpf_offload_prepare(struct nfp_net *nn,
 	int ret;
 
 	if (!IS_ENABLED(CONFIG_BPF_SYSCALL))
-		return -ENOTSUPP;
+		return -EOPNOTSUPP;
 
 	ret = nfp_net_bpf_get_act(nn, cls_bpf);
 	if (ret < 0)
@@ -163,7 +163,7 @@ nfp_net_bpf_offload_prepare(struct nfp_net *nn,
 	max_mtu = nn_readb(nn, NFP_NET_CFG_BPF_INL_MTU) * 64 - 32;
 	if (max_mtu < nn->dp.netdev->mtu) {
 		nn_info(nn, "BPF offload not supported with MTU larger than HW packet split boundary\n");
-		return -ENOTSUPP;
+		return -EOPNOTSUPP;
 	}
 
 	start_off = nn_readw(nn, NFP_NET_CFG_BPF_START);
@@ -290,6 +290,6 @@ int nfp_net_bpf_offload(struct nfp_net *nn, struct tc_cls_bpf_offload *cls_bpf)
 		return nfp_net_bpf_stats_update(nn, cls_bpf);
 
 	default:
-		return -ENOTSUPP;
+		return -EOPNOTSUPP;
 	}
 }

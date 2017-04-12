@@ -882,7 +882,7 @@ static inline void nfp_net_filter_stats_timer(unsigned long data)
 static inline int
 nfp_net_bpf_offload(struct nfp_net *nn, struct tc_cls_bpf_offload *cls_bpf)
 {
-	return -ENOTSUPP;
+	return -EOPNOTSUPP;
 }
 #endif
 
