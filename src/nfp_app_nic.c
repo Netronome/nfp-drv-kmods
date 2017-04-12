@@ -31,74 +31,56 @@
  * SOFTWARE.
  */
 
-#ifndef _NFP_APP_H
-#define _NFP_APP_H 1
+#include "nfpcore/nfp_cpp.h"
+#include "nfpcore/nfp_nsp.h"
+#include "nfp_app.h"
+#include "nfp_main.h"
+#include "nfp_net.h"
+#include "nfp_port.h"
 
-struct pci_dev;
-struct nfp_app;
-struct nfp_cpp;
-struct nfp_pf;
-struct nfp_net;
-
-enum nfp_app_id {
-	NFP_APP_CORE_NIC	= 0x1,
-	NFP_APP_BPF_NIC		= 0x2,
-};
-
-extern const struct nfp_app_type app_nic;
-extern const struct nfp_app_type app_bpf;
-
-/**
- * struct nfp_app_type - application definition
- * @id:		application ID
- *
- * Callbacks
- * @init:	perform basic app checks
- * @vnic_init:	init vNICs (assign port types, etc.)
- */
-struct nfp_app_type {
-	enum nfp_app_id id;
-
-	int (*init)(struct nfp_app *app);
-
-	int (*vnic_init)(struct nfp_app *app, struct nfp_net *nn,
-			 unsigned int id);
-};
-
-/**
- * struct nfp_app - NFP application container
- * @pdev:	backpointer to PCI device
- * @pf:		backpointer to NFP PF structure
- * @cpp:	pointer to the CPP handle
- * @type:	pointer to const application ops and info
- */
-struct nfp_app {
-	struct pci_dev *pdev;
-	struct nfp_pf *pf;
-	struct nfp_cpp *cpp;
-
-	const struct nfp_app_type *type;
-};
-
-static inline int nfp_app_init(struct nfp_app *app)
+static int
+nfp_app_nic_vnic_init_phy_port(struct nfp_pf *pf, struct nfp_app *app,
+			       struct nfp_net *nn, unsigned int id)
 {
-	if (!app->type->init)
+	if (!pf->eth_tbl)
 		return 0;
-	return app->type->init(app);
+
+	nn->port = nfp_port_alloc(app, NFP_PORT_PHYS_PORT, nn->dp.netdev);
+	if (IS_ERR(nn->port))
+		return PTR_ERR(nn->port);
+
+	nn->port->eth_id = id;
+	nn->port->eth_port = nfp_net_find_port(pf->eth_tbl, id);
+
+	/* Check if vNIC has external port associated and cfg is OK */
+	if (!nn->port->eth_port) {
+		nfp_err(app->cpp,
+			"NSP port entries don't match vNICs (no entry for port #%d)\n",
+			id);
+		nfp_port_free(nn->port);
+		return -EINVAL;
+	}
+	if (nn->port->eth_port->override_changed) {
+		nfp_warn(app->cpp,
+			 "Config changed for port #%d, reboot required before port will be operational\n",
+			 id);
+		nn->port->type = NFP_PORT_INVALID;
+		return 1;
+	}
+
+	return 0;
 }
-
-static inline int nfp_app_vnic_init(struct nfp_app *app, struct nfp_net *nn,
-				    unsigned int id)
-{
-	return app->type->vnic_init(app, nn, id);
-}
-
-struct nfp_app *nfp_app_alloc(struct nfp_pf *pf, enum nfp_app_id id);
-void nfp_app_free(struct nfp_app *app);
-
-/* Callbacks shared between apps */
 
 int nfp_app_nic_vnic_init(struct nfp_app *app, struct nfp_net *nn,
-			  unsigned int id);
+			  unsigned int id)
+{
+	int err;
 
-#endif
+	err = nfp_app_nic_vnic_init_phy_port(app->pf, app, nn, id);
+	if (err)
+		return err < 0 ? err : 0;
+
+	nfp_net_get_mac_addr(nn, app->cpp, id);
+
+	return 0;
+}

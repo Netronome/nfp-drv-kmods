@@ -30,54 +30,28 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "nfpcore/kcompat.h"
 
-#include <linux/slab.h>
+#include "../nfpcore/nfp_cpp.h"
+#include "../nfpcore/nfp_nsp.h"
+#include "../nfp_app.h"
+#include "../nfp_main.h"
 
-#include "nfpcore/nfp_cpp.h"
-#include "nfp_app.h"
-#include "nfp_main.h"
-
-static const struct nfp_app_type *apps[] = {
-#ifdef CONFIG_NFP_NET_PF
-	&app_nic,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
-	&app_bpf,
-#endif
-#else
-	NULL,
-#endif
-};
-
-struct nfp_app *nfp_app_alloc(struct nfp_pf *pf, enum nfp_app_id id)
+static int nfp_nic_init(struct nfp_app *app)
 {
-	struct nfp_app *app;
-	unsigned int i;
+	struct nfp_pf *pf = app->pf;
 
-	for (i = 0; i < ARRAY_SIZE(apps); i++)
-		if (apps[i]->id == id)
-			break;
-	if (i == ARRAY_SIZE(apps)) {
-		nfp_err(pf->cpp, "failed to find app with ID 0x%02hhx\n", id);
-		return ERR_PTR(-EINVAL);
+	if (pf->eth_tbl && pf->max_data_vnics != pf->eth_tbl->count) {
+		nfp_err(pf->cpp, "ETH entries don't match vNICs (%d vs %d)\n",
+			pf->max_data_vnics, pf->eth_tbl->count);
+		return -EINVAL;
 	}
 
-	if (WARN_ON(!apps[i]->vnic_init))
-		return ERR_PTR(-EINVAL);
-
-	app = kzalloc(sizeof(*app), GFP_KERNEL);
-	if (!app)
-		return ERR_PTR(-ENOMEM);
-
-	app->pf = pf;
-	app->cpp = pf->cpp;
-	app->pdev = pf->pdev;
-	app->type = apps[i];
-
-	return app;
+	return 0;
 }
 
-void nfp_app_free(struct nfp_app *app)
-{
-	kfree(app);
-}
+const struct nfp_app_type app_nic = {
+	.id		= NFP_APP_CORE_NIC,
+
+	.init		= nfp_nic_init,
+	.vnic_init	= nfp_app_nic_vnic_init,
+};

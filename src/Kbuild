@@ -100,6 +100,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
   ccflags-y += -DCONFIG_NFP_DEBUG
 
   nfp-objs += \
+		nfp_app.o \
 		nfp_net_common.o \
 		nfp_net_ethtool.o \
 		nfp_net_debugfs.o \
@@ -109,9 +110,15 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
     ccflags-y += -DCONFIG_NFP_NET_PF=1
 
     nfp-objs += \
-		nfp_app.o \
+		nfp_app_nic.o \
 		nfp_devlink.o \
-		nfp_net_main.o
+		nfp_net_main.o \
+		nic/main.o
+
+    ifeq ($(KERNEL_GE_4_9),y)
+      nfp-objs += \
+		bpf/main.o
+    endif
   endif
 
   ifeq ($(CONFIG_NFP_NET_VF),y)

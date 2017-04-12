@@ -55,6 +55,7 @@ struct platform_device;
 struct nfp_cpp;
 struct nfp_cpp_area;
 struct nfp_eth_table;
+struct nfp_net;
 struct nfp_nsp_identify;
 
 /**
@@ -142,6 +143,11 @@ static inline void nfp_net_pci_remove(struct nfp_pf *pf)
 {
 }
 #endif
+
+struct nfp_eth_table_port *
+nfp_net_find_port(struct nfp_eth_table *eth_tbl, unsigned int id);
+void
+nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_cpp *cpp, unsigned int id);
 
 #define NFP_DEV_CPP_TYPE	"nfp-dev-cpp"
 
