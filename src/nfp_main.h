@@ -66,8 +66,7 @@ struct nfp_nsp_identify;
  * @nfp_dev_cpp:	Pointer to the NFP Device handle
  * @nfp_net_vnic:	Handle for ARM VNIC device
  * @data_vnic_bar:	Pointer to the CPP area for the data vNICs' BARs
- * @tx_area:		Pointer to the CPP area for the TX queues
- * @rx_area:		Pointer to the CPP area for the FL/RX queues
+ * @qc_area:		Pointer to the CPP area for the queues
  * @irq_entries:	Array of MSI-X entries for all vNICs
  * @msix:		Single MSI-X entry for non-netdev mode event monitor
  * @limit_vfs:		Number of VFs supported by firmware (~0 for PCI limit)
@@ -95,8 +94,7 @@ struct nfp_pf {
 	struct platform_device *nfp_net_vnic;
 
 	struct nfp_cpp_area *data_vnic_bar;
-	struct nfp_cpp_area *tx_area;
-	struct nfp_cpp_area *rx_area;
+	struct nfp_cpp_area *qc_area;
 
 	struct msix_entry *irq_entries;
 
