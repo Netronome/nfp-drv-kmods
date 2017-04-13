@@ -876,18 +876,9 @@ static inline void nfp_net_debugfs_dir_clean(struct dentry **dir)
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
 void nfp_net_filter_stats_timer(unsigned long data);
-int nfp_net_bpf_offload(struct nfp_net *nn, struct tc_cls_bpf_offload *cls_bpf);
 #else
-struct tc_cls_bpf_offload;
-
 static inline void nfp_net_filter_stats_timer(unsigned long data)
 {
-}
-
-static inline int
-nfp_net_bpf_offload(struct nfp_net *nn, struct tc_cls_bpf_offload *cls_bpf)
-{
-	return -EOPNOTSUPP;
 }
 #endif
 
