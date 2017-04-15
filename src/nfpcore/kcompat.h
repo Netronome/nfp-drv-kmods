@@ -55,6 +55,7 @@
 	(RHEL_RELEASE_CODE && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(x, y))
 
 #define LINUX_RELEASE_4_12	defined(ETH_RSS_HASH_CRC32)
+#define COMPAT__USE_DMA_SKIP_SYNC	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
 
 /* RHEL has a tendency to heavily patch their kernels.  Sometimes it
  * is necessary to check for specific RHEL releases and not just for
@@ -655,6 +656,11 @@ static inline unsigned long compat_vmf_get_addr(struct vm_fault *vmf)
 	return (unsigned long)vmf->virtual_address;
 #endif
 }
+
+#if !COMPAT__USE_DMA_SKIP_SYNC
+#undef DMA_ATTR_SKIP_CPU_SYNC
+#define DMA_ATTR_SKIP_CPU_SYNC 0
+#endif
 
 #if LINUX_RELEASE_4_12
 #define pci_enable_msix pci_enable_msix_exact
