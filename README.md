@@ -126,25 +126,37 @@ driver in netdev mode which will create networking interfaces or only
 expose low-level API to the user space and run health monitoring, and
 diagnostics.
 
-## PF non-netdev mode
-
-This mode is used by the Netronome SDN products for health monitoring,
-loading firmware, and diagnostics.
-
-It provides a low-level interface into the NFP, and does not require
-that a NFP firmware be loaded.
+NOTE: if you're using Netronome-provided driver packages some
+of the defaults mentioned in this document may have been changed
+in the `/etc/modprobe.d/netconsole.conf` file.
 
 ## PF netdev mode
 
 In this mode module provides a Linux network device interface on
 the NFP's physical function.  It requires appropriate FW image to
 be either pre-loaded or available in `/lib/firmware/netronome/` to
-work.  Systems using Netronome SDN products currently do use this
-mode.
+work.  This is the only mode of operation for the upstream driver.
 
-Note that in standard build (i.e. not `make nfp_net`) low-level
-user space ABI of non-netdev mode can still be exposed by setting
-the `nfp_dev_cpp` parameter to true, but is disabled by default.
+Developers should use this mode if firmware is exposing vNICs on the
+PCI PF device.
+
+By default (i.e. not `make nfp_net` build) low-level user space access
+ABIs of non-netdev mode will not be exposed, but can be re-enabled with
+appropriate module parameters (`nfp_dev_cpp`).
+
+## PF non-netdev mode
+
+This mode is used by the out-of-tree Netronome SDN products for health
+monitoring, loading firmware, and diagnostics.  It is enabled by setting
+`nfp_pf_netdev` module parameter to `0`.  Driver in this mode will not
+expose any netdevs of the PCI PF.
+
+Developers should use this mode if firmware is only exposing vNICs on
+the PCI VF devices.
+
+This mode provides a low-level user space interface into the NFP
+(`/dev/nfp-cpp-X` file), which is used by development and debugging tools.
+It does not require a NFP firmware be loaded at device probe time.
 
 ## VF driver
 
@@ -184,7 +196,6 @@ this is only presented here as a reference.
 | nfp_pf_netdev   |    true | PF driver in [Netdev mode](#pf-netdev-mode)     |
 | nfp_fallback    |    true | In netdev mode stay bound even if netdevs failed|
 | nfp_dev_cpp     |    true | Enable NFP CPP user space /dev interface        |
-| ~~fw_stop_on_fail~~ | ~~false~~ | ~~Fail init if no suitable FW is present~~|
 | fw_load_required |  false | Fail init if no suitable FW is present          |
 | nfp_net_vnic    |   false | vNIC net devices [1]                            |
 | nfp_net_vnic_pollinterval | 10 | Polling interval for Rx/Tx queues (in ms)  |
@@ -192,7 +203,6 @@ this is only presented here as a reference.
 | nfp_reset       |   false | Reset the NFP on init [2]                       |
 | nfp_reset_on_exit | false | Reset the NFP on exit                           |
 | hwinfo_debug    |   false | Enable to log hwinfo contents on load           |
-| board_state     |      15 | HWInfo board.state to wait for. (range: 0..15)  |
 | hwinfo_wait     |      10 | Wait N sec for board.state match, -1 = forever  |
 | nfp6000_explicit_bars | 4 | Number of explicit BARs. (range: 1..4)          |
 | nfp6000_debug   |   false | Enable debugging for the NFP6000 PCIe           |
