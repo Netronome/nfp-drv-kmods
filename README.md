@@ -156,19 +156,7 @@ and had assigned a rule matching `'all 172.16.0.0/24 received'` to VF 5,
 then the NFP6000's SR-IOV device `#5` would use this driver to provide a
 NIC style interface to the flows that match that rule.*
 
-## Sources
-
-| Source              | Description                                           |
-| ------------------- | ----------------------------------------------------- |
-| nfp_main.c          | NFP PF low-level PCIe and FW loading routines         |
-| nfp_net_main.c      | NFP NIC PF low-level routines                         |
-| nfp_netvf_main.c    | NFP NIC VF low-level routines                         |
-| nfp_net_common.c    | NFP NIC common interface functions                    |
-| nfp_net_ethtool.c   | NFP NIC ethtool interface support                     |
-| nfp_dev_cpp.c       | User space access via /dev/nfp-cpp-N interface        |
-| nfpcore/            | NFP Core Library, see ([NFP Core Library](#nfp-core-library)) |
-
-### Parameters
+## Module parameters
 
 NOTE: `modinfo nfp.ko` is the authoritative documentation,
 this is only presented here as a reference.
@@ -196,32 +184,3 @@ NOTES:
 
 1. The vNIC net device creates a pseudo-NIC for NFP ARM Linux systems.
 2. Reset on init will be performed anyway if firmware file is specified.
-
-## NFP Core Library
-
-The NFP Core Library is used by `nfp.ko` kernel module to load firmware,
-and provide other low-level accesses to the NFP.
-
-### Sources
-
-All sources are in `src/nfpcore/`:
-
-| Source              | Type      | Description                               |
-| ------------------- | ----------|------------------------------------------ |
-| nfp6000_pcie.c      | Transport | NFP6000 PCIe interface                    |
-| nfp_cppcore.c       | API       | CPP bus core                              |
-| nfp_cpplib.c        | API       | CPP bus helper                            |
-| nfp_device.c        | API       | NFP chip interface                        |
-| nfp_em_manager.c    | API       | NFP Event Monitor                         |
-| nfp_export.c        | API       | List of all EXPORT_SYMBOLs                |
-| nfp_hwinfo.c        | API       | NFP Hardware Info Database                |
-| nfp_mip.c           | API       | Microcode Information Page                |
-| nfp_nbi.c           | API       | NFP NBI access                            |
-| nfp_nbi_mac_eth.c   | API       | NFP NBI Ethernet MAC access               |
-| nfp_nsp_eth.c       | API       | NFP Ethernet MAC/PHY access via NSP       |
-| nfp_net_vnic.c      | Example   | Pseudo-NIC for interfacing with NFP Linux |
-| nfp_nffw.c          | API       | NFP NFP Flow Firmware interface           |
-| nfp_nsp.c           | API       | NIC Service Processor interface           |
-| nfp_platform.c      | API       | NFP CPP bus device registration           |
-| nfp_resource.c      | API       | NFP Resource management                   |
-| nfp_rtsym.c         | API       | NFP Firmware Runtime Symbol access        |
