@@ -156,6 +156,23 @@ and had assigned a rule matching `'all 172.16.0.0/24 received'` to VF 5,
 then the NFP6000's SR-IOV device `#5` would use this driver to provide a
 NIC style interface to the flows that match that rule.*
 
+## nfp6000 quirks
+
+NFP4000/NFP6000 chips need a minor PCI quirk to avoid system crashing
+after particular type of PCI config space addresses from user space.
+If you're using the NFP on an old kernel you may see this message in
+the logs:
+```
+Error: this kernel does not have quirk_nfp6000
+Please contact support@netronome.com for more information
+```
+Suggested solution is to update your kernel.  The fix is present in
+upstream Linux `4.5`, but major distributions have backported it to
+older kernels, too.  If updating the kernel is not an option and you
+are certain user space will not trigger the types of accesses which
+may fault - you can attempt using the ``ignore_quirks'" parameter
+although this is not guaranteed to work on systems requiring the fix.
+
 ## Module parameters
 
 NOTE: `modinfo nfp.ko` is the authoritative documentation,
@@ -163,6 +180,7 @@ this is only presented here as a reference.
 
 | Parameter       | Default | Comment                                         |
 | --------------- | ------- | ----------------------------------------------- |
+| ignore_quirks   |   false | Ignore the check for NFP6000 PCI quirks         |
 | nfp_pf_netdev   |    true | PF driver in [Netdev mode](#pf-netdev-mode)     |
 | nfp_fallback    |    true | In netdev mode stay bound even if netdevs failed|
 | nfp_dev_cpp     |    true | Enable NFP CPP user space /dev interface        |
