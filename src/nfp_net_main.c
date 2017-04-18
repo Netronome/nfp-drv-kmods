@@ -531,8 +531,14 @@ static int nfp_net_pf_app_start_ctrl(struct nfp_pf *pf)
 	if (err)
 		goto err_clean_ctrl;
 
+	err = nfp_ctrl_debug_start(pf);
+	if (err)
+		goto err_close_ctrl;
+
 	return 0;
 
+err_close_ctrl:
+	nfp_ctrl_close(pf->ctrl_vnic);
 err_clean_ctrl:
 	nfp_net_pf_clean_vnic(pf, pf->ctrl_vnic);
 	return err;
@@ -542,6 +548,7 @@ static void nfp_net_pf_app_stop_ctrl(struct nfp_pf *pf)
 {
 	if (!pf->ctrl_vnic)
 		return;
+	nfp_ctrl_debug_stop(pf);
 	nfp_ctrl_close(pf->ctrl_vnic);
 	nfp_net_pf_clean_vnic(pf, pf->ctrl_vnic);
 }

@@ -113,6 +113,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 
     nfp-objs += \
 		nfp_app_nic.o \
+		nfp_ctrl.o \
 		nfp_net_main.o \
 		nic/main.o
 

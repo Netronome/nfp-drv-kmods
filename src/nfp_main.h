@@ -74,6 +74,7 @@ struct nfp_nsp_identify;
  * @num_vfs:		Number of SR-IOV VFs enabled
  * @fw_loaded:		Is the firmware loaded?
  * @ctrl_vnic:		Pointer to the control vNIC if available
+ * @debug_ctrl_netdev:	Pointer to "debug pipe" netdev of the control vNIC
  * @eth_tbl:		NSP ETH table
  * @nspi:		NSP identification info
  * @hwmon_dev:		pointer to hwmon device
@@ -109,6 +110,7 @@ struct nfp_pf {
 	bool fw_loaded;
 
 	struct nfp_net *ctrl_vnic;
+	struct net_device *debug_ctrl_netdev;
 
 	struct nfp_eth_table *eth_tbl;
 	struct nfp_nsp_identify *nspi;
@@ -156,6 +158,11 @@ void
 nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_cpp *cpp, unsigned int id);
 
 bool nfp_ctrl_tx(struct nfp_net *nn, struct sk_buff *skb);
+
+int nfp_ctrl_debug_start(struct nfp_pf *pf);
+void nfp_ctrl_debug_stop(struct nfp_pf *pf);
+void nfp_ctrl_debug_rx(struct nfp_pf *pf, struct sk_buff *skb);
+void nfp_ctrl_debug_deliver_tx(struct nfp_pf *pf, struct sk_buff *skb);
 
 #define NFP_DEV_CPP_TYPE	"nfp-dev-cpp"
 

@@ -116,6 +116,8 @@ struct nfp_app {
 };
 
 bool nfp_ctrl_tx(struct nfp_net *nn, struct sk_buff *skb);
+void nfp_ctrl_debug_rx(struct nfp_pf *pf, struct sk_buff *skb);
+void nfp_ctrl_debug_deliver_tx(struct nfp_pf *pf, struct sk_buff *skb);
 
 static inline int nfp_app_init(struct nfp_app *app)
 {
@@ -206,13 +208,23 @@ static inline int nfp_app_xdp_offload(struct nfp_app *app, struct nfp_net *nn,
 	return app->type->xdp_offload(app, nn, prog);
 }
 
+static inline bool __nfp_app_ctrl_tx(struct nfp_app *app, struct sk_buff *skb,
+				     bool injected)
+{
+	if (!injected)
+		nfp_ctrl_debug_deliver_tx(app->pf, skb);
+
+	return nfp_ctrl_tx(app->ctrl, skb);
+}
+
 static inline bool nfp_app_ctrl_tx(struct nfp_app *app, struct sk_buff *skb)
 {
-	return nfp_ctrl_tx(app->ctrl, skb);
+	return __nfp_app_ctrl_tx(app, skb, false);
 }
 
 static inline void nfp_app_ctrl_rx(struct nfp_app *app, struct sk_buff *skb)
 {
+	nfp_ctrl_debug_rx(app->pf, skb);
 	app->type->ctrl_msg_rx(app, skb);
 }
 

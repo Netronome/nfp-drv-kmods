@@ -1,0 +1,170 @@
+/*
+ * Copyright (C) 2017 Netronome Systems, Inc.
+ *
+ * This software is dual licensed under the GNU General License Version 2,
+ * June 1991 as shown in the file COPYING in the top-level directory of this
+ * source tree or the BSD 2-Clause License provided below.  You have the
+ * option to license this software under the complete terms of either license.
+ *
+ * The BSD 2-Clause License:
+ *
+ *     Redistribution and use in source and binary forms, with or
+ *     without modification, are permitted provided that the following
+ *     conditions are met:
+ *
+ *      1. Redistributions of source code must retain the above
+ *         copyright notice, this list of conditions and the following
+ *         disclaimer.
+ *
+ *      2. Redistributions in binary form must reproduce the above
+ *         copyright notice, this list of conditions and the following
+ *         disclaimer in the documentation and/or other materials
+ *         provided with the distribution.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+ * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+#include "nfpcore/kcompat.h"
+
+#include <linux/if_arp.h>
+#include <linux/module.h>
+#include <linux/netdevice.h>
+
+#include "nfp_app.h"
+#include "nfp_main.h"
+
+static bool nfp_ctrl_debug;
+#if defined(CONFIG_NFP_NET_PF) && defined(CONFIG_NFP_USER_SPACE_CPP)
+module_param(nfp_ctrl_debug, bool, 0444);
+MODULE_PARM_DESC(nfp_ctrl_debug, "Create debug netdev for sniffing and injecting FW control messages (default = false)");
+#endif
+
+struct nfp_ctrl_debug_netdev {
+	struct nfp_app *app;
+};
+
+static int nfp_ctrl_debug_netdev_open(struct net_device *netdev)
+{
+	return 0;
+}
+
+static int nfp_ctrl_debug_netdev_close(struct net_device *netdev)
+{
+	return 0;
+}
+
+void nfp_ctrl_debug_rx(struct nfp_pf *pf, struct sk_buff *skb)
+{
+	struct net_device *netdev = pf->debug_ctrl_netdev;
+
+	if (!nfp_ctrl_debug)
+		return;
+
+	skb = skb_clone(skb, GFP_ATOMIC);
+	if (skb) {
+		skb->dev = netdev;
+		netif_rx(skb);
+		netdev->stats.rx_packets++;
+		netdev->stats.rx_bytes += skb->len;
+	} else {
+		netdev->stats.rx_dropped++;
+	}
+}
+
+void nfp_ctrl_debug_deliver_tx(struct nfp_pf *pf, struct sk_buff *skb)
+{
+	if (!nfp_ctrl_debug)
+		return;
+	skb->dev = pf->debug_ctrl_netdev;
+	skb->skb_iif = pf->debug_ctrl_netdev->ifindex;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
+	dev_queue_xmit_nit(skb, pf->debug_ctrl_netdev);
+#else
+	/* Since old kernels don't expose dev_queue_xmit_nit(), mark
+	 * the packet and queue it up as if we were to transmit it.
+	 */
+	skb->mark = ~0;
+	dev_queue_xmit(skb);
+#endif
+}
+
+static int nfp_ctrl_debug_tx(struct sk_buff *skb, struct net_device *netdev)
+{
+	struct nfp_ctrl_debug_netdev *ncd = netdev_priv(netdev);
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 7, 0)
+	if (skb->mark == ~0) {
+		dev_kfree_skb_any(skb);
+		return NETDEV_TX_OK;
+	}
+#endif
+
+	__nfp_app_ctrl_tx(ncd->app, skb, true);
+
+	netdev->stats.tx_packets++;
+	netdev->stats.tx_bytes += skb->len;
+
+	return NETDEV_TX_OK;
+}
+
+static const struct net_device_ops nfp_ctrl_debug_netdev_ops = {
+	.ndo_open		= nfp_ctrl_debug_netdev_open,
+	.ndo_stop		= nfp_ctrl_debug_netdev_close,
+	.ndo_start_xmit		= nfp_ctrl_debug_tx,
+};
+
+static void nfp_ctrl_debug_setup(struct net_device *dev)
+{
+	dev->type = ARPHRD_NONE;
+	dev->hard_header_len = 0;
+	dev->header_ops = NULL;
+	dev->addr_len = 0;
+	dev->tx_queue_len = 16;
+	dev->mtu = 1024;
+	dev->flags = IFF_POINTOPOINT | IFF_NOARP;
+
+	dev->netdev_ops = &nfp_ctrl_debug_netdev_ops;
+}
+
+int nfp_ctrl_debug_start(struct nfp_pf *pf)
+{
+	struct nfp_ctrl_debug_netdev *ncd;
+	int err;
+
+	if (!nfp_ctrl_debug)
+		return 0;
+
+	pf->debug_ctrl_netdev =
+		alloc_netdev(sizeof(struct nfp_ctrl_debug_netdev),
+			     "ncd%d", NET_NAME_UNKNOWN, nfp_ctrl_debug_setup);
+	if (!pf->debug_ctrl_netdev)
+		return -ENOMEM;
+
+	ncd = netdev_priv(pf->debug_ctrl_netdev);
+	ncd->app = pf->app;
+
+	err = register_netdev(pf->debug_ctrl_netdev);
+	if (err)
+		goto err_free;
+
+	return 0;
+
+err_free:
+	free_netdev(pf->debug_ctrl_netdev);
+	return err;
+}
+
+void nfp_ctrl_debug_stop(struct nfp_pf *pf)
+{
+	if (!nfp_ctrl_debug)
+		return;
+
+	unregister_netdev(pf->debug_ctrl_netdev);
+	free_netdev(pf->debug_ctrl_netdev);
+}
