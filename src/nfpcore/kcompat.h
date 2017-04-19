@@ -647,8 +647,7 @@ compat_debugfs_real_fops(const struct file *file)
 
 static inline unsigned long compat_vmf_get_addr(struct vm_fault *vmf)
 {
-/* TODO: change to >= 4.10 when released */
-#if defined(VM_FAULT_DONE_COW) && VM_FAULT_DONE_COW == 0x1000
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
 	return vmf->address;
 #else
 	return (unsigned long)vmf->virtual_address;
