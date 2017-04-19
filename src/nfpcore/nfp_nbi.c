@@ -373,7 +373,7 @@ static int nfp_nbi_tx_flush_flags(struct nfp_nbi_dev *nbi, u32 flags)
 		return err;
 
 	/* Readback to wait until acknowledgment */
-	ts = CURRENT_TIME;
+	ktime_get_ts(&ts);
 	timeout = timespec_add(ts, timeout);
 
 	do {
@@ -384,7 +384,7 @@ static int nfp_nbi_tx_flush_flags(struct nfp_nbi_dev *nbi, u32 flags)
 		if (tmp & TX_FLUSH_FLAG_ACK)
 			return 0;
 
-		ts = CURRENT_TIME;
+		ktime_get_ts(&ts);
 	} while (timespec_compare(&ts, &timeout) < 0);
 
 	/* Even though we timed out, this is currently a warning,
