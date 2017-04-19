@@ -54,6 +54,8 @@
 #define VER_RHEL_LT(x, y)						\
 	(RHEL_RELEASE_CODE && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(x, y))
 
+#define LINUX_RELEASE_4_12	defined(ETH_RSS_HASH_CRC32)
+
 /* RHEL has a tendency to heavily patch their kernels.  Sometimes it
  * is necessary to check for specific RHEL releases and not just for
  * Linux kernel version.  Define RHEL version macros for Linux kernels
@@ -653,5 +655,9 @@ static inline unsigned long compat_vmf_get_addr(struct vm_fault *vmf)
 	return (unsigned long)vmf->virtual_address;
 #endif
 }
+
+#if LINUX_RELEASE_4_12
+#define pci_enable_msix pci_enable_msix_exact
+#endif
 
 #endif /* __KERNEL__NFP_COMPAT_H__ */
