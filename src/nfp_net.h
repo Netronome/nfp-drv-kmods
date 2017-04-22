@@ -42,12 +42,13 @@
 #ifndef _NFP_NET_H_
 #define _NFP_NET_H_
 
+#include "nfpcore/kcompat.h"
+
 #include <linux/interrupt.h>
 #include <linux/list.h>
 #include <linux/netdevice.h>
 #include <linux/pci.h>
 
-#include <linux/version.h>
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0)
 #include <asm-generic/io-64-nonatomic-hi-lo.h>
 #else
@@ -824,7 +825,8 @@ nfp_net_irqs_assign(struct nfp_net *nn, struct msix_entry *irq_entries,
 		    unsigned int n);
 
 struct nfp_net_dp *nfp_net_clone_dp(struct nfp_net *nn);
-int nfp_net_ring_reconfig(struct nfp_net *nn, struct nfp_net_dp *new);
+int nfp_net_ring_reconfig(struct nfp_net *nn, struct nfp_net_dp *new,
+			  struct netlink_ext_ack *extack);
 
 bool nfp_net_link_changed_read_clear(struct nfp_net *nn);
 #ifdef CONFIG_NFP_NET_PF

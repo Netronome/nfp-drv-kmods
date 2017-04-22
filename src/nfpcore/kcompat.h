@@ -54,7 +54,7 @@
 #define VER_RHEL_LT(x, y)						\
 	(RHEL_RELEASE_CODE && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(x, y))
 
-#define LINUX_RELEASE_4_12	defined(ETH_RSS_HASH_CRC32)
+#define LINUX_RELEASE_4_12	defined(NL_SET_ERR_MSG)
 #define COMPAT__USE_DMA_SKIP_SYNC	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
 
 /* RHEL has a tendency to heavily patch their kernels.  Sometimes it
@@ -660,6 +660,10 @@ static inline unsigned long compat_vmf_get_addr(struct vm_fault *vmf)
 #if !COMPAT__USE_DMA_SKIP_SYNC
 #undef DMA_ATTR_SKIP_CPU_SYNC
 #define DMA_ATTR_SKIP_CPU_SYNC 0
+#endif
+
+#if !LINUX_RELEASE_4_12
+struct netlink_ext_ack;
 #endif
 
 #if LINUX_RELEASE_4_12

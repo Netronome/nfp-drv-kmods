@@ -460,4 +460,20 @@ trace_xdp_exception(const struct net_device *netdev,
 }
 #endif
 
+#if defined(NL_SET_ERR_MSG_MOD)
+static inline struct netlink_ext_ack *compat__xdp_extact(struct netdev_xdp *xdp)
+{
+	return xdp->extack;
+}
+#else
+struct netdev_xdp;
+
+#define NL_SET_ERR_MSG_MOD(ea, msg)	pr_warn(KBUILD_MODNAME ": " msg)
+
+static inline struct netlink_ext_ack *compat__xdp_extact(struct netdev_xdp *xdp)
+{
+	return NULL;
+}
+#endif
+
 #endif /* _NFP_NET_COMPAT_H_ */
