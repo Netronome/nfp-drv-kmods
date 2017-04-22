@@ -56,6 +56,7 @@ struct nfp_cpp;
 struct nfp_cpp_area;
 struct nfp_eth_table;
 struct nfp_hwinfo;
+struct nfp_mip;
 struct nfp_net;
 struct nfp_nsp_identify;
 struct nfp_rtsym_table;
@@ -77,6 +78,7 @@ struct nfp_rtsym_table;
  * @fw_loaded:		Is the firmware loaded?
  * @ctrl_vnic:		Pointer to the control vNIC if available
  * @debug_ctrl_netdev:	Pointer to "debug pipe" netdev of the control vNIC
+ * @mip:		MIP handle
  * @rtbl:		RTsym table
  * @hwinfo:		HWInfo table
  * @eth_tbl:		NSP ETH table
@@ -116,6 +118,7 @@ struct nfp_pf {
 	struct nfp_net *ctrl_vnic;
 	struct net_device *debug_ctrl_netdev;
 
+	const struct nfp_mip *mip;
 	struct nfp_rtsym_table *rtbl;
 	struct nfp_hwinfo *hwinfo;
 	struct nfp_eth_table *eth_tbl;
