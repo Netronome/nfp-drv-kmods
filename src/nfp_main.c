@@ -336,7 +336,7 @@ static int nfp_net_fw_find(struct pci_dev *pdev, struct nfp_pf *pf,
 		return -EINVAL;
 	}
 
-	fw_model = nfp_hwinfo_lookup(pf->cpp, "assembly.partno");
+	fw_model = nfp_hwinfo_lookup(pf->hwinfo, "assembly.partno");
 	if (!fw_model) {
 		dev_err(&pdev->dev, "Error: can't read part number\n");
 		return -EINVAL;
@@ -581,16 +581,18 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 		goto err_disable_msix;
 	}
 
+	pf->hwinfo = nfp_hwinfo_read(pf->cpp);
+
 	dev_info(&pdev->dev, "Assembly: %s%s%s-%s CPLD: %s\n",
-		 nfp_hwinfo_lookup(pf->cpp, "assembly.vendor"),
-		 nfp_hwinfo_lookup(pf->cpp, "assembly.partno"),
-		 nfp_hwinfo_lookup(pf->cpp, "assembly.serial"),
-		 nfp_hwinfo_lookup(pf->cpp, "assembly.revision"),
-		 nfp_hwinfo_lookup(pf->cpp, "cpld.version"));
+		 nfp_hwinfo_lookup(pf->hwinfo, "assembly.vendor"),
+		 nfp_hwinfo_lookup(pf->hwinfo, "assembly.partno"),
+		 nfp_hwinfo_lookup(pf->hwinfo, "assembly.serial"),
+		 nfp_hwinfo_lookup(pf->hwinfo, "assembly.revision"),
+		 nfp_hwinfo_lookup(pf->hwinfo, "cpld.version"));
 
 	err = devlink_register(devlink, &pdev->dev);
 	if (err)
-		goto err_cpp_free;
+		goto err_hwinfo_free;
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
 	err = nfp_sriov_attr_add(&pdev->dev);
@@ -655,7 +657,8 @@ err_sriov_remove:
 err_devlink_unreg:
 #endif
 	devlink_unregister(devlink);
-err_cpp_free:
+err_hwinfo_free:
+	kfree(pf->hwinfo);
 	nfp_cpp_free(pf->cpp);
 err_disable_msix:
 	if (pdev->msix_enabled)
@@ -703,6 +706,7 @@ static void nfp_pci_remove(struct pci_dev *pdev)
 		nfp_platform_device_unregister(pf->nfp_dev_cpp);
 
 	pci_set_drvdata(pdev, NULL);
+	kfree(pf->hwinfo);
 	nfp_cpp_free(pf->cpp);
 
 	if (nfp_mon_event)

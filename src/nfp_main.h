@@ -55,6 +55,7 @@ struct platform_device;
 struct nfp_cpp;
 struct nfp_cpp_area;
 struct nfp_eth_table;
+struct nfp_hwinfo;
 struct nfp_net;
 struct nfp_nsp_identify;
 struct nfp_rtsym_table;
@@ -77,6 +78,7 @@ struct nfp_rtsym_table;
  * @ctrl_vnic:		Pointer to the control vNIC if available
  * @debug_ctrl_netdev:	Pointer to "debug pipe" netdev of the control vNIC
  * @rtbl:		RTsym table
+ * @hwinfo:		HWInfo table
  * @eth_tbl:		NSP ETH table
  * @nspi:		NSP identification info
  * @hwmon_dev:		pointer to hwmon device
@@ -115,6 +117,7 @@ struct nfp_pf {
 	struct net_device *debug_ctrl_netdev;
 
 	struct nfp_rtsym_table *rtbl;
+	struct nfp_hwinfo *hwinfo;
 	struct nfp_eth_table *eth_tbl;
 	struct nfp_nsp_identify *nspi;
 
@@ -158,7 +161,7 @@ void nfp_hwmon_unregister(struct nfp_pf *pf);
 struct nfp_eth_table_port *
 nfp_net_find_port(struct nfp_eth_table *eth_tbl, unsigned int id);
 void
-nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_cpp *cpp, unsigned int id);
+nfp_net_get_mac_addr(struct nfp_pf *pf, struct nfp_net *nn, unsigned int id);
 
 bool nfp_ctrl_tx(struct nfp_net *nn, struct sk_buff *skb);
 

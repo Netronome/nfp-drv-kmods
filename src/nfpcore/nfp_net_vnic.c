@@ -613,7 +613,9 @@ static int nfp_net_vnic_probe(struct platform_device *pdev)
 	struct nfp_cpp *cpp;
 	struct nfp_platform_data *pdata;
 	char *netm_mac = "ethm.mac";
-	const char *mac_str;
+	struct nfp_hwinfo *hwinfo;
+	const char *mac_hwinfo;
+	char mac_str[32] = {};
 
 	pdata = nfp_platform_device_data(pdev);
 	BUG_ON(!pdata);
@@ -631,7 +633,11 @@ static int nfp_net_vnic_probe(struct platform_device *pdev)
 	 * initialization has been completed by the NFP's ARM
 	 * firmware.
 	 */
-	mac_str = nfp_hwinfo_lookup(cpp, netm_mac);
+	hwinfo = nfp_hwinfo_read(cpp);
+	mac_hwinfo = nfp_hwinfo_lookup(hwinfo, netm_mac);
+	if (mac_hwinfo)
+		memcpy(mac_str, mac_hwinfo, sizeof(mac_str) - 1);
+	kfree(hwinfo);
 
 	switch (vnic_unit) {
 	case 0:
@@ -702,7 +708,7 @@ static int nfp_net_vnic_probe(struct platform_device *pdev)
 				!= NFP_CPP_INTERFACE_TYPE_ARM;
 
 	/* Work out our MAC address */
-	if (!mac_str)
+	if (!*mac_str)
 		nfp_net_vnic_warn(vnic,
 				  "Could not determine MAC address from '%s'. Using default\n",
 				  netm_mac);
