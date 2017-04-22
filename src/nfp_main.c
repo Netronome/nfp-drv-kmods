@@ -143,7 +143,7 @@ static int nfp_pcie_sriov_read_nfd_limit(struct nfp_pf *pf)
 {
 	int err;
 
-	pf->limit_vfs = nfp_rtsym_read_le(pf->cpp, "nfd_vf_cfg_max_vfs", &err);
+	pf->limit_vfs = nfp_rtsym_read_le(pf->rtbl, "nfd_vf_cfg_max_vfs", &err);
 	if (!err)
 		return pci_sriov_set_totalvfs(pf->pdev, pf->limit_vfs);
 
@@ -601,6 +601,8 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 	if (err)
 		goto err_sriov_remove;
 
+	pf->rtbl = nfp_rtsym_table_read(pf->cpp);
+
 	err = nfp_pcie_sriov_read_nfd_limit(pf);
 	if (err)
 		goto err_fw_unload;
@@ -642,6 +644,7 @@ err_dev_cpp_unreg:
 		nfp_platform_device_unregister(pf->nfp_dev_cpp);
 	pci_sriov_set_totalvfs(pf->pdev, 0);
 err_fw_unload:
+	kfree(pf->rtbl);
 	if (pf->fw_loaded)
 		nfp_fw_unload(pf);
 	kfree(pf->eth_tbl);
@@ -692,6 +695,7 @@ static void nfp_pci_remove(struct pci_dev *pdev)
 
 	devlink_unregister(devlink);
 
+	kfree(pf->rtbl);
 	if (nfp_reset_on_exit || (nfp_pf_netdev && pf->fw_loaded))
 		nfp_fw_unload(pf);
 

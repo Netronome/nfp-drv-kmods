@@ -98,7 +98,6 @@ EXPORT_SYMBOL(nfp_cpp_from_operations);
 EXPORT_SYMBOL(nfp_cpp_device);
 EXPORT_SYMBOL(nfp_cpp_priv);
 EXPORT_SYMBOL(nfp_cpp_island_mask);
-EXPORT_SYMBOL(nfp_nffw_cache_flush);
 
 /* Implemented in nfp_cpplib.c */
 
@@ -130,6 +129,7 @@ EXPORT_SYMBOL(nfp_eth_set_configured);
 
 /* Implemented in nfp_rtsym.c */
 
+EXPORT_SYMBOL(nfp_rtsym_table_read);
 EXPORT_SYMBOL(nfp_rtsym_count);
 EXPORT_SYMBOL(nfp_rtsym_get);
 EXPORT_SYMBOL(nfp_rtsym_lookup);

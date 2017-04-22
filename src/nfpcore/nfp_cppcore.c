@@ -92,7 +92,6 @@ struct nfp_cpp_resource {
  *
  * Following fields can be used only in probe() or with rtnl held:
  * @hwinfo:		HWInfo database fetched from the device
- * @rtsym:		firmware run time symbols
  * @nbi:		NBI state
  *
  * Following fields use explicit locking:
@@ -133,7 +132,6 @@ struct nfp_cpp {
 	struct list_head area_cache_list;
 
 	void *hwinfo;
-	void *rtsym;
 	void *nbi;
 };
 
@@ -334,7 +332,6 @@ static void __nfp_cpp_release(struct kref *kref)
 		cpp->op->free(cpp);
 
 	kfree(cpp->hwinfo);
-	kfree(cpp->rtsym);
 	kfree(cpp->nbi);
 
 	write_lock(&nfp_cpp_list_lock);
@@ -447,16 +444,6 @@ void nfp_hwinfo_cache_set(struct nfp_cpp *cpp, void *val)
 	cpp->hwinfo = val;
 }
 
-void *nfp_rtsym_cache(struct nfp_cpp *cpp)
-{
-	return cpp->rtsym;
-}
-
-void nfp_rtsym_cache_set(struct nfp_cpp *cpp, void *val)
-{
-	cpp->rtsym = val;
-}
-
 void *nfp_nbi_cache(struct nfp_cpp *cpp)
 {
 	return cpp->nbi;
@@ -465,19 +452,6 @@ void *nfp_nbi_cache(struct nfp_cpp *cpp)
 void nfp_nbi_cache_set(struct nfp_cpp *cpp, void *val)
 {
 	cpp->nbi = val;
-}
-
-/**
- * nfp_nffw_cache_flush() - Flush cached firmware information
- * @cpp:	NFP CPP handle
- *
- * Flush cached firmware information.  This function should be called
- * every time firmware is loaded on unloaded.
- */
-void nfp_nffw_cache_flush(struct nfp_cpp *cpp)
-{
-	kfree(nfp_rtsym_cache(cpp));
-	nfp_rtsym_cache_set(cpp, NULL);
 }
 
 /**

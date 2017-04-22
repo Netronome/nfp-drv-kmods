@@ -64,7 +64,8 @@ struct nfp_nbi_priv {
 
 	/* For the 'i*.pause_poll_tx_flush_flags' symbol */
 	struct {
-		const struct nfp_rtsym *sym;
+		bool has_sym;
+		struct nfp_rtsym sym;
 		unsigned int count;
 	} tx_flush_flags;
 };
@@ -153,24 +154,31 @@ struct nfp_nbi_mac_allstats {
 
 static void *nfp_nbi(struct nfp_cpp *cpp)
 {
+	struct nfp_rtsym_table *rtbl;
 	const struct nfp_rtsym *sym;
 	struct nfp_nbi_priv *priv;
 	struct nfp_resource *res;
-	u64 cpp_addr;
-	u32 cpp_id;
 	int i;
 
 	priv = nfp_nbi_cache(cpp);
 	if (priv)
 		return priv;
 
-	res = nfp_resource_acquire(cpp, NFP_RESOURCE_MAC_STATISTICS);
-	if (IS_ERR(res))
+	priv = kzalloc(sizeof(*priv), GFP_KERNEL);
+	if (!priv)
 		return NULL;
 
-	cpp_id = nfp_resource_cpp_id(res);
-	cpp_addr = nfp_resource_address(res);
+	res = nfp_resource_acquire(cpp, NFP_RESOURCE_MAC_STATISTICS);
+	if (IS_ERR(res)) {
+		kfree(priv);
+		return NULL;
+	}
+
+	priv->stats.cpp_id = nfp_resource_cpp_id(res);
+	priv->stats.cpp_addr = nfp_resource_address(res);
 	nfp_resource_release(res);
+
+	rtbl = nfp_rtsym_table_read(cpp);
 
 	for (i = ME_ISLAND_MIN; i <= ME_ISLAND_MAX; i++) {
 		char tx_flags_name[32];
@@ -179,21 +187,16 @@ static void *nfp_nbi(struct nfp_cpp *cpp)
 			 "i%hhu.pause_poll_tx_flush_flags", (u8)i);
 		tx_flags_name[sizeof(tx_flags_name) - 1] = 0;
 
-		sym = nfp_rtsym_lookup(cpp, tx_flags_name);
+		sym = nfp_rtsym_lookup(rtbl, tx_flags_name);
 		if (sym) {
 			nfp_info(cpp, "NBI: Firmware TX pause control: %s\n",
 				 tx_flags_name);
+			priv->tx_flush_flags.has_sym = true;
+			priv->tx_flush_flags.sym = *sym;
 			break;
 		}
 	}
-
-	priv = kzalloc(sizeof(*priv), GFP_KERNEL);
-	if (!priv)
-		return NULL;
-
-	priv->stats.cpp_id = cpp_id;
-	priv->stats.cpp_addr = cpp_addr;
-	priv->tx_flush_flags.sym = sym;
+	kfree(rtbl);
 
 	nfp_nbi_cache_set(cpp, priv);
 	return priv;
@@ -354,9 +357,9 @@ static int nfp_nbi_tx_flush_flags(struct nfp_nbi_dev *nbi, u32 flags)
 	/* Lock out the firmware, if present, from modifying MAC
 	 * CSRs, by stopping the TX Flush ME
 	 */
-	sym = priv->tx_flush_flags.sym;
-	if (!sym)
+	if (!priv->tx_flush_flags.has_sym)
 		return 0;
+	sym = &priv->tx_flush_flags.sym;
 
 	cpp_id = NFP_CPP_ISLAND_ID(sym->target, NFP_CPP_ACTION_RW,
 				   0, sym->domain);
@@ -496,7 +499,7 @@ int nfp_nbi_mac_regw(struct nfp_nbi_dev *nbi, u32 base, u32 reg,
 	struct nfp_nbi_priv *priv = nbi->priv;
 	u32 r = NFP_XPB_ISLAND(nbi->nbi + 8) + base + reg;
 
-	if (priv->tx_flush_flags.sym && !priv->tx_flush_flags.count)
+	if (priv->tx_flush_flags.has_sym && !priv->tx_flush_flags.count)
 		nfp_warn(nbi->cpp, "NBI: nbi_nbi_mac_regw() called outside of nfp_nbi_mac_acquire()/release()\n");
 
 	return nfp_xpb_writelm(nbi->cpp, r, mask, data);
