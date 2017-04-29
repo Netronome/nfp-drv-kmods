@@ -379,6 +379,13 @@ static inline void udp_tunnel_get_rx_info(struct net_device *netdev)
 }
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0)
+static inline int skb_inner_transport_offset(const struct sk_buff *skb)
+{
+	return skb_inner_transport_header(skb) - skb->data;
+}
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0)
 struct compat__ethtool_link_ksettings {
 	struct ethtool_cmd base;
