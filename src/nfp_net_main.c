@@ -748,7 +748,7 @@ int nfp_net_pci_probe(struct nfp_pf *pf, bool nfp_reset)
 		nfp_warn(pf->cpp, "OBSOLETE Firmware detected - VF isolation not available\n");
 	} else {
 		switch (fw_ver.major) {
-		case 1 ... 4:
+		case 1 ... 5:
 			stride = 4;
 			break;
 		default:
