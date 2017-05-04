@@ -142,7 +142,7 @@ while True:
                 time.sleep(0.5)
                 continue
 
-        pr = "\033[4;1mSTAT % 33s % 19s % 21s\033[0m\n" % \
+        pr = "\033[4;1mSTAT % 35s % 19s % 19s\033[0m\n" % \
              ("RATE", "SESSION", "TOTAL")
         for l in out.split('\n'):
                 s = l.split(':')
@@ -170,7 +170,7 @@ while True:
                                 color = '2;' + color
                         color = '\033[' + color
 
-                        pr += '{:}{:<26} {:>11,} {:>19,} {:>21,}\033[31;0m\n'. \
+                        pr += '{:}{:<26} {:>13,} {:>19,} {:>19,}\033[31;0m\n'.\
                               format(color, key, value - stats[key],
                                      value - session[key], stats[key])
 
