@@ -135,6 +135,7 @@ while True:
         try:
                 out = subprocess.check_output(['ethtool', '-S', IFC])
         except:
+                os.system("clear")
                 print "Reading stats from device \033[1m%s\033[0m failed" % IFC
                 stats = {}
                 session = {}
