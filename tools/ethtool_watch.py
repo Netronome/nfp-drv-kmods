@@ -172,7 +172,7 @@ while True:
 
                         pr += '{:}{:<26} {:>13,} {:>19,} {:>19,}\033[31;0m\n'.\
                               format(color, key, value - stats[key],
-                                     value - session[key], stats[key])
+                                     value - session[key], value)
 
                 stats[key] = value
 
