@@ -71,6 +71,14 @@ nfp-objs := \
 	    nfp_plat.o \
 	    nfp_main.o
 
+# Select DebugFS if forced from command line or kconfig
+ifeq ($(CONFIG_NFP_DEBUG),y)
+ccflags-y += -DCONFIG_NFP_DEBUG
+
+nfp-objs += \
+		nfp_net_debugfs.o
+endif
+
 ifeq ($(CONFIG_NFP_USER_SPACE_CPP),y)
   ccflags-y += -DCONFIG_NFP_USER_SPACE_CPP
 
