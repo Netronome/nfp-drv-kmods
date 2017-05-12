@@ -508,7 +508,7 @@ static int nfp_net_get_rss_hash_opts(struct nfp_net *nn,
 
 	cmd->data = 0;
 
-	if (!(nn->cap & NFP_NET_CFG_CTRL_RSS))
+	if (!(nn->cap & NFP_NET_CFG_CTRL_RSS_ANY))
 		return -EOPNOTSUPP;
 
 	nfp_rss_flag = ethtool_flow_to_nfp_flag(cmd->flow_type);
@@ -545,7 +545,7 @@ static int nfp_net_set_rss_hash_opt(struct nfp_net *nn,
 	u32 nfp_rss_flag;
 	int err;
 
-	if (!(nn->cap & NFP_NET_CFG_CTRL_RSS))
+	if (!(nn->cap & NFP_NET_CFG_CTRL_RSS_ANY))
 		return -EOPNOTSUPP;
 
 	/* RSS only supports IP SA/DA and L4 src/dst ports  */
@@ -608,7 +608,7 @@ static u32 nfp_net_get_rxfh_indir_size(struct net_device *netdev)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
 
-	if (!(nn->cap & NFP_NET_CFG_CTRL_RSS))
+	if (!(nn->cap & NFP_NET_CFG_CTRL_RSS_ANY))
 		return 0;
 
 	return ARRAY_SIZE(nn->rss_itbl);
@@ -620,7 +620,7 @@ static u32 nfp_net_get_rxfh_key_size(struct net_device *netdev)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
 
-	if (!(nn->cap & NFP_NET_CFG_CTRL_RSS))
+	if (!(nn->cap & NFP_NET_CFG_CTRL_RSS_ANY))
 		return -EOPNOTSUPP;
 
 	return nfp_net_rss_key_sz(nn);
@@ -636,7 +636,7 @@ static int nfp_net_get_rxfh_indir(struct net_device *netdev,
 		min_t(size_t, indir->size, ARRAY_SIZE(nn->rss_itbl));
 	int i;
 
-	if (!(nn->cap & NFP_NET_CFG_CTRL_RSS))
+	if (!(nn->cap & NFP_NET_CFG_CTRL_RSS_ANY))
 		return -EOPNOTSUPP;
 
 	indir->size = ARRAY_SIZE(nn->rss_itbl);
@@ -652,7 +652,7 @@ static int nfp_net_set_rxfh_indir(struct net_device *netdev,
 	struct nfp_net *nn = netdev_priv(netdev);
 	int i;
 
-	if (!(nn->cap & NFP_NET_CFG_CTRL_RSS))
+	if (!(nn->cap & NFP_NET_CFG_CTRL_RSS_ANY))
 		return -EOPNOTSUPP;
 
 	if (indir->size != ARRAY_SIZE(nn->rss_itbl))
@@ -677,7 +677,7 @@ static int nfp_net_get_rxfh(struct net_device *netdev, u32 *indir, u8 *key)
 	struct nfp_net *nn = netdev_priv(netdev);
 	int i;
 
-	if (!(nn->cap & NFP_NET_CFG_CTRL_RSS))
+	if (!(nn->cap & NFP_NET_CFG_CTRL_RSS_ANY))
 		return -EOPNOTSUPP;
 
 	if (indir)
@@ -708,7 +708,7 @@ static int nfp_net_set_rxfh(struct net_device *netdev,
 	struct nfp_net *nn = netdev_priv(netdev);
 	int i;
 
-	if (!(nn->cap & NFP_NET_CFG_CTRL_RSS) ||
+	if (!(nn->cap & NFP_NET_CFG_CTRL_RSS_ANY) ||
 	    !(hfunc == ETH_RSS_HASH_NO_CHANGE || hfunc == nn->rss_hfunc))
 		return -EOPNOTSUPP;
 
