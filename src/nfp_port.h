@@ -42,6 +42,7 @@
 
 struct net_device;
 struct nfp_app;
+struct nfp_pf;
 struct nfp_port;
 
 /**
@@ -94,6 +95,8 @@ struct nfp_port {
 };
 
 struct nfp_port *nfp_port_from_netdev(struct net_device *netdev);
+struct nfp_port *
+nfp_port_from_id(struct nfp_pf *pf, enum nfp_port_type type, unsigned int id);
 struct nfp_eth_table_port *__nfp_port_get_eth_port(struct nfp_port *port);
 struct nfp_eth_table_port *nfp_port_get_eth_port(struct nfp_port *port);
 
@@ -108,6 +111,7 @@ void nfp_port_free(struct nfp_port *port);
 #ifdef CONFIG_NFP_NET_PF
 int nfp_net_refresh_eth_port(struct nfp_port *port);
 void nfp_net_refresh_port_table(struct nfp_port *port);
+int nfp_net_refresh_port_table_sync(struct nfp_pf *pf);
 #else
 static inline int nfp_net_refresh_eth_port(struct nfp_port *port)
 {
