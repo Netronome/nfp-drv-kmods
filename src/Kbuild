@@ -133,6 +133,18 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 		bpf/jit.o
       endif
     endif
+
+    metadata_h_path := $(srctree)/include/net/dst_metadata.h
+    COMPAT__HAVE_METADATA_IP_TUNNEL := \
+	    $(shell [ -e $(metadata_h_path) ] && \
+		    grep METADATA_IP_TUNNEL $(metadata_h_path) > /dev/null && \
+		    echo y)
+
+    ifeq ($(COMPAT__HAVE_METADATA_IP_TUNNEL), y)
+      ccflags-y += -DCOMPAT__HAVE_METADATA_IP_TUNNEL=1
+      nfp-objs += \
+		nfp_net_repr.o
+    endif
   endif
 
   ifeq ($(CONFIG_NFP_NET_VF),y)
