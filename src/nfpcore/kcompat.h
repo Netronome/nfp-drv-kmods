@@ -55,6 +55,7 @@
 	(RHEL_RELEASE_CODE && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(x, y))
 
 #define COMPAT__USE_DMA_SKIP_SYNC	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
+#define COMPAT__HAS_DEVLINK	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0))
 
 /* RHEL has a tendency to heavily patch their kernels.  Sometimes it
  * is necessary to check for specific RHEL releases and not just for
@@ -615,6 +616,10 @@ struct net_device *compat_alloc_netdev(int sizeof_priv,
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0)
+struct devlink_port {
+	int dummy;
+};
+
 struct devlink_ops {
 	int dummy;
 };
