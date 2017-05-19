@@ -149,9 +149,31 @@ out:
 	return ret;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0)
+static int nfp_devlink_eswitch_mode_get(struct devlink *devlink, u16 *mode)
+{
+	struct nfp_pf *pf = devlink_priv(devlink);
+	int ret;
+
+	mutex_lock(&pf->lock);
+	if (!pf->app) {
+		ret = -EBUSY;
+		goto out;
+	}
+	ret = nfp_app_eswitch_mode_get(pf->app, mode);
+out:
+	mutex_unlock(&pf->lock);
+
+	return ret;
+}
+#endif
+
 const struct devlink_ops nfp_devlink_ops = {
 	.port_split		= nfp_devlink_port_split,
 	.port_unsplit		= nfp_devlink_port_unsplit,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0)
+	.eswitch_mode_get	= nfp_devlink_eswitch_mode_get,
+#endif
 };
 
 int nfp_devlink_port_register(struct nfp_app *app, struct nfp_port *port)
