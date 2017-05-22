@@ -139,20 +139,22 @@ static const struct pci_device_id nfp_pci_device_ids[] = {
 MODULE_DEVICE_TABLE(pci, nfp_pci_device_ids);
 #endif
 
-static void nfp_pcie_sriov_read_nfd_limit(struct nfp_pf *pf)
+static int nfp_pcie_sriov_read_nfd_limit(struct nfp_pf *pf)
 {
-#ifdef CONFIG_PCI_IOV
 	int err;
 
 	pf->limit_vfs = nfp_rtsym_read_le(pf->cpp, "nfd_vf_cfg_max_vfs", &err);
 	if (!err)
-		return;
+		return pci_sriov_set_totalvfs(pf->pdev, pf->limit_vfs);
 
 	pf->limit_vfs = ~0;
+	pci_sriov_set_totalvfs(pf->pdev, 0); /* 0 is unset */
 	/* Allow any setting for backwards compatibility if symbol not found */
-	if (err != -ENOENT)
-		nfp_warn(pf->cpp, "Warning: VF limit read failed: %d\n", err);
-#endif
+	if (err == -ENOENT)
+		return 0;
+
+	nfp_warn(pf->cpp, "Warning: VF limit read failed: %d\n", err);
+	return err;
 }
 
 static int nfp_pcie_sriov_enable(struct pci_dev *pdev, int num_vfs)
@@ -601,7 +603,9 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 	if (err)
 		goto err_sriov_remove;
 
-	nfp_pcie_sriov_read_nfd_limit(pf);
+	err = nfp_pcie_sriov_read_nfd_limit(pf);
+	if (err)
+		goto err_fw_unload;
 
 	if (nfp_dev_cpp) {
 		pf->nfp_dev_cpp =
@@ -627,6 +631,8 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 err_dev_cpp_unreg:
 	if (pf->nfp_dev_cpp)
 		nfp_platform_device_unregister(pf->nfp_dev_cpp);
+	pci_sriov_set_totalvfs(pf->pdev, 0);
+err_fw_unload:
 	if (pf->fw_loaded)
 		nfp_fw_unload(pf);
 	kfree(pf->eth_tbl);
@@ -666,6 +672,7 @@ static void nfp_pci_remove(struct pci_dev *pdev)
 		nfp_platform_device_unregister(pf->nfp_net_vnic);
 
 	nfp_pcie_sriov_disable(pdev);
+	pci_sriov_set_totalvfs(pf->pdev, 0);
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0) && defined(CONFIG_PCI_IOV)
 	nfp_sriov_attr_remove(&pdev->dev);
