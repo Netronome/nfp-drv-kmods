@@ -47,6 +47,7 @@
 #include <linux/workqueue.h>
 
 struct dentry;
+struct device;
 struct devlink_ops;
 struct pci_dev;
 struct platform_device;
@@ -54,6 +55,7 @@ struct platform_device;
 struct nfp_cpp;
 struct nfp_cpp_area;
 struct nfp_eth_table;
+struct nfp_nsp_identify;
 
 /**
  * struct nfp_pf - NFP PF-specific device structure
@@ -71,6 +73,8 @@ struct nfp_eth_table;
  * @num_vfs:		Number of SR-IOV VFs enabled
  * @fw_loaded:		Is the firmware loaded?
  * @eth_tbl:		NSP ETH table
+ * @nspi:		NSP identification info
+ * @hwmon_dev:		pointer to hwmon device
  * @ddir:		Per-device debugfs directory
  * @max_data_vnics:	Number of data vNICs app firmware supports
  * @num_vnics:		Number of vNICs spawned
@@ -103,6 +107,9 @@ struct nfp_pf {
 	bool fw_loaded;
 
 	struct nfp_eth_table *eth_tbl;
+	struct nfp_nsp_identify *nspi;
+
+	struct device *hwmon_dev;
 
 	struct dentry *ddir;
 
@@ -137,6 +144,9 @@ static inline void nfp_net_pci_remove(struct nfp_pf *pf)
 #endif
 
 #define NFP_DEV_CPP_TYPE	"nfp-dev-cpp"
+
+int nfp_hwmon_register(struct nfp_pf *pf);
+void nfp_hwmon_unregister(struct nfp_pf *pf);
 
 #ifdef CONFIG_NFP_USER_SPACE_CPP
 int nfp_dev_cpp_init(void);

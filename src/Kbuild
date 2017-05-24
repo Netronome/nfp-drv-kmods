@@ -79,6 +79,14 @@ nfp-objs += \
 		nfp_net_debugfs.o
 endif
 
+KERNEL_GE_4_9 := $(shell [ $(VERSION) -gt 4 -o \( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 9 \) ] && echo y)
+
+ifeq ($(KERNEL_GE_4_9),y)
+  nfp-objs += nfp_hwmon.o
+else
+  nfp-objs += nfp_hwmon_legacy.o
+endif
+
 ifeq ($(CONFIG_NFP_USER_SPACE_CPP),y)
   ccflags-y += -DCONFIG_NFP_USER_SPACE_CPP
 
@@ -111,8 +119,6 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 
     nfp-objs += nfp_netvf_main.o
   endif
-
-  KERNEL_GE_4_9 := $(shell [ $(VERSION) -gt 4 -o \( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 9 \) ] && echo y)
 
   ifeq ($(KERNEL_GE_4_9),y)
     nfp-objs += \

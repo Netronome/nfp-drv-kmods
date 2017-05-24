@@ -451,7 +451,6 @@ exit_release_fw:
 
 static int nfp_nsp_init(struct pci_dev *pdev, struct nfp_pf *pf)
 {
-	struct nfp_nsp_identify *nspi;
 	struct nfp_nsp *nsp;
 	int err;
 
@@ -471,11 +470,9 @@ static int nfp_nsp_init(struct pci_dev *pdev, struct nfp_pf *pf)
 	if (nfp_pf_netdev)
 		pf->eth_tbl = __nfp_eth_read_ports(pf->cpp, nsp);
 
-	nspi = __nfp_nsp_identify(nsp);
-	if (nspi) {
-		dev_info(&pdev->dev, "BSP: %s\n", nspi->version);
-		kfree(nspi);
-	}
+	pf->nspi = __nfp_nsp_identify(nsp);
+	if (pf->nspi)
+		dev_info(&pdev->dev, "BSP: %s\n", pf->nspi->version);
 
 	err = nfp_fw_load(pdev, pf, nsp);
 	if (err < 0) {
@@ -626,8 +623,19 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 		nfp_register_vnic(pf);
 	}
 
+	err = nfp_hwmon_register(pf);
+	if (err) {
+		dev_err(&pdev->dev, "Failed to register hwmon info\n");
+		goto err_net_remove;
+	}
+
 	return 0;
 
+err_net_remove:
+	if (pf->nfp_net_vnic)
+		nfp_platform_device_unregister(pf->nfp_net_vnic);
+	if (nfp_pf_netdev)
+		nfp_net_pci_remove(pf);
 err_dev_cpp_unreg:
 	if (pf->nfp_dev_cpp)
 		nfp_platform_device_unregister(pf->nfp_dev_cpp);
@@ -636,6 +644,7 @@ err_fw_unload:
 	if (pf->fw_loaded)
 		nfp_fw_unload(pf);
 	kfree(pf->eth_tbl);
+	kfree(pf->nspi);
 err_sriov_remove:
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
 	nfp_sriov_attr_remove(&pdev->dev);
@@ -662,6 +671,8 @@ static void nfp_pci_remove(struct pci_dev *pdev)
 {
 	struct nfp_pf *pf = pci_get_drvdata(pdev);
 	struct devlink *devlink;
+
+	nfp_hwmon_unregister(pf);
 
 	devlink = priv_to_devlink(pf);
 
@@ -693,6 +704,7 @@ static void nfp_pci_remove(struct pci_dev *pdev)
 		pci_disable_msix(pdev);
 
 	kfree(pf->eth_tbl);
+	kfree(pf->nspi);
 	mutex_destroy(&pf->lock);
 	devlink_free(devlink);
 	pci_release_regions(pdev);
