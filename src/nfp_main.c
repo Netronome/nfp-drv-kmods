@@ -41,6 +41,7 @@
 
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/mutex.h>
 #include <linux/pci.h>
 #include <linux/firmware.h>
 
@@ -549,6 +550,7 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 	}
 	INIT_LIST_HEAD(&pf->vnics);
 	INIT_LIST_HEAD(&pf->ports);
+	mutex_init(&pf->lock);
 	pci_set_drvdata(pdev, pf);
 	pf->pdev = pdev;
 
@@ -626,6 +628,7 @@ err_disable_msix:
 	if (pdev->msix_enabled)
 		pci_disable_msix(pdev);
 	pci_set_drvdata(pdev, NULL);
+	mutex_destroy(&pf->lock);
 	kfree(pf);
 err_rel_regions:
 	pci_release_regions(pdev);
@@ -664,6 +667,7 @@ static void nfp_pci_remove(struct pci_dev *pdev)
 		pci_disable_msix(pdev);
 
 	kfree(pf->eth_tbl);
+	mutex_destroy(&pf->lock);
 	kfree(pf);
 	pci_release_regions(pdev);
 	pci_disable_device(pdev);

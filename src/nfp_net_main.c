@@ -642,7 +642,6 @@ int nfp_net_pci_probe(struct nfp_pf *pf, bool nfp_reset)
 	int err;
 
 	INIT_WORK(&pf->port_refresh_work, nfp_net_refresh_vnics);
-	mutex_init(&pf->lock);
 
 	/* Verify that the board has completed initialization */
 	if ((!pf->fw_loaded && nfp_reset) || !nfp_is_ready(pf->cpp)) {
