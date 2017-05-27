@@ -42,6 +42,7 @@
 
 #include <linux/ctype.h>
 #include <linux/types.h>
+#include <linux/sizes.h>
 
 #include "kcompat.h"
 
@@ -65,6 +66,8 @@
 #define PCI_DEVICE_NFP6010              0x6010
 
 #define NFP_CPP_NUM_TARGETS             16
+/* Max size of area it should be safe to request */
+#define NFP_CPP_SAFE_AREA_SIZE		SZ_2M
 
 struct device;
 
