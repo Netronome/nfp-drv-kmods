@@ -57,6 +57,12 @@
 #define COMPAT__USE_DMA_SKIP_SYNC	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
 #define COMPAT__HAS_DEVLINK	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0))
 
+#ifdef NL_SET_ERR_MSG_ATTR
+#define LINUX_RELEASE_4_13	1
+#else
+#define LINUX_RELEASE_4_13	0
+#endif
+
 /* RHEL has a tendency to heavily patch their kernels.  Sometimes it
  * is necessary to check for specific RHEL releases and not just for
  * Linux kernel version.  Define RHEL version macros for Linux kernels

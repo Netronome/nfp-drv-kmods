@@ -58,6 +58,8 @@
 #include <linux/udp.h>
 #include <linux/version.h>
 
+#include <net/pkt_cls.h>
+
 #include "nfpcore/kcompat.h"
 #include "nfp_net.h"
 
@@ -500,6 +502,29 @@ static inline struct netlink_ext_ack *compat__xdp_extact(struct netdev_xdp *xdp)
 {
 	return NULL;
 }
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+#if !LINUX_RELEASE_4_13
+static inline void
+tcf_exts_stats_update(const struct tcf_exts *exts,
+		      u64 bytes, u64 packets, u64 lastuse)
+{
+#ifdef CONFIG_NET_CLS_ACT
+	int i;
+
+	preempt_disable();
+
+	for (i = 0; i < exts->nr_actions; i++) {
+		struct tc_action *a = exts->actions[i];
+
+		tcf_action_stats_update(a, bytes, packets, lastuse);
+	}
+
+	preempt_enable();
+#endif
+}
+#endif
 #endif
 
 #endif /* _NFP_NET_COMPAT_H_ */
