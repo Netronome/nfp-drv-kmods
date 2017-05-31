@@ -39,7 +39,8 @@
  *          Rolf Neugebauer <rolf.neugebauer@netronome.com>
  */
 
-#include <linux/version.h>
+#include "kcompat.h"
+
 #include <asm/unaligned.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
 #include <linux/bitfield.h>

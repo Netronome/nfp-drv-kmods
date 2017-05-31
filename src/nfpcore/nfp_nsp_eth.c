@@ -36,7 +36,8 @@
  *          Jason Mcmullan <jason.mcmullan@netronome.com>
  */
 
-#include <linux/version.h>
+#include "../nfp_net_compat.h"
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
 #include <linux/bitfield.h>
 #endif
@@ -48,7 +49,6 @@
 #include "nfp.h"
 #include "nfp_nsp.h"
 #include "nfp6000/nfp6000.h"
-#include "../nfp_net_compat.h"
 
 #define NSP_ETH_NBI_PORT_COUNT		24
 #define NSP_ETH_MAX_COUNT		(2 * NSP_ETH_NBI_PORT_COUNT)

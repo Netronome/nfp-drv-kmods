@@ -37,7 +37,8 @@
  *         Jason McMullan <jason.mcmullan@netronome.com>
  */
 
-#include <linux/version.h>
+#include "kcompat.h"
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
 #include <linux/bitfield.h>
 #endif
