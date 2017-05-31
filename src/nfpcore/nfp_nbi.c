@@ -176,7 +176,7 @@ static void *nfp_nbi(struct nfp_cpp *cpp)
 		char tx_flags_name[32];
 
 		snprintf(tx_flags_name, sizeof(tx_flags_name),
-			 "i%d.pause_poll_tx_flush_flags", i);
+			 "i%hhu.pause_poll_tx_flush_flags", (u8)i);
 		tx_flags_name[sizeof(tx_flags_name) - 1] = 0;
 
 		sym = nfp_rtsym_lookup(cpp, tx_flags_name);
