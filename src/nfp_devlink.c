@@ -31,9 +31,6 @@
  * SOFTWARE.
  */
 
-#include "nfpcore/kcompat.h"
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
 #include <linux/rtnetlink.h>
 #include <net/devlink.h>
 
@@ -182,4 +179,3 @@ void nfp_devlink_port_unregister(struct nfp_port *port)
 {
 	devlink_port_unregister(&port->dl_port);
 }
-#endif

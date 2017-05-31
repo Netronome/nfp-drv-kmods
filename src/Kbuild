@@ -79,6 +79,8 @@ nfp-objs += \
 		nfp_net_debugfs.o
 endif
 
+KERNEL_GE_4_6 := $(shell [ $(VERSION) -gt 4 -o \( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 6 \) ] && echo y)
+
 KERNEL_GE_4_9 := $(shell [ $(VERSION) -gt 4 -o \( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 9 \) ] && echo y)
 
 ifeq ($(KERNEL_GE_4_9),y)
@@ -111,9 +113,13 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 
     nfp-objs += \
 		nfp_app_nic.o \
-		nfp_devlink.o \
 		nfp_net_main.o \
 		nic/main.o
+
+    ifeq ($(KERNEL_GE_4_6),y)
+      nfp-objs += \
+	       nfp_devlink.o
+    endif
 
     ifeq ($(KERNEL_GE_4_9),y)
       nfp-objs += \
