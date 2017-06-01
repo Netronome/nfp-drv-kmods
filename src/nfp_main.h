@@ -147,6 +147,9 @@ static inline void nfp_net_pci_remove(struct nfp_pf *pf)
 }
 #endif
 
+int nfp_hwmon_register(struct nfp_pf *pf);
+void nfp_hwmon_unregister(struct nfp_pf *pf);
+
 struct nfp_eth_table_port *
 nfp_net_find_port(struct nfp_eth_table *eth_tbl, unsigned int id);
 void
@@ -155,9 +158,6 @@ nfp_net_get_mac_addr(struct nfp_net *nn, struct nfp_cpp *cpp, unsigned int id);
 bool nfp_ctrl_tx(struct nfp_net *nn, struct sk_buff *skb);
 
 #define NFP_DEV_CPP_TYPE	"nfp-dev-cpp"
-
-int nfp_hwmon_register(struct nfp_pf *pf);
-void nfp_hwmon_unregister(struct nfp_pf *pf);
 
 #ifdef CONFIG_NFP_USER_SPACE_CPP
 int nfp_dev_cpp_init(void);
