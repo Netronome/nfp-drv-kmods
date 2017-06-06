@@ -3043,10 +3043,19 @@ static compat__stat64_ret_t nfp_net_stat64(struct net_device *netdev,
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
 static int
-nfp_net_setup_tc(struct net_device *netdev, u32 handle, __be16 proto,
-		 struct tc_to_netdev *tc)
+#if LINUX_RELEASE_4_13
+nfp_net_setup_tc(struct net_device *netdev, u32 handle, u32 chain_index,
+#else
+nfp_net_setup_tc(struct net_device *netdev, u32 handle,
+#endif
+		 __be16 proto, struct tc_to_netdev *tc)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
+
+#if LINUX_RELEASE_4_13
+	if (chain_index)
+		return -EOPNOTSUPP;
+#endif
 
 	return nfp_app_setup_tc(nn->app, netdev, handle, proto, tc);
 }
