@@ -400,7 +400,7 @@ static inline void udp_tunnel_get_rx_info(struct net_device *netdev)
 }
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0)
+#if VER_VANILLA_LT(4, 5) || VER_RHEL_LT(7, 3)
 static inline int skb_inner_transport_offset(const struct sk_buff *skb)
 {
 	return skb_inner_transport_header(skb) - skb->data;
