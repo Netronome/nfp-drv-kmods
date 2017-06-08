@@ -299,6 +299,30 @@ int nfp_net_reconfig(struct nfp_net *nn, u32 update)
 	return ret;
 }
 
+/**
+ * nfp_net_reconfig_mbox() - Reconfigure the firmware via the mailbox
+ * @nn:        NFP Net device to reconfigure
+ * @mbox_cmd:  The value for the mailbox command
+ *
+ * Helper function for mailbox updates
+ *
+ * Return: Negative errno on error, 0 on success
+ */
+static int nfp_net_reconfig_mbox(struct nfp_net *nn, u32 mbox_cmd)
+{
+	int ret;
+
+	nn_writeq(nn, NFP_NET_CFG_MBOX_CMD, mbox_cmd);
+
+	ret = nfp_net_reconfig(nn, NFP_NET_CFG_UPDATE_MBOX);
+	if (ret) {
+		nn_err(nn, "Mailbox update error\n");
+		return ret;
+	}
+
+	return -nn_readl(nn, NFP_NET_CFG_MBOX_RET);
+}
+
 /* Interrupt configuration and handling
  */
 
@@ -3041,6 +3065,48 @@ static compat__stat64_ret_t nfp_net_stat64(struct net_device *netdev,
 #endif
 }
 
+static int
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)
+nfp_net_vlan_rx_add_vid(struct net_device *netdev, u16 vid)
+#else
+nfp_net_vlan_rx_add_vid(struct net_device *netdev, __be16 proto, u16 vid)
+#endif
+{
+	struct nfp_net *nn = netdev_priv(netdev);
+
+	/* Priority tagged packets with vlan id 0 are processed by the
+	 * NFP as untagged packets
+	 */
+	if (!vid)
+		return 0;
+
+	nn_writew(nn, NFP_NET_CFG_VLAN_FILTER_VID, vid);
+	nn_writew(nn, NFP_NET_CFG_VLAN_FILTER_PROTO, ETH_P_8021Q);
+
+	return nfp_net_reconfig_mbox(nn, NFP_NET_CFG_MBOX_CMD_CTAG_FILTER_ADD);
+}
+
+static int
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)
+nfp_net_vlan_rx_kill_vid(struct net_device *netdev, u16 vid)
+#else
+nfp_net_vlan_rx_kill_vid(struct net_device *netdev, __be16 proto, u16 vid)
+#endif
+{
+	struct nfp_net *nn = netdev_priv(netdev);
+
+	/* Priority tagged packets with vlan id 0 are processed by the
+	 * NFP as untagged packets
+	 */
+	if (!vid)
+		return 0;
+
+	nn_writew(nn, NFP_NET_CFG_VLAN_FILTER_VID, vid);
+	nn_writew(nn, NFP_NET_CFG_VLAN_FILTER_PROTO, ETH_P_8021Q);
+
+	return nfp_net_reconfig_mbox(nn, NFP_NET_CFG_MBOX_CMD_CTAG_FILTER_KILL);
+}
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
 static int
 #if LINUX_RELEASE_4_13
@@ -3107,6 +3173,13 @@ static int nfp_net_set_features(struct net_device *netdev,
 			new_ctrl |= NFP_NET_CFG_CTRL_TXVLAN;
 		else
 			new_ctrl &= ~NFP_NET_CFG_CTRL_TXVLAN;
+	}
+
+	if (changed & NETIF_F_HW_VLAN_CTAG_FILTER) {
+		if (features & NETIF_F_HW_VLAN_CTAG_FILTER)
+			new_ctrl |= NFP_NET_CFG_CTRL_CTAG_FILTER;
+		else
+			new_ctrl &= ~NFP_NET_CFG_CTRL_CTAG_FILTER;
 	}
 
 	if (changed & NETIF_F_SG) {
@@ -3367,6 +3440,8 @@ const struct net_device_ops nfp_net_netdev_ops = {
 	.ndo_stop		= nfp_net_netdev_close,
 	.ndo_start_xmit		= nfp_net_tx,
 	.ndo_get_stats64	= nfp_net_stat64,
+	.ndo_vlan_rx_add_vid	= nfp_net_vlan_rx_add_vid,
+	.ndo_vlan_rx_kill_vid	= nfp_net_vlan_rx_kill_vid,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
 	.ndo_setup_tc		= nfp_net_setup_tc,
 #endif
@@ -3407,7 +3482,7 @@ void nfp_net_info(struct nfp_net *nn)
 		nn->fw_ver.resv, nn->fw_ver.class,
 		nn->fw_ver.major, nn->fw_ver.minor,
 		nn->max_mtu);
-	nn_info(nn, "CAP: %#x %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
+	nn_info(nn, "CAP: %#x %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
 		nn->cap,
 		nn->cap & NFP_NET_CFG_CTRL_PROMISC  ? "PROMISC "  : "",
 		nn->cap & NFP_NET_CFG_CTRL_L2BC     ? "L2BCFILT " : "",
@@ -3422,6 +3497,7 @@ void nfp_net_info(struct nfp_net *nn)
 		nn->cap & NFP_NET_CFG_CTRL_LSO2     ? "TSO2 "     : "",
 		nn->cap & NFP_NET_CFG_CTRL_RSS      ? "RSS1 "     : "",
 		nn->cap & NFP_NET_CFG_CTRL_RSS2     ? "RSS2 "     : "",
+		nn->cap & NFP_NET_CFG_CTRL_CTAG_FILTER ? "CTAG_FILTER " : "",
 		nn->cap & NFP_NET_CFG_CTRL_L2SWITCH ? "L2SWITCH " : "",
 		nn->cap & NFP_NET_CFG_CTRL_MSIXAUTO ? "AUTOMASK " : "",
 		nn->cap & NFP_NET_CFG_CTRL_IRQMOD   ? "IRQMOD "   : "",
@@ -3637,6 +3713,10 @@ static void nfp_net_netdev_init(struct nfp_net *nn)
 			netdev->hw_features |= NETIF_F_HW_VLAN_CTAG_TX;
 			nn->dp.ctrl |= NFP_NET_CFG_CTRL_TXVLAN;
 		}
+	}
+	if (nn->cap & NFP_NET_CFG_CTRL_CTAG_FILTER) {
+		netdev->hw_features |= NETIF_F_HW_VLAN_CTAG_FILTER;
+		nn->dp.ctrl |= NFP_NET_CFG_CTRL_CTAG_FILTER;
 	}
 
 	netdev->features = netdev->hw_features;
