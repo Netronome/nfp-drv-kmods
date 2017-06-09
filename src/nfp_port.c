@@ -33,6 +33,7 @@
 
 #include <linux/lockdep.h>
 
+#include "nfpcore/nfp_cpp.h"
 #include "nfpcore/nfp_nsp.h"
 #include "nfp_app.h"
 #include "nfp_main.h"
@@ -113,6 +114,30 @@ nfp_port_get_phys_port_name(struct net_device *netdev, char *name, size_t len)
 }
 
 #ifdef CONFIG_NFP_NET_PF
+int nfp_port_init_phy_port(struct nfp_pf *pf, struct nfp_app *app,
+			   struct nfp_port *port, unsigned int id)
+{
+	port->eth_id = id;
+	port->eth_port = nfp_net_find_port(pf->eth_tbl, id);
+
+	/* Check if vNIC has external port associated and cfg is OK */
+	if (!port->eth_port) {
+		nfp_err(app->cpp,
+			"NSP port entries don't match vNICs (no entry for port #%d)\n",
+			id);
+		return -EINVAL;
+	}
+	if (port->eth_port->override_changed) {
+		nfp_warn(app->cpp,
+			 "Config changed for port #%d, reboot required before port will be operational\n",
+			 id);
+		port->type = NFP_PORT_INVALID;
+		return 0;
+	}
+
+	return 0;
+}
+
 struct nfp_port *
 nfp_port_alloc(struct nfp_app *app, enum nfp_port_type type,
 	       struct net_device *netdev)
