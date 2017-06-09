@@ -1726,7 +1726,7 @@ static int nfp_bpf_optimize(struct nfp_prog *nfp_prog)
 	return 0;
 }
 
-static int nfp_bpf_ustore_calc(struct nfp_prog *nfp_prog)
+static int nfp_bpf_ustore_calc(struct nfp_prog *nfp_prog, __le64 *ustore)
 {
 	int i;
 
@@ -1738,6 +1738,8 @@ static int nfp_bpf_ustore_calc(struct nfp_prog *nfp_prog)
 			return err;
 
 		nfp_prog->prog[i] = nfp_ustore_calc_ecc_insn(nfp_prog->prog[i]);
+
+		ustore[i] = cpu_to_le64(nfp_prog->prog[i]);
 	}
 
 	return 0;
@@ -1797,7 +1799,7 @@ nfp_bpf_jit(struct bpf_prog *filter, void *prog_mem,
 		goto out;
 	}
 
-	ret = nfp_bpf_ustore_calc(nfp_prog);
+	ret = nfp_bpf_ustore_calc(nfp_prog, (__force __le64 *)prog_mem);
 
 	res->n_instr = nfp_prog->prog_len;
 	res->dense_mode = false;
