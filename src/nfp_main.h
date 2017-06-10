@@ -71,6 +71,10 @@ struct nfp_rtsym_table;
  * @data_vnic_bar:	Pointer to the CPP area for the data vNICs' BARs
  * @ctrl_vnic_bar:	Pointer to the CPP area for the ctrl vNIC's BAR
  * @qc_area:		Pointer to the CPP area for the queues
+ * @mac_stats_bar:	Pointer to the CPP area for the MAC stats
+ * @mac_stats_mem:	Pointer to mapped MAC stats area
+ * @vf_cfg_bar:		Pointer to the CPP area for the VF configuration BAR
+ * @vf_cfg_mem:		Pointer to mapped VF configuration area
  * @irq_entries:	Array of MSI-X entries for all vNICs
  * @msix:		Single MSI-X entry for non-netdev mode event monitor
  * @limit_vfs:		Number of VFs supported by firmware (~0 for PCI limit)
@@ -105,6 +109,10 @@ struct nfp_pf {
 	struct nfp_cpp_area *data_vnic_bar;
 	struct nfp_cpp_area *ctrl_vnic_bar;
 	struct nfp_cpp_area *qc_area;
+	struct nfp_cpp_area *mac_stats_bar;
+	u8 __iomem *mac_stats_mem;
+	struct nfp_cpp_area *vf_cfg_bar;
+	u8 __iomem *vf_cfg_mem;
 
 	struct msix_entry *irq_entries;
 
