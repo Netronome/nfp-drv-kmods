@@ -129,6 +129,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 
     ifeq ($(KERNEL_GE_4_14),y)
       nfp-objs += \
+	        nfp_asm.o \
 		bpf/main.o \
 		bpf/offload.o
 
