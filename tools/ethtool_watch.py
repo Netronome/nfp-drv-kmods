@@ -179,4 +179,4 @@ while True:
         os.system("clear")
         sys.stdout.write(pr)
 
-        time.sleep(1.0 - (now() - clock) / 1000.0)
+        time.sleep(max(0, 1.0 - (now() - clock) / 1000.0))
