@@ -675,7 +675,7 @@ static int nfp_net_vnic_probe(struct platform_device *pdev)
 	barsz    = nfp_resource_size(res);
 	nfp_resource_release(res);
 
-	area = nfp_cpp_area_alloc_acquire(cpp, cpp_id, cpp_addr, barsz);
+	area = nfp_cpp_area_alloc_acquire(cpp, "vnic", cpp_id, cpp_addr, barsz);
 	if (!area) {
 		dev_err(&pdev->dev, "Can't acquire %lu byte area at %d:%d:%d:0x%llx\n",
 			barsz, NFP_CPP_ID_TARGET_of(cpp_id),

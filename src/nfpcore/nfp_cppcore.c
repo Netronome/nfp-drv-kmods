@@ -538,11 +538,12 @@ nfp_cpp_area_alloc(struct nfp_cpp *cpp, u32 dest,
 /**
  * nfp_cpp_area_alloc_acquire() - allocate a new CPP area and lock it down
  * @cpp:	CPP handle
+ * @name:	Name of region
  * @dest:	CPP id
  * @address:	Start address on CPP target
  * @size:	Size of area
  *
- * Allocate and initilizae a CPP area structure, and lock it down so
+ * Allocate and initialize a CPP area structure, and lock it down so
  * that it can be accessed directly.
  *
  * NOTE: @address and @size must be 32-bit aligned values.
@@ -552,12 +553,12 @@ nfp_cpp_area_alloc(struct nfp_cpp *cpp, u32 dest,
  * Return: NFP CPP Area handle, or NULL
  */
 struct nfp_cpp_area *
-nfp_cpp_area_alloc_acquire(struct nfp_cpp *cpp, u32 dest,
+nfp_cpp_area_alloc_acquire(struct nfp_cpp *cpp, const char *name, u32 dest,
 			   unsigned long long address, unsigned long size)
 {
 	struct nfp_cpp_area *area;
 
-	area = nfp_cpp_area_alloc(cpp, dest, address, size);
+	area = nfp_cpp_area_alloc_with_name(cpp, dest, name, address, size);
 	if (!area)
 		return NULL;
 
