@@ -64,7 +64,6 @@ EXPORT_SYMBOL(nfp_cpp_area_acquire_nonblocking);
 EXPORT_SYMBOL(nfp_cpp_area_release);
 EXPORT_SYMBOL(nfp_cpp_area_read);
 EXPORT_SYMBOL(nfp_cpp_area_write);
-EXPORT_SYMBOL(nfp_cpp_area_check_range);
 EXPORT_SYMBOL(nfp_cpp_area_resource);
 EXPORT_SYMBOL(nfp_cpp_area_phys);
 EXPORT_SYMBOL(nfp_cpp_area_iomem);
