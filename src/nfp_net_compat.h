@@ -496,14 +496,28 @@ static inline struct netlink_ext_ack *compat__xdp_extact(struct netdev_xdp *xdp)
 {
 	return xdp->extack;
 }
+
+static inline u32 compat__xdp_flags(struct netdev_xdp *xdp)
+{
+	return xdp->flags;
+}
 #else
 struct netdev_xdp;
 
 #define NL_SET_ERR_MSG_MOD(ea, msg)	pr_warn(KBUILD_MODNAME ": " msg)
 
+#define XDP_FLAGS_DRV_MODE	(1 << 2)
+
+#define XDP_FLAGS_MODES		(XDP_FLAGS_DRV_MODE)
+
 static inline struct netlink_ext_ack *compat__xdp_extact(struct netdev_xdp *xdp)
 {
 	return NULL;
+}
+
+static inline u32 compat__xdp_flags(struct netdev_xdp *xdp)
+{
+	return 0;
 }
 #endif
 
