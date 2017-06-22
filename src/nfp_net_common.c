@@ -3162,26 +3162,6 @@ static compat__stat64_ret_t nfp_net_stat64(struct net_device *netdev,
 #endif
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
-static int
-#if LINUX_RELEASE_4_13
-nfp_net_setup_tc(struct net_device *netdev, u32 handle, u32 chain_index,
-#else
-nfp_net_setup_tc(struct net_device *netdev, u32 handle,
-#endif
-		 __be16 proto, struct tc_to_netdev *tc)
-{
-	struct nfp_net *nn = netdev_priv(netdev);
-
-#if LINUX_RELEASE_4_13
-	if (chain_index)
-		return -EOPNOTSUPP;
-#endif
-
-	return nfp_app_setup_tc(nn->app, netdev, handle, proto, tc);
-}
-#endif
-
 static int nfp_net_set_features(struct net_device *netdev,
 				netdev_features_t features)
 {
@@ -3522,7 +3502,7 @@ const struct net_device_ops nfp_net_netdev_ops = {
 	.ndo_vlan_rx_add_vid	= nfp_net_vlan_rx_add_vid,
 	.ndo_vlan_rx_kill_vid	= nfp_net_vlan_rx_kill_vid,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
-	.ndo_setup_tc		= nfp_net_setup_tc,
+	.ndo_setup_tc		= nfp_port_setup_tc,
 #endif
 	.ndo_tx_timeout		= nfp_net_tx_timeout,
 	.ndo_set_rx_mode	= nfp_net_set_rx_mode,

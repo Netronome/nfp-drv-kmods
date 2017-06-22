@@ -144,6 +144,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
       ccflags-y += -DCOMPAT__HAVE_METADATA_IP_TUNNEL=1
       nfp-objs += \
 		flower/cmsg.o \
+		flower/offload.o \
 		flower/main.o \
 		nfp_net_repr.o
     endif
