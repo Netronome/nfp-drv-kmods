@@ -146,6 +146,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 		flower/action.o \
 		flower/cmsg.o \
 		flower/match.o \
+		flower/metadata.o \
 		flower/offload.o \
 		flower/main.o \
 		nfp_net_repr.o
