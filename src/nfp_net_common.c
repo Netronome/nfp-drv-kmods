@@ -3357,10 +3357,11 @@ static void nfp_net_del_vxlan_port(struct net_device *netdev,
 #endif /* COMPAT__HAVE_VXLAN_OFFLOAD */
 
 #if COMPAT__HAVE_XDP
-static int nfp_net_xdp_setup(struct nfp_net *nn, struct netdev_xdp *xdp)
+static int
+nfp_net_xdp_setup_drv(struct nfp_net *nn, struct bpf_prog *prog,
+		      struct netlink_ext_ack *extack)
 {
 	struct bpf_prog *old_prog = nn->dp.xdp_prog;
-	struct bpf_prog *prog = xdp->prog;
 	struct nfp_net_dp *dp;
 	int err;
 
@@ -3369,7 +3370,6 @@ static int nfp_net_xdp_setup(struct nfp_net *nn, struct netdev_xdp *xdp)
 	if (prog && nn->dp.xdp_prog) {
 		prog = xchg(&nn->dp.xdp_prog, prog);
 		bpf_prog_put(prog);
-		nfp_app_xdp_offload(nn->app, nn, nn->dp.xdp_prog);
 		return 0;
 	}
 
@@ -3383,12 +3383,25 @@ static int nfp_net_xdp_setup(struct nfp_net *nn, struct netdev_xdp *xdp)
 	dp->rx_dma_off = prog ? XDP_PACKET_HEADROOM - nn->dp.rx_offset : 0;
 
 	/* We need RX reconfig to remap the buffers (BIDIR vs FROM_DEV) */
-	err = nfp_net_ring_reconfig(nn, dp, compat__xdp_extact(xdp));
+	err = nfp_net_ring_reconfig(nn, dp, extack);
 	if (err)
 		return err;
 
 	if (old_prog)
 		bpf_prog_put(old_prog);
+
+	return 0;
+}
+
+static int
+nfp_net_xdp_setup(struct nfp_net *nn, struct bpf_prog *prog,
+		  struct netlink_ext_ack *extack)
+{
+	int err;
+
+	err = nfp_net_xdp_setup_drv(nn, prog, extack);
+	if (err)
+		return err;
 
 	nfp_app_xdp_offload(nn->app, nn, nn->dp.xdp_prog);
 
@@ -3401,7 +3414,8 @@ static int nfp_net_xdp(struct net_device *netdev, struct netdev_xdp *xdp)
 
 	switch (xdp->command) {
 	case XDP_SETUP_PROG:
-		return nfp_net_xdp_setup(nn, xdp);
+		return nfp_net_xdp_setup(nn, xdp->prog,
+					 compat__xdp_extact(xdp));
 	case XDP_QUERY_PROG:
 		xdp->prog_attached = !!nn->dp.xdp_prog;
 #if LINUX_RELEASE_4_13
