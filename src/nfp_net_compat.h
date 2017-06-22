@@ -507,8 +507,9 @@ struct netdev_xdp;
 #define NL_SET_ERR_MSG_MOD(ea, msg)	pr_warn(KBUILD_MODNAME ": " msg)
 
 #define XDP_FLAGS_DRV_MODE	(1 << 2)
+#define XDP_FLAGS_HW_MODE	(1 << 3)
 
-#define XDP_FLAGS_MODES		(XDP_FLAGS_DRV_MODE)
+#define XDP_FLAGS_MODES		(XDP_FLAGS_DRV_MODE | XDP_FLAGS_HW_MODE)
 
 static inline struct netlink_ext_ack *compat__xdp_extact(struct netdev_xdp *xdp)
 {
