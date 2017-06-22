@@ -36,7 +36,10 @@
 
 #include "nfp_net_compat.h"
 
-struct metadata_dst;
+#ifdef COMPAT__HAVE_METADATA_IP_TUNNEL
+#include <net/dst_metadata.h>
+#endif
+
 struct nfp_net;
 struct nfp_port;
 
@@ -105,6 +108,13 @@ extern const struct net_device_ops nfp_repr_netdev_ops;
 static inline bool nfp_netdev_is_nfp_repr(struct net_device *netdev)
 {
 	return netdev->netdev_ops == &nfp_repr_netdev_ops;
+}
+
+static inline int nfp_repr_get_port_id(struct net_device *netdev)
+{
+	struct nfp_repr *priv = netdev_priv(netdev);
+
+	return priv->dst->u.port_info.port_id;
 }
 
 void nfp_repr_inc_rx_stats(struct net_device *netdev, unsigned int len);
