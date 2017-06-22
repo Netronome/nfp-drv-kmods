@@ -511,6 +511,8 @@ struct netdev_xdp;
 
 #define XDP_FLAGS_MODES		(XDP_FLAGS_DRV_MODE | XDP_FLAGS_HW_MODE)
 
+#define XDP_ATTACHED_HW			true
+
 static inline struct netlink_ext_ack *compat__xdp_extact(struct netdev_xdp *xdp)
 {
 	return NULL;

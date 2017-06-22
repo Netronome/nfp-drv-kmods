@@ -3426,6 +3426,8 @@ static int nfp_net_xdp(struct net_device *netdev, struct netdev_xdp *xdp)
 					 compat__xdp_extact(xdp));
 	case XDP_QUERY_PROG:
 		xdp->prog_attached = !!nn->xdp_prog;
+		if (nn->dp.bpf_offload_xdp)
+			xdp->prog_attached = XDP_ATTACHED_HW;
 #if LINUX_RELEASE_4_13
 		xdp->prog_id = nn->xdp_prog ? nn->xdp_prog->aux->id : 0;
 #endif
