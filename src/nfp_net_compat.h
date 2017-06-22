@@ -59,6 +59,9 @@
 #include <linux/version.h>
 
 #include <net/pkt_cls.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
+#include <net/switchdev.h>
+#endif
 
 #include "nfpcore/kcompat.h"
 #include "nfp_net.h"
@@ -73,6 +76,9 @@
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0))
 #define COMPAT__HAVE_XDP_ADJUST_HEAD \
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
+/* We only want to support switchdev with ops and attrs */
+#define COMPAT__HAVE_SWITCHDEV_ATTRS \
+	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0))
 
 #ifndef NETIF_F_HW_VLAN_CTAG_RX
 #define NETIF_F_HW_VLAN_CTAG_RX NETIF_F_HW_VLAN_RX
@@ -137,6 +143,14 @@
 
 #ifndef XDP_FLAGS_MODES
 #define XDP_FLAGS_MODES		(XDP_FLAGS_DRV_MODE | XDP_FLAGS_HW_MODE)
+#endif
+
+#ifndef SWITCHDEV_SET_OPS
+#if COMPAT__HAVE_SWITCHDEV_ATTRS
+#define SWITCHDEV_SET_OPS(netdev, ops) ((netdev)->switchdev_ops = (ops))
+#else
+#define SWITCHDEV_SET_OPS(netdev, ops) do {} while (0)
+#endif
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)
@@ -294,6 +308,13 @@ static inline int skb_put_padto(struct sk_buff *skb, unsigned int len)
 #define napi_alloc_frag(x) netdev_alloc_frag(x)
 #endif
 
+#if VER_VANILLA_LT(3, 19) || VER_RHEL_LT(7, 4)
+struct netdev_phys_item_id {
+	unsigned char id[32];
+	unsigned char id_len;
+};
+#endif
+
 #if VER_VANILLA_LT(4, 0) || VER_RHEL_LT(7, 2)
 #define skb_vlan_tag_present(skb)	vlan_tx_tag_present(skb)
 #define skb_vlan_tag_get(skb)		vlan_tx_tag_get(skb)
@@ -346,6 +367,27 @@ static inline void skb_free_frag(void *addr)
 {
 	put_page(virt_to_head_page(addr));
 }
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 2, 0)
+enum switchdev_attr_id {
+	SWITCHDEV_ATTR_ID_UNDEFINED,
+	SWITCHDEV_ATTR_ID_PORT_PARENT_ID,
+};
+
+struct switchdev_attr {
+	enum switchdev_attr_id id;
+	union {
+		struct netdev_phys_item_id ppid;
+	} u;
+};
+
+struct switchdev_ops {
+	int (*switchdev_port_attr_get)(struct net_device *dev,
+				       struct switchdev_attr *attr);
+};
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(4, 4, 0)
+#define SWITCHDEV_ATTR_ID_PORT_PARENT_ID	SWITCHDEV_ATTR_PORT_PARENT_ID
 #endif
 
 static inline int
