@@ -99,7 +99,14 @@ enum nfp_repr_type {
 };
 #define NFP_REPR_TYPE_MAX (__NFP_REPR_TYPE_MAX - 1)
 
+extern const struct net_device_ops nfp_repr_netdev_ops;
+
 #ifdef COMPAT__HAVE_METADATA_IP_TUNNEL
+static inline bool nfp_netdev_is_nfp_repr(struct net_device *netdev)
+{
+	return netdev->netdev_ops == &nfp_repr_netdev_ops;
+}
+
 void nfp_repr_inc_rx_stats(struct net_device *netdev, unsigned int len);
 int nfp_repr_init(struct nfp_app *app, struct net_device *netdev,
 		  u32 cmsg_port_id, struct nfp_port *port,
@@ -112,6 +119,11 @@ nfp_reprs_clean_and_free_by_type(struct nfp_app *app,
 				 enum nfp_repr_type type);
 struct nfp_reprs *nfp_reprs_alloc(unsigned int num_reprs);
 #else
+static inline bool nfp_netdev_is_nfp_repr(struct net_device *netdev)
+{
+	return false;
+}
+
 static inline void
 nfp_repr_inc_rx_stats(struct net_device *netdev, unsigned int len) {}
 #endif
