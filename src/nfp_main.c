@@ -588,6 +588,12 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 	pci_set_drvdata(pdev, pf);
 	pf->pdev = pdev;
 
+	pf->wq = alloc_workqueue("nfp-%s", 0, 2, pci_name(pdev));
+	if (!pf->wq) {
+		err = -ENOMEM;
+		goto err_pci_priv_unset;
+	}
+
 	if (nfp_mon_event) {
 		/* Completely optional: we will be fine with Legacy IRQs */
 		err = pci_enable_msix(pdev, &pf->msix, 1);
@@ -699,6 +705,8 @@ err_hwinfo_free:
 err_disable_msix:
 	if (pdev->msix_enabled)
 		pci_disable_msix(pdev);
+	destroy_workqueue(pf->wq);
+err_pci_priv_unset:
 	pci_set_drvdata(pdev, NULL);
 	mutex_destroy(&pf->lock);
 	devlink_free(devlink);
@@ -742,6 +750,7 @@ static void nfp_pci_remove(struct pci_dev *pdev)
 	if (pf->nfp_dev_cpp)
 		nfp_platform_device_unregister(pf->nfp_dev_cpp);
 
+	destroy_workqueue(pf->wq);
 	pci_set_drvdata(pdev, NULL);
 	kfree(pf->hwinfo);
 	nfp_cpp_free(pf->cpp);
