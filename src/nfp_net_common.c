@@ -3080,43 +3080,6 @@ static int nfp_net_change_mtu(struct net_device *netdev, int new_mtu)
 	return nfp_net_ring_reconfig(nn, dp, NULL);
 }
 
-static compat__stat64_ret_t nfp_net_stat64(struct net_device *netdev,
-					   struct rtnl_link_stats64 *stats)
-{
-	struct nfp_net *nn = netdev_priv(netdev);
-	int r;
-
-	for (r = 0; r < nn->dp.num_r_vecs; r++) {
-		struct nfp_net_r_vector *r_vec = &nn->r_vecs[r];
-		u64 data[3];
-		unsigned int start;
-
-		do {
-			start = u64_stats_fetch_begin(&r_vec->rx_sync);
-			data[0] = r_vec->rx_pkts;
-			data[1] = r_vec->rx_bytes;
-			data[2] = r_vec->rx_drops;
-		} while (u64_stats_fetch_retry(&r_vec->rx_sync, start));
-		stats->rx_packets += data[0];
-		stats->rx_bytes += data[1];
-		stats->rx_dropped += data[2];
-
-		do {
-			start = u64_stats_fetch_begin(&r_vec->tx_sync);
-			data[0] = r_vec->tx_pkts;
-			data[1] = r_vec->tx_bytes;
-			data[2] = r_vec->tx_errors;
-		} while (u64_stats_fetch_retry(&r_vec->tx_sync, start));
-		stats->tx_packets += data[0];
-		stats->tx_bytes += data[1];
-		stats->tx_errors += data[2];
-	}
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0)
-	return stats;
-#endif
-}
-
 static int
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)
 nfp_net_vlan_rx_add_vid(struct net_device *netdev, u16 vid)
@@ -3157,6 +3120,43 @@ nfp_net_vlan_rx_kill_vid(struct net_device *netdev, __be16 proto, u16 vid)
 	nn_writew(nn, NFP_NET_CFG_VLAN_FILTER_PROTO, ETH_P_8021Q);
 
 	return nfp_net_reconfig_mbox(nn, NFP_NET_CFG_MBOX_CMD_CTAG_FILTER_KILL);
+}
+
+static compat__stat64_ret_t nfp_net_stat64(struct net_device *netdev,
+					   struct rtnl_link_stats64 *stats)
+{
+	struct nfp_net *nn = netdev_priv(netdev);
+	int r;
+
+	for (r = 0; r < nn->dp.num_r_vecs; r++) {
+		struct nfp_net_r_vector *r_vec = &nn->r_vecs[r];
+		u64 data[3];
+		unsigned int start;
+
+		do {
+			start = u64_stats_fetch_begin(&r_vec->rx_sync);
+			data[0] = r_vec->rx_pkts;
+			data[1] = r_vec->rx_bytes;
+			data[2] = r_vec->rx_drops;
+		} while (u64_stats_fetch_retry(&r_vec->rx_sync, start));
+		stats->rx_packets += data[0];
+		stats->rx_bytes += data[1];
+		stats->rx_dropped += data[2];
+
+		do {
+			start = u64_stats_fetch_begin(&r_vec->tx_sync);
+			data[0] = r_vec->tx_pkts;
+			data[1] = r_vec->tx_bytes;
+			data[2] = r_vec->tx_errors;
+		} while (u64_stats_fetch_retry(&r_vec->tx_sync, start));
+		stats->tx_packets += data[0];
+		stats->tx_bytes += data[1];
+		stats->tx_errors += data[2];
+	}
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0)
+	return stats;
+#endif
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
