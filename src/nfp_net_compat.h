@@ -128,6 +128,17 @@
 #define XDP_PACKET_HEADROOM	256
 #endif
 
+#ifndef XDP_FLAGS_DRV_MODE
+#define XDP_FLAGS_DRV_MODE	(1 << 2)
+#endif
+#ifndef XDP_FLAGS_HW_MODE
+#define XDP_FLAGS_HW_MODE	(1 << 3)
+#endif
+
+#ifndef XDP_FLAGS_MODES
+#define XDP_FLAGS_MODES		(XDP_FLAGS_DRV_MODE | XDP_FLAGS_HW_MODE)
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)
 #define NAPI_POLL_WEIGHT	64
 #define NETIF_F_GSO_GRE		0
@@ -497,26 +508,24 @@ static inline struct netlink_ext_ack *compat__xdp_extact(struct netdev_xdp *xdp)
 	return xdp->extack;
 }
 
-static inline u32 compat__xdp_flags(struct netdev_xdp *xdp)
-{
-	return xdp->flags;
-}
 #else
 struct netdev_xdp;
 
 #define NL_SET_ERR_MSG_MOD(ea, msg)	pr_warn(KBUILD_MODNAME ": " msg)
 
-#define XDP_FLAGS_DRV_MODE	(1 << 2)
-#define XDP_FLAGS_HW_MODE	(1 << 3)
-
-#define XDP_FLAGS_MODES		(XDP_FLAGS_DRV_MODE | XDP_FLAGS_HW_MODE)
-
-#define XDP_ATTACHED_HW			true
-
 static inline struct netlink_ext_ack *compat__xdp_extact(struct netdev_xdp *xdp)
 {
 	return NULL;
 }
+#endif
+
+#if LINUX_RELEASE_4_13
+static inline u32 compat__xdp_flags(struct netdev_xdp *xdp)
+{
+	return xdp->flags;
+}
+#else
+#define XDP_ATTACHED_HW			true
 
 static inline u32 compat__xdp_flags(struct netdev_xdp *xdp)
 {
