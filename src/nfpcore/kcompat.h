@@ -226,6 +226,8 @@ int compat_dma_set_mask_and_coherent(struct device *dev, u64 mask)
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0)
+#define request_firmware_direct	request_firmware
+
 static inline int _pci_enable_msi_range(struct pci_dev *dev,
 					int minvec, int maxvec)
 {
