@@ -110,6 +110,7 @@ struct nfp_port {
 	struct list_head port_list;
 };
 
+extern const struct ethtool_ops nfp_port_ethtool_ops;
 extern const struct switchdev_ops nfp_port_switchdev_ops;
 
 #if LINUX_RELEASE_4_14
