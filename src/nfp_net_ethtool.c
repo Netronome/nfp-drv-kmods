@@ -406,23 +406,15 @@ static void nfp_net_get_stats(struct net_device *netdev,
 			      struct ethtool_stats *stats, u64 *data)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 36)
-	const struct net_device_stats *netdev_stats;
-#else
 	struct rtnl_link_stats64 *netdev_stats;
 	struct rtnl_link_stats64 temp = {};
-#endif
 	u64 tmp[NN_ET_RVEC_GATHER_STATS];
 	u64 gathered_stats[NN_ET_RVEC_GATHER_STATS] = {};
 	int i, j, k;
 	u8 __iomem *io_p;
 	u8 *p;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 36)
-	netdev_stats = dev_get_stats(netdev);
-#else
 	netdev_stats = dev_get_stats(netdev, &temp);
-#endif
 	for (i = 0; i < NN_ET_GLOBAL_STATS_LEN; i++) {
 		switch (nfp_net_et_stats[i].type) {
 		case NETDEV_ET_STATS:
