@@ -516,7 +516,7 @@ static int nfp_net_pci_map_mem(struct nfp_pf *pf)
 				   min_size, &pf->data_vnic_bar);
 	if (IS_ERR(mem)) {
 		nfp_err(pf->cpp, "Failed to find data vNIC memory symbol\n");
-		return PTR_ERR(mem);
+		return pf->fw_loaded ? PTR_ERR(mem) : 1;
 	}
 
 	min_size =  NFP_MAC_STATS_SIZE * (pf->eth_tbl->max_index + 1);
