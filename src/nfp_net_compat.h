@@ -308,7 +308,7 @@ static inline int skb_put_padto(struct sk_buff *skb, unsigned int len)
 #define napi_alloc_frag(x) netdev_alloc_frag(x)
 #endif
 
-#if VER_VANILLA_LT(3, 19) || VER_RHEL_LT(7, 4)
+#if VER_VANILLA_LT(3, 19) || VER_RHEL_LT(7, 3)
 struct netdev_phys_item_id {
 	unsigned char id[32];
 	unsigned char id_len;
