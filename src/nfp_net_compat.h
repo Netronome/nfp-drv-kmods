@@ -146,7 +146,7 @@
 #endif
 
 #ifndef SWITCHDEV_SET_OPS
-#if COMPAT__HAVE_SWITCHDEV_ATTRS
+#if COMPAT__HAVE_SWITCHDEV_ATTRS && defined(CONFIG_NET_SWITCHDEV)
 #define SWITCHDEV_SET_OPS(netdev, ops) ((netdev)->switchdev_ops = (ops))
 #else
 #define SWITCHDEV_SET_OPS(netdev, ops) do {} while (0)

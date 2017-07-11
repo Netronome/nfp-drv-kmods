@@ -143,13 +143,20 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
     ifeq ($(COMPAT__HAVE_METADATA_IP_TUNNEL), y)
       ccflags-y += -DCOMPAT__HAVE_METADATA_IP_TUNNEL=1
       nfp-objs += \
+		nfp_net_repr.o
+
+      ifeq ($(CONFIG_NET_SWITCHDEV),y)
+	ccflags-y += -DCONFIG_NFP_APP_FLOWER
+	nfp-objs += \
 		flower/action.o \
 		flower/cmsg.o \
 		flower/match.o \
 		flower/metadata.o \
 		flower/offload.o \
-		flower/main.o \
-		nfp_net_repr.o
+		flower/main.o
+      else
+        $(warning NFP: CONFIG_NET_SWITCHDEV not enabled in the kernel, disabling apps: flower)
+      endif
     endif
   endif
 

@@ -47,7 +47,7 @@ static const struct nfp_app_type *apps[] = {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
 	&app_bpf,
 #endif
-#ifdef COMPAT__HAVE_METADATA_IP_TUNNEL
+#ifdef CONFIG_NFP_APP_FLOWER
 	&app_flower,
 #endif
 #else
