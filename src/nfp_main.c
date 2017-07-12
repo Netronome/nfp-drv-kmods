@@ -337,6 +337,24 @@ static void nfp_sriov_attr_remove(struct device *dev)
 #endif /* CONFIG_PCI_IOV */
 #endif /* Linux kernel version */
 
+static int
+nfp_net_fw_request(struct pci_dev *pdev, struct nfp_pf *pf, const char *name,
+		   const struct firmware **fwp)
+{
+	const struct firmware *fw = NULL;
+	int err;
+
+	err = request_firmware_direct(&fw, name, &pdev->dev);
+	nfp_info(pf->cpp, "  %s: %s\n",
+		 name, err ? "not found" : "found, loading...");
+	if (err)
+		return err;
+
+	*fwp = fw;
+
+	return 0;
+}
+
 /**
  * nfp_net_fw_find() - Find the correct firmware image for netdev mode
  * @pdev:	PCI Device structure
@@ -348,7 +366,6 @@ static void nfp_sriov_attr_remove(struct device *dev)
 static int nfp_net_fw_find(struct pci_dev *pdev, struct nfp_pf *pf,
 			   const struct firmware **fwp)
 {
-	const struct firmware *fw = NULL;
 	struct nfp_eth_table_port *port;
 	const char *fw_model;
 	char fw_name[256];
@@ -359,20 +376,22 @@ static int nfp_net_fw_find(struct pci_dev *pdev, struct nfp_pf *pf,
 
 	*fwp = NULL;
 
+	nfp_info(pf->cpp, "Looking up firmware file in order of priority:\n");
+
 	/* First try to find a firmware image specific for this device */
 	interface = nfp_cpp_interface(pf->cpp);
 	nfp_cpp_serial(pf->cpp, &serial);
 	sprintf(fw_name, "netronome/serial-%pMF-%02hhx-%02hhx.nffw",
 		serial, interface >> 8, interface & 0xff);
-	err = request_firmware_direct(&fw, fw_name, &pdev->dev);
+	err = nfp_net_fw_request(pdev, pf, fw_name, fwp);
 	if (!err)
-		goto done;
+		return 0;
 
 	/* Then try the PCI name */
 	sprintf(fw_name, "netronome/pci-%s.nffw", pci_name(pdev));
-	err = request_firmware_direct(&fw, fw_name, &pdev->dev);
+	err = nfp_net_fw_request(pdev, pf, fw_name, fwp);
 	if (!err)
-		goto done;
+		return 0;
 
 	/* Finally try the card type and media */
 	if (!pf->eth_tbl) {
@@ -407,14 +426,7 @@ static int nfp_net_fw_find(struct pci_dev *pdev, struct nfp_pf *pf,
 	if (spc <= 0)
 		return -EINVAL;
 
-	err = request_firmware(&fw, fw_name, &pdev->dev);
-	if (err)
-		return err;
-done:
-	dev_info(&pdev->dev, "Loading FW image: %s\n", fw_name);
-	*fwp = fw;
-
-	return 0;
+	return nfp_net_fw_request(pdev, pf, fw_name, fwp);
 }
 
 static int nfp_fw_find(struct pci_dev *pdev, const struct firmware **fwp)
