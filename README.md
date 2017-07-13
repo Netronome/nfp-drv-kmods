@@ -21,7 +21,8 @@ Compared to upstream drivers this repository contains:
    processor;
  - optional low-level user space ABI for accessing card internals.
 
-For more information, please visit: http://www.netronome.com
+For more information, please visit: http://www.netronome.com or
+http://open-nfp.org/.
 
 If questions arise or an issue is identified related the released
 driver code, please contact either your local Netronome contact or
