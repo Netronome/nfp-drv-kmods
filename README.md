@@ -46,41 +46,28 @@ Building and installing for the currently running kernel:
     $ make
     $ sudo make install
 
-To clean up use the `clean` target
+To clean up use the `clean` target:
 
     $ make clean
-
-For a more verbose build use the `noisy` target
-
-    $ make noisy
 
 To override the kernel version to build for set `KVER`:
 
     $ make KVER=<version>
     $ sudo make KVER=<version> install
 
-The `Makefile` searches a number of standard locations
-for the configured kernel sources.
+The `Makefile` searches a number of standard locations for the configured
+kernel sources.  To override the detected location, set `KSRC`:
 
-To override the detected location, set `KSRC`:
-
-    $ make KSRC=<location of kernel source>
+    $ make KSRC=<location of kernel build>
 
 ## Additional targets:
 
-| Command         | Action                                          |
-| --------------- | ----------------------------------------------- |
-| make coccicheck | Runs Coccinelle/coccicheck[1]                   |
-| make sparse     | Runs sparse, a tool for static code analysis[2] |
-| make nfp_net    | Build the driver limited to netdev operation    |
-
-1. Requires `coccinelle` to be installed, e.g.
-
-    $ sudo apt-get install coccinelle
-
-2. Requires the `sparse` tool to be installed, e.g.,
-
-    $ sudo apt-get install sparse
+| Command         | Action                                            |
+| --------------- | ------------------------------------------------- |
+| make noisy      | Verbose build with printing executed commands     |
+| make coccicheck | Runs Coccinelle/coccicheck (reqires `coccinelle`) |
+| make sparse     | Runs `sparse`, a tool for static code analysis    |
+| make nfp_net    | Build the driver limited to netdev operation      |
 
 # Troubleshooting
 
