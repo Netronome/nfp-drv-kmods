@@ -158,19 +158,17 @@ position of driver and hardware pointers for RX, TX and XDP rings.
 
 `ethtool -w <ifcname> data <outfile>` dumps the logs of the Service Processor.
 
-# Kernel Modules
-
-This section describes how kernel modules are structured.
+# Operation modes
 
 The nfp.ko module provides drivers for both PFs and VFs.  VFs can only
 be used as netdevs.  In case of PF one can select whether to load the
 driver in netdev mode which will create networking interfaces or only
-expose low-level API to the user space and run health monitoring, and
-diagnostics.
+expose low-level API to the user space and run health monitoring,
+diagnostics and control device from user space.
 
 NOTE: if you're using Netronome-provided driver packages some
 of the defaults mentioned in this document may have been changed
-in the `/etc/modprobe.d/netconsole.conf` file.
+in the `/etc/modprobe.d/netronome.conf` file.
 
 ## PF netdev mode
 
