@@ -28,17 +28,6 @@ If questions arise or an issue is identified related the released
 driver code, please contact either your local Netronome contact or
 email us on: oss-drivers@netronome.com
 
-# Acquiring Firmware
-
-The NFP4000 and NFP6000 devices require application
-specific firmware to function.
-
-Please contact support@netronome.com for the latest
-firmware for your platform and device.
-
-Once acquired, install the firmware in `/lib/firmware`
-(firmware files should be placed in `netronome` subdirectory).
-
 # Building and Installing
 
 Building and installing for the currently running kernel:
@@ -68,6 +57,71 @@ kernel sources.  To override the detected location, set `KSRC`:
 | make coccicheck | Runs Coccinelle/coccicheck (reqires `coccinelle`) |
 | make sparse     | Runs `sparse`, a tool for static code analysis    |
 | make nfp_net    | Build the driver limited to netdev operation      |
+
+# Acquiring Firmware
+
+The NFP4000 and NFP6000 devices require application specific firmware
+to function.  Firmware files contain card type (`AMDA-*` string), media
+config etc.  They should be placed in `/lib/firmware/netronome` directory.
+
+Firmware for basic NIC operation is available in the upstream
+`linux-firmware.git` repository, and if your distribution kernel is `4.11`
+or newer you will most likely have it on your system already.  For
+more application specific firmware files please contact
+support@netronome.com.
+
+## Dealing with multiple projects
+
+NFP hardware is fully programmable therefore there can be different
+firmware images targeting different applications.  We recommend placing
+actual firmware files in application-named subdirectories in
+`/lib/firmware/netronome` and linking the desired files, e.g.:
+```
+$ tree /lib/firmware/netronome/
+/lib/firmware/netronome/
+├── bpf
+│   ├── nic_AMDA0081-0001_1x40.nffw
+│   └── nic_AMDA0081-0001_4x10.nffw
+├── flower
+│   ├── nic_AMDA0081-0001_1x40.nffw
+│   └── nic_AMDA0081-0001_4x10.nffw
+├── nic
+│   ├── nic_AMDA0081-0001_1x40.nffw
+│   └── nic_AMDA0081-0001_4x10.nffw
+├── nic_AMDA0081-0001_1x40.nffw -> bpf/nic_AMDA0081-0001_1x40.nffw
+└── nic_AMDA0081-0001_4x10.nffw -> bpf/nic_AMDA0081-0001_4x10.nffw
+
+3 directories, 8 files
+```
+You may need to use hard instead of symbolic links on distributions
+which use old `mkinitrd` command instead of `dracut` (e.g. Ubuntu).
+
+After changing firmware files you may need to regenerate the initramfs
+image.  Initramfs contains drivers and firmware files your system may
+need to boot.  Refer to the documentation of your distribution to find
+out how to update initramfs.  Good indication of stale initramfs
+is system loading wrong driver or firmware on boot, but when driver is
+later reloaded manually everything works correctly.
+
+## Selecting firmware per device
+
+Most commonly all cards on the system use the same type of firmware.
+If you want to load specific firmware image for a specific card, you
+can use either the PCI bus address or serial number.  Driver will print
+which files it's looking for when it recognizes a NFP device:
+```
+nfp: Looking for firmware file in order of priority:
+nfp:  netronome/serial-00-12-34-aa-bb-cc-10-ff.nffw: not found
+nfp:  netronome/pci-0000:02:00.0.nffw: not found
+nfp:  netronome/nic_AMDA0081-0001_1x40.nffw: found, loading...
+```
+In this case if file (or link) called *serial-00-12-34-aa-bb-5d-10-ff.nffw*
+or *pci-0000:02:00.0.nffw* is present in `/lib/firmware/netronome` this
+firmware file will take precedence over `nic_AMDA*` files.
+
+Note that `serial-*` and `pci-*` files are **not** automatically included
+in initramfs, you will have to refer to documentation of appropriate tools
+to find out how to include them.
 
 # Troubleshooting
 
