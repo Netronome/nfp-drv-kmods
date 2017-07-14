@@ -38,6 +38,7 @@ import sys
 import time
 import re
 
+ONLY_ETHTOOL = False
 COLORS=[]
 COLOR_DIM = False
 IFC=""
@@ -54,8 +55,10 @@ def now():
         return int(time.time() * 1000)
 
 def usage():
-        print "Usage: %s [-c] [-crx] [-ctx] [-f pattern] [-x pattern] IFC" % \
+        print "Usage: %s [-E] [-c] [-crx] [-ctx] [-f pattern] [-x pattern] IFC" % \
                 sys.argv[0]
+        print "\tSources"
+        print "\t\t-E show only ethtool -S stats (exclude ifconfig statistics)"
         print "\tColors"
         print "\t\t-crx color RX stats"
         print "\t\t-ctx color TX stats"
@@ -78,7 +81,9 @@ for i in range(1, len(sys.argv)):
                 skip -= 1
                 continue
 
-        if sys.argv[i] == '-c':
+        if sys.argv[i] == '-E':
+                ONLY_ETHTOOL = True
+        elif sys.argv[i] == '-c':
                 COLOR_DIM = True
                 COLORS.append(('discard', "33m"))
                 COLORS.append(('drop', "33m"))
@@ -129,11 +134,30 @@ def key_ok(key):
 
         return res
 
+sysfs_stats_path = os.path.join('/sys/class/net/', IFC, 'statistics')
+
+def get_sysfs_stats():
+        out = ''
+
+        for filename in reversed(os.listdir(sysfs_stats_path)):
+                filepath = os.path.join(sysfs_stats_path, filename)
+                data = ''
+                with open(filepath, 'r') as filedata:
+                        data += filedata.read()
+                out += '%s:%s' % (filename, data)
+
+        return out
+
 while True:
         clock = now()
 
         try:
-                out = subprocess.check_output(['ethtool', '-S', IFC])
+                out = ''
+
+                if not ONLY_ETHTOOL:
+                       out += get_sysfs_stats()
+
+                out += subprocess.check_output(['ethtool', '-S', IFC])
         except:
                 os.system("clear")
                 print "Reading stats from device \033[1m%s\033[0m failed" % IFC
