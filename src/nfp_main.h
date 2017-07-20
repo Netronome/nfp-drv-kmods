@@ -130,7 +130,7 @@ struct nfp_pf {
 	bool fw_loaded;
 
 	struct nfp_net *ctrl_vnic;
-	struct net_device *debug_ctrl_netdev;
+	struct net_device __rcu *debug_ctrl_netdev;
 
 	const struct nfp_mip *mip;
 	struct nfp_rtsym_table *rtbl;

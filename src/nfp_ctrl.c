@@ -35,6 +35,7 @@
 #include <linux/if_arp.h>
 #include <linux/module.h>
 #include <linux/netdevice.h>
+#include <linux/rcupdate.h>
 
 #include "nfp_app.h"
 #include "nfp_main.h"
@@ -61,10 +62,15 @@ static int nfp_ctrl_debug_netdev_close(struct net_device *netdev)
 
 void nfp_ctrl_debug_rx(struct nfp_pf *pf, struct sk_buff *skb)
 {
-	struct net_device *netdev = pf->debug_ctrl_netdev;
+	struct net_device *netdev;
 
 	if (!nfp_ctrl_debug)
 		return;
+
+	rcu_read_lock();
+	netdev = rcu_dereference(pf->debug_ctrl_netdev);
+	if (!netdev || !netif_running(netdev))
+		goto exit_unlock_rcu;
 
 	skb = skb_clone(skb, GFP_ATOMIC);
 	if (skb) {
@@ -75,16 +81,28 @@ void nfp_ctrl_debug_rx(struct nfp_pf *pf, struct sk_buff *skb)
 	} else {
 		netdev->stats.rx_dropped++;
 	}
+
+exit_unlock_rcu:
+	rcu_read_unlock();
 }
 
 void nfp_ctrl_debug_deliver_tx(struct nfp_pf *pf, struct sk_buff *skb)
 {
+	struct net_device *netdev;
+
 	if (!nfp_ctrl_debug)
 		return;
-	skb->dev = pf->debug_ctrl_netdev;
-	skb->skb_iif = pf->debug_ctrl_netdev->ifindex;
+
+	rcu_read_lock();
+	netdev = rcu_dereference(pf->debug_ctrl_netdev);
+	if (!netdev || !netif_running(netdev))
+		goto exit_unlock_rcu;
+
+	skb->dev = netdev;
+	skb->skb_iif = netdev->ifindex;
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
-	dev_queue_xmit_nit(skb, pf->debug_ctrl_netdev);
+	dev_queue_xmit_nit(skb, netdev);
 #else
 	/* Since old kernels don't expose dev_queue_xmit_nit(), mark
 	 * the packet and queue it up as if we were to transmit it.
@@ -92,6 +110,8 @@ void nfp_ctrl_debug_deliver_tx(struct nfp_pf *pf, struct sk_buff *skb)
 	skb->mark = ~0;
 	dev_queue_xmit(skb);
 #endif
+exit_unlock_rcu:
+	rcu_read_unlock();
 }
 
 static int nfp_ctrl_debug_tx(struct sk_buff *skb, struct net_device *netdev)
@@ -135,36 +155,44 @@ static void nfp_ctrl_debug_setup(struct net_device *dev)
 int nfp_ctrl_debug_start(struct nfp_pf *pf)
 {
 	struct nfp_ctrl_debug_netdev *ncd;
+	struct net_device *netdev;
 	int err;
 
 	if (!nfp_ctrl_debug)
 		return 0;
 
-	pf->debug_ctrl_netdev =
-		alloc_netdev(sizeof(struct nfp_ctrl_debug_netdev),
-			     "ncd%d", NET_NAME_UNKNOWN, nfp_ctrl_debug_setup);
-	if (!pf->debug_ctrl_netdev)
+	netdev = alloc_netdev(sizeof(struct nfp_ctrl_debug_netdev),
+			      "ncd%d", NET_NAME_UNKNOWN, nfp_ctrl_debug_setup);
+	if (!netdev)
 		return -ENOMEM;
 
-	ncd = netdev_priv(pf->debug_ctrl_netdev);
+	ncd = netdev_priv(netdev);
 	ncd->app = pf->app;
 
-	err = register_netdev(pf->debug_ctrl_netdev);
+	err = register_netdev(netdev);
 	if (err)
 		goto err_free;
+
+	rcu_assign_pointer(pf->debug_ctrl_netdev, netdev);
 
 	return 0;
 
 err_free:
-	free_netdev(pf->debug_ctrl_netdev);
+	free_netdev(netdev);
 	return err;
 }
 
 void nfp_ctrl_debug_stop(struct nfp_pf *pf)
 {
+	struct net_device *netdev;
+
 	if (!nfp_ctrl_debug)
 		return;
 
-	unregister_netdev(pf->debug_ctrl_netdev);
-	free_netdev(pf->debug_ctrl_netdev);
+	netdev = rcu_dereference_protected(pf->debug_ctrl_netdev, true);
+	rcu_assign_pointer(pf->debug_ctrl_netdev, NULL);
+
+	synchronize_rcu();
+	unregister_netdev(netdev);
+	free_netdev(netdev);
 }
