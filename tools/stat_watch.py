@@ -150,6 +150,7 @@ def get_sysfs_stats():
 
 while True:
         clock = now()
+        columns = 80
 
         try:
                 out = ''
@@ -158,6 +159,9 @@ while True:
                        out += get_sysfs_stats()
 
                 out += subprocess.check_output(['ethtool', '-S', IFC])
+
+                _, columns = os.popen('stty size', 'r').read().split()
+                columns = int(columns)
         except:
                 os.system("clear")
                 print "Reading stats from device \033[1m%s\033[0m failed" % IFC
@@ -166,8 +170,14 @@ while True:
                 time.sleep(0.5)
                 continue
 
-        pr = "\033[4;1mSTAT % 35s % 19s % 19s\033[0m\n" % \
-             ("RATE", "SESSION", "TOTAL")
+        w = [26, 13, 19, 19]
+        for i in range(3):
+                w[i] += (columns - 80) / 4
+        w[3] += (columns + 3 - 80) / 4
+
+        pr = "\033[4;1mSTAT {:>{a}} {:>{c}} {:>{d}}\033[0m\n".\
+             format("RATE", "SESSION", "TOTAL",
+                    a=(w[0] + w[1] - 4), c=w[2], d=w[3])
         for l in out.split('\n'):
                 s = l.split(':')
                 if len(s) != 2 or s[1] == '':
@@ -194,9 +204,12 @@ while True:
                                 color = '2;' + color
                         color = '\033[' + color
 
-                        pr += '{:}{:<26} {:>13,} {:>19,} {:>19,}\033[31;0m\n'.\
+                        key_w = max(w[0] + w[1] - len(key), 1)
+
+                        pr += '{:}{:} {:>{b},} {:>{c},} {:>{d},}\033[31;0m\n'.\
                               format(color, key, value - stats[key],
-                                     value - session[key], value)
+                                     value - session[key], value,
+                                     b=key_w, c=w[2], d=w[3])
 
                 stats[key] = value
 
