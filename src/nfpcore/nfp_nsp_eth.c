@@ -395,7 +395,10 @@ int nfp_eth_config_commit_end(struct nfp_nsp *nsp)
  * Enable or disable PHY module (this usually means setting the TX lanes
  * disable bits).
  *
- * Return: 0 or -ERRNO.
+ * Return:
+ * 0 - configuration successful;
+ * 1 - no changes were needed;
+ * -ERRNO - configuration failed.
  */
 int nfp_eth_set_mod_enable(struct nfp_cpp *cpp, unsigned int idx, bool enable)
 {
@@ -431,7 +434,10 @@ int nfp_eth_set_mod_enable(struct nfp_cpp *cpp, unsigned int idx, bool enable)
  *
  * Set the ifup/ifdown state on the PHY.
  *
- * Return: 0 or -ERRNO.
+ * Return:
+ * 0 - configuration successful;
+ * 1 - no changes were needed;
+ * -ERRNO - configuration failed.
  */
 int nfp_eth_set_configured(struct nfp_cpp *cpp, unsigned int idx, bool configed)
 {
@@ -442,6 +448,14 @@ int nfp_eth_set_configured(struct nfp_cpp *cpp, unsigned int idx, bool configed)
 	nsp = nfp_eth_config_start(cpp, idx);
 	if (IS_ERR(nsp))
 		return PTR_ERR(nsp);
+
+	/* Older ABI versions did support this feature, however this has only
+	 * been reliable since ABI 20.
+	 */
+	if (nfp_nsp_get_abi_ver_minor(nsp) < 20) {
+		nfp_eth_config_cleanup_end(nsp);
+		return -EOPNOTSUPP;
+	}
 
 	entries = nfp_nsp_config_entries(nsp);
 
