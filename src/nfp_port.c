@@ -92,7 +92,7 @@ const struct switchdev_ops nfp_port_switchdev_ops = {
 	.switchdev_port_attr_get	= nfp_port_attr_get,
 };
 
-#if LINUX_RELEASE_4_13
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
 int nfp_port_setup_tc(struct net_device *netdev, u32 handle, u32 chain_index,
 #else
 int nfp_port_setup_tc(struct net_device *netdev, u32 handle,
@@ -101,7 +101,7 @@ int nfp_port_setup_tc(struct net_device *netdev, u32 handle,
 {
 	struct nfp_port *port;
 
-#if LINUX_RELEASE_4_13
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
 	if (chain_index)
 		return -EOPNOTSUPP;
 #endif
