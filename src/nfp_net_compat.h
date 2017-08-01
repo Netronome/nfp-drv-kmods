@@ -221,6 +221,15 @@ ns___vlan_hwaccel_put_tag(struct sk_buff *skb, __be16 vlan_proto,
 #define __vlan_hwaccel_put_tag ns___vlan_hwaccel_put_tag
 #endif
 
+#if VER_VANILLA_LT(3, 13) || VER_RHEL_LT(7, 1)
+static inline void u64_stats_init(struct u64_stats_sync *syncp)
+{
+#if BITS_PER_LONG == 32 && defined(CONFIG_SMP)
+	seqcount_init(&syncp->seq);
+#endif
+}
+#endif
+
 #if VER_VANILLA_LT(3, 14)
 enum compat_pkt_hash_types {
 	compat_PKT_HASH_TYPE_NONE,     /* Undefined type */
