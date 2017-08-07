@@ -613,6 +613,8 @@ tcf_exts_stats_update(const struct tcf_exts *exts,
 #endif
 
 #if !LINUX_RELEASE_4_14
+struct tc_to_netdev;
+
 enum tc_setup_type {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
 	__COMPAT_TC_SETUP_CLSFLOWER = TC_SETUP_CLSFLOWER,

@@ -34,13 +34,12 @@
 #ifndef _NFP_PORT_H_
 #define _NFP_PORT_H_
 
-#include "nfpcore/kcompat.h"
+#include "nfp_net_compat.h"
 
 #if COMPAT__HAS_DEVLINK
 #include <net/devlink.h>
 #endif
 
-struct tc_to_netdev;
 struct net_device;
 struct nfp_app;
 struct nfp_pf;
@@ -115,11 +114,11 @@ extern const struct switchdev_ops nfp_port_switchdev_ops;
 
 #if LINUX_RELEASE_4_14
 int nfp_port_setup_tc(struct net_device *netdev, enum tc_setup_type type,
+		      void *type_data);
 #else
 int nfp_port_setup_tc(struct net_device *netdev, u32 handle, u32 chain_index,
-		      __be16 proto,
+		      __be16 proto, struct tc_to_netdev *tc);
 #endif
-		      struct tc_to_netdev *tc);
 
 struct nfp_port *nfp_port_from_netdev(struct net_device *netdev);
 struct nfp_port *
