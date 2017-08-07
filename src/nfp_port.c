@@ -95,25 +95,26 @@ const struct switchdev_ops nfp_port_switchdev_ops = {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
 #if LINUX_RELEASE_4_14
 int nfp_port_setup_tc(struct net_device *netdev, enum tc_setup_type type,
-		      u32 handle, u32 chain_index,
 #else
 int nfp_port_setup_tc(struct net_device *netdev, u32 handle, u32 chain_index,
+		      __be16 proto,
 #endif
-		      __be16 proto, struct tc_to_netdev *tc)
+		      struct tc_to_netdev *tc)
 {
 	struct nfp_port *port;
-
-	if (chain_index)
-		return -EOPNOTSUPP;
 
 	port = nfp_port_from_netdev(netdev);
 	if (!port)
 		return -EOPNOTSUPP;
 
-#if LINUX_RELEASE_4_14
-	return nfp_app_setup_tc(port->app, netdev, type, handle, proto, tc);
+#if !LINUX_RELEASE_4_14
+	if (TC_H_MAJ(handle) != TC_H_MAJ(TC_H_INGRESS) || chain_index ||
+	    (tc->type == TC_SETUP_CLSFLOWER && !eth_proto_is_802_3(proto)))
+		return -EOPNOTSUPP;
+
+	return nfp_app_setup_tc(port->app, netdev, tc->type, tc);
 #else
-	return nfp_app_setup_tc(port->app, netdev, tc->type, handle, proto, tc);
+	return nfp_app_setup_tc(port->app, netdev, type, tc);
 #endif
 }
 #endif
