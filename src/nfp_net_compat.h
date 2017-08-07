@@ -80,6 +80,12 @@
 #define COMPAT__HAVE_SWITCHDEV_ATTRS \
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0))
 
+#if !defined(tc_no_actions) && (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0))
+#define LINUX_RELEASE_4_14	1
+#else
+#define LINUX_RELEASE_4_14	0
+#endif
+
 #ifndef NETIF_F_HW_VLAN_CTAG_RX
 #define NETIF_F_HW_VLAN_CTAG_RX NETIF_F_HW_VLAN_RX
 #endif
@@ -604,6 +610,16 @@ tcf_exts_stats_update(const struct tcf_exts *exts,
 	preempt_enable();
 #endif
 }
+#endif
+
+#if !LINUX_RELEASE_4_14
+enum tc_setup_type {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
+	__COMPAT_TC_SETUP_CLSFLOWER = TC_SETUP_CLSFLOWER,
+#define TC_SETUP_CLSFLOWER __COMPAT_TC_SETUP_CLSFLOWER
+#endif
+	__COMPAT_tc_setup_type_NONE,
+};
 #endif
 
 #endif /* _NFP_NET_COMPAT_H_ */

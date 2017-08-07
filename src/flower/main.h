@@ -34,6 +34,8 @@
 #ifndef __NFP_FLOWER_H__
 #define __NFP_FLOWER_H__ 1
 
+#include "nfp_net_compat.h"
+
 #include <linux/circ_buf.h>
 #include <linux/hashtable.h>
 #include <linux/time64.h>
@@ -135,7 +137,8 @@ int nfp_flower_metadata_init(struct nfp_app *app);
 void nfp_flower_metadata_cleanup(struct nfp_app *app);
 
 int nfp_flower_setup_tc(struct nfp_app *app, struct net_device *netdev,
-			u32 handle, __be16 proto, struct tc_to_netdev *tc);
+			enum tc_setup_type type, u32 handle, __be16 proto,
+			struct tc_to_netdev *tc);
 int nfp_flower_compile_flow_match(struct tc_cls_flower_offload *flow,
 				  struct nfp_fl_key_ls *key_ls,
 				  struct net_device *netdev,
