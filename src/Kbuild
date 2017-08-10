@@ -83,6 +83,10 @@ KERNEL_GE_4_6 := $(shell [ $(VERSION) -gt 4 -o \( $(VERSION) -eq 4 -a $(PATCHLEV
 
 KERNEL_GE_4_9 := $(shell [ $(VERSION) -gt 4 -o \( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 9 \) ] && echo y)
 
+KERNEL_GE_4_14 := $(shell [ -e $(srctree)/include/linux/bpf.h ] && \
+		    grep SCALAR_VALUE $(srctree)/include/linux/bpf.h \
+		    > /dev/null && echo y)
+
 ifeq ($(KERNEL_GE_4_9),y)
   nfp-objs += nfp_hwmon.o
 else
@@ -122,7 +126,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 	       nfp_devlink.o
     endif
 
-    ifeq ($(KERNEL_GE_4_9),y)
+    ifeq ($(KERNEL_GE_4_14),y)
       nfp-objs += \
 		bpf/main.o \
 		bpf/offload.o

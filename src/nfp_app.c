@@ -44,7 +44,7 @@
 static const struct nfp_app_type *apps[] = {
 #ifdef CONFIG_NFP_NET_PF
 	&app_nic,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 	&app_bpf,
 #endif
 #ifdef CONFIG_NFP_APP_FLOWER

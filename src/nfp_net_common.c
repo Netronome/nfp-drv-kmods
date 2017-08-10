@@ -3511,7 +3511,7 @@ const struct net_device_ops nfp_net_netdev_ops = {
 	.ndo_get_stats64	= nfp_net_stat64,
 	.ndo_vlan_rx_add_vid	= nfp_net_vlan_rx_add_vid,
 	.ndo_vlan_rx_kill_vid	= nfp_net_vlan_rx_kill_vid,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
 	.ndo_setup_tc		= nfp_port_setup_tc,
 #endif
 	.ndo_tx_timeout		= nfp_net_tx_timeout,
