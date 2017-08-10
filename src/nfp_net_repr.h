@@ -36,12 +36,13 @@
 
 #include "nfp_net_compat.h"
 
+struct metadata_dst;
+struct nfp_net;
+struct nfp_port;
+
 #ifdef COMPAT__HAVE_METADATA_IP_TUNNEL
 #include <net/dst_metadata.h>
 #endif
-
-struct nfp_net;
-struct nfp_port;
 
 /**
  * struct nfp_reprs - container for representor netdevs
