@@ -30,7 +30,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "nfpcore/kcompat.h"
+#include "nfp_net_compat.h"
 
 #include <linux/skbuff.h>
 #include <linux/slab.h>
@@ -44,7 +44,7 @@
 static const struct nfp_app_type *apps[] = {
 #ifdef CONFIG_NFP_NET_PF
 	&app_nic,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
+#if LINUX_RELEASE_4_14
 	&app_bpf,
 #endif
 #ifdef CONFIG_NFP_APP_FLOWER
