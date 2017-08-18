@@ -393,7 +393,7 @@ int nfp_flower_setup_tc(struct nfp_app *app, struct net_device *netdev,
 
 	if (type != TC_SETUP_CLSFLOWER ||
 #if LINUX_RELEASE_4_14
-	    is_classid_clsact_ingress(cls_flower->common.classid) ||
+	    !is_classid_clsact_ingress(cls_flower->common.classid) ||
 	    !eth_proto_is_802_3(cls_flower->common.protocol) ||
 	    cls_flower->common.chain_index)
 #else
