@@ -715,8 +715,10 @@ compat_debugfs_real_fops(const struct file *file)
 
 #define c64(x) (_c64(x) - 1)
 
-#define FIELD_GET(MASK, val)  ((((u64)val) & (MASK)) >> c64((u64)MASK))
-#define FIELD_PREP(MASK, val)  ((((u64)val) << c64((u64)MASK)) & (MASK))
+#define FIELD_GET(MASK, val)					\
+	(typeof(MASK))((((u64)val) & (MASK)) >> c64((u64)MASK))
+#define FIELD_PREP(MASK, val)					\
+	(typeof(MASK))((((u64)val) << c64((u64)MASK)) & (MASK))
 #define __bf_shf	c64
 
 #define __BF_FIELD_CHECK(_mask, _reg, _val, _pfx)	do {} while (0)
