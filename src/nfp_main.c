@@ -164,20 +164,19 @@ static int nfp_pcie_sriov_enable(struct pci_dev *pdev, int num_vfs)
 	struct nfp_pf *pf = pci_get_drvdata(pdev);
 	int err;
 
-	mutex_lock(&pf->lock);
-
 	if (num_vfs > pf->limit_vfs) {
 		nfp_info(pf->cpp, "Firmware limits number of VFs to %u\n",
 			 pf->limit_vfs);
-		err = -EINVAL;
-		goto err_unlock;
+		return -EINVAL;
 	}
 
 	err = pci_enable_sriov(pdev, num_vfs);
 	if (err) {
 		dev_warn(&pdev->dev, "Failed to enable PCI SR-IOV: %d\n", err);
-		goto err_unlock;
+		return err;
 	}
+
+	mutex_lock(&pf->lock);
 
 	err = nfp_pf_netdev ? nfp_app_sriov_enable(pf->app, num_vfs) : 0;
 	if (err) {
@@ -195,9 +194,8 @@ static int nfp_pcie_sriov_enable(struct pci_dev *pdev, int num_vfs)
 	return num_vfs;
 
 err_sriov_disable:
-	pci_disable_sriov(pdev);
-err_unlock:
 	mutex_unlock(&pf->lock);
+	pci_disable_sriov(pdev);
 	return err;
 #endif
 	return 0;
@@ -224,10 +222,10 @@ static int nfp_pcie_sriov_disable(struct pci_dev *pdev)
 
 	pf->num_vfs = 0;
 
+	mutex_unlock(&pf->lock);
+
 	pci_disable_sriov(pdev);
 	dev_dbg(&pdev->dev, "Removed VFs.\n");
-
-	mutex_unlock(&pf->lock);
 #endif
 	return 0;
 }
