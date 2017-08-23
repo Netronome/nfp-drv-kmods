@@ -112,7 +112,7 @@ int nfp_port_setup_tc(struct net_device *netdev, u32 handle, u32 chain_index,
 	    (tc->type == TC_SETUP_CLSFLOWER && !eth_proto_is_802_3(proto)))
 		return -EOPNOTSUPP;
 
-	return nfp_app_setup_tc(port->app, netdev, tc->type, &tc->cls_bpf);
+	return nfp_app_setup_tc(port->app, netdev, tc->type, tc->cls_bpf);
 #else
 	return nfp_app_setup_tc(port->app, netdev, type, type_data);
 #endif
