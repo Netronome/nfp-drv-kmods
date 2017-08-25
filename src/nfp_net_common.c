@@ -85,6 +85,7 @@
 #include "nfp_app.h"
 #include "nfp_net_ctrl.h"
 #include "nfp_net.h"
+#include "nfp_net_sriov.h"
 #include "nfp_port.h"
 
 /**
@@ -3510,6 +3511,15 @@ const struct net_device_ops nfp_net_netdev_ops = {
 	.ndo_get_stats64	= nfp_net_stat64,
 	.ndo_vlan_rx_add_vid	= nfp_net_vlan_rx_add_vid,
 	.ndo_vlan_rx_kill_vid	= nfp_net_vlan_rx_kill_vid,
+	.ndo_set_vf_mac         = nfp_app_set_vf_mac,
+#if VER_IS_VANILLA || VER_RHEL_LT(7, 4)
+	.ndo_set_vf_vlan        = nfp_app_set_vf_vlan,
+#endif
+	.ndo_set_vf_spoofchk    = nfp_app_set_vf_spoofchk,
+	.ndo_get_vf_config	= nfp_app_get_vf_config,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0)
+	.ndo_set_vf_link_state  = nfp_app_set_vf_link_state,
+#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
 	.ndo_setup_tc		= nfp_port_setup_tc,
 #endif
@@ -3533,6 +3543,15 @@ const struct net_device_ops nfp_net_netdev_ops = {
 #endif
 #if COMPAT__HAVE_XDP
 	.ndo_xdp		= nfp_net_xdp,
+#endif
+#if VER_RHEL_GE(7, 3)
+	.ndo_size		= sizeof(nfp_net_netdev_ops),
+	.extended		= {
+#if VER_RHEL_GE(7, 4)
+		.ndo_set_vf_vlan	= nfp_app_set_vf_vlan,
+		.ndo_get_phys_port_name	= nfp_port_get_phys_port_name,
+#endif
+	},
 #endif
 };
 
