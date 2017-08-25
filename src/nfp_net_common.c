@@ -3534,10 +3534,10 @@ const struct net_device_ops nfp_net_netdev_ops = {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
 	.ndo_get_phys_port_name	= nfp_port_get_phys_port_name,
 #endif
-#if COMPAT__HAVE_UDP_OFFLOAD
+#if VER_IS_VANILLA && COMPAT__HAVE_UDP_OFFLOAD
 	.ndo_udp_tunnel_add	= nfp_net_add_vxlan_port,
 	.ndo_udp_tunnel_del	= nfp_net_del_vxlan_port,
-#elif COMPAT__HAVE_VXLAN_OFFLOAD
+#elif VER_IS_VANILLA && COMPAT__HAVE_VXLAN_OFFLOAD
 	.ndo_add_vxlan_port     = nfp_net_add_vxlan_port,
 	.ndo_del_vxlan_port     = nfp_net_del_vxlan_port,
 #endif
@@ -3550,6 +3550,8 @@ const struct net_device_ops nfp_net_netdev_ops = {
 #if VER_RHEL_GE(7, 4)
 		.ndo_set_vf_vlan	= nfp_app_set_vf_vlan,
 		.ndo_get_phys_port_name	= nfp_port_get_phys_port_name,
+		.ndo_udp_tunnel_add	= nfp_net_add_vxlan_port,
+		.ndo_udp_tunnel_del	= nfp_net_del_vxlan_port,
 #endif
 	},
 #endif
