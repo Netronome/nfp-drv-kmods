@@ -269,6 +269,13 @@ static inline void compat_skb_set_hash(struct sk_buff *skb, __u32 hash,
 #define skb_set_hash(s, h, t)	compat_skb_set_hash(s, h, t)
 #endif
 
+#if VER_VANILLA_LT(3, 14) || VER_RHEL_LT(7, 2)
+static inline void dev_consume_skb_any(struct sk_buff *skb)
+{
+	dev_kfree_skb_any(skb);
+}
+#endif
+
 static inline int skb_xmit_more(struct sk_buff *skb)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 18, 0)
