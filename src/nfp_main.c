@@ -99,16 +99,6 @@ static int nfp_mon_event = -1;
 module_param(nfp_mon_event, bint, 0444);
 MODULE_PARM_DESC(nfp_mon_event, "(non-netdev mode) Event monitor support (default = !nfp_pf_netdev)");
 
-static bool nfp_reset;
-module_param(nfp_reset, bool, 0444);
-MODULE_PARM_DESC(nfp_reset,
-		 "Soft reset the NFP on init (default = false)");
-
-static bool nfp_reset_on_exit;
-module_param(nfp_reset_on_exit, bool, 0444);
-MODULE_PARM_DESC(nfp_reset_on_exit,
-		 "Soft reset the NFP on exit (default = false)");
-
 static bool fw_load_required;
 module_param(fw_load_required, bool, 0444);
 MODULE_PARM_DESC(fw_load_required,
@@ -482,14 +472,10 @@ nfp_fw_load(struct pci_dev *pdev, struct nfp_pf *pf, struct nfp_nsp *nsp)
 	}
 
 	fw = nfp_net_fw_find(pdev, pf);
-	if (!fw && fw_load_required)
-		return -ENOENT;
+	if (!fw)
+		return fw_load_required ? -ENOENT : 0;
 
-	if (!fw && !nfp_reset)
-		return 0;
-
-	dev_info(&pdev->dev, "NFP soft-reset (implied:%d forced:%d)\n",
-		 !!fw, nfp_reset);
+	dev_info(&pdev->dev, "Soft-reset, loading FW image\n");
 	err = nfp_nsp_device_soft_reset(nsp);
 	if (err < 0) {
 		dev_err(&pdev->dev, "Failed to soft reset the NFP: %d\n",
@@ -497,20 +483,19 @@ nfp_fw_load(struct pci_dev *pdev, struct nfp_pf *pf, struct nfp_nsp *nsp)
 		goto exit_release_fw;
 	}
 
-	if (fw) {
-		err = nfp_nsp_load_fw(nsp, fw);
-		if (err < 0) {
-			dev_err(&pdev->dev, "FW loading failed: %d\n", err);
-			goto exit_release_fw;
-		}
+	err = nfp_nsp_load_fw(nsp, fw);
 
-		dev_info(&pdev->dev, "Finished loading FW image\n");
+	if (err < 0) {
+		dev_err(&pdev->dev, "FW loading failed: %d\n", err);
+		goto exit_release_fw;
 	}
+
+	dev_info(&pdev->dev, "Finished loading FW image\n");
 
 exit_release_fw:
 	release_firmware(fw);
 
-	return err < 0 ? err : !!fw;
+	return err < 0 ? err : 1;
 }
 
 static int nfp_nsp_init(struct pci_dev *pdev, struct nfp_pf *pf)
@@ -700,7 +685,7 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 	}
 
 	if (nfp_pf_netdev) {
-		err = nfp_net_pci_probe(pf, nfp_reset);
+		err = nfp_net_pci_probe(pf);
 		if (nfp_fallback && err == 1) {
 			dev_info(&pdev->dev, "Netronome NFP Fallback driver\n");
 		} else if (err) {
@@ -786,7 +771,7 @@ static void nfp_pci_remove(struct pci_dev *pdev)
 
 	kfree(pf->rtbl);
 	nfp_mip_close(pf->mip);
-	if (nfp_reset_on_exit || (nfp_pf_netdev && pf->fw_loaded))
+	if (pf->fw_loaded)
 		nfp_fw_unload(pf);
 
 	if (pf->nfp_dev_cpp)

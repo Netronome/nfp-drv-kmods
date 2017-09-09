@@ -162,10 +162,10 @@ extern struct pci_driver nfp_netvf_pci_driver;
 extern const struct devlink_ops nfp_devlink_ops;
 
 #ifdef CONFIG_NFP_NET_PF
-int nfp_net_pci_probe(struct nfp_pf *pf, bool nfp_reset);
+int nfp_net_pci_probe(struct nfp_pf *pf);
 void nfp_net_pci_remove(struct nfp_pf *pf);
 #else
-static inline int nfp_net_pci_probe(struct nfp_pf *pf, bool nfp_reset)
+static inline int nfp_net_pci_probe(struct nfp_pf *pf)
 {
 	return -ENODEV;
 }

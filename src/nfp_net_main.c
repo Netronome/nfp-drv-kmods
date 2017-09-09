@@ -707,7 +707,7 @@ int nfp_net_refresh_eth_port(struct nfp_port *port)
 /*
  * PCI device functions
  */
-int nfp_net_pci_probe(struct nfp_pf *pf, bool nfp_reset)
+int nfp_net_pci_probe(struct nfp_pf *pf)
 {
 	struct nfp_net_fw_version fw_ver;
 	u8 __iomem *ctrl_bar, *qc_bar;
@@ -715,12 +715,6 @@ int nfp_net_pci_probe(struct nfp_pf *pf, bool nfp_reset)
 	int err;
 
 	INIT_WORK(&pf->port_refresh_work, nfp_net_refresh_vnics);
-
-	/* Verify that the board has completed initialization */
-	if ((!pf->fw_loaded && nfp_reset)) {
-		nfp_err(pf->cpp, "NFP is not ready for NIC operation.\n");
-		return 1;
-	}
 
 	if (!pf->rtbl) {
 		nfp_err(pf->cpp, "No %s, giving up.\n",
