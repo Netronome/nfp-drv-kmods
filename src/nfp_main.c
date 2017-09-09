@@ -114,10 +114,6 @@ module_param(fw_load_required, bool, 0444);
 MODULE_PARM_DESC(fw_load_required,
 		 "Stop if requesting FW failed (default = false)");
 
-static char *nfp6000_firmware;
-module_param(nfp6000_firmware, charp, 0444);
-MODULE_PARM_DESC(nfp6000_firmware, "(non-netdev mode) NFP6000 firmware to load from /lib/firmware/ (default = unset to not load FW)");
-
 static const char nfp_driver_name[] = "nfp";
 const char nfp_driver_version[] = NFP_SRC_VERSION;
 
@@ -374,9 +370,8 @@ static void nfp_sriov_attr_remove(struct device *dev)
 #endif /* CONFIG_PCI_IOV */
 #endif /* Linux kernel version */
 
-static int
-nfp_net_fw_request(struct pci_dev *pdev, struct nfp_pf *pf, const char *name,
-		   const struct firmware **fwp)
+static const struct firmware *
+nfp_net_fw_request(struct pci_dev *pdev, struct nfp_pf *pf, const char *name)
 {
 	const struct firmware *fw = NULL;
 	int err;
@@ -385,61 +380,56 @@ nfp_net_fw_request(struct pci_dev *pdev, struct nfp_pf *pf, const char *name,
 	nfp_info(pf->cpp, "  %s: %s\n",
 		 name, err ? "not found" : "found, loading...");
 	if (err)
-		return err;
+		return NULL;
 
-	*fwp = fw;
-
-	return 0;
+	return fw;
 }
 
 /**
  * nfp_net_fw_find() - Find the correct firmware image for netdev mode
  * @pdev:	PCI Device structure
  * @pf:		NFP PF Device structure
- * @fwp:	Pointer to firmware pointer
  *
- * Return: -ERRNO on error, 0 on FW found or OK to continue without it
+ * Return: firmware if found and requested successfully.
  */
-static int nfp_net_fw_find(struct pci_dev *pdev, struct nfp_pf *pf,
-			   const struct firmware **fwp)
+static const struct firmware *
+nfp_net_fw_find(struct pci_dev *pdev, struct nfp_pf *pf)
 {
 	struct nfp_eth_table_port *port;
+	const struct firmware *fw;
 	const char *fw_model;
 	char fw_name[256];
 	const u8 *serial;
-	int spc, err = 0;
 	u16 interface;
-	int i, j;
+	int spc, i, j;
 
-	*fwp = NULL;
-
-	nfp_info(pf->cpp, "Looking up firmware file in order of priority:\n");
+	nfp_info(pf->cpp, "Looking for firmware file in order of priority:\n");
 
 	/* First try to find a firmware image specific for this device */
 	interface = nfp_cpp_interface(pf->cpp);
 	nfp_cpp_serial(pf->cpp, &serial);
 	sprintf(fw_name, "netronome/serial-%pMF-%02hhx-%02hhx.nffw",
 		serial, interface >> 8, interface & 0xff);
-	err = nfp_net_fw_request(pdev, pf, fw_name, fwp);
-	if (!err)
-		return 0;
+	fw = nfp_net_fw_request(pdev, pf, fw_name);
+	if (fw)
+		return fw;
 
 	/* Then try the PCI name */
 	sprintf(fw_name, "netronome/pci-%s.nffw", pci_name(pdev));
-	err = nfp_net_fw_request(pdev, pf, fw_name, fwp);
-	if (!err)
-		return 0;
+	fw = nfp_net_fw_request(pdev, pf, fw_name);
+	if (fw)
+		return fw;
 
 	/* Finally try the card type and media */
 	if (!pf->eth_tbl) {
 		dev_err(&pdev->dev, "Error: can't identify media config\n");
-		return -EINVAL;
+		return NULL;
 	}
 
 	fw_model = nfp_hwinfo_lookup(pf->hwinfo, "assembly.partno");
 	if (!fw_model) {
 		dev_err(&pdev->dev, "Error: can't read part number\n");
-		return -EINVAL;
+		return NULL;
 	}
 
 	spc = ARRAY_SIZE(fw_name);
@@ -457,32 +447,13 @@ static int nfp_net_fw_find(struct pci_dev *pdev, struct nfp_pf *pf,
 	}
 
 	if (spc <= 0)
-		return -EINVAL;
+		return NULL;
 
 	spc -= snprintf(&fw_name[ARRAY_SIZE(fw_name) - spc], spc, ".nffw");
 	if (spc <= 0)
-		return -EINVAL;
+		return NULL;
 
-	return nfp_net_fw_request(pdev, pf, fw_name, fwp);
-}
-
-static int nfp_fw_find(struct pci_dev *pdev, const struct firmware **fwp)
-{
-	const struct firmware *fw = NULL;
-	int err;
-
-	*fwp = NULL;
-
-	if (!nfp6000_firmware)
-		return 0;
-
-	err = request_firmware(&fw, nfp6000_firmware, &pdev->dev);
-	if (err < 0)
-		return err;
-
-	*fwp = fw;
-
-	return 0;
+	return nfp_net_fw_request(pdev, pf, fw_name);
 }
 
 /**
@@ -500,6 +471,9 @@ nfp_fw_load(struct pci_dev *pdev, struct nfp_pf *pf, struct nfp_nsp *nsp)
 	u16 interface;
 	int err;
 
+	if (!nfp_pf_netdev)
+		return 0;
+
 	interface = nfp_cpp_interface(pf->cpp);
 	if (NFP_CPP_INTERFACE_UNIT_of(interface) != 0) {
 		/* Only Unit 0 should reset or load firmware */
@@ -507,12 +481,9 @@ nfp_fw_load(struct pci_dev *pdev, struct nfp_pf *pf, struct nfp_nsp *nsp)
 		return 0;
 	}
 
-	if (!nfp_pf_netdev)
-		err = nfp_fw_find(pdev, &fw);
-	else
-		err = nfp_net_fw_find(pdev, pf, &fw);
-	if (err)
-		return fw_load_required ? err : 0;
+	fw = nfp_net_fw_find(pdev, pf);
+	if (!fw && fw_load_required)
+		return -ENOENT;
 
 	if (!fw && !nfp_reset)
 		return 0;
@@ -922,10 +893,6 @@ static bool __init nfp_resolve_params(void)
 {
 	if (nfp_pf_netdev && nfp_mon_event == 1) {
 		pr_err("nfp_mon_event cannot be used in netdev mode\n");
-		return false;
-	}
-	if (nfp_pf_netdev && nfp6000_firmware) {
-		pr_err("nfp6000_firmware cannot be used in netdev mode\n");
 		return false;
 	}
 	if (!nfp_pf_netdev && nfp_fallback == 1)
