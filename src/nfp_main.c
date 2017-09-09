@@ -461,9 +461,6 @@ nfp_fw_load(struct pci_dev *pdev, struct nfp_pf *pf, struct nfp_nsp *nsp)
 	u16 interface;
 	int err;
 
-	if (!nfp_pf_netdev)
-		return 0;
-
 	interface = nfp_cpp_interface(pf->cpp);
 	if (NFP_CPP_INTERFACE_UNIT_of(interface) != 0) {
 		/* Only Unit 0 should reset or load firmware */
@@ -503,11 +500,12 @@ static int nfp_nsp_init(struct pci_dev *pdev, struct nfp_pf *pf)
 	struct nfp_nsp *nsp;
 	int err;
 
+	if (!nfp_pf_netdev)
+		return 0;
+
 	nsp = nfp_nsp_open(pf->cpp);
 	if (IS_ERR(nsp)) {
 		err = PTR_ERR(nsp);
-		if (err == -ENOENT && !nfp_pf_netdev)
-			return 0;
 		dev_err(&pdev->dev, "Failed to access the NSP: %d\n", err);
 		return err;
 	}
@@ -646,7 +644,7 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 		 nfp_hwinfo_lookup(pf->hwinfo, "cpld.version"));
 
 	err = nfp_pf_board_state_wait(pf);
-	if (err)
+	if (err && nfp_pf_netdev)
 		goto err_hwinfo_free;
 
 	err = devlink_register(devlink, &pdev->dev);
