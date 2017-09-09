@@ -65,23 +65,6 @@
 
 #define NFP_PF_CSR_SLICE_SIZE	(32 * 1024)
 
-static int nfp_is_ready(struct nfp_pf *pf)
-{
-	const char *cp;
-	long state;
-	int err;
-
-	cp = nfp_hwinfo_lookup(pf->hwinfo, "board.state");
-	if (!cp)
-		return 0;
-
-	err = kstrtol(cp, 0, &state);
-	if (err < 0)
-		return 0;
-
-	return state == 15;
-}
-
 /**
  * nfp_net_get_mac_addr() - Get the MAC address.
  * @pf:       NFP PF handle
@@ -734,7 +717,7 @@ int nfp_net_pci_probe(struct nfp_pf *pf, bool nfp_reset)
 	INIT_WORK(&pf->port_refresh_work, nfp_net_refresh_vnics);
 
 	/* Verify that the board has completed initialization */
-	if ((!pf->fw_loaded && nfp_reset) || !nfp_is_ready(pf)) {
+	if ((!pf->fw_loaded && nfp_reset)) {
 		nfp_err(pf->cpp, "NFP is not ready for NIC operation.\n");
 		return 1;
 	}
