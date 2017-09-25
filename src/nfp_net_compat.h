@@ -83,6 +83,8 @@
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0))
 #define COMPAT__HAVE_XDP_ADJUST_HEAD \
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
+#define COMPAT__HAVE_XDP_METADATA \
+	LINUX_RELEASE_4_15
 /* We only want to support switchdev with ops and attrs */
 #define COMPAT__HAVE_SWITCHDEV_ATTRS \
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0))
@@ -642,7 +644,7 @@ enum tc_setup_type {
 #endif
 
 #if !LINUX_RELEASE_4_15
-static inline void xdp_set_data_meta_invalid(void *arg)
+static inline void skb_metadata_set(const struct sk_buff *skb, u8 value)
 {
 }
 #endif
