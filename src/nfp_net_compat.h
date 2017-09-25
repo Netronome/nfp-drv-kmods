@@ -66,6 +66,13 @@
 #include "nfpcore/kcompat.h"
 #include "nfp_net.h"
 
+#include <linux/if_tun.h>
+#ifdef IFF_NAPI
+#define LINUX_RELEASE_4_15     1
+#else
+#define LINUX_RELEASE_4_15     0
+#endif
+
 #define COMPAT__HAVE_VXLAN_OFFLOAD \
 	(VER_VANILLA_GE(3, 12) || VER_RHEL_GE(7, 4))
 #define COMPAT__HAVE_NDO_FEATURES_CHECK \
@@ -632,6 +639,12 @@ enum tc_setup_type {
 #endif
 	__COMPAT_tc_setup_type_NONE,
 };
+#endif
+
+#if !LINUX_RELEASE_4_15
+static inline void xdp_set_data_meta_invalid(void *arg)
+{
+}
 #endif
 
 #endif /* _NFP_NET_COMPAT_H_ */
