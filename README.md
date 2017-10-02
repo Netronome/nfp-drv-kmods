@@ -158,6 +158,15 @@ position of driver and hardware pointers for RX, TX and XDP rings.
 
 `ethtool -w <ifcname> data <outfile>` dumps the logs of the Service Processor.
 
+## Control messages
+
+Control messages which driver is exchanging with the FW on the card are
+sent to the `devlink_hwmsg` tracepoint.  Note that `trace_printk` will only
+display first 64 bytes of the buffers.  You can use the script from this
+repo to display the full messages, dump them to `wireshark` etc.:
+
+https://github.com/jpirko/hwmsg_tracing
+
 # Operation modes
 
 The nfp.ko module provides drivers for both PFs and VFs.  VFs can only

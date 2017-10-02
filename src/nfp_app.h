@@ -40,6 +40,10 @@
 #include <net/devlink.h>
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0)
+#include <trace/events/devlink.h>
+#endif
+
 #include "nfp_net_repr.h"
 
 struct bpf_prog;
@@ -280,6 +284,8 @@ static inline bool __nfp_app_ctrl_tx(struct nfp_app *app, struct sk_buff *skb,
 {
 	if (!injected)
 		nfp_ctrl_debug_deliver_tx(app->pf, skb);
+	trace_devlink_hwmsg(priv_to_devlink(app->pf), false, 0,
+			    skb->data, skb->len);
 
 	return nfp_ctrl_tx(app->ctrl, skb);
 }
@@ -292,6 +298,9 @@ static inline bool nfp_app_ctrl_tx(struct nfp_app *app, struct sk_buff *skb)
 static inline void nfp_app_ctrl_rx(struct nfp_app *app, struct sk_buff *skb)
 {
 	nfp_ctrl_debug_rx(app->pf, skb);
+	trace_devlink_hwmsg(priv_to_devlink(app->pf), true, 0,
+			    skb->data, skb->len);
+
 	app->type->ctrl_msg_rx(app, skb);
 }
 

@@ -547,6 +547,14 @@ static inline void page_ref_inc(struct page *page)
 }
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0)
+static inline void trace_devlink_hwmsg(void *devlink,
+				       bool incoming, unsigned long type,
+				       const u8 *buf, size_t len)
+{
+}
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 0)
 static inline int nfp_net_xdp_offload(struct nfp_net *nn, struct bpf_prog *prog)
 {
