@@ -321,6 +321,11 @@ static inline void napi_complete_done(struct napi_struct *n, int work_done)
 {
 	napi_complete(n);
 }
+
+static inline struct page *dev_alloc_page(void)
+{
+	return alloc_page(GFP_ATOMIC | __GFP_COLD | __GFP_NOWARN);
+}
 #endif
 
 #if VER_VANILLA_LT(3, 19) || VER_RHEL_LT(7, 2)
