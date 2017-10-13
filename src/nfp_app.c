@@ -32,6 +32,7 @@
  */
 #include "nfp_net_compat.h"
 
+#include <linux/bug.h>
 #include <linux/skbuff.h>
 #include <linux/slab.h>
 
