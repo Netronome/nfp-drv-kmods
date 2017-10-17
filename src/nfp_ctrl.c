@@ -32,6 +32,7 @@
  */
 #include "nfpcore/kcompat.h"
 
+#include <linux/bottom_half.h>
 #include <linux/if_arp.h>
 #include <linux/module.h>
 #include <linux/netdevice.h>
@@ -101,6 +102,7 @@ void nfp_ctrl_debug_deliver_tx(struct nfp_pf *pf, struct sk_buff *skb)
 	skb->dev = netdev;
 	skb->skb_iif = netdev->ifindex;
 
+	local_bh_disable();
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
 	dev_queue_xmit_nit(skb, netdev);
 #else
@@ -110,6 +112,7 @@ void nfp_ctrl_debug_deliver_tx(struct nfp_pf *pf, struct sk_buff *skb)
 	skb->mark = ~0;
 	dev_queue_xmit(skb);
 #endif
+	local_bh_enable();
 exit_unlock_rcu:
 	rcu_read_unlock();
 }
