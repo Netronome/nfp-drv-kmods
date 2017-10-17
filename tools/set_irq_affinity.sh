@@ -100,6 +100,8 @@ do
 	m=$((m & ~p_mask))
     done
     xps_mask=$(printf "%x" $((m % (1 << N_CPUS))))
+    # Insert comma between low and hi 32 bits, if xps_mask is long enough
+    xps_mask=`echo $xps_mask | sed 's/\(.\)\(.\{8\}$\)/\1,\2/'`
     p_mask=$((p_mask | m))
 
     echo $cpu > /proc/irq/${IRQS[i]}/smp_affinity_list
