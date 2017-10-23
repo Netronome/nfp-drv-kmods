@@ -591,13 +591,7 @@ trace_xdp_exception(const struct net_device *netdev,
 }
 #endif
 
-#if defined(NL_SET_ERR_MSG_MOD)
-static inline struct netlink_ext_ack *compat__xdp_extact(struct netdev_xdp *xdp)
-{
-	return xdp->extack;
-}
-
-#else
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 12, 0)
 struct netdev_xdp;
 
 #define NL_SET_ERR_MSG_MOD(ea, msg)	pr_warn(KBUILD_MODNAME ": " msg)
@@ -606,13 +600,12 @@ static inline struct netlink_ext_ack *compat__xdp_extact(struct netdev_xdp *xdp)
 {
 	return NULL;
 }
+#else
+#define compat__xdp_extact(xdp)		(xdp)->extack
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
-static inline u32 compat__xdp_flags(struct netdev_xdp *xdp)
-{
-	return xdp->flags;
-}
+#define compat__xdp_flags(xdp)		(xdp)->flags
 #else
 #define XDP_ATTACHED_HW			true
 

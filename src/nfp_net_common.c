@@ -3470,7 +3470,11 @@ nfp_net_xdp_setup(struct nfp_net *nn, struct bpf_prog *prog, u32 flags,
 	return 0;
 }
 
+#if !LINUX_RELEASE_4_15
 static int nfp_net_xdp(struct net_device *netdev, struct netdev_xdp *xdp)
+#else
+static int nfp_net_xdp(struct net_device *netdev, struct netdev_bpf *xdp)
+#endif
 {
 	struct nfp_net *nn = netdev_priv(netdev);
 
@@ -3554,7 +3558,11 @@ const struct net_device_ops nfp_net_netdev_ops = {
 	.ndo_del_vxlan_port     = nfp_net_del_vxlan_port,
 #endif
 #if COMPAT__HAVE_XDP
+#if LINUX_RELEASE_4_15
+	.ndo_bpf		= nfp_net_xdp,
+#else
 	.ndo_xdp		= nfp_net_xdp,
+#endif
 #endif
 #if VER_RHEL_GE(7, 3)
 	.ndo_size		= sizeof(nfp_net_netdev_ops),
