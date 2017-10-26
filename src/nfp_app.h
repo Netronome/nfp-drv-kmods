@@ -48,6 +48,7 @@
 
 struct bpf_prog;
 struct net_device;
+struct netdev_bpf;
 struct pci_dev;
 struct sk_buff;
 struct sk_buff;
@@ -89,6 +90,9 @@ extern const struct nfp_app_type app_flower;
  * @setup_tc:	setup TC ndo
  * @tc_busy:	TC HW offload busy (rules loaded)
  * @xdp_offload:    offload an XDP program
+ * @bpf_verifier_prep:	verifier prep for dev-specific BPF programs
+ * @bpf_translate:	translate call for dev-specific BPF programs
+ * @bpf_destroy:	destroy for dev-specific BPF programs
  * @eswitch_mode_get:    get SR-IOV eswitch mode
  * @sriov_enable: app-specific sriov initialisation
  * @sriov_disable: app-specific sriov clean-up
@@ -123,6 +127,12 @@ struct nfp_app_type {
 			enum tc_setup_type type, void *type_data);
 	bool (*tc_busy)(struct nfp_app *app, struct nfp_net *nn);
 	int (*xdp_offload)(struct nfp_app *app, struct nfp_net *nn,
+			   struct bpf_prog *prog);
+	int (*bpf_verifier_prep)(struct nfp_app *app, struct nfp_net *nn,
+				 struct netdev_bpf *bpf);
+	int (*bpf_translate)(struct nfp_app *app, struct nfp_net *nn,
+			     struct bpf_prog *prog);
+	int (*bpf_destroy)(struct nfp_app *app, struct nfp_net *nn,
 			   struct bpf_prog *prog);
 
 	int (*sriov_enable)(struct nfp_app *app, int num_vfs);
@@ -288,6 +298,33 @@ static inline bool __nfp_app_ctrl_tx(struct nfp_app *app, struct sk_buff *skb,
 			    skb->data, skb->len);
 
 	return nfp_ctrl_tx(app->ctrl, skb);
+}
+
+static inline int
+nfp_app_bpf_verifier_prep(struct nfp_app *app, struct nfp_net *nn,
+			  struct netdev_bpf *bpf)
+{
+	if (!app || !app->type->bpf_verifier_prep)
+		return -EOPNOTSUPP;
+	return app->type->bpf_verifier_prep(app, nn, bpf);
+}
+
+static inline int
+nfp_app_bpf_translate(struct nfp_app *app, struct nfp_net *nn,
+		      struct bpf_prog *prog)
+{
+	if (!app || !app->type->bpf_translate)
+		return -EOPNOTSUPP;
+	return app->type->bpf_translate(app, nn, prog);
+}
+
+static inline int
+nfp_app_bpf_destroy(struct nfp_app *app, struct nfp_net *nn,
+		    struct bpf_prog *prog)
+{
+	if (!app || !app->type->bpf_destroy)
+		return -EOPNOTSUPP;
+	return app->type->bpf_destroy(app, nn, prog);
 }
 
 static inline bool nfp_app_ctrl_tx(struct nfp_app *app, struct sk_buff *skb)
