@@ -128,13 +128,11 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
     endif
 
     ifeq ($(KERNEL_GE_4_14),y)
-      nfp-objs += \
-	        nfp_asm.o \
-		bpf/main.o \
-		bpf/offload.o
-
       ifeq ($(CONFIG_BPF_SYSCALL),y)
         nfp-objs += \
+		nfp_asm.o \
+		bpf/main.o \
+		bpf/offload.o \
 		bpf/verifier.o \
 		bpf/jit.o
       endif

@@ -46,8 +46,11 @@
 static const struct nfp_app_type *apps[] = {
 #ifdef CONFIG_NFP_NET_PF
 	[NFP_APP_CORE_NIC]	= &app_nic,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0) && \
+    defined(CONFIG_BPF_SYSCALL)
 	[NFP_APP_BPF_NIC]	= &app_bpf,
+#else
+	[NFP_APP_BPF_NIC]	= &app_nic,
 #endif
 #ifdef CONFIG_NFP_APP_FLOWER
 	[NFP_APP_FLOWER_NIC]	= &app_flower,
