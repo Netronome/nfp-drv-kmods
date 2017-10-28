@@ -45,12 +45,12 @@
 
 static const struct nfp_app_type *apps[] = {
 #ifdef CONFIG_NFP_NET_PF
-	&app_nic,
+	[NFP_APP_CORE_NIC]	= &app_nic,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
-	&app_bpf,
+	[NFP_APP_BPF_NIC]	= &app_bpf,
 #endif
 #ifdef CONFIG_NFP_APP_FLOWER
-	&app_flower,
+	[NFP_APP_FLOWER_NIC]	= &app_flower,
 #endif
 #else
 	NULL,
@@ -123,17 +123,13 @@ exit_unlock:
 struct nfp_app *nfp_app_alloc(struct nfp_pf *pf, enum nfp_app_id id)
 {
 	struct nfp_app *app;
-	unsigned int i;
 
-	for (i = 0; i < ARRAY_SIZE(apps); i++)
-		if (apps[i]->id == id)
-			break;
-	if (i == ARRAY_SIZE(apps)) {
+	if (id >= ARRAY_SIZE(apps) || !apps[id]) {
 		nfp_err(pf->cpp, "failed to find app with ID 0x%02hhx\n", id);
 		return ERR_PTR(-EINVAL);
 	}
 
-	if (WARN_ON(!apps[i]->name || !apps[i]->vnic_alloc))
+	if (WARN_ON(!apps[id]->name || !apps[id]->vnic_alloc))
 		return ERR_PTR(-EINVAL);
 
 	app = kzalloc(sizeof(*app), GFP_KERNEL);
@@ -143,7 +139,7 @@ struct nfp_app *nfp_app_alloc(struct nfp_pf *pf, enum nfp_app_id id)
 	app->pf = pf;
 	app->cpp = pf->cpp;
 	app->pdev = pf->pdev;
-	app->type = apps[i];
+	app->type = apps[id];
 
 	return app;
 }
