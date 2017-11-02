@@ -115,7 +115,6 @@ static void nfp_bpf_vnic_free(struct nfp_app *app, struct nfp_net *nn)
 	kfree(nn->app_priv);
 }
 
-#if LINUX_RELEASE_4_15
 static int nfp_bpf_setup_tc_block_cb(enum tc_setup_type type,
 				     void *type_data, void *cb_priv)
 {
@@ -173,25 +172,6 @@ static int nfp_bpf_setup_tc(struct nfp_app *app, struct net_device *netdev,
 		return -EOPNOTSUPP;
 	}
 }
-#else
-static int nfp_bpf_setup_tc(struct nfp_app *app, struct net_device *netdev,
-			    enum tc_setup_type type, void *type_data)
-{
-	struct tc_cls_bpf_offload *cls_bpf = type_data;
-	struct nfp_net *nn = netdev_priv(netdev);
-
-	if (type != TC_SETUP_CLSBPF || !nfp_net_ebpf_capable(nn) ||
-	    !is_classid_clsact_ingress(cls_bpf->common.classid) ||
-	    cls_bpf->common.protocol != htons(ETH_P_ALL) ||
-	    cls_bpf->common.chain_index)
-		return -EOPNOTSUPP;
-
-	if (nn->dp.bpf_offload_xdp)
-		return -EBUSY;
-
-	return nfp_net_bpf_offload(nn, cls_bpf);
-}
-#endif
 
 static bool nfp_bpf_tc_busy(struct nfp_app *app, struct nfp_net *nn)
 {

@@ -52,11 +52,7 @@
 #include "../nfp_net.h"
 #include "../nfp_net_compat.h"
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0)
-void nfp_net_filter_stats_timer(unsigned long t)
-#else
 void nfp_net_filter_stats_timer(struct timer_list *t)
-#endif
 {
 	struct nfp_net_bpf_priv *priv = from_timer(priv, t,
 						   rx_filter_stats_timer);
