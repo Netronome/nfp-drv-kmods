@@ -248,6 +248,32 @@ nfp_app_get_drvinfo(struct net_device *netdev, struct ethtool_drvinfo *drvinfo)
 	nfp_get_drvinfo(app, app->pdev, "*", drvinfo);
 }
 
+static void
+nfp_net_set_fec_link_mode(struct nfp_eth_table_port *eth_port,
+			  struct ethtool_link_ksettings *c)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
+	unsigned int modes;
+
+	ethtool_link_ksettings_add_link_mode(c, supported, FEC_NONE);
+	if (!nfp_eth_can_support_fec(eth_port)) {
+		ethtool_link_ksettings_add_link_mode(c, advertising, FEC_NONE);
+		return;
+	}
+
+	modes = nfp_eth_supported_fec_modes(eth_port);
+	if (modes & NFP_FEC_BASER) {
+		ethtool_link_ksettings_add_link_mode(c, supported, FEC_BASER);
+		ethtool_link_ksettings_add_link_mode(c, advertising, FEC_BASER);
+	}
+
+	if (modes & NFP_FEC_REED_SOLOMON) {
+		ethtool_link_ksettings_add_link_mode(c, supported, FEC_RS);
+		ethtool_link_ksettings_add_link_mode(c, advertising, FEC_RS);
+	}
+#endif
+}
+
 /**
  * nfp_net_get_link_ksettings - Get Link Speed settings
  * @netdev:	network interface device structure
@@ -282,9 +308,11 @@ nfp_net_get_link_ksettings(struct net_device *netdev,
 
 	port = nfp_port_from_netdev(netdev);
 	eth_port = nfp_port_get_eth_port(port);
-	if (eth_port)
+	if (eth_port) {
 		cmd->base.autoneg = eth_port->aneg != NFP_ANEG_DISABLED ?
 			AUTONEG_ENABLE : AUTONEG_DISABLE;
+		nfp_net_set_fec_link_mode(eth_port, cmd);
+	}
 
 	if (!netif_carrier_ok(netdev))
 		return 0;
@@ -690,6 +718,93 @@ static int nfp_port_get_sset_count(struct net_device *netdev, int sset)
 		return -EOPNOTSUPP;
 	}
 }
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
+static int nfp_port_fec_ethtool_to_nsp(u32 fec)
+{
+	switch (fec) {
+	case ETHTOOL_FEC_AUTO:
+		return NFP_FEC_AUTO_BIT;
+	case ETHTOOL_FEC_OFF:
+		return NFP_FEC_DISABLED_BIT;
+	case ETHTOOL_FEC_RS:
+		return NFP_FEC_REED_SOLOMON_BIT;
+	case ETHTOOL_FEC_BASER:
+		return NFP_FEC_BASER_BIT;
+	default:
+		/* NSP only supports a single mode at a time */
+		return -EOPNOTSUPP;
+	}
+}
+
+static u32 nfp_port_fec_nsp_to_ethtool(u32 fec)
+{
+	u32 result = 0;
+
+	if (fec & NFP_FEC_AUTO)
+		result |= ETHTOOL_FEC_AUTO;
+	if (fec & NFP_FEC_BASER)
+		result |= ETHTOOL_FEC_BASER;
+	if (fec & NFP_FEC_REED_SOLOMON)
+		result |= ETHTOOL_FEC_RS;
+	if (fec & NFP_FEC_DISABLED)
+		result |= ETHTOOL_FEC_OFF;
+
+	return result ?: ETHTOOL_FEC_NONE;
+}
+
+static int
+nfp_port_get_fecparam(struct net_device *netdev,
+		      struct ethtool_fecparam *param)
+{
+	struct nfp_eth_table_port *eth_port;
+	struct nfp_port *port;
+
+	param->active_fec = ETHTOOL_FEC_NONE_BIT;
+	param->fec = ETHTOOL_FEC_NONE_BIT;
+
+	port = nfp_port_from_netdev(netdev);
+	eth_port = nfp_port_get_eth_port(port);
+	if (!eth_port)
+		return -EOPNOTSUPP;
+
+	if (!nfp_eth_can_support_fec(eth_port))
+		return 0;
+
+	param->fec = nfp_port_fec_nsp_to_ethtool(eth_port->fec_modes_supported);
+	param->active_fec = nfp_port_fec_nsp_to_ethtool(eth_port->fec);
+
+	return 0;
+}
+
+static int
+nfp_port_set_fecparam(struct net_device *netdev,
+		      struct ethtool_fecparam *param)
+{
+	struct nfp_eth_table_port *eth_port;
+	struct nfp_port *port;
+	int err, fec;
+
+	port = nfp_port_from_netdev(netdev);
+	eth_port = nfp_port_get_eth_port(port);
+	if (!eth_port)
+		return -EOPNOTSUPP;
+
+	if (!nfp_eth_can_support_fec(eth_port))
+		return -EOPNOTSUPP;
+
+	fec = nfp_port_fec_ethtool_to_nsp(param->fec);
+	if (fec < 0)
+		return fec;
+
+	err = nfp_eth_set_fec(port->app->cpp, eth_port->index, fec);
+	if (!err)
+		/* Only refresh if we did something */
+		nfp_net_refresh_port_table(port);
+
+	return err < 0 ? err : 0;
+}
+#endif
 
 /* RX network flow classification (RSS, filters, etc)
  */
@@ -1229,6 +1344,10 @@ static const struct ethtool_ops nfp_net_ethtool_ops = {
 	.get_link_ksettings	= nfp_net_get_link_ksettings,
 	.set_link_ksettings	= nfp_net_set_link_ksettings,
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
+	.get_fecparam		= nfp_port_get_fecparam,
+	.set_fecparam		= nfp_port_set_fecparam,
+#endif
 };
 
 const struct ethtool_ops nfp_port_ethtool_ops = {
@@ -1246,6 +1365,10 @@ const struct ethtool_ops nfp_port_ethtool_ops = {
 #else
 	.get_link_ksettings	= nfp_net_get_link_ksettings,
 	.set_link_ksettings	= nfp_net_set_link_ksettings,
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
+	.get_fecparam		= nfp_port_get_fecparam,
+	.set_fecparam		= nfp_port_set_fecparam,
 #endif
 };
 
