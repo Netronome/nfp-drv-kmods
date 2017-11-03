@@ -1240,6 +1240,13 @@ const struct ethtool_ops nfp_port_ethtool_ops = {
 	.set_dump		= nfp_app_set_dump,
 	.get_dump_flag		= nfp_app_get_dump_flag,
 	.get_dump_data		= nfp_app_get_dump_data,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0)
+	.get_settings		= (void *)nfp_net_get_link_ksettings,
+	.set_settings		= (void *)nfp_net_set_link_ksettings,
+#else
+	.get_link_ksettings	= nfp_net_get_link_ksettings,
+	.set_link_ksettings	= nfp_net_set_link_ksettings,
+#endif
 };
 
 void nfp_net_set_ethtool_ops(struct net_device *netdev)
