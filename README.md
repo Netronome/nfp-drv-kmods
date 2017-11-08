@@ -128,89 +128,119 @@ to find out how to include them.
 The nfp.ko module provides offload capabilities for several TC flower
 features (with `flower` firmware loaded). The list of features include:
 
-1. Match:
-1.1. Ingress Port.
-1.2. MAC source and destination address.
-1.3. VLAN tag control information.
-1.4. IPv4 and 6 source and destination address.
-1.5. Transport source and destination port.
-1.6. VXLAN header fields.
-1.7. MPLS header fields.
+Match:
+* Ingress Port.
+* MAC source and destination address.
+* VLAN tag control information.
+* IPv4 and 6 source and destination address.
+* Transport source and destination port.
+* VXLAN header fields.
+* MPLS header fields.
 
-2. Action:
-2.1. Push/Pop Vlan.
-2.2. Drop.
-2.3. Output to Port.
-2.4. VXLAN Entunnel.
-2.5. Set MAC source and destination address.
-2.6. Set IPv4 and 6 source and destination address.
-2.7. Set transport source and destination port.
+Action:
+* Push/Pop Vlan.
+* Drop.
+* Output to Port.
+* VXLAN Entunnel.
+* Set MAC source and destination address.
+* Set IPv4 and 6 source and destination address.
+* Set transport source and destination port.
 
 Before configuring filters, it is vital to remember to set up a queueing
 discipline. A simple example making use of the ingress qdisc follows:
-`tc qdisc add dev <ifcname> handle ffff: ingress`
+```
+tc qdisc add dev <ifcname> handle ffff: ingress
+```
 
 Some filter examples follow:
 Match ipv4 type and output:
-`tc filter add dev <ifcname> parent ffff: protocol ip flower action mirred \
-egress redirect dev <ifcname>`
+```
+tc filter add dev <ifcname> parent ffff: protocol ip flower action mirred \
+egress redirect dev <ifcname>
+```
 
 Match destination MAC address and drop:
-`tc filter add dev <ifcname> parent ffff: protocol ip flower dst_mac \
-02:12:23:34:45:56 action drop`
+```
+tc filter add dev <ifcname> parent ffff: protocol ip flower dst_mac \
+02:12:23:34:45:56 action drop
+```
 
 Match vlan id, pop vlan and output:
-`tc filter add dev <ifcname> parent ffff: protocol 802.1Q flower vlan_id 600 \
-action vlan pop pipe mirred egress redirect dev <ifcname>`
+```
+tc filter add dev <ifcname> parent ffff: protocol 802.1Q flower vlan_id 600 \
+action vlan pop pipe mirred egress redirect dev <ifcname>
+```
 
 Match source IPv6 address, push vlan and output:
-`tc filter add dev <ifcname> parent ffff: protocol ipv6 flower src_ip 22::22 \
-action vlan push id 250 pipe mirred egress redirect dev <ifcname>`
+```
+tc filter add dev <ifcname> parent ffff: protocol ipv6 flower src_ip 22::22 \
+action vlan push id 250 pipe mirred egress redirect dev <ifcname>
+```
 
 Match destination IPv6 address, set source MAC address and output:
-`tc filter add dev <ifcname> parent ffff: protocol ipv6 flower dst_ip 11::11 \
+```
+tc filter add dev <ifcname> parent ffff: protocol ipv6 flower dst_ip 11::11 \
 action pedit ex munge eth src set 11:22:33:44:55:66 pipe mirred egress \
-redirect dev <ifcname>`
+redirect dev <ifcname>
+```
 
 Match source IPv4 address, set source IPv4 address and output:
-`tc filter add dev <ifcname> parent ffff: protocol ip flower src_ip \
+```
+tc filter add dev <ifcname> parent ffff: protocol ip flower src_ip \
 10.20.30.40 action pedit ex munge ip src set 20.30.40.50 pipe mirred \
-egress redirect dev <ifcname>`
+egress redirect dev <ifcname>
+```
 
 Match TCP type, set source TCP port and output:
-`tc filter add dev <ifcname> parent ffff: protocol ip flower ip_proto tcp \
+```
+tc filter add dev <ifcname> parent ffff: protocol ip flower ip_proto tcp \
 action pedit ex munge tcp sport set 4282 pipe mirred egress redirect \
-dev <ifcname>`
+dev <ifcname>
+```
 
 Match UDP type, set destination UDP port and output:
-`tc filter add dev <ifcname> parent ffff: protocol ip flower ip_proto udp \
+```
+tc filter add dev <ifcname> parent ffff: protocol ip flower ip_proto udp \
 action pedit ex munge udp dport set 4000 pipe mirred egress redirect \
-dev <ifcname>`
+dev <ifcname>
+```
 
 Match VXLAN Key ID and Outer UDP destination port and output:
-`tc filter add dev <ifcname> parent ffff: protocol ip flower enc_dst_port \
+```
+tc filter add dev <ifcname> parent ffff: protocol ip flower enc_dst_port \
 4789 enc_dst_ip 10.20.30.40 enc_key_id 123 action mirred egress redirect \
-dev <ifcname>`
+dev <ifcname>
+```
 
 Match TCP type, encapsulate in VXLAN and output:
-`tc filter add dev <ifcname> parent ffff: protocol ip flower ip_proto tcp \
+```
+tc filter add dev <ifcname> parent ffff: protocol ip flower ip_proto tcp \
 action tunnel_key set id 123 src_ip 10.0.0.1 dst_ip 10.0.0.2 dst_port 4789 \
-action mirred egress redirect dev vxlan0`
+action mirred egress redirect dev vxlan0
+```
 
 Helpful tips:
-1. Dump filter, example:
-`tc -s filter show dev <ifcname> parent ffff:`
+Dump filter, example:
+```
+tc -s filter show dev <ifcname> parent ffff:
+```
 
-2. Keep an eye on filters:
-`tc -s monitor`
+Keep an eye on filters:
+```
+tc -s monitor
+```
 
-3. Remove filter, example:
-`tc filter del dev <ifcname> parent ffff:`
+Remove filter, example:
+```
+tc filter del dev <ifcname> parent ffff:
+```
 
-4. Ask for help:
-`tc filter add flower help`
-`tc actions help`
-`tc qdisc help`
+Ask for help:
+```
+tc filter add flower help
+tc actions help
+tc qdisc help
+```
 
 # Troubleshooting
 
