@@ -662,6 +662,23 @@ static inline void timer_setup(struct timer_list *t, void (*f)(unsigned long),
 static inline void skb_metadata_set(const struct sk_buff *skb, u8 value)
 {
 }
+
+typedef int tc_setup_cb_t(enum tc_setup_type type, void *type_data,
+			  void *cb_priv);
+
+static inline int
+tc_setup_cb_egdev_register(const struct net_device *dev, tc_setup_cb_t *cb,
+			   void *cb_priv)
+{
+	return 0;
+}
+
+static inline int
+tc_setup_cb_egdev_unregister(const struct net_device *dev, tc_setup_cb_t *cb,
+			     void *cb_priv)
+{
+	return 0;
+}
 #endif
 
 #endif /* _NFP_NET_COMPAT_H_ */

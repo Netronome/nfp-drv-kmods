@@ -470,6 +470,12 @@ nfp_flower_repr_offload(struct nfp_app *app, struct net_device *netdev,
 }
 
 #if LINUX_RELEASE_4_15
+int nfp_flower_setup_tc_egress_cb(enum tc_setup_type type, void *type_data,
+				  void *cb_priv)
+{
+	return -EINVAL;
+}
+
 static int nfp_flower_setup_tc_block_cb(enum tc_setup_type type,
 					void *type_data, void *cb_priv)
 {
