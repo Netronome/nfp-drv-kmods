@@ -647,15 +647,6 @@ enum tc_setup_type {
 #endif
 	__COMPAT_tc_setup_type_NONE,
 };
-
-static inline void timer_setup(struct timer_list *t, void (*f)(unsigned long),
-			       unsigned int flags)
-{
-	__setup_timer(t, f, (unsigned long)t, flags);
-}
-
-#define from_timer(var, callback_timer, timer_fieldname)		\
-	container_of((void *)callback_timer, typeof(*var), timer_fieldname)
 #endif
 
 #if !LINUX_RELEASE_4_15

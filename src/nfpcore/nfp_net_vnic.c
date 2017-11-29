@@ -342,9 +342,13 @@ static void nfp_net_vnic_schedule(struct nfp_net_vnic *vnic)
  * nfp_net_vnic_timer - Timer triggered to poll vnic queues
  * @data:	vnic pointer
  */
-static void nfp_net_vnic_timer(unsigned long data)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0)
+static void nfp_net_vnic_timer(unsigned long t)
+#else
+static void nfp_net_vnic_timer(struct timer_list *t)
+#endif
 {
-	struct nfp_net_vnic *vnic = (struct nfp_net_vnic *)data;
+	struct nfp_net_vnic *vnic = from_timer(vnic, t, timer);
 
 	BUG_ON(!vnic);
 
@@ -370,9 +374,7 @@ static int nfp_net_vnic_netdev_open(struct net_device *netdev)
 	struct nfp_net_vnic *vnic = netdev_priv(netdev);
 
 	/* Setup a timer for polling queues at regular intervals. */
-	init_timer(&vnic->timer);
-	vnic->timer.function = nfp_net_vnic_timer;
-	vnic->timer.data = (unsigned long)vnic;
+	timer_setup(&vnic->timer, nfp_net_vnic_timer, 0);
 	vnic->timer_int = nfp_net_vnic_pollinterval * HZ / 1000;
 	if (!vnic->timer_int)
 		vnic->timer_int = 1;

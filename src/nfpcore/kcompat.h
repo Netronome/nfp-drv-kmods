@@ -737,4 +737,15 @@ struct netlink_ext_ack;
 #define pci_enable_msix pci_enable_msix_exact
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0)
+static inline void timer_setup(struct timer_list *t, void (*f)(unsigned long),
+			       unsigned int flags)
+{
+	__setup_timer(t, f, (unsigned long)t, flags);
+}
+
+#define from_timer(var, callback_timer, timer_fieldname)		\
+	container_of((void *)callback_timer, typeof(*var), timer_fieldname)
+#endif
+
 #endif /* __KERNEL__NFP_COMPAT_H__ */
