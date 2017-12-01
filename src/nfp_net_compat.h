@@ -72,6 +72,11 @@
 #else
 #define LINUX_RELEASE_4_15     0
 #endif
+#ifdef TUNSETSTEERINGEBPF
+#define LINUX_RELEASE_4_16	1
+#else
+#define LINUX_RELEASE_4_16	0
+#endif
 
 #define COMPAT__HAVE_VXLAN_OFFLOAD \
 	(VER_VANILLA_GE(3, 12) || VER_RHEL_GE(7, 4))

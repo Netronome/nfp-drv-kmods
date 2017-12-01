@@ -3492,6 +3492,9 @@ static int nfp_net_xdp(struct net_device *netdev, struct netdev_bpf *xdp)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
 		xdp->prog_id = nn->xdp_prog ? nn->xdp_prog->aux->id : 0;
 #endif
+#if LINUX_RELEASE_4_16
+		xdp->flags = nn->xdp_prog ? nn->xdp_flags : 0;
+#endif
 		return 0;
 #if LINUX_RELEASE_4_15
 	case BPF_OFFLOAD_VERIFIER_PREP:
