@@ -83,9 +83,9 @@ KERNEL_GE_4_6 := $(shell [ $(VERSION) -gt 4 -o \( $(VERSION) -eq 4 -a $(PATCHLEV
 
 KERNEL_GE_4_9 := $(shell [ $(VERSION) -gt 4 -o \( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 9 \) ] && echo y)
 
-KERNEL_GE_4_15 := $(shell [ -e $(srctree)/include/linux/bpf_verifier.h ] && \
-		    grep cur_regs $(srctree)/include/linux/bpf_verifier.h \
-		    > /dev/null && echo y)
+KERNEL_GE_4_16 := \
+	$(shell grep TUNSETSTEERINGEBPF $(srctree)/include/uapi/linux/if_tun.h \
+	  > /dev/null && echo y)
 
 ifeq ($(KERNEL_GE_4_9),y)
   nfp-objs += nfp_hwmon.o
@@ -127,7 +127,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 	       nfp_devlink.o
     endif
 
-    ifeq ($(KERNEL_GE_4_15),y)
+    ifeq ($(KERNEL_GE_4_16),y)
       ifeq ($(CONFIG_BPF_SYSCALL),y)
         nfp-objs += \
 		nfp_asm.o \
