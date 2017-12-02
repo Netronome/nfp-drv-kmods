@@ -908,7 +908,7 @@ static bool __init nfp_resolve_params(void)
 		return false;
 	}
 	if (!nfp_pf_netdev && nfp_fallback == 1)
-		pr_warn("nfp_fallback is ignored in netdev mode\n");
+		pr_warn("nfp_fallback is ignored in non-netdev mode\n");
 	if (nfp_fallback == 1 && nfp_dev_cpp == 0) {
 		pr_err("nfp_fallback cannot be used without nfp_dev_cpp\n");
 		return false;
