@@ -188,7 +188,14 @@ endif
 # Work out driver version if build from repository
 NFPVER := $(shell git -C $(nfp_src_dir) rev-parse --short HEAD 2> /dev/null)
 ifeq ($(NFPVER),)
-  NFPVER := rev-$(NFPVERREV)
+  # Some DKMS packages may want the .revision to be inside source dir
+  ifneq (,$(wildcard $(src)/.revision))
+    NFPVER := rev-$(shell cat $(src)/.revision)
+  endif
+  # Use ../.revision by default for backward compatibility
+  ifneq (,$(wildcard $(src)/../.revision))
+    NFPVER := rev-$(shell cat $(src)/../.revision)
+  endif
 endif
 ifeq ($(NFPVER),)
   NFPVER := no-src-ver

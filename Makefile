@@ -1,9 +1,3 @@
-######################################################
-# Work out driver version if not build from repository
-ifeq (.revision,$(wildcard .revision))
-  export NFPVERREV := $(shell cat .revision)
-endif
-
 #####################################
 # Work out where the kernel source is
 ifeq (,$(KVER))
