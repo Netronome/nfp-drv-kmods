@@ -39,6 +39,7 @@
 #ifndef NFP_MAIN_H
 #define NFP_MAIN_H
 
+#include <linux/ethtool.h>
 #include <linux/list.h>
 #include <linux/types.h>
 #include <linux/msi.h>
@@ -61,6 +62,17 @@ struct nfp_net;
 struct nfp_nsp_identify;
 struct nfp_port;
 struct nfp_rtsym_table;
+
+/**
+ * struct nfp_dumpspec - NFP FW dump specification structure
+ * @size:	Size of the data
+ * @data:	Sequence of TLVs, each being an instruction to dump some data
+ *		from FW
+ */
+struct nfp_dumpspec {
+	u32 size;
+	u8 data[0];
+};
 
 /**
  * struct nfp_pf - NFP PF-specific device structure
@@ -88,6 +100,9 @@ struct nfp_rtsym_table;
  * @mip:		MIP handle
  * @rtbl:		RTsym table
  * @hwinfo:		HWInfo table
+ * @dumpspec:		Debug dump specification
+ * @dump_flag:		Store dump flag between set_dump and get_dump_flag
+ * @dump_len:		Store dump length between set_dump and get_dump_flag
  * @eth_tbl:		NSP ETH table
  * @nspi:		NSP identification info
  * @hwmon_dev:		pointer to hwmon device
@@ -135,6 +150,9 @@ struct nfp_pf {
 	const struct nfp_mip *mip;
 	struct nfp_rtsym_table *rtbl;
 	struct nfp_hwinfo *hwinfo;
+	struct nfp_dumpspec *dumpspec;
+	u32 dump_flag;
+	u32 dump_len;
 	struct nfp_eth_table *eth_tbl;
 	struct nfp_nsp_identify *nspi;
 
@@ -202,5 +220,16 @@ static inline void nfp_dev_cpp_exit(void)
 {
 }
 #endif
+
+enum nfp_dump_diag {
+	NFP_DUMP_NSP_DIAG = 0,
+};
+
+struct nfp_dumpspec *
+nfp_net_dump_load_dumpspec(struct nfp_cpp *cpp, struct nfp_rtsym_table *rtbl);
+s64 nfp_net_dump_calculate_size(struct nfp_pf *pf, struct nfp_dumpspec *spec,
+				u32 flag);
+int nfp_net_dump_populate_buffer(struct nfp_pf *pf, struct nfp_dumpspec *spec,
+				 struct ethtool_dump *dump_param, void *dest);
 
 #endif /* NFP_MAIN_H */

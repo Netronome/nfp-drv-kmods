@@ -68,6 +68,7 @@ nfp-objs := \
 	    nfpcore/nfp_target.o \
 	    nfpcore/nfp_nbi_mac_eth.o \
 	    nfpcore/nfp_net_vnic.o \
+	    nfp_net_debugdump.o \
 	    nfp_plat.o \
 	    nfp_main.o
 
