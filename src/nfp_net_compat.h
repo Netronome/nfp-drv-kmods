@@ -58,10 +58,12 @@
 #include <linux/udp.h>
 #include <linux/version.h>
 
+#include <net/act_api.h>
 #include <net/pkt_cls.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
 #include <net/switchdev.h>
 #endif
+#include <net/tc_act/tc_mirred.h>
 
 #include "nfpcore/kcompat.h"
 #include "nfp_net.h"
@@ -675,6 +677,18 @@ tc_setup_cb_egdev_unregister(const struct net_device *dev, tc_setup_cb_t *cb,
 {
 	return 0;
 }
+#endif
+
+#ifdef COMPAT__HAVE_METADATA_IP_TUNNEL
+#if !LINUX_RELEASE_4_16
+static inline struct net_device *tcf_mirred_dev(const struct tc_action *action)
+{
+	int ifindex;
+
+	ifindex = tcf_mirred_ifindex(action);
+	return __dev_get_by_index(current->nsproxy->net_ns, ifindex);
+}
+#endif
 #endif
 
 #endif /* _NFP_NET_COMPAT_H_ */
