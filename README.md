@@ -275,7 +275,10 @@ position of driver and hardware pointers for RX, TX and XDP rings.
 
 ## NSP logs access
 
-`ethtool -w <ifcname> data <outfile>` dumps the logs of the Service Processor.
+`tools/dump_nsp_logs.sh` script can be used to dump the logs of the Service
+Processor.  The script will read the log using standard `ethtool` APIs,
+however, if system is unable to initialize fully it can also use the Netronome
+vendor debug tools (if installed).
 
 ## Control messages
 
