@@ -127,8 +127,9 @@ static int nfp_ctrl_debug_tx(struct sk_buff *skb, struct net_device *netdev)
 		return NETDEV_TX_OK;
 	}
 #endif
-
-	__nfp_app_ctrl_tx(ncd->app, skb, true);
+	trace_devlink_hwmsg(priv_to_devlink(ncd->app->pf), false, 0,
+			    skb->data, skb->len);
+	nfp_ctrl_tx(ncd->app->ctrl, skb);
 
 	netdev->stats.tx_packets++;
 	netdev->stats.tx_bytes += skb->len;

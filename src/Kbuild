@@ -152,6 +152,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
       ifeq ($(CONFIG_BPF_SYSCALL),y)
         nfp-objs += \
 		nfp_asm.o \
+		bpf/cmsg.o \
 		bpf/main.o \
 		bpf/offload.o \
 		bpf/verifier.o \

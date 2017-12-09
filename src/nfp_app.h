@@ -171,6 +171,7 @@ struct nfp_app {
 	void *priv;
 };
 
+bool __nfp_ctrl_tx(struct nfp_net *nn, struct sk_buff *skb);
 bool nfp_ctrl_tx(struct nfp_net *nn, struct sk_buff *skb);
 void nfp_ctrl_debug_rx(struct nfp_pf *pf, struct sk_buff *skb);
 void nfp_ctrl_debug_deliver_tx(struct nfp_pf *pf, struct sk_buff *skb);
@@ -334,20 +335,21 @@ static inline int nfp_app_xdp_offload(struct nfp_app *app, struct nfp_net *nn,
 	return app->type->xdp_offload(app, nn, prog);
 }
 
-static inline bool __nfp_app_ctrl_tx(struct nfp_app *app, struct sk_buff *skb,
-				     bool injected)
+static inline bool __nfp_app_ctrl_tx(struct nfp_app *app, struct sk_buff *skb)
 {
-	if (!injected)
-		nfp_ctrl_debug_deliver_tx(app->pf, skb);
 	trace_devlink_hwmsg(priv_to_devlink(app->pf), false, 0,
 			    skb->data, skb->len);
 
-	return nfp_ctrl_tx(app->ctrl, skb);
+	return __nfp_ctrl_tx(app->ctrl, skb);
 }
 
 static inline bool nfp_app_ctrl_tx(struct nfp_app *app, struct sk_buff *skb)
 {
-	return __nfp_app_ctrl_tx(app, skb, false);
+	nfp_ctrl_debug_deliver_tx(app->pf, skb);
+	trace_devlink_hwmsg(priv_to_devlink(app->pf), false, 0,
+			    skb->data, skb->len);
+
+	return nfp_ctrl_tx(app->ctrl, skb);
 }
 
 static inline void nfp_app_ctrl_rx(struct nfp_app *app, struct sk_buff *skb)
