@@ -3522,18 +3522,12 @@ static int nfp_net_xdp(struct net_device *netdev, struct netdev_bpf *xdp)
 		xdp->prog_flags = nn->xdp_prog ? nn->xdp_flags : 0;
 #endif
 		return 0;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
-	case BPF_OFFLOAD_VERIFIER_PREP:
-		return nfp_app_bpf_verifier_prep(nn->app, nn, xdp);
-	case BPF_OFFLOAD_TRANSLATE:
-		return nfp_app_bpf_translate(nn->app, nn,
-					     xdp->offload.prog);
-	case BPF_OFFLOAD_DESTROY:
-		return nfp_app_bpf_destroy(nn->app, nn,
-					   xdp->offload.prog);
-#endif
 	default:
+#if LINUX_RELEASE_4_16
+		return nfp_app_bpf(nn->app, nn, xdp);
+#else
 		return -EINVAL;
+#endif
 	}
 }
 #endif
