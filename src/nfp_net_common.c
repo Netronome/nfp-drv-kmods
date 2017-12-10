@@ -3470,7 +3470,7 @@ nfp_net_xdp_setup(struct nfp_net *nn, struct bpf_prog *prog, u32 flags,
 	return 0;
 }
 
-#if !LINUX_RELEASE_4_15
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
 static int nfp_net_xdp(struct net_device *netdev, struct netdev_xdp *xdp)
 #else
 static int nfp_net_xdp(struct net_device *netdev, struct netdev_bpf *xdp)
@@ -3496,7 +3496,7 @@ static int nfp_net_xdp(struct net_device *netdev, struct netdev_bpf *xdp)
 		xdp->flags = nn->xdp_prog ? nn->xdp_flags : 0;
 #endif
 		return 0;
-#if LINUX_RELEASE_4_15
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 	case BPF_OFFLOAD_VERIFIER_PREP:
 		return nfp_app_bpf_verifier_prep(nn->app, nn, xdp);
 	case BPF_OFFLOAD_TRANSLATE:
@@ -3571,7 +3571,7 @@ const struct net_device_ops nfp_net_netdev_ops = {
 	.ndo_del_vxlan_port     = nfp_net_del_vxlan_port,
 #endif
 #if COMPAT__HAVE_XDP
-#if LINUX_RELEASE_4_15
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 	.ndo_bpf		= nfp_net_xdp,
 #else
 	.ndo_xdp		= nfp_net_xdp,

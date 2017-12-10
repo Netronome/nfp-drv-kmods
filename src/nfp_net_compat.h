@@ -69,11 +69,6 @@
 #include "nfp_net.h"
 
 #include <linux/if_tun.h>
-#ifdef IFF_NAPI
-#define LINUX_RELEASE_4_15     1
-#else
-#define LINUX_RELEASE_4_15     0
-#endif
 #ifdef TUNSETSTEERINGEBPF
 #define LINUX_RELEASE_4_16	1
 #else
@@ -91,7 +86,7 @@
 #define COMPAT__HAVE_XDP_ADJUST_HEAD \
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
 #define COMPAT__HAVE_XDP_METADATA \
-	LINUX_RELEASE_4_15
+	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0))
 /* We only want to support switchdev with ops and attrs */
 #define COMPAT__HAVE_SWITCHDEV_ATTRS \
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0))
@@ -656,7 +651,7 @@ enum tc_setup_type {
 };
 #endif
 
-#if !LINUX_RELEASE_4_15
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
 static inline void skb_metadata_set(const struct sk_buff *skb, u8 value)
 {
 }

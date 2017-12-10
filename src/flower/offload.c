@@ -464,7 +464,7 @@ static int
 nfp_flower_repr_offload(struct nfp_app *app, struct net_device *netdev,
 			struct tc_cls_flower_offload *flower, bool egress)
 {
-#if LINUX_RELEASE_4_15
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 	if (!eth_proto_is_802_3(flower->common.protocol) ||
 	    flower->common.chain_index)
 		return -EOPNOTSUPP;
@@ -482,7 +482,7 @@ nfp_flower_repr_offload(struct nfp_app *app, struct net_device *netdev,
 	return -EOPNOTSUPP;
 }
 
-#if LINUX_RELEASE_4_15
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 int nfp_flower_setup_tc_egress_cb(enum tc_setup_type type, void *type_data,
 				  void *cb_priv)
 {
