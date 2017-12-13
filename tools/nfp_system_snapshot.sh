@@ -372,6 +372,46 @@ collect_network_state() {
     done
 }
 
+# From a possible ovs log directory (parameter), look for all base file
+# names, e.g. "ovsdb-server.log", then try to get a limited number log
+# lines from this file and a maximum number of rollovers.
+collect_ovs_logs() {
+    local dirname=$1
+    local file_bases
+
+    [[ ! -e $dirname ]] && return
+    file_bases=$(ls $dirname | sed 's|[.]log[.].*$|.log|' | sort | uniq)
+    echo "$file_bases" | while read file_base ; do
+        collect_log_lines "$dirname" "$file_base" $MAX_LOG_FILES $MAX_LOG_LINES
+    done
+}
+
+collect_ovs_state() {
+    mkpart ovs
+    collect_ovs_logs /var/log/openvswitch
+    collect_ovs_logs /usr/local/var/log/openvswitch
+
+    ovs-vsctl show &>/dev/null
+    if [[ ! $? = 0 ]]; then
+        echo "No openvswitch found, skipping."
+        return
+    fi
+    local ovsctl=/usr/share/openvswitch/scripts/ovs-ctl
+    [[ ! -e $ovsctl ]] && ovsctl=/usr/local/share/openvswitch/scripts/ovs-ctl
+    [[ -e $ovsctl ]] && run_cmd "$ovsctl status" "ovs-ctl_status"
+    run_cmd 'lsmod | grep openvswitch' lsmod_openvswitch
+    run_cmd 'ovs-dpctl show'
+    run_cmd 'ovs-dpctl dump-flows'
+    run_cmd 'ovs-vsctl show'
+    ovs-vsctl list-br | while read br ; do
+        echo "Bridge: $br"
+        mkpart "ovs/br/$br"
+        run_cmd "ovs-ofctl show $br -O OpenFlow13"
+        run_cmd "ovs-ofctl dump-ports $br -O OpenFlow13"
+        run_cmd "ovs-ofctl dump-flows $br -O OpenFlow13"
+    done
+}
+
 print_directions() {
     local tgz_path=$COLLECT_BASEDIR/$COLLECT_ARCHIVE.tgz
     local tgz_name
@@ -413,6 +453,7 @@ main() {
     collect_fw_dumps
     collect_tc_state
     collect_network_state
+    collect_ovs_state
 
     create_tar
 }
