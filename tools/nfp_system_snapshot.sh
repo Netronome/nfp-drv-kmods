@@ -339,6 +339,39 @@ collect_tc_state() {
     done
 }
 
+# Get basic network info, including for namespaces (excl. namespaces
+# that don't show up with "ip netns list", like docker containers).
+collect_network_state() {
+    mkpart network
+    run_cmd "ip link"
+    run_cmd "ip addr"
+    run_cmd "ip route"
+    run_cmd "ip neigh"
+    run_cmd "ip netns list"
+    [[ -d /sys/class/net ]] && \
+    ls /sys/class/net | while read netdev; do
+        mkpart "network/netdev/$netdev"
+        run_cmd "ip -s -d link show dev $netdev"
+        run_cmd "ethtool -S $netdev"
+        run_cmd "ethtool -i $netdev"
+    done
+    [[ -d /var/run/netns ]] && \
+    ls /var/run/netns | while read ns; do
+        echo "netns $ns"
+        mkpart "network/ns/$ns"
+        run_cmd "ip netns exec $ns ip link" "ip_link"
+        run_cmd "ip netns exec $ns ip addr" "ip_addr"
+        run_cmd "ip netns exec $ns ip neigh" "ip_neigh"
+        run_cmd "ip netns exec $ns ip route" "ip_route"
+        ip netns exec $ns ls /sys/class/net | while read netdev; do
+            mkpart "network/ns/$ns/netdev/$netdev"
+            run_cmd "ip netns exec $ns ip -s -d link show dev $netdev"
+            run_cmd "ip netns exec $ns ethtool -i $netdev"
+            run_cmd "ip netns exec $ns ethtool -S $netdev"
+        done
+    done
+}
+
 print_directions() {
     local tgz_path=$COLLECT_BASEDIR/$COLLECT_ARCHIVE.tgz
     local tgz_name
@@ -379,6 +412,7 @@ main() {
     collect_kernel_info
     collect_fw_dumps
     collect_tc_state
+    collect_network_state
 
     create_tar
 }
