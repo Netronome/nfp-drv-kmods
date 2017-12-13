@@ -60,6 +60,7 @@ TAR_RM_FILES="--remove-files"
 # well defined name of dir where archive files will be placed
 OUTPUT=nfp_system_snapshot_$RANDOM
 MAX_LOG_LINES=$((100 * 1000))
+MAX_LOG_FILES=10
 
 usage() {
     echo "${SCRIPT_NAME}"
@@ -194,6 +195,51 @@ archive() {
     cp -r -L $abs_path_to_cp $abs_cp_dest
 }
 
+# Collect lines from a log file and its first rollover, e.g.
+# /var/log/syslog and /var/log/syslog.1.  Limit the total number of
+# lines collected between the two. In addition to the suffix, a .gz
+# variant is considered as well.  So, specifying params:
+# ["/var/log" "syslog" "3" "1000"] results in
+# /var/log/syslog{,.1,.1.gz,.2,.2.gz} being scraped successively, up to
+# 1000 lines over all of them.
+#
+# Parameters:
+# $1: directory of the log files (e.g. "/var/log")
+# $2: log file base name (e.g. "syslog")
+# $3: total number of files to consider (e.g. "2")
+# $4: total number of log lines to collect over all files
+collect_log_lines() {
+    local dirname=$1
+    local logname=$2
+    local max_files=$3
+    local max_lines=$4
+    local logpath=$dirname/$logname
+    local remaining
+    local log_lines
+    local suffix
+    local delta
+
+    [[ ! -e $logpath ]] && return
+    log_lines=$(<$logpath wc -l)
+    run_cmd "tail -$max_lines $logpath" "$logname" "$dirname"
+    [[ -z $max_files ]] && return
+    suffix=1
+    while (( log_lines < max_lines && suffix < max_files )); do
+        remaining=$((max_lines - log_lines))
+        [[ ! -e "$logpath.$suffix" && ! -e "$logpath.$suffix.gz" ]] && return
+        if [[ -e "$logpath.$suffix.gz" ]]; then
+            run_cmd "<$logpath.$suffix.gz gunzip | tail -$remaining" \
+                    "$logname.$suffix" "$dirname"
+        else
+            run_cmd "tail -$remaining $logpath.$suffix" "$logname.$suffix" \
+                    "$dirname"
+        fi
+        delta=$(<"$PART$logpath.$suffix" wc -l)
+        log_lines=$((log_lines + delta))
+        suffix=$((suffix + 1))
+    done
+}
+
 collect_system_info() {
     mkpart system
     run_cmd date
@@ -203,6 +249,9 @@ collect_system_info() {
     run_cmd "dpkg -l"
     run_cmd "rpm -qa"
     run_cmd lstopo
+
+    run_cmd "journalctl -a -o short-iso | tail -$MAX_LOG_LINES" "journalctl"
+    collect_log_lines /var/log syslog $MAX_LOG_FILES $MAX_LOG_LINES
 
     archive /etc/hostid
     archive /etc/machine-id
