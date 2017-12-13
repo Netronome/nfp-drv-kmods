@@ -36,9 +36,9 @@
 # The default result is a .tgz in the /tmp directory, of the form
 # "/tmp/nfp_snapshot_yyyyMMdd_HHmmss_Z.tgz".
 #
-# The base directory, the archive name, and whether or not to clean up
-# the temporary directory during tar, can be overridden with command
-# line switch parameters, as defined below.
+# The base directory, the archive name, fw dump level and whether or not
+# to clean up the temporary directory during tar, can be overridden with
+# command line switch parameters, as defined below.
 #
 # The script executes commands and stores the stdout to files named
 # after the commands. For commands that fail, the stderr output is
@@ -59,24 +59,26 @@ COLLECT_BASEDIR=/tmp
 TAR_RM_FILES="--remove-files"
 # well defined name of dir where archive files will be placed
 OUTPUT=nfp_system_snapshot_$RANDOM
+DUMP_LEVEL=1
 MAX_LOG_LINES=$((100 * 1000))
 MAX_LOG_FILES=10
 
 usage() {
     echo "${SCRIPT_NAME}"
     [[ ! -z $1 ]] && echo "$1"
-    echo "Usage:  $(basename $0) -b basedir -a archive -x"
+    echo "Usage:  $(basename $0) -b basedir -a archive -d dump_level -x"
     echo " Arguments:"
     echo "  -b basedir    : existing dir to place archive [/tmp]"
     echo "  -a archive    : tar base name " \
          "[nfp_system_snapshot_{yyyyMMdd_HHmmss_Z}]"
+    echo "  -d dump_level : FW dump level [1]"
     echo "  -x            : switch to disable default cleanup of archive dir"
     exit 1
 }
 
 parse_args() {
     [[ $1 = "--help" || $1 = "-h" ]] && usage
-    while getopts ":a:b:x" opt; do
+    while getopts ":a:b:d:x" opt; do
         case $opt in
         a)
             COLLECT_ARCHIVE=$(echo "$OPTARG" | sed 's/[^:.[:alnum:]_-]/_/g')
@@ -87,6 +89,11 @@ parse_args() {
             [[ -z $OPTARG || ! -d $OPTARG ]] \
                 && usage "-b '$OPTARG' is not a valid base dir."
             COLLECT_BASEDIR=$OPTARG
+            ;;
+        d)
+            [[ ! $OPTARG =~ '^[0-9]{1-9}$' ]] \
+                && usage "-d $OPTARG is not a valid dump level (32-bit number)."
+            DUMP_LEVEL=$OPTARG
             ;;
         x)
             TAR_RM_FILES=""
@@ -125,6 +132,7 @@ print_vars_used() {
     echo "====================================================================="
     echo "COLLECT_BASEDIR=$COLLECT_BASEDIR"
     echo "COLLECT_ARCHIVE=$COLLECT_ARCHIVE"
+    echo "DUMP_LEVEL=$DUMP_LEVEL"
     [[ -z $TAR_RM_FILES ]] && echo "No cleanup after tar (-x)."
     echo "====================================================================="
 }
@@ -272,6 +280,57 @@ collect_kernel_info() {
     archive /etc/modprobe.d
 }
 
+# Trigger a fw dump by setting the ethtool dump flag first, then
+# proceeding with the dump only if the flag could be set successfully.
+do_fw_dump() {
+    local netdev=$1
+    local dumplevel_param=$2
+    local dump_name="dump_${netdev}_level${dumplevel_param}"
+    local ts
+    local err
+
+    &>/dev/null ethtool -W "$netdev" "$dumplevel_param"
+    err=$?
+    [[ ! $err = 0 ]] && return $err
+
+    # Add timestamp with epoch seconds and nanoseconds to dump filename.
+    ts=$(date +%s.%N)
+    run_cmd "ethtool -w $netdev data $PART/${dump_name}_${ts}.dat" \
+            "${dump_name}_trigger"
+    return 0
+}
+
+# For each nfp PCIe address, look for a netdev that can do FW dumps, by
+# attempting dump level 0 and then the level provided as parameter.
+# Only one set of dumps are needed per PCIe address.
+collect_fw_dumps() {
+    local nfp_pcie
+    local netdev
+    local pcie
+
+    if [[ ! -d /sys/bus/pci/drivers/nfp ]]; then
+        echo "No NFP PCIe devices found."
+        return
+    fi
+    nfp_pcie=$(ls /sys/bus/pci/drivers/nfp | grep '[:]')
+    if [[ -z $nfp_pcie ]]; then
+        echo "No NFP PCIe devices found."
+        return
+    fi
+    echo "$nfp_pcie" | while read pcie; do
+        ls "/sys/bus/pci/drivers/nfp/$pcie/net" | while read netdev; do
+            if [[ ! -z $netdev ]]; then
+                mkpart "fw/$pcie"
+                do_fw_dump $netdev 0
+                if [[ $? = 0 ]]; then
+                    do_fw_dump $netdev $DUMP_LEVEL
+                    break
+                fi
+            fi
+        done
+    done
+}
+
 print_directions() {
     local tgz_path=$COLLECT_BASEDIR/$COLLECT_ARCHIVE.tgz
     local tgz_name
@@ -310,6 +369,7 @@ main() {
 
     collect_system_info
     collect_kernel_info
+    collect_fw_dumps
 
     create_tar
 }
