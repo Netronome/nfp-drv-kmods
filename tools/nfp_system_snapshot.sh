@@ -331,6 +331,14 @@ collect_fw_dumps() {
     done
 }
 
+collect_tc_state() {
+    mkpart tc
+    run_cmd "tc -s qdisc show"
+    tc qdisc show | egrep -o 'dev .* root' | while read tcdev; do
+        run_cmd "tc -s filter show $tcdev"
+    done
+}
+
 print_directions() {
     local tgz_path=$COLLECT_BASEDIR/$COLLECT_ARCHIVE.tgz
     local tgz_name
@@ -370,6 +378,7 @@ main() {
     collect_system_info
     collect_kernel_info
     collect_fw_dumps
+    collect_tc_state
 
     create_tar
 }
