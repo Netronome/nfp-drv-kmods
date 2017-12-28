@@ -195,6 +195,12 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 	else
           $(warning NFP: CONFIG_NET_SWITCHDEV not enabled in the kernel, disabling apps: flower)
 	endif
+
+	ifeq ($(KERNEL_GE_4_18),y)
+	  ccflags-y += -DCONFIG_NFP_APP_ABM_NIC
+	  nfp-objs += \
+		abm/main.o
+	endif
       else
         $(warning NFP: RHEL kernel detected, disabling apps: flower)
         $(warning Please contact Netronome Support if the flower app is required.)
