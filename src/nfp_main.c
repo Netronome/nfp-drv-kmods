@@ -677,14 +677,10 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 	if (err && nfp_pf_netdev)
 		goto err_hwinfo_free;
 
-	err = devlink_register(devlink, &pdev->dev);
-	if (err)
-		goto err_hwinfo_free;
-
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
 	err = nfp_sriov_attr_add(&pdev->dev);
 	if (err < 0)
-		goto err_devlink_unreg;
+		goto err_hwinfo_free;
 #endif
 	err = nfp_nsp_init(pdev, pf);
 	if (err)
@@ -755,9 +751,7 @@ err_fw_unload:
 err_sriov_remove:
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)) && defined(CONFIG_PCI_IOV)
 	nfp_sriov_attr_remove(&pdev->dev);
-err_devlink_unreg:
 #endif
-	devlink_unregister(devlink);
 err_hwinfo_free:
 	kfree(pf->hwinfo);
 	nfp_cpp_free(pf->cpp);
@@ -780,26 +774,20 @@ err_pci_disable:
 static void nfp_pci_remove(struct pci_dev *pdev)
 {
 	struct nfp_pf *pf = pci_get_drvdata(pdev);
-	struct devlink *devlink;
 
 	nfp_hwmon_unregister(pf);
-
-	devlink = priv_to_devlink(pf);
-
-	if (nfp_pf_netdev)
-		nfp_net_pci_remove(pf);
-
-	nfp_pcie_sriov_disable(pdev);
-	pci_sriov_set_totalvfs(pf->pdev, 0);
-
-	if (pf->nfp_net_vnic)
-		nfp_platform_device_unregister(pf->nfp_net_vnic);
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0) && defined(CONFIG_PCI_IOV)
 	nfp_sriov_attr_remove(&pdev->dev);
 #endif
+	nfp_pcie_sriov_disable(pdev);
+	pci_sriov_set_totalvfs(pf->pdev, 0);
 
-	devlink_unregister(devlink);
+	if (nfp_pf_netdev && pf->app)
+		nfp_net_pci_remove(pf);
+
+	if (pf->nfp_net_vnic)
+		nfp_platform_device_unregister(pf->nfp_net_vnic);
 
 	vfree(pf->dumpspec);
 	kfree(pf->rtbl);
@@ -821,7 +809,7 @@ static void nfp_pci_remove(struct pci_dev *pdev)
 	kfree(pf->eth_tbl);
 	kfree(pf->nspi);
 	mutex_destroy(&pf->lock);
-	devlink_free(devlink);
+	devlink_free(priv_to_devlink(pf));
 	pci_release_regions(pdev);
 	pci_disable_device(pdev);
 }
