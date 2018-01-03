@@ -68,13 +68,6 @@
 #include "nfpcore/kcompat.h"
 #include "nfp_net.h"
 
-#include <linux/if_tun.h>
-#ifdef TUNSETSTEERINGEBPF
-#define LINUX_RELEASE_4_16	1
-#else
-#define LINUX_RELEASE_4_16	0
-#endif
-
 #define COMPAT__HAVE_VXLAN_OFFLOAD \
 	(VER_VANILLA_GE(3, 12) || VER_RHEL_GE(7, 4))
 #define COMPAT__HAVE_NDO_FEATURES_CHECK \
@@ -684,6 +677,18 @@ static inline struct net_device *tcf_mirred_dev(const struct tc_action *action)
 	return __dev_get_by_index(current->nsproxy->net_ns, ifindex);
 }
 #endif
+#endif
+
+#if !LINUX_RELEASE_4_16
+static inline void xdp_rxq_info_unreg(struct xdp_rxq_info *xdp_rxq)
+{
+}
+
+static inline int
+xdp_rxq_info_reg(struct xdp_rxq_info *xdp_rxq, struct net_device *dev, u32 q)
+{
+	return 0;
+}
 #endif
 
 #endif /* _NFP_NET_COMPAT_H_ */

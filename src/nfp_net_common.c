@@ -1650,11 +1650,17 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 	unsigned int true_bufsz;
 	struct sk_buff *skb;
 	int pkts_polled = 0;
+#if COMPAT__HAVE_XDP
+	struct xdp_buff xdp;
+#endif
 	int idx;
 
 	rcu_read_lock();
 	xdp_prog = READ_ONCE(dp->xdp_prog);
 	true_bufsz = xdp_prog ? PAGE_SIZE : dp->fl_bufsz;
+#if LINUX_RELEASE_4_16
+	xdp.rxq = &rx_ring->xdp_rxq;
+#endif
 	tx_ring = r_vec->xdp_ring;
 
 	while (pkts_polled < budget) {
@@ -1746,7 +1752,6 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 				  dp->bpf_offload_xdp) && !meta.portid) {
 			void *orig_data = rxbuf->frag + pkt_off;
 			unsigned int dma_off;
-			struct xdp_buff xdp;
 			int act;
 
 #if COMPAT__HAVE_XDP_ADJUST_HEAD
@@ -2308,6 +2313,7 @@ static void nfp_net_rx_ring_free(struct nfp_net_rx_ring *rx_ring)
 	struct nfp_net_r_vector *r_vec = rx_ring->r_vec;
 	struct nfp_net_dp *dp = &r_vec->nfp_net->dp;
 
+	xdp_rxq_info_unreg(&rx_ring->xdp_rxq);
 	kfree(rx_ring->rxbufs);
 
 	if (rx_ring->rxds)
@@ -2331,7 +2337,11 @@ static void nfp_net_rx_ring_free(struct nfp_net_rx_ring *rx_ring)
 static int
 nfp_net_rx_ring_alloc(struct nfp_net_dp *dp, struct nfp_net_rx_ring *rx_ring)
 {
-	int sz;
+	int sz, err;
+
+	err = xdp_rxq_info_reg(&rx_ring->xdp_rxq, dp->netdev, rx_ring->idx);
+	if (err < 0)
+		return err;
 
 	rx_ring->cnt = dp->rxd_cnt;
 	rx_ring->size = sizeof(*rx_ring->rxds) * rx_ring->cnt;

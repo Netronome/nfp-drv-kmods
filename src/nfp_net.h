@@ -54,6 +54,9 @@
 #else
 #include <linux/io-64-nonatomic-hi-lo.h>
 #endif
+#if LINUX_RELEASE_4_16
+#include <net/xdp.h>
+#endif
 
 #include "nfp_net_ctrl.h"
 
@@ -357,6 +360,7 @@ struct nfp_net_rx_buf {
  * @rxds:       Virtual address of FL/RX ring in host memory
  * @dma:        DMA address of the FL/RX ring
  * @size:       Size, in bytes, of the FL/RX ring (needed to free)
+ * @xdp_rxq:    RX-ring info avail for XDP
  */
 struct nfp_net_rx_ring {
 	struct nfp_net_r_vector *r_vec;
@@ -368,13 +372,14 @@ struct nfp_net_rx_ring {
 	u32 idx;
 
 	int fl_qcidx;
+	unsigned int size;
 	u8 __iomem *qcp_fl;
 
 	struct nfp_net_rx_buf *rxbufs;
 	struct nfp_net_rx_desc *rxds;
 
 	dma_addr_t dma;
-	unsigned int size;
+	struct xdp_rxq_info xdp_rxq;
 } ____cacheline_aligned;
 
 /**
