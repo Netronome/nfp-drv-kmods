@@ -78,8 +78,7 @@ int nfp_nbi_mac_regw(struct nfp_nbi_dev *nbi, u32 base, u32 reg,
 /* RX_CRC_Error */
 #define NFP_NBI_MAC_STATS_ACCTYPE_RXCRC   0x00020000
 
-/**
- * MAC statistics are accumulated by the nfp_nbi_mac_statsd daemon into
+/* MAC statistics are accumulated by the nfp_nbi_mac_statsd daemon into
  * 64-bit counters in a reserved memory area. The following structures
  * define the Ethernet port, Channel and Interlaken statistics
  * counters.
@@ -145,9 +144,7 @@ struct nfp_nbi_mac_portstats {
 	u64 TxPIfOutOctets;
 };
 
-/**
- * Channel statistics counters
- */
+/* Channel statistics counters */
 struct nfp_nbi_mac_chanstats {
 	u64 RxCIfInErrors;
 	u64 RxCIfInUniCastPkts;
@@ -174,9 +171,7 @@ struct nfp_nbi_mac_chanstats {
 	u64 TxCIfOutOctets;
 };
 
-/**
- * Interlaken single channel statistics counters
- */
+/* Interlaken single channel statistics counters */
 struct nfp_nbi_mac_ilkstats {
 	u64 LkTxStatsFill;
 	u64 LkTxStatsParity;

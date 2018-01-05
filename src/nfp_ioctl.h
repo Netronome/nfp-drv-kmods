@@ -112,9 +112,7 @@ struct nfp_cpp_identification {
 	u32	serial_hi;	/* Upper 16 of 48 bit serial number */
 };
 
-/**
- * Define a NFP event request
- */
+/* Define a NFP event request */
 struct nfp_cpp_event_request {
 	int signal;
 	int type;
