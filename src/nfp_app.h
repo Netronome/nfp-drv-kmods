@@ -88,6 +88,8 @@ extern const struct nfp_app_type app_flower;
  * @repr_clean:	representor about to be unregistered
  * @repr_open:	representor netdev open callback
  * @repr_stop:	representor netdev stop callback
+ * @change_mtu:	MTU change on a netdev has been requested (veto-only, change
+ *		is not guaranteed to be committed)
  * @start:	start application logic
  * @stop:	stop application logic
  * @ctrl_msg_rx:    control message handler
@@ -125,6 +127,9 @@ struct nfp_app_type {
 
 	int (*repr_open)(struct nfp_app *app, struct nfp_repr *repr);
 	int (*repr_stop)(struct nfp_app *app, struct nfp_repr *repr);
+
+	int (*change_mtu)(struct nfp_app *app, struct net_device *netdev,
+			  int new_mtu);
 
 	int (*start)(struct nfp_app *app);
 	void (*stop)(struct nfp_app *app);
@@ -248,6 +253,14 @@ nfp_app_repr_clean(struct nfp_app *app, struct net_device *netdev)
 {
 	if (app->type->repr_clean)
 		app->type->repr_clean(app, netdev);
+}
+
+static inline int
+nfp_app_change_mtu(struct nfp_app *app, struct net_device *netdev, int new_mtu)
+{
+	if (!app || !app->type->change_mtu)
+		return 0;
+	return app->type->change_mtu(app, netdev, new_mtu);
 }
 
 static inline int nfp_app_start(struct nfp_app *app, struct nfp_net *ctrl)
