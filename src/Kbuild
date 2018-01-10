@@ -94,9 +94,13 @@ RHEL_GE_7_4 := \
 	$(shell [ $(RHEL_MAJOR) -gt 7 -o \
 	\( $(RHEL_MAJOR) -eq 7 -a $(RHEL_MINOR) -ge 4 \) ] && echo y)
 
-KERNEL_GE_4_6 := $(shell [ $(VERSION) -gt 4 -o \( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 6 \) ] && echo y)
+KERNEL_GE_4_6 := \
+	$(shell [ $(VERSION) -gt 4 -o \
+	\( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 6 \) ] && echo y)
 
-KERNEL_GE_4_9 := $(shell [ $(VERSION) -gt 4 -o \( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 9 \) ] && echo y)
+KERNEL_GE_4_9 := \
+	$(shell [ $(VERSION) -gt 4 -o \
+	\( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 9 \) ] && echo y)
 
 KERNEL_GE_4_16 := \
 	$(shell grep TUNSETSTEERINGEBPF $(srctree)/include/uapi/linux/if_tun.h \
