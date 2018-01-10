@@ -38,15 +38,18 @@
 #ifndef __KERNEL__NFP_COMPAT_H__
 #define __KERNEL__NFP_COMPAT_H__
 
-#include <linux/kernel.h>
 #include <linux/version.h>
-#include <linux/device.h>
-#include <linux/io.h>
-#include <linux/pci.h>
-#include <linux/err.h>
-#include <linux/etherdevice.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
-#include <linux/bitfield.h>
+
+/* RHEL has a tendency to heavily patch their kernels.  Sometimes it
+ * is necessary to check for specific RHEL releases and not just for
+ * Linux kernel version.  Define RHEL version macros for Linux kernels
+ * which don't have them.
+ */
+#ifndef RHEL_RELEASE_VERSION
+#define RHEL_RELEASE_VERSION(a, b) (((a) << 8) + (b))
+#endif
+#ifndef RHEL_RELEASE_CODE
+#define RHEL_RELEASE_CODE 0
 #endif
 
 #define VER_VANILLA_LT(x, y)						\
@@ -62,19 +65,20 @@
 #define COMPAT__USE_DMA_SKIP_SYNC	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
 #define COMPAT__HAS_DEVLINK	(VER_VANILLA_GE(4, 6) || VER_RHEL_GE(7, 4))
 
-/* RHEL has a tendency to heavily patch their kernels.  Sometimes it
- * is necessary to check for specific RHEL releases and not just for
- * Linux kernel version.  Define RHEL version macros for Linux kernels
- * which don't have them. */
-#ifndef RHEL_RELEASE_VERSION
-#define RHEL_RELEASE_VERSION(a, b) (((a) << 8) + (b))
-#endif
-#ifndef RHEL_RELEASE_CODE
-#define RHEL_RELEASE_CODE 0
-#endif
-
 #define COMPAT__CAN_HAVE_MULTIPLE_MOD_TABLES \
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
+
+#include <linux/debugfs.h>
+#include <linux/kernel.h>
+#include <linux/device.h>
+#include <linux/io.h>
+#include <linux/pci.h>
+#include <linux/err.h>
+#include <linux/etherdevice.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+#include <linux/bitfield.h>
+#endif
+#include <linux/random.h>
 
 #ifndef PCI_VENDOR_ID_NETRONOME
 #define PCI_VENDOR_ID_NETRONOME		0x19ee
