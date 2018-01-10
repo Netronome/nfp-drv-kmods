@@ -60,7 +60,7 @@
 #define VER_IS_VANILLA	!RHEL_RELEASE_CODE
 
 #define COMPAT__USE_DMA_SKIP_SYNC	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
-#define COMPAT__HAS_DEVLINK	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0))
+#define COMPAT__HAS_DEVLINK	(VER_VANILLA_GE(4, 6) || VER_RHEL_GE(7, 4))
 
 /* RHEL has a tendency to heavily patch their kernels.  Sometimes it
  * is necessary to check for specific RHEL releases and not just for
@@ -622,7 +622,7 @@ struct net_device *compat_alloc_netdev(int sizeof_priv,
 	list_for_each_entry((_desc), &(_dev)->dev.msi_list, list)
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0)
+#if !COMPAT__HAS_DEVLINK
 struct devlink_port {
 	int dummy;
 };
@@ -672,7 +672,7 @@ netif_trans_update(struct net_device *netdev)
 }
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0)
+#if VER_VANILLA_LT(4, 8) || VER_RHEL_LT(7, 4)
 enum devlink_eswitch_mode {
 	DEVLINK_ESWITCH_MODE_LEGACY,
 	DEVLINK_ESWITCH_MODE_SWITCHDEV,

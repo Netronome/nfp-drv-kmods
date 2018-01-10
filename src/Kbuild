@@ -80,6 +80,20 @@ nfp-objs += \
 		nfp_net_debugfs.o
 endif
 
+RHEL_MAJOR := \
+	$(shell awk '/RHEL_MAJOR/ {print $$3; found=1} \
+		     END {if (found != 1) print 0}' \
+		$(srctree)/include/generated/uapi/linux/version.h 2>/dev/null || echo 0)
+
+RHEL_MINOR := \
+	$(shell awk '/RHEL_MINOR/ {print $$3; found=1} \
+		     END {if (found != 1) print 0}' \
+		$(srctree)/include/generated/uapi/linux/version.h 2>/dev/null || echo 0)
+
+RHEL_GE_7_4 := \
+	$(shell [ $(RHEL_MAJOR) -gt 7 -o \
+	\( $(RHEL_MAJOR) -eq 7 -a $(RHEL_MINOR) -ge 4 \) ] && echo y)
+
 KERNEL_GE_4_6 := $(shell [ $(VERSION) -gt 4 -o \( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 6 \) ] && echo y)
 
 KERNEL_GE_4_9 := $(shell [ $(VERSION) -gt 4 -o \( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 9 \) ] && echo y)
@@ -123,7 +137,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 		nfp_net_main.o \
 		nic/main.o
 
-    ifeq ($(KERNEL_GE_4_6),y)
+    ifneq (,$(filter y,$(KERNEL_GE_4_6) $(RHEL_GE_7_4)))
       nfp-objs += \
 	       nfp_devlink.o
     endif
