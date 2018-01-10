@@ -42,7 +42,7 @@
 #include "kcompat.h"
 
 #include <asm/unaligned.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+#if VER_VANILLA_GE(4, 9) || VER_RHEL_GE(7, 5)
 #include <linux/bitfield.h>
 #endif
 #include <linux/delay.h>

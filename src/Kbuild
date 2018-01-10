@@ -90,6 +90,8 @@ RHEL_MINOR := \
 		     END {if (found != 1) print 0}' \
 		$(srctree)/include/generated/uapi/linux/version.h 2>/dev/null || echo 0)
 
+VER_IS_VANILLA := $(shell [ $(RHEL_MAJOR) -eq 0 ] && echo y)
+
 RHEL_GE_7_4 := \
 	$(shell [ $(RHEL_MAJOR) -gt 7 -o \
 	\( $(RHEL_MAJOR) -eq 7 -a $(RHEL_MINOR) -ge 4 \) ] && echo y)
@@ -164,13 +166,14 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 		    echo y)
 
     ifeq ($(COMPAT__HAVE_METADATA_IP_TUNNEL), y)
-      ccflags-y += -DCOMPAT__HAVE_METADATA_IP_TUNNEL=1
-      nfp-objs += \
+      ifeq ($(VER_IS_VANILLA), y)
+	ccflags-y += -DCOMPAT__HAVE_METADATA_IP_TUNNEL=1
+	nfp-objs += \
 		nfp_net_repr.o
 
-      ifeq ($(CONFIG_NET_SWITCHDEV),y)
-	ccflags-y += -DCONFIG_NFP_APP_FLOWER
-	nfp-objs += \
+	ifeq ($(CONFIG_NET_SWITCHDEV),y)
+	  ccflags-y += -DCONFIG_NFP_APP_FLOWER
+	  nfp-objs += \
 		flower/action.o \
 		flower/cmsg.o \
 		flower/match.o \
@@ -178,8 +181,12 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 		flower/offload.o \
 		flower/main.o \
 		flower/tunnel_conf.o
+	else
+	  $(warning NFP: CONFIG_NET_SWITCHDEV not enabled in the kernel, disabling apps: flower)
+	endif
       else
-        $(warning NFP: CONFIG_NET_SWITCHDEV not enabled in the kernel, disabling apps: flower)
+        $(warning NFP: RHEL kernel detected, disabling apps: flower)
+        $(warning Please contact Netronome Support if the flower app is required.)
       endif
     endif
   endif

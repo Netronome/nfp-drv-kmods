@@ -43,7 +43,7 @@
 
 #include "nfp_net_compat.h"
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+#if VER_VANILLA_GE(4, 9) || VER_RHEL_GE(7, 5)
 #include <linux/bitfield.h>
 #endif
 #if COMPAT__HAVE_XDP
@@ -3186,7 +3186,7 @@ static compat__stat64_ret_t nfp_net_stat64(struct net_device *netdev,
 		stats->tx_errors += data[2];
 	}
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0)
+#if VER_VANILLA_LT(4, 11) || VER_RHEL_LT(7, 5)
 	return stats;
 #endif
 }
@@ -3561,7 +3561,11 @@ const struct net_device_ops nfp_net_netdev_ops = {
 #endif
 	.ndo_tx_timeout		= nfp_net_tx_timeout,
 	.ndo_set_rx_mode	= nfp_net_set_rx_mode,
+#if VER_IS_VANILLA || VER_RHEL_LT(7, 5)
 	.ndo_change_mtu		= nfp_net_change_mtu,
+#elif VER_RHEL_GE(7, 5)
+	.ndo_change_mtu_rh74	= nfp_net_change_mtu,
+#endif
 	.ndo_set_mac_address	= nfp_net_set_mac_address,
 	.ndo_set_features	= nfp_net_set_features,
 #if COMPAT__HAVE_NDO_FEATURES_CHECK

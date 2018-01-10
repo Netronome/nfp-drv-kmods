@@ -75,7 +75,7 @@
 #include <linux/pci.h>
 #include <linux/err.h>
 #include <linux/etherdevice.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+#if VER_VANILLA_GE(4, 9) || VER_RHEL_GE(7, 5)
 #include <linux/bitfield.h>
 #endif
 #include <linux/random.h>
@@ -697,7 +697,7 @@ compat_debugfs_real_fops(const struct file *file)
 #endif /* >= 4.8 */
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 0)
+#if VER_VANILLA_LT(4, 9) || VER_RHEL_LT(7, 5)
 #define _c1(x)  ((x) & 1)
 #define _c2(x)  ((((x)& 0x0003) &&  !_c1(x)) * ( _c1((x) >>  1) +  1) +  _c1(x))
 #define _c4(x)  ((((x)& 0x000f) &&  !_c2(x)) * ( _c2((x) >>  2) +  2) +  _c2(x))
@@ -750,6 +750,13 @@ static inline void timer_setup(struct timer_list *t, void (*f)(unsigned long),
 
 #define from_timer(var, callback_timer, timer_fieldname)		\
 	container_of((void *)callback_timer, typeof(*var), timer_fieldname)
+#endif
+
+/* Kconfig will add this variable for RHEL 7.5+, however, we intentionally
+ * disable support for this feature.
+ */
+#if VER_RHEL_GE(7, 5)
+#undef CONFIG_NFP_APP_FLOWER
 #endif
 
 #endif /* __KERNEL__NFP_COMPAT_H__ */

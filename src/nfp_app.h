@@ -40,7 +40,7 @@
 #include <net/devlink.h>
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0)
+#if VER_VANILLA_GE(4, 8) || VER_RHEL_GE(7, 5)
 #include <trace/events/devlink.h>
 #endif
 

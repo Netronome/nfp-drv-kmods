@@ -89,7 +89,7 @@
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0))
 /* We only want to support switchdev with ops and attrs */
 #define COMPAT__HAVE_SWITCHDEV_ATTRS \
-	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0))
+	(VER_VANILLA_GE(4, 5) || VER_RHEL_GE(7, 5))
 
 #ifndef NETIF_F_HW_VLAN_CTAG_RX
 #define NETIF_F_HW_VLAN_CTAG_RX NETIF_F_HW_VLAN_RX
@@ -410,7 +410,7 @@ static inline void skb_free_frag(void *addr)
 }
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 2, 0)
+#if VER_VANILLA_LT(4, 2) || VER_RHEL_LT(7, 5)
 enum switchdev_attr_id {
 	SWITCHDEV_ATTR_ID_UNDEFINED,
 	SWITCHDEV_ATTR_ID_PORT_PARENT_ID,
@@ -554,7 +554,7 @@ static inline void page_ref_inc(struct page *page)
 }
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0)
+#if VER_VANILLA_LT(4, 8) || VER_RHEL_LT(7, 5)
 static inline void trace_devlink_hwmsg(void *devlink,
 				       bool incoming, unsigned long type,
 				       const u8 *buf, size_t len)
@@ -569,7 +569,7 @@ static inline int nfp_net_xdp_offload(struct nfp_net *nn, struct bpf_prog *prog)
 }
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0)
+#if VER_VANILLA_LT(4, 10) || VER_RHEL_LT(7, 5)
 #define is_tcf_mirred_egress_redirect is_tcf_mirred_redirect
 
 static inline int
@@ -581,7 +581,7 @@ compat__napi_complete_done(struct napi_struct *n, int work_done)
 #define napi_complete_done compat__napi_complete_done
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+#if VER_VANILLA_GE(4, 11) || VER_RHEL_GE(7, 5)
 typedef void compat__stat64_ret_t;
 #else
 typedef struct rtnl_link_stats64 *compat__stat64_ret_t;
@@ -639,7 +639,7 @@ tcf_exts_stats_update(const struct tcf_exts *exts,
 }
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0)
+#if VER_VANILLA_LT(4, 14) || VER_RHEL_LT(7, 5)
 struct tc_to_netdev;
 
 enum tc_setup_type {

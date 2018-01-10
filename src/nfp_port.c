@@ -92,8 +92,8 @@ const struct switchdev_ops nfp_port_switchdev_ops = {
 	.switchdev_port_attr_get	= nfp_port_attr_get,
 };
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
+#if VER_VANILLA_GE(4, 13) || VER_RHEL_GE(7, 5)
+#if VER_VANILLA_GE(4, 14) || VER_RHEL_GE(7, 5)
 int nfp_port_setup_tc(struct net_device *netdev, enum tc_setup_type type,
 		      void *type_data)
 #else
@@ -107,7 +107,7 @@ int nfp_port_setup_tc(struct net_device *netdev, u32 handle, u32 chain_index,
 	if (!port)
 		return -EOPNOTSUPP;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0)
+#if VER_VANILLA_LT(4, 14)
 	if (TC_H_MAJ(handle) != TC_H_MAJ(TC_H_INGRESS) || chain_index ||
 	    (tc->type == TC_SETUP_CLSFLOWER && !eth_proto_is_802_3(proto)))
 		return -EOPNOTSUPP;
