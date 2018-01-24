@@ -184,7 +184,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 		flower/main.o \
 		flower/tunnel_conf.o
 	else
-	  $(warning NFP: CONFIG_NET_SWITCHDEV not enabled in the kernel, disabling apps: flower)
+          $(warning NFP: CONFIG_NET_SWITCHDEV not enabled in the kernel, disabling apps: flower)
 	endif
       else
         $(warning NFP: RHEL kernel detected, disabling apps: flower)
