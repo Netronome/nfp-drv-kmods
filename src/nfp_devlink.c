@@ -180,6 +180,18 @@ static int nfp_devlink_eswitch_mode_get(struct devlink *devlink, u16 *mode)
 
 	return nfp_app_eswitch_mode_get(pf->app, mode);
 }
+
+static int nfp_devlink_eswitch_mode_set(struct devlink *devlink, u16 mode)
+{
+	struct nfp_pf *pf = devlink_priv(devlink);
+	int ret;
+
+	mutex_lock(&pf->lock);
+	ret = nfp_app_eswitch_mode_set(pf->app, mode);
+	mutex_unlock(&pf->lock);
+
+	return ret;
+}
 #endif
 
 const struct devlink_ops nfp_devlink_ops = {
@@ -191,6 +203,7 @@ const struct devlink_ops nfp_devlink_ops = {
 #endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0)
 	.eswitch_mode_get	= nfp_devlink_eswitch_mode_get,
+	.eswitch_mode_set	= nfp_devlink_eswitch_mode_set,
 #endif
 };
 
