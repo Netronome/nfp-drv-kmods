@@ -667,6 +667,15 @@ tc_setup_cb_egdev_unregister(const struct net_device *dev, tc_setup_cb_t *cb,
 }
 #endif
 
+#if (LINUX_VERSION_CODE == KERNEL_VERSION(4, 15, 0)) && !LINUX_RELEASE_4_16
+static inline bool
+tc_cls_can_offload_and_chain0(const struct net_device *dev,
+			      struct tc_cls_common_offload *common)
+{
+	return !common->chain_index;
+}
+#endif
+
 #ifdef COMPAT__HAVE_METADATA_IP_TUNNEL
 #if !LINUX_RELEASE_4_16
 static inline struct net_device *tcf_mirred_dev(const struct tc_action *action)
