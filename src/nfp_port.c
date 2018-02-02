@@ -34,6 +34,7 @@
 #include "nfp_net_compat.h"
 
 #include <linux/lockdep.h>
+#include <linux/netdevice.h>
 #if COMPAT__HAVE_SWITCHDEV_ATTRS
 #include <net/switchdev.h>
 #endif
@@ -118,6 +119,23 @@ int nfp_port_setup_tc(struct net_device *netdev, u32 handle, u32 chain_index,
 #endif
 }
 #endif
+
+int nfp_port_set_features(struct net_device *netdev, netdev_features_t features)
+{
+	struct nfp_port *port;
+
+	port = nfp_port_from_netdev(netdev);
+	if (!port)
+		return 0;
+
+	if ((netdev->features & NETIF_F_HW_TC) > (features & NETIF_F_HW_TC) &&
+	    port->tc_offload_cnt) {
+		netdev_err(netdev, "Cannot disable HW TC offload while offloads active\n");
+		return -EBUSY;
+	}
+
+	return 0;
+}
 
 struct nfp_port *
 nfp_port_from_id(struct nfp_pf *pf, enum nfp_port_type type, unsigned int id)
