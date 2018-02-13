@@ -1355,7 +1355,7 @@ static int adjust_head(struct nfp_prog *nfp_prog, struct nfp_insn_meta *meta)
 }
 
 static int
-map_lookup_stack(struct nfp_prog *nfp_prog, struct nfp_insn_meta *meta)
+map_call_stack_common(struct nfp_prog *nfp_prog, struct nfp_insn_meta *meta)
 {
 	struct bpf_offloaded_map *offmap;
 	struct nfp_bpf_map *nfp_map;
@@ -1381,7 +1381,7 @@ map_lookup_stack(struct nfp_prog *nfp_prog, struct nfp_insn_meta *meta)
 	 */
 	tid = ur_load_imm_any(nfp_prog, nfp_map->tid, imm_a(nfp_prog));
 
-	emit_br_relo(nfp_prog, BR_UNC, BR_OFF_RELO + BPF_FUNC_map_lookup_elem,
+	emit_br_relo(nfp_prog, BR_UNC, BR_OFF_RELO + meta->func_id,
 		     2, RELO_BR_HELPER);
 	ret_tgt = nfp_prog_current_offset(nfp_prog) + 2;
 
@@ -2329,7 +2329,7 @@ static int call(struct nfp_prog *nfp_prog, struct nfp_insn_meta *meta)
 	case BPF_FUNC_xdp_adjust_head:
 		return adjust_head(nfp_prog, meta);
 	case BPF_FUNC_map_lookup_elem:
-		return map_lookup_stack(nfp_prog, meta);
+		return map_call_stack_common(nfp_prog, meta);
 	default:
 		WARN_ONCE(1, "verifier allowed unsupported function\n");
 		return -EOPNOTSUPP;
