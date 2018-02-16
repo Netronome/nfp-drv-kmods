@@ -52,13 +52,6 @@
 #define RHEL_RELEASE_CODE 0
 #endif
 
-#include <linux/if_tun.h>
-#ifdef TUNSETSTEERINGEBPF
-#define LINUX_RELEASE_4_16	1
-#else
-#define LINUX_RELEASE_4_16	0
-#endif
-
 #define VER_VANILLA_LT(x, y)						\
 	(!RHEL_RELEASE_CODE && LINUX_VERSION_CODE < KERNEL_VERSION(x, y, 0))
 #define VER_VANILLA_GE(x, y)						\
@@ -768,7 +761,7 @@ static inline void timer_setup(struct timer_list *t, void (*f)(unsigned long),
 #undef CONFIG_NFP_APP_FLOWER
 #endif
 
-#if !LINUX_RELEASE_4_16
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
 struct xdp_rxq_info {
 	int empty;
 };

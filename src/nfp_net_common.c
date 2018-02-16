@@ -1664,7 +1664,7 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 	rcu_read_lock();
 	xdp_prog = READ_ONCE(dp->xdp_prog);
 	true_bufsz = xdp_prog ? PAGE_SIZE : dp->fl_bufsz;
-#if LINUX_RELEASE_4_16
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
 	xdp.rxq = &rx_ring->xdp_rxq;
 #endif
 	tx_ring = r_vec->xdp_ring;
@@ -3532,12 +3532,12 @@ static int nfp_net_xdp(struct net_device *netdev, struct netdev_bpf *xdp)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
 		xdp->prog_id = nn->xdp_prog ? nn->xdp_prog->aux->id : 0;
 #endif
-#if LINUX_RELEASE_4_16
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
 		xdp->prog_flags = nn->xdp_prog ? nn->xdp_flags : 0;
 #endif
 		return 0;
 	default:
-#if LINUX_RELEASE_4_16
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
 		return nfp_app_bpf(nn->app, nn, xdp);
 #else
 		return -EINVAL;
@@ -3737,7 +3737,7 @@ struct nfp_net *nfp_net_alloc(struct pci_dev *pdev, bool needs_netdev,
  */
 void nfp_net_free(struct nfp_net *nn)
 {
-#if COMPAT__HAVE_XDP && !LINUX_RELEASE_4_16
+#if COMPAT__HAVE_XDP && LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
 	if (nn->xdp_prog)
 		bpf_prog_put(nn->xdp_prog);
 #endif

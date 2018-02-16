@@ -54,7 +54,7 @@
 #else
 #include <linux/io-64-nonatomic-hi-lo.h>
 #endif
-#if LINUX_RELEASE_4_16
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
 #include <net/xdp.h>
 #endif
 
