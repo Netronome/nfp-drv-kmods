@@ -667,7 +667,8 @@ tc_setup_cb_egdev_unregister(const struct net_device *dev, tc_setup_cb_t *cb,
 }
 #endif
 
-#if LINUX_VERSION_CODE == KERNEL_VERSION(4, 15, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0) &&	\
+    LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
 static inline bool
 tc_cls_can_offload_and_chain0(const struct net_device *dev,
 			      struct tc_cls_common_offload *common)
