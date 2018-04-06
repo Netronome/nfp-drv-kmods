@@ -367,6 +367,8 @@ void nfp_cpp_mutex_free(struct nfp_cpp_mutex *mutex);
 int nfp_cpp_mutex_lock(struct nfp_cpp_mutex *mutex);
 int nfp_cpp_mutex_unlock(struct nfp_cpp_mutex *mutex);
 int nfp_cpp_mutex_trylock(struct nfp_cpp_mutex *mutex);
+int nfp_cpp_mutex_reclaim(struct nfp_cpp *cpp, int target,
+			  unsigned long long address);
 
 struct nfp_cpp_event;
 struct sigaction;
