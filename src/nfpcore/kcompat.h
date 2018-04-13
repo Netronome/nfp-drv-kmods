@@ -767,4 +767,10 @@ struct xdp_rxq_info {
 };
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 17, 0)
+static inline void pcie_print_link_status(struct pci_dev *dev)
+{
+}
+#endif
+
 #endif /* __KERNEL__NFP_COMPAT_H__ */
