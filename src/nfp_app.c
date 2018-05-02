@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Netronome Systems, Inc.
+ * Copyright (C) 2017-2018 Netronome Systems, Inc.
  *
  * This software is dual licensed under the GNU General License Version 2,
  * June 1991 as shown in the file COPYING in the top-level directory of this
@@ -48,7 +48,7 @@
 static const struct nfp_app_type *apps[] = {
 #ifdef CONFIG_NFP_NET_PF
 	[NFP_APP_CORE_NIC]	= &app_nic,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0) && \
+#if LINUX_RELEASE_4_18 && \
     defined(CONFIG_BPF_SYSCALL)
 	[NFP_APP_BPF_NIC]	= &app_bpf,
 #else

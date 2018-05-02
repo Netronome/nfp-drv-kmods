@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2017 Netronome Systems, Inc.
+ * Copyright (C) 2015-2018 Netronome Systems, Inc.
  *
  * This software is dual licensed under the GNU General License Version 2,
  * June 1991 as shown in the file COPYING in the top-level directory of this
@@ -83,6 +83,12 @@
 /* We only want to support switchdev with ops and attrs */
 #define COMPAT__HAVE_SWITCHDEV_ATTRS \
 	(VER_VANILLA_GE(4, 5) || VER_RHEL_GE(7, 5))
+
+#ifdef UDP_SEGMENT
+#define LINUX_RELEASE_4_18	1
+#else
+#define LINUX_RELEASE_4_18	0
+#endif
 
 #ifndef NETIF_F_HW_VLAN_CTAG_RX
 #define NETIF_F_HW_VLAN_CTAG_RX NETIF_F_HW_VLAN_RX

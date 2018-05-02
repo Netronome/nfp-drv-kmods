@@ -104,9 +104,9 @@ KERNEL_GE_4_9 := \
 	$(shell [ $(VERSION) -gt 4 -o \
 	\( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 9 \) ] && echo y)
 
-KERNEL_GE_4_17 := \
-	$(shell grep PFC_STORM_PREVENTION_AUTO \
-	$(srctree)/include/uapi/linux/ethtool.h > /dev/null && echo y)
+KERNEL_GE_4_18 := \
+	$(shell grep UDP_SEGMENT \
+	$(srctree)/include/uapi/linux/udp.h > /dev/null && echo y)
 
 ifeq ($(KERNEL_GE_4_9),y)
   nfp-objs += nfp_hwmon.o
@@ -149,7 +149,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 	       nfp_devlink.o
     endif
 
-    ifeq ($(KERNEL_GE_4_17),y)
+    ifeq ($(KERNEL_GE_4_18),y)
       ifeq ($(CONFIG_BPF_SYSCALL),y)
         nfp-objs += \
 		nfp_asm.o \
