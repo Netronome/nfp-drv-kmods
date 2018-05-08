@@ -61,7 +61,8 @@ for search_item in $FILTERS; do
 
     for fw in $(find "$path" -name "$pattern" 2>/dev/null); do
         version=$(readelf -p .note.build_info $fw 2>/dev/null | \
-                  grep -Eo 'Name:.*$' | cut -d' ' -f2)
+                  grep -Eo 'Name:.*$' | awk -F ':|J' '{print $2 $4 $6}' | \
+                  sed 's:\^:/:g' | tr -d ' ' | sed 's:/$::')
         [ -z "$version" ] && version="<UNKNOWN>"
         tag=""
         [ -L "$fw" ] && tag="symlink"
