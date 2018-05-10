@@ -560,6 +560,11 @@ static inline void page_ref_inc(struct page *page)
 {
 	atomic_inc(&page->_count);
 }
+
+static inline void napi_consume_skb(struct sk_buff *skb, int budget)
+{
+	dev_consume_skb_any(skb);
+}
 #endif
 
 #if VER_VANILLA_LT(4, 8) || VER_RHEL_LT(7, 5)
