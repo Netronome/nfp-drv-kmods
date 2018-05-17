@@ -249,12 +249,16 @@ nfp_flower_spawn_vnic_reprs(struct nfp_app *app,
 			err = -ENOMEM;
 			goto err_reprs_clean;
 		}
-		RCU_INIT_POINTER(reprs->reprs[i], repr);
 
 		/* For now we only support 1 PF */
 		WARN_ON(repr_type == NFP_REPR_TYPE_PF && i);
 
 		port = nfp_port_alloc(app, port_type, repr);
+		if (IS_ERR(port)) {
+			err = PTR_ERR(port);
+			nfp_repr_free(repr);
+			goto err_reprs_clean;
+		}
 		if (repr_type == NFP_REPR_TYPE_PF) {
 			port->pf_id = i;
 			port->vnic = priv->nn->dp.ctrl_bar;
@@ -273,9 +277,11 @@ nfp_flower_spawn_vnic_reprs(struct nfp_app *app,
 				    port_id, port, priv->nn->dp.netdev);
 		if (err) {
 			nfp_port_free(port);
+			nfp_repr_free(repr);
 			goto err_reprs_clean;
 		}
 
+		RCU_INIT_POINTER(reprs->reprs[i], repr);
 		nfp_info(app->cpp, "%s%d Representor(%s) created\n",
 			 repr_type == NFP_REPR_TYPE_PF ? "PF" : "VF", i,
 			 repr->name);
@@ -346,16 +352,17 @@ nfp_flower_spawn_phy_reprs(struct nfp_app *app, struct nfp_flower_priv *priv)
 			err = -ENOMEM;
 			goto err_reprs_clean;
 		}
-		RCU_INIT_POINTER(reprs->reprs[phys_port], repr);
 
 		port = nfp_port_alloc(app, NFP_PORT_PHYS_PORT, repr);
 		if (IS_ERR(port)) {
 			err = PTR_ERR(port);
+			nfp_repr_free(repr);
 			goto err_reprs_clean;
 		}
 		err = nfp_port_init_phy_port(app->pf, app, port, i);
 		if (err) {
 			nfp_port_free(port);
+			nfp_repr_free(repr);
 			goto err_reprs_clean;
 		}
 
@@ -367,6 +374,7 @@ nfp_flower_spawn_phy_reprs(struct nfp_app *app, struct nfp_flower_priv *priv)
 				    cmsg_port_id, port, priv->nn->dp.netdev);
 		if (err) {
 			nfp_port_free(port);
+			nfp_repr_free(repr);
 			goto err_reprs_clean;
 		}
 
@@ -375,6 +383,7 @@ nfp_flower_spawn_phy_reprs(struct nfp_app *app, struct nfp_flower_priv *priv)
 					     eth_tbl->ports[i].base,
 					     phys_port);
 
+		RCU_INIT_POINTER(reprs->reprs[phys_port], repr);
 		nfp_info(app->cpp, "Phys Port %d Representor(%s) created\n",
 			 phys_port, repr->name);
 	}
