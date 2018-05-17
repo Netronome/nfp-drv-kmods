@@ -39,6 +39,8 @@
 #ifndef NFP_MAIN_H
 #define NFP_MAIN_H
 
+#include "nfpcore/kcompat.h"
+
 #include <linux/ethtool.h>
 #include <linux/list.h>
 #include <linux/types.h>
@@ -46,10 +48,12 @@
 #include <linux/mutex.h>
 #include <linux/pci.h>
 #include <linux/workqueue.h>
+#if COMPAT__HAS_DEVLINK
+#include <net/devlink.h>
+#endif
 
 struct dentry;
 struct device;
-struct devlink_ops;
 struct pci_dev;
 struct platform_device;
 
@@ -63,6 +67,7 @@ struct nfp_nsp_identify;
 struct nfp_port;
 struct nfp_rtsym;
 struct nfp_rtsym_table;
+struct nfp_shared_buf;
 
 /**
  * struct nfp_dumpspec - NFP FW dump specification structure
@@ -115,6 +120,8 @@ struct nfp_dumpspec {
  * @ports:		Linked list of port structures (struct nfp_port)
  * @wq:			Workqueue for running works which need to grab @lock
  * @port_refresh_work:	Work entry for taking netdevs out
+ * @shared_bufs:	Array of shared buffer structures if FW has any SBs
+ * @num_shared_bufs:	Number of elements in @shared_bufs
  * @lock:		Protects all fields which may change after probe
  */
 struct nfp_pf {
@@ -172,6 +179,9 @@ struct nfp_pf {
 
 	struct workqueue_struct *wq;
 	struct work_struct port_refresh_work;
+
+	struct nfp_shared_buf *shared_bufs;
+	unsigned int num_shared_bufs;
 
 	struct mutex lock;
 };
@@ -246,4 +256,22 @@ s64 nfp_net_dump_calculate_size(struct nfp_pf *pf, struct nfp_dumpspec *spec,
 int nfp_net_dump_populate_buffer(struct nfp_pf *pf, struct nfp_dumpspec *spec,
 				 struct ethtool_dump *dump_param, void *dest);
 
+#if COMPAT__HAS_DEVLINK_SB
+int nfp_shared_buf_register(struct nfp_pf *pf);
+void nfp_shared_buf_unregister(struct nfp_pf *pf);
+int nfp_shared_buf_pool_get(struct nfp_pf *pf, unsigned int sb, u16 pool_index,
+			    struct devlink_sb_pool_info *pool_info);
+int nfp_shared_buf_pool_set(struct nfp_pf *pf, unsigned int sb,
+			    u16 pool_index, u32 size,
+			    enum devlink_sb_threshold_type threshold_type);
+#else
+static inline int nfp_shared_buf_register(struct nfp_pf *pf)
+{
+	return 0;
+}
+
+static inline void nfp_shared_buf_unregister(struct nfp_pf *pf)
+{
+}
+#endif
 #endif /* NFP_MAIN_H */
