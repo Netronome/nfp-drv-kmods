@@ -711,9 +711,16 @@ xdp_rxq_info_reg(struct xdp_rxq_info *xdp_rxq, struct net_device *dev, u32 q)
 #endif
 
 #if COMPAT__HAS_DEVLINK && !LINUX_RELEASE_4_18
+enum devlink_port_flavour {
+	DEVLINK_PORT_FLAVOUR_PHYSICAL,
+	DEVLINK_PORT_FLAVOUR_CPU,
+	DEVLINK_PORT_FLAVOUR_DSA,
+};
+
 static inline void
-devlink_port_attrs_set(struct devlink_port *devlink_port, u32 port_number,
-		       bool split, u32 split_subport_number)
+devlink_port_attrs_set(struct devlink_port *devlink_port,
+		       enum devlink_port_flavour flavour,
+		       u32 port_number, bool split, u32 split_subport_number)
 {
 	if (split)
 		devlink_port_split_set(devlink_port, port_number);
