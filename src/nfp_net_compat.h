@@ -42,6 +42,8 @@
 #ifndef _NFP_NET_COMPAT_H_
 #define _NFP_NET_COMPAT_H_
 
+#include "nfpcore/kcompat.h"
+
 #include <asm/barrier.h>
 #include <linux/bitops.h>
 #include <linux/ethtool.h>
@@ -56,16 +58,17 @@
 #include <linux/pci.h>
 #include <linux/skbuff.h>
 #include <linux/udp.h>
-#include <linux/version.h>
 
 #include <net/act_api.h>
 #include <net/pkt_cls.h>
+#if COMPAT__HAS_DEVLINK
+#include <net/devlink.h>
+#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
 #include <net/switchdev.h>
 #endif
 #include <net/tc_act/tc_mirred.h>
 
-#include "nfpcore/kcompat.h"
 #include "nfp_net.h"
 
 #define COMPAT__HAVE_VXLAN_OFFLOAD \
@@ -707,4 +710,13 @@ xdp_rxq_info_reg(struct xdp_rxq_info *xdp_rxq, struct net_device *dev, u32 q)
 }
 #endif
 
+#if COMPAT__HAS_DEVLINK && !LINUX_RELEASE_4_18
+static inline void
+devlink_port_attrs_set(struct devlink_port *devlink_port, u32 port_number,
+		       bool split, u32 split_subport_number)
+{
+	if (split)
+		devlink_port_split_set(devlink_port, port_number);
+}
+#endif
 #endif /* _NFP_NET_COMPAT_H_ */
