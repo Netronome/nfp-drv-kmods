@@ -1465,7 +1465,7 @@ nfp_cpp_from_operations(const struct nfp_cpp_operations *ops,
 {
 	const u32 arm = NFP_CPP_ID(NFP_CPP_TARGET_ARM, NFP_CPP_ACTION_RW, 0);
 	struct nfp_cpp *cpp;
-	int id, err;
+	int id, ifc, err;
 	u32 mask[2];
 	u32 xpbaddr;
 	size_t tgt;
@@ -1485,9 +1485,19 @@ nfp_cpp_from_operations(const struct nfp_cpp_operations *ops,
 	cpp->id = id;
 	cpp->op = ops;
 	cpp->priv = priv;
-	cpp->interface = ops->get_interface(parent);
-	if (ops->read_serial)
-		ops->read_serial(parent, cpp->serial);
+
+	ifc = ops->get_interface(parent);
+	if (ifc < 0) {
+		err = ifc;
+		goto err_free_cpp;
+	}
+	cpp->interface = ifc;
+	if (ops->read_serial) {
+		err = ops->read_serial(parent, cpp->serial);
+		if (err)
+			goto err_free_cpp;
+	}
+
 	kref_init(&cpp->kref);
 	rwlock_init(&cpp->resource_lock);
 	init_waitqueue_head(&cpp->waitq);
@@ -1501,7 +1511,7 @@ nfp_cpp_from_operations(const struct nfp_cpp_operations *ops,
 	err = device_register(&cpp->dev);
 	if (err < 0) {
 		put_device(&cpp->dev);
-		goto err_dev;
+		goto err_free_cpp;
 	}
 
 	dev_set_drvdata(&cpp->dev, cpp);
@@ -1560,7 +1570,7 @@ err_out:
 	device_remove_file(&cpp->dev, &dev_attr_area);
 err_attr:
 	device_unregister(&cpp->dev);
-err_dev:
+err_free_cpp:
 	kfree(cpp);
 err_malloc:
 	nfp_cpp_id_release(id);

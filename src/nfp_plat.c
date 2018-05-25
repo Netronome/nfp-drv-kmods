@@ -305,7 +305,7 @@ static void expa_set(struct nfp_plat *priv, u32 csr, unsigned int id)
 			csr);
 }
 
-static u16 nfp_plat_get_interface(struct device *dev)
+static int nfp_plat_get_interface(struct device *dev)
 {
 	return NFP_CPP_INTERFACE(NFP_CPP_INTERFACE_TYPE_ARM,
 				 0,
