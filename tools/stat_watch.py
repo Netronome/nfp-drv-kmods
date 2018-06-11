@@ -51,9 +51,6 @@ def intr(signal, frame):
 signal.signal(signal.SIGINT, intr)
 
 
-def now():
-        return int(time.time() * 1000)
-
 def usage():
         print "Usage: %s [-E] [-c] [-crx] [-ctx] [-f pattern] [-x pattern] IFC" % \
                 sys.argv[0]
@@ -148,8 +145,8 @@ def get_sysfs_stats():
 
         return out
 
+clock = time.time()
 while True:
-        clock = now()
         columns = 80
 
         try:
@@ -216,4 +213,11 @@ while True:
         os.system("clear")
         sys.stdout.write(pr)
 
-        time.sleep(max(0, 1.0 - (now() - clock) / 1000.0))
+        now = time.time()
+        sleep_time = 1.0 - (now - clock)
+        if sleep_time < 0:
+                sys.stderr.write("Warning: refresh time over 1 sec")
+                clock = time.time()
+        else:
+                time.sleep(sleep_time)
+                clock += 1
