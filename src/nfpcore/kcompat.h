@@ -774,4 +774,7 @@ static inline void pcie_print_link_status(struct pci_dev *dev)
 }
 #endif
 
+#ifndef check_mul_overflow
+#define array_size(a, b)	((a) * (b))
+#endif
 #endif /* __KERNEL__NFP_COMPAT_H__ */
