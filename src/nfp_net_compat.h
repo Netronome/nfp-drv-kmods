@@ -789,5 +789,14 @@ xdp_attachment_setup(struct xdp_attachment_info *info, struct netdev_bpf *bpf)
 #endif
 }
 #endif /* COMPAT__HAVE_XDP */
+
+static inline int bpf_offload_dev_netdev_register(struct net_device *dev)
+{
+	return 0;
+}
+
+static inline void bpf_offload_dev_netdev_unregister(struct net_device *dev)
+{
+}
 #endif
 #endif /* _NFP_NET_COMPAT_H_ */
