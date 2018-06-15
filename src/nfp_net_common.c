@@ -1755,8 +1755,7 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 		}
 
 #if COMPAT__HAVE_XDP
-		if (xdp_prog && !(rxd->rxd.flags & PCIE_DESC_RX_BPF &&
-				  dp->bpf_offload_xdp) && !meta.portid) {
+		if (xdp_prog && !meta.portid) {
 			void *orig_data = rxbuf->frag + pkt_off;
 			unsigned int dma_off;
 			int act;
@@ -3491,14 +3490,22 @@ static void nfp_net_del_vxlan_port(struct net_device *netdev,
 #endif /* COMPAT__HAVE_VXLAN_OFFLOAD */
 
 #if COMPAT__HAVE_XDP
-static int
-nfp_net_xdp_setup_drv(struct nfp_net *nn, struct bpf_prog *prog,
-		      struct netlink_ext_ack *extack)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
+static int nfp_net_xdp_setup_drv(struct nfp_net *nn, struct netdev_xdp *bpf)
+#else
+static int nfp_net_xdp_setup_drv(struct nfp_net *nn, struct netdev_bpf *bpf)
+#endif
 {
+	struct bpf_prog *prog = bpf->prog;
 	struct nfp_net_dp *dp;
+	int err;
+
+	if (!xdp_attachment_flags_ok(&nn->xdp, bpf))
+		return -EBUSY;
 
 	if (!prog == !nn->dp.xdp_prog) {
 		WRITE_ONCE(nn->dp.xdp_prog, prog);
+		xdp_attachment_setup(&nn->xdp, bpf);
 		return 0;
 	}
 
@@ -3512,42 +3519,30 @@ nfp_net_xdp_setup_drv(struct nfp_net *nn, struct bpf_prog *prog,
 	dp->rx_dma_off = prog ? XDP_PACKET_HEADROOM - nn->dp.rx_offset : 0;
 
 	/* We need RX reconfig to remap the buffers (BIDIR vs FROM_DEV) */
-	return nfp_net_ring_reconfig(nn, dp, extack);
-}
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
-static int nfp_net_xdp_setup(struct nfp_net *nn, struct netdev_xdp *bpf)
-#else
-static int nfp_net_xdp_setup(struct nfp_net *nn, struct netdev_bpf *bpf)
-#endif
-{
-	struct bpf_prog *drv_prog, *offload_prog;
-	int err;
-
-	if (!xdp_attachment_flags_ok(&nn->xdp, bpf))
-		return -EBUSY;
-
-	/* Load both when no flags set to allow easy activation of driver path
-	 * when program is replaced by one which can't be offloaded.
-	 */
-	drv_prog     = compat__xdp_flags(bpf) & XDP_FLAGS_HW_MODE  ?
-		NULL : bpf->prog;
-	offload_prog = compat__xdp_flags(bpf) & XDP_FLAGS_DRV_MODE ?
-		NULL : bpf->prog;
-
-	err = nfp_net_xdp_setup_drv(nn, drv_prog, compat__xdp_extact(bpf));
+	err = nfp_net_ring_reconfig(nn, dp, compat__xdp_extact(bpf));
 	if (err)
 		return err;
 
-	err = nfp_app_xdp_offload(nn->app, nn, offload_prog,
-				  compat__xdp_extact(bpf));
-	if (err && compat__xdp_flags(bpf) & XDP_FLAGS_HW_MODE)
-		return err;
-
 	xdp_attachment_setup(&nn->xdp, bpf);
-
 	return 0;
 }
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
+static int nfp_net_xdp_setup_hw(struct nfp_net *nn, struct netdev_bpf *bpf)
+{
+	int err;
+
+	if (!xdp_attachment_flags_ok(&nn->xdp_hw, bpf))
+		return -EBUSY;
+
+	err = nfp_app_xdp_offload(nn->app, nn, bpf->prog, bpf->extack);
+	if (err)
+		return err;
+
+	xdp_attachment_setup(&nn->xdp_hw, bpf);
+	return 0;
+}
+#endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
 static int nfp_net_xdp(struct net_device *netdev, struct netdev_xdp *xdp)
@@ -3559,22 +3554,20 @@ static int nfp_net_xdp(struct net_device *netdev, struct netdev_bpf *xdp)
 
 	switch (xdp->command) {
 	case XDP_SETUP_PROG:
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
+		return nfp_net_xdp_setup_drv(nn, xdp);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
 	case XDP_SETUP_PROG_HW:
+		return nfp_net_xdp_setup_hw(nn, xdp);
 #endif
-		return nfp_net_xdp_setup(nn, xdp);
 	case XDP_QUERY_PROG:
 #if !LINUX_RELEASE_4_19
-		return xdp_attachment_query(&nn->xdp, xdp);
+		if (nn->xdp.prog)
+			return xdp_attachment_query(&nn->xdp, xdp);
 #else
-		if (nn->dp.bpf_offload_xdp)
-			return 0;
 		return xdp_attachment_query(&nn->xdp, xdp);
 	case XDP_QUERY_PROG_HW:
-		if (!nn->dp.bpf_offload_xdp)
-			return 0;
-		return xdp_attachment_query(&nn->xdp, xdp);
 #endif
+		return xdp_attachment_query(&nn->xdp_hw, xdp);
 	default:
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
 		return nfp_app_bpf(nn->app, nn, xdp);
