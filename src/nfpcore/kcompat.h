@@ -102,9 +102,9 @@
 #include <linux/random.h>
 
 #ifdef GRO_HASH_BUCKETS
-#define LINUX_RELEASE_4_19     1
+#define LINUX_RELEASE_4_19	1
 #else
-#define LINUX_RELEASE_4_19     0
+#define LINUX_RELEASE_4_19	0
 #endif
 
 #ifndef PCI_VENDOR_ID_NETRONOME
@@ -853,5 +853,10 @@ static inline struct reciprocal_value_adv reciprocal_value_adv(u32 d, u8 prec)
 
 	return R;
 }
+
+struct xdp_attachment_info {
+	struct bpf_prog *prog;
+	u32 flags;
+};
 #endif
 #endif /* __KERNEL__NFP_COMPAT_H__ */

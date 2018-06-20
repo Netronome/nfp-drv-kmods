@@ -46,6 +46,9 @@
 
 #include <asm/barrier.h>
 #include <linux/bitops.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
+#include <linux/bpf.h>
+#endif
 #include <linux/ethtool.h>
 #include <linux/compiler.h>
 #include <linux/if_vlan.h>
@@ -612,8 +615,6 @@ static inline struct netlink_ext_ack *compat__xdp_extact(struct netdev_xdp *xdp)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
 #define compat__xdp_flags(xdp)		(xdp)->flags
 #else
-#define XDP_ATTACHED_HW			true
-
 static inline u32 compat__xdp_flags(struct netdev_xdp *xdp)
 {
 	return 0;
@@ -735,5 +736,58 @@ devlink_port_attrs_set(struct devlink_port *devlink_port,
 #if !LINUX_RELEASE_4_19
 #define tcf_block_cb_register(block, cb, ident, priv, ea)	\
 	tcf_block_cb_register(block, cb, ident, priv)
+
+#if COMPAT__HAVE_XDP
+static inline int
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
+xdp_attachment_query(struct xdp_attachment_info *info, struct netdev_xdp *bpf)
+#else
+xdp_attachment_query(struct xdp_attachment_info *info, struct netdev_bpf *bpf)
+#endif
+{
+	bpf->prog_attached = !!info->prog;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
+	if (info->flags & XDP_FLAGS_HW_MODE)
+		bpf->prog_attached = XDP_ATTACHED_HW;
+	bpf->prog_id = info->prog ? info->prog->aux->id : 0;
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
+	bpf->prog_flags = info->prog ? info->flags : 0;
+#endif
+	return 0;
+}
+
+static inline bool xdp_attachment_flags_ok(struct xdp_attachment_info *info,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
+					   struct netdev_xdp *bpf)
+#else
+					   struct netdev_bpf *bpf)
+#endif
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
+	if (info->prog && (bpf->flags ^ info->flags) & XDP_FLAGS_MODES) {
+		NL_SET_ERR_MSG(bpf->extack,
+			       "program loaded with different flags");
+		return false;
+	}
+#endif
+	return true;
+}
+
+static inline void
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
+xdp_attachment_setup(struct xdp_attachment_info *info, struct netdev_xdp *bpf)
+#else
+xdp_attachment_setup(struct xdp_attachment_info *info, struct netdev_bpf *bpf)
+#endif
+{
+	if (info->prog)
+		bpf_prog_put(info->prog);
+	info->prog = bpf->prog;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
+	info->flags = bpf->flags;
+#endif
+}
+#endif /* COMPAT__HAVE_XDP */
 #endif
 #endif /* _NFP_NET_COMPAT_H_ */
