@@ -790,12 +790,29 @@ xdp_attachment_setup(struct xdp_attachment_info *info, struct netdev_bpf *bpf)
 }
 #endif /* COMPAT__HAVE_XDP */
 
-static inline int bpf_offload_dev_netdev_register(struct net_device *dev)
+struct bpf_offload_dev {
+	u32 empty;
+};
+
+static inline int
+bpf_offload_dev_netdev_register(struct bpf_offload_dev *bpf_dev,
+				struct net_device *dev)
 {
 	return 0;
 }
 
-static inline void bpf_offload_dev_netdev_unregister(struct net_device *dev)
+static inline void
+bpf_offload_dev_netdev_unregister(struct bpf_offload_dev *bpf_dev,
+				  struct net_device *dev)
+{
+}
+
+static inline struct bpf_offload_dev *bpf_offload_dev_create(void)
+{
+	return NULL;
+}
+
+static inline void bpf_offload_dev_destroy(struct bpf_offload_dev *bpf_dev)
 {
 }
 #endif
