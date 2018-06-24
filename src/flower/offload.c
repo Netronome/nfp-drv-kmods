@@ -580,9 +580,9 @@ nfp_flower_repr_offload(struct nfp_app *app, struct net_device *netdev,
 		return nfp_flower_del_offload(app, netdev, flower, egress);
 	case TC_CLSFLOWER_STATS:
 		return nfp_flower_get_stats(app, netdev, flower, egress);
+	default:
+		return -EOPNOTSUPP;
 	}
-
-	return -EOPNOTSUPP;
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
