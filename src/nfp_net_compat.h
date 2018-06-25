@@ -93,6 +93,12 @@
 #define LINUX_RELEASE_4_18	0
 #endif
 
+#ifdef GRO_HASH_BUCKETS
+#define LINUX_RELEASE_4_19	1
+#else
+#define LINUX_RELEASE_4_19	0
+#endif
+
 #ifndef NETIF_F_HW_VLAN_CTAG_RX
 #define NETIF_F_HW_VLAN_CTAG_RX NETIF_F_HW_VLAN_RX
 #endif
@@ -729,5 +735,10 @@ devlink_port_attrs_set(struct devlink_port *devlink_port,
 	if (split)
 		devlink_port_split_set(devlink_port, port_number);
 }
+#endif
+
+#if !LINUX_RELEASE_4_19
+#define tcf_block_cb_register(block, cb, ident, priv, ea)	\
+	tcf_block_cb_register(block, cb, ident, priv)
 #endif
 #endif /* _NFP_NET_COMPAT_H_ */
