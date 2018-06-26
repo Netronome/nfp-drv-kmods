@@ -698,6 +698,10 @@ static inline struct net_device *tcf_mirred_dev(const struct tc_action *action)
 #endif
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0) || !defined(CONFIG_NET_CLS)
+#define tcf_block_shared(b)	false
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
 static inline void xdp_rxq_info_unreg(struct xdp_rxq_info *xdp_rxq)
 {
