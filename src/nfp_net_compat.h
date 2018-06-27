@@ -815,5 +815,20 @@ static inline struct bpf_offload_dev *bpf_offload_dev_create(void)
 static inline void bpf_offload_dev_destroy(struct bpf_offload_dev *bpf_dev)
 {
 }
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
+static inline bool
+compat_bpf_offload_dev_match(struct bpf_prog *prog, struct net_device *dev)
+{
+	struct bpf_prog_offload *offload = prog->aux->offload;
+
+	if (!offload)
+		return false;
+	if (offload->netdev != dev)
+		return false;
+	return true;
+}
+#define bpf_offload_dev_match(prog, dev) compat_bpf_offload_dev_match(prog, dev)
 #endif
+#endif /* !LINUX_RELEASE_4_19 */
 #endif /* _NFP_NET_COMPAT_H_ */
