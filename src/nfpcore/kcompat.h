@@ -808,6 +808,17 @@ static inline void pcie_print_link_status(struct pci_dev *dev)
 #define array_size(a, b)	((a) * (b))
 #endif
 
+static inline void compat_pci_sriov_reset_totalvfs(struct pci_dev *dev)
+{
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
+	/* On kernels older than 4.18 setting the limit to 0 meant we have no
+	 * limit at all.  Now the core resets this value after driver remove,
+	 * and 0 is a legitimate limit value.
+	 */
+	pci_sriov_set_totalvfs(dev, 0);
+#endif
+}
+
 #if !LINUX_RELEASE_4_19
 struct reciprocal_value_adv {
 	u32 m;

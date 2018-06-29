@@ -292,7 +292,7 @@ static int nfp_pcie_sriov_read_nfd_limit(struct nfp_pf *pf)
 		return pci_sriov_set_totalvfs(pf->pdev, pf->limit_vfs);
 
 	pf->limit_vfs = ~0;
-	pci_sriov_set_totalvfs(pf->pdev, 0); /* 0 is unset */
+	compat_pci_sriov_reset_totalvfs(pf->pdev);
 	/* Allow any setting for backwards compatibility if symbol not found */
 	if (err == -ENOENT)
 		return 0;
@@ -884,7 +884,7 @@ err_net_remove:
 err_dev_cpp_unreg:
 	if (pf->nfp_dev_cpp)
 		nfp_platform_device_unregister(pf->nfp_dev_cpp);
-	pci_sriov_set_totalvfs(pf->pdev, 0);
+	compat_pci_sriov_reset_totalvfs(pf->pdev);
 err_fw_unload:
 	kfree(pf->rtbl);
 	nfp_mip_close(pf->mip);
@@ -927,7 +927,7 @@ static void nfp_pci_remove(struct pci_dev *pdev)
 	nfp_sriov_attr_remove(&pdev->dev);
 #endif
 	nfp_pcie_sriov_disable(pdev);
-	pci_sriov_set_totalvfs(pf->pdev, 0);
+	compat_pci_sriov_reset_totalvfs(pf->pdev);
 
 	if (nfp_pf_netdev && pf->app)
 		nfp_net_pci_remove(pf);
