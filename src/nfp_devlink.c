@@ -93,7 +93,7 @@ nfp_devlink_set_lanes(struct nfp_pf *pf, unsigned int idx, unsigned int lanes)
 }
 
 static int
-#if !LINUX_RELEASE_4_18
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
 nfp_devlink_port_split(struct devlink *devlink, unsigned int port_index,
 		       unsigned int count)
 #else
@@ -130,7 +130,7 @@ out:
 }
 
 static int
-#if !LINUX_RELEASE_4_18
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
 nfp_devlink_port_unsplit(struct devlink *devlink, unsigned int port_index)
 #else
 nfp_devlink_port_unsplit(struct devlink *devlink, unsigned int port_index,

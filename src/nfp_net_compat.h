@@ -87,12 +87,6 @@
 #define COMPAT__HAVE_SWITCHDEV_ATTRS \
 	(VER_VANILLA_GE(4, 5) || VER_RHEL_GE(7, 5))
 
-#ifdef UDP_SEGMENT
-#define LINUX_RELEASE_4_18	1
-#else
-#define LINUX_RELEASE_4_18	0
-#endif
-
 #ifdef GRO_HASH_BUCKETS
 #define LINUX_RELEASE_4_19	1
 #else
@@ -725,7 +719,7 @@ xdp_rxq_info_reg(struct xdp_rxq_info *xdp_rxq, struct net_device *dev, u32 q)
 }
 #endif
 
-#if COMPAT__HAS_DEVLINK && !LINUX_RELEASE_4_18
+#if COMPAT__HAS_DEVLINK && LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
 enum devlink_port_flavour {
 	DEVLINK_PORT_FLAVOUR_PHYSICAL,
 	DEVLINK_PORT_FLAVOUR_CPU,

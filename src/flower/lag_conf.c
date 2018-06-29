@@ -563,7 +563,7 @@ nfp_fl_lag_changeupper_event(struct nfp_fl_lag *lag,
 
 	lag_upper_info = info->upper_info;
 
-#if LINUX_RELEASE_4_18
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
 	/* Firmware supports active/backup and L3/L4 hash bonds. */
 	if (lag_upper_info &&
 	    lag_upper_info->tx_type != NETDEV_LAG_TX_TYPE_ACTIVEBACKUP &&
