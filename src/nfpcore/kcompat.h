@@ -38,6 +38,7 @@
 #ifndef __KERNEL__NFP_COMPAT_H__
 #define __KERNEL__NFP_COMPAT_H__
 
+#include <generated/utsrelease.h>
 #include <linux/version.h>
 
 /* RHEL has a tendency to heavily patch their kernels.  Sometimes it
@@ -52,10 +53,25 @@
 #define RHEL_RELEASE_CODE 0
 #endif
 
-#define VER_NON_RHEL_LT(x, y)						\
-	(!RHEL_RELEASE_CODE && LINUX_VERSION_CODE < KERNEL_VERSION(x, y, 0))
-#define VER_NON_RHEL_GE(x, y)						\
-	(!RHEL_RELEASE_CODE && LINUX_VERSION_CODE >= KERNEL_VERSION(x, y, 0))
+#ifndef UTS_UBUNTU_RELEASE_ABI
+#define UTS_UBUNTU_RELEASE_ABI 0
+#endif
+
+#define VER_IS_VANILLA	(!RHEL_RELEASE_CODE && !UTS_UBUNTU_RELEASE_ABI)
+
+#define VER_KERN_LT(x, y)	(LINUX_VERSION_CODE <  KERNEL_VERSION(x, y, 0))
+#define VER_KERN_GE(x, y)	(LINUX_VERSION_CODE >= KERNEL_VERSION(x, y, 0))
+#define VER_KERN_EQ(x, y)	(VER_KERN_GE(x, y) && VER_KERN_LT(x, y + 1))
+
+#define VER_VANILLA_LT(x, y)	(VER_IS_VANILLA && VER_KERN_LT(x, y))
+
+#define VER_UBUNTU_LT(x, y, z)						\
+	(UTS_UBUNTU_RELEASE_ABI &&					\
+	 ((VER_KERN_EQ(x, y) && UTS_UBUNTU_RELEASE_ABI < (z)) ||	\
+	  VER_KERN_LT(x, y)))
+
+#define VER_NON_RHEL_LT(x, y)	(!RHEL_RELEASE_CODE && VER_KERN_LT(x, y))
+#define VER_NON_RHEL_GE(x, y)	(!RHEL_RELEASE_CODE && VER_KERN_GE(x, y))
 #define VER_RHEL_LT(x, y)						\
 	(RHEL_RELEASE_CODE && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(x, y))
 #define VER_RHEL_GE(x, y)						\

@@ -554,7 +554,9 @@ static inline void page_ref_inc(struct page *page)
 {
 	atomic_inc(&page->_count);
 }
+#endif
 
+#if VER_VANILLA_LT(4, 6) || VER_UBUNTU_LT(4, 4, 21) || VER_RHEL_LT(7, 3)
 static inline void napi_consume_skb(struct sk_buff *skb, int budget)
 {
 	dev_consume_skb_any(skb);
