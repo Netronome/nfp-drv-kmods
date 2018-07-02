@@ -43,7 +43,7 @@
 
 #include "nfp_net_compat.h"
 
-#if VER_VANILLA_GE(4, 9) || VER_RHEL_GE(7, 5)
+#if VER_NON_RHEL_GE(4, 9) || VER_RHEL_GE(7, 5)
 #include <linux/bitfield.h>
 #endif
 #if COMPAT__HAVE_XDP
@@ -3236,7 +3236,7 @@ static compat__stat64_ret_t nfp_net_stat64(struct net_device *netdev,
 		stats->tx_errors += data[2];
 	}
 
-#if VER_VANILLA_LT(4, 11) || VER_RHEL_LT(7, 5)
+#if VER_NON_RHEL_LT(4, 11) || VER_RHEL_LT(7, 5)
 	return stats;
 #endif
 }
@@ -3372,7 +3372,7 @@ nfp_net_features_check(struct sk_buff *skb, struct net_device *dev,
 }
 #endif
 
-#if VER_VANILLA_GE(4, 1) || VER_RHEL_GE(7, 4)
+#if VER_NON_RHEL_GE(4, 1) || VER_RHEL_GE(7, 4)
 static int
 nfp_net_get_phys_port_name(struct net_device *netdev, char *name, size_t len)
 {
@@ -3615,7 +3615,7 @@ const struct net_device_ops nfp_net_netdev_ops = {
 	.ndo_poll_controller	= nfp_net_netpoll,
 #endif
 	.ndo_set_vf_mac         = nfp_app_set_vf_mac,
-#if VER_IS_VANILLA || VER_RHEL_LT(7, 4)
+#if VER_IS_NON_RHEL || VER_RHEL_LT(7, 4)
 	.ndo_set_vf_vlan        = nfp_app_set_vf_vlan,
 #endif
 	.ndo_set_vf_spoofchk    = nfp_app_set_vf_spoofchk,
@@ -3628,7 +3628,7 @@ const struct net_device_ops nfp_net_netdev_ops = {
 #endif
 	.ndo_tx_timeout		= nfp_net_tx_timeout,
 	.ndo_set_rx_mode	= nfp_net_set_rx_mode,
-#if VER_IS_VANILLA || VER_RHEL_LT(7, 5)
+#if VER_IS_NON_RHEL || VER_RHEL_LT(7, 5)
 	.ndo_change_mtu		= nfp_net_change_mtu,
 #elif VER_RHEL_GE(7, 5)
 	.ndo_change_mtu_rh74	= nfp_net_change_mtu,
@@ -3641,10 +3641,10 @@ const struct net_device_ops nfp_net_netdev_ops = {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
 	.ndo_get_phys_port_name	= nfp_net_get_phys_port_name,
 #endif
-#if VER_IS_VANILLA && COMPAT__HAVE_UDP_OFFLOAD
+#if VER_IS_NON_RHEL && COMPAT__HAVE_UDP_OFFLOAD
 	.ndo_udp_tunnel_add	= nfp_net_add_vxlan_port,
 	.ndo_udp_tunnel_del	= nfp_net_del_vxlan_port,
-#elif VER_IS_VANILLA && COMPAT__HAVE_VXLAN_OFFLOAD
+#elif VER_IS_NON_RHEL && COMPAT__HAVE_VXLAN_OFFLOAD
 	.ndo_add_vxlan_port     = nfp_net_add_vxlan_port,
 	.ndo_del_vxlan_port     = nfp_net_del_vxlan_port,
 #endif

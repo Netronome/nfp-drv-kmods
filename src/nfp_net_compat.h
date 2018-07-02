@@ -72,11 +72,11 @@
 #include "nfp_net.h"
 
 #define COMPAT__HAVE_VXLAN_OFFLOAD \
-	(VER_VANILLA_GE(3, 12) || VER_RHEL_GE(7, 4))
+	(VER_NON_RHEL_GE(3, 12) || VER_RHEL_GE(7, 4))
 #define COMPAT__HAVE_NDO_FEATURES_CHECK \
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0))
 #define COMPAT__HAVE_UDP_OFFLOAD \
-	(VER_VANILLA_GE(4, 8) || VER_RHEL_GE(7, 4))
+	(VER_NON_RHEL_GE(4, 8) || VER_RHEL_GE(7, 4))
 #define COMPAT__HAVE_XDP \
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0))
 #define COMPAT__HAVE_XDP_ADJUST_HEAD \
@@ -85,7 +85,7 @@
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0))
 /* We only want to support switchdev with ops and attrs */
 #define COMPAT__HAVE_SWITCHDEV_ATTRS \
-	(VER_VANILLA_GE(4, 5) || VER_RHEL_GE(7, 5))
+	(VER_NON_RHEL_GE(4, 5) || VER_RHEL_GE(7, 5))
 
 #ifdef GRO_HASH_BUCKETS
 #define LINUX_RELEASE_4_19	1
@@ -234,7 +234,7 @@ ns___vlan_hwaccel_put_tag(struct sk_buff *skb, __be16 vlan_proto,
 #define __vlan_hwaccel_put_tag ns___vlan_hwaccel_put_tag
 #endif
 
-#if VER_VANILLA_LT(3, 11) || VER_RHEL_LT(7, 0)
+#if VER_NON_RHEL_LT(3, 11) || VER_RHEL_LT(7, 0)
 enum {
 	IFLA_VF_LINK_STATE_AUTO,	/* link state of the uplink */
 	IFLA_VF_LINK_STATE_ENABLE,	/* link always up */
@@ -243,7 +243,7 @@ enum {
 };
 #endif
 
-#if VER_VANILLA_LT(3, 13) || VER_RHEL_LT(7, 1)
+#if VER_NON_RHEL_LT(3, 13) || VER_RHEL_LT(7, 1)
 static inline void u64_stats_init(struct u64_stats_sync *syncp)
 {
 #if BITS_PER_LONG == 32 && defined(CONFIG_SMP)
@@ -252,7 +252,7 @@ static inline void u64_stats_init(struct u64_stats_sync *syncp)
 }
 #endif
 
-#if VER_VANILLA_LT(3, 14)
+#if VER_NON_RHEL_LT(3, 14)
 enum compat_pkt_hash_types {
 	compat_PKT_HASH_TYPE_NONE,     /* Undefined type */
 	compat_PKT_HASH_TYPE_L2,       /* Input: src_MAC, dest_MAC */
@@ -276,7 +276,7 @@ static inline void compat_skb_set_hash(struct sk_buff *skb, __u32 hash,
 #define skb_set_hash(s, h, t)	compat_skb_set_hash(s, h, t)
 #endif
 
-#if VER_VANILLA_LT(3, 14) || VER_RHEL_LT(7, 2)
+#if VER_NON_RHEL_LT(3, 14) || VER_RHEL_LT(7, 2)
 static inline void dev_consume_skb_any(struct sk_buff *skb)
 {
 	dev_kfree_skb_any(skb);
@@ -310,7 +310,7 @@ compat_incr_checksum_unnecessary(struct sk_buff *skb, bool encap)
 #endif
 }
 
-#if VER_VANILLA_LT(3, 19) || VER_RHEL_LT(7, 2)
+#if VER_NON_RHEL_LT(3, 19) || VER_RHEL_LT(7, 2)
 static inline void netdev_rss_key_fill(void *buffer, size_t len)
 {
 	get_random_bytes(buffer, len);
@@ -332,7 +332,7 @@ static inline struct page *dev_alloc_page(void)
 }
 #endif
 
-#if VER_VANILLA_LT(3, 19) || VER_RHEL_LT(7, 2)
+#if VER_NON_RHEL_LT(3, 19) || VER_RHEL_LT(7, 2)
 static inline int skb_put_padto(struct sk_buff *skb, unsigned int len)
 {
 	unsigned int size = skb->len;
@@ -351,19 +351,19 @@ static inline int skb_put_padto(struct sk_buff *skb, unsigned int len)
 #define napi_alloc_frag(x) netdev_alloc_frag(x)
 #endif
 
-#if VER_VANILLA_LT(3, 19) || VER_RHEL_LT(7, 3)
+#if VER_NON_RHEL_LT(3, 19) || VER_RHEL_LT(7, 3)
 struct netdev_phys_item_id {
 	unsigned char id[32];
 	unsigned char id_len;
 };
 #endif
 
-#if VER_VANILLA_LT(4, 0) || VER_RHEL_LT(7, 2)
+#if VER_NON_RHEL_LT(4, 0) || VER_RHEL_LT(7, 2)
 #define skb_vlan_tag_present(skb)	vlan_tx_tag_present(skb)
 #define skb_vlan_tag_get(skb)		vlan_tx_tag_get(skb)
 #endif
 
-#if VER_VANILLA_LT(4, 1)
+#if VER_NON_RHEL_LT(4, 1)
 static inline netdev_features_t vlan_features_check(const struct sk_buff *skb,
 						    netdev_features_t features)
 {
@@ -405,14 +405,14 @@ static inline bool compat_is_gretap(struct sk_buff *skb, u8 l4_hdr)
 }
 #endif
 
-#if VER_VANILLA_LT(4, 2) || VER_RHEL_LT(7, 3)
+#if VER_NON_RHEL_LT(4, 2) || VER_RHEL_LT(7, 3)
 static inline void skb_free_frag(void *addr)
 {
 	put_page(virt_to_head_page(addr));
 }
 #endif
 
-#if VER_VANILLA_LT(4, 2) || VER_RHEL_LT(7, 5)
+#if VER_NON_RHEL_LT(4, 2) || VER_RHEL_LT(7, 5)
 enum switchdev_attr_id {
 	SWITCHDEV_ATTR_ID_UNDEFINED,
 	SWITCHDEV_ATTR_ID_PORT_PARENT_ID,
@@ -499,7 +499,7 @@ static inline void udp_tunnel_get_rx_info(struct net_device *netdev)
 }
 #endif
 
-#if VER_VANILLA_LT(4, 5) || VER_RHEL_LT(7, 3)
+#if VER_NON_RHEL_LT(4, 5) || VER_RHEL_LT(7, 3)
 static inline int skb_inner_transport_offset(const struct sk_buff *skb)
 {
 	return skb_inner_transport_header(skb) - skb->data;
@@ -549,7 +549,7 @@ static inline bool netif_is_rxfh_configured(const struct net_device *netdev)
 }
 #endif
 
-#if VER_VANILLA_LT(4, 6) || VER_RHEL_LT(7, 3)
+#if VER_NON_RHEL_LT(4, 6) || VER_RHEL_LT(7, 3)
 static inline void page_ref_inc(struct page *page)
 {
 	atomic_inc(&page->_count);
@@ -561,7 +561,7 @@ static inline void napi_consume_skb(struct sk_buff *skb, int budget)
 }
 #endif
 
-#if VER_VANILLA_LT(4, 8) || VER_RHEL_LT(7, 5)
+#if VER_NON_RHEL_LT(4, 8) || VER_RHEL_LT(7, 5)
 static inline void trace_devlink_hwmsg(void *devlink,
 				       bool incoming, unsigned long type,
 				       const u8 *buf, size_t len)
@@ -576,7 +576,7 @@ static inline int nfp_net_xdp_offload(struct nfp_net *nn, struct bpf_prog *prog)
 }
 #endif
 
-#if VER_VANILLA_LT(4, 10) || VER_RHEL_LT(7, 5)
+#if VER_NON_RHEL_LT(4, 10) || VER_RHEL_LT(7, 5)
 #define is_tcf_mirred_egress_redirect is_tcf_mirred_redirect
 
 static inline int
@@ -588,7 +588,7 @@ compat__napi_complete_done(struct napi_struct *n, int work_done)
 #define napi_complete_done compat__napi_complete_done
 #endif
 
-#if VER_VANILLA_GE(4, 11) || VER_RHEL_GE(7, 5)
+#if VER_NON_RHEL_GE(4, 11) || VER_RHEL_GE(7, 5)
 typedef void compat__stat64_ret_t;
 #else
 typedef struct rtnl_link_stats64 *compat__stat64_ret_t;
@@ -646,7 +646,7 @@ tcf_exts_stats_update(const struct tcf_exts *exts,
 }
 #endif
 
-#if VER_VANILLA_LT(4, 14) || VER_RHEL_LT(7, 5)
+#if VER_NON_RHEL_LT(4, 14) || VER_RHEL_LT(7, 5)
 struct tc_to_netdev;
 
 enum tc_setup_type {

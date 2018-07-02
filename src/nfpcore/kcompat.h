@@ -52,19 +52,19 @@
 #define RHEL_RELEASE_CODE 0
 #endif
 
-#define VER_VANILLA_LT(x, y)						\
+#define VER_NON_RHEL_LT(x, y)						\
 	(!RHEL_RELEASE_CODE && LINUX_VERSION_CODE < KERNEL_VERSION(x, y, 0))
-#define VER_VANILLA_GE(x, y)						\
+#define VER_NON_RHEL_GE(x, y)						\
 	(!RHEL_RELEASE_CODE && LINUX_VERSION_CODE >= KERNEL_VERSION(x, y, 0))
 #define VER_RHEL_LT(x, y)						\
 	(RHEL_RELEASE_CODE && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(x, y))
 #define VER_RHEL_GE(x, y)						\
 	(RHEL_RELEASE_CODE && RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(x, y))
-#define VER_IS_VANILLA	!RHEL_RELEASE_CODE
+#define VER_IS_NON_RHEL	!RHEL_RELEASE_CODE
 
 #define COMPAT__USE_DMA_SKIP_SYNC	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
-#define COMPAT__HAS_DEVLINK	(VER_VANILLA_GE(4, 6) || VER_RHEL_GE(7, 4))
-#define COMPAT__HAS_DEVLINK_SB	(VER_VANILLA_GE(4, 7) || VER_RHEL_GE(7, 4))
+#define COMPAT__HAS_DEVLINK	(VER_NON_RHEL_GE(4, 6) || VER_RHEL_GE(7, 4))
+#define COMPAT__HAS_DEVLINK_SB	(VER_NON_RHEL_GE(4, 7) || VER_RHEL_GE(7, 4))
 
 #define COMPAT__CAN_HAVE_MULTIPLE_MOD_TABLES \
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
@@ -76,7 +76,7 @@
 #include <linux/pci.h>
 #include <linux/err.h>
 #include <linux/etherdevice.h>
-#if VER_VANILLA_GE(4, 9) || VER_RHEL_GE(7, 5)
+#if VER_NON_RHEL_GE(4, 9) || VER_RHEL_GE(7, 5)
 #include <linux/bitfield.h>
 #endif
 #include <linux/random.h>
@@ -211,7 +211,7 @@ static inline int compat_kstrtoul(const char *str, int base, unsigned long *res)
 #endif
 #endif /* < KERNEL_VERSION(3, 0, 0) */
 
-#if VER_VANILLA_LT(3, 12) || VER_RHEL_LT(7, 1)
+#if VER_NON_RHEL_LT(3, 12) || VER_RHEL_LT(7, 1)
 static inline int PTR_ERR_OR_ZERO(const void *ptr)
 {
 	if (IS_ERR(ptr))
@@ -669,7 +669,7 @@ static inline void devlink_free(struct devlink *p)
 }
 #endif
 
-#if VER_VANILLA_LT(4, 7) || VER_RHEL_LT(7, 4)
+#if VER_NON_RHEL_LT(4, 7) || VER_RHEL_LT(7, 4)
 static inline void
 netif_trans_update(struct net_device *netdev)
 {
@@ -677,7 +677,7 @@ netif_trans_update(struct net_device *netdev)
 }
 #endif
 
-#if VER_VANILLA_LT(4, 8) || VER_RHEL_LT(7, 4)
+#if VER_NON_RHEL_LT(4, 8) || VER_RHEL_LT(7, 4)
 enum devlink_eswitch_mode {
 	DEVLINK_ESWITCH_MODE_LEGACY,
 	DEVLINK_ESWITCH_MODE_SWITCHDEV,
@@ -698,7 +698,7 @@ compat_debugfs_real_fops(const struct file *file)
 #endif /* >= 4.8 */
 #endif
 
-#if VER_VANILLA_LT(4, 9) || VER_RHEL_LT(7, 5)
+#if VER_NON_RHEL_LT(4, 9) || VER_RHEL_LT(7, 5)
 #define _c1(x)  ((x) & 1)
 #define _c2(x)  ((((x)& 0x0003) &&  !_c1(x)) * ( _c1((x) >>  1) +  1) +  _c1(x))
 #define _c4(x)  ((((x)& 0x000f) &&  !_c2(x)) * ( _c2((x) >>  2) +  2) +  _c2(x))

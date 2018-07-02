@@ -33,7 +33,7 @@
 
 #include "nfp_net_compat.h"
 
-#if VER_VANILLA_GE(4, 9) || VER_RHEL_GE(7, 5)
+#if VER_NON_RHEL_GE(4, 9) || VER_RHEL_GE(7, 5)
 #include <linux/bitfield.h>
 #endif
 #include <linux/errno.h>
@@ -125,7 +125,7 @@ int nfp_app_set_vf_mac(struct net_device *netdev, int vf, u8 *mac)
 	return err;
 }
 
-#if VER_VANILLA_LT(4, 9) || VER_RHEL_LT(7, 4)
+#if VER_NON_RHEL_LT(4, 9) || VER_RHEL_LT(7, 4)
 int nfp_app_set_vf_vlan(struct net_device *netdev, int vf, u16 vlan, u8 qos)
 #else
 int nfp_app_set_vf_vlan(struct net_device *netdev, int vf, u16 vlan, u8 qos,
@@ -141,7 +141,7 @@ int nfp_app_set_vf_vlan(struct net_device *netdev, int vf, u16 vlan, u8 qos,
 	if (err)
 		return err;
 
-#if VER_VANILLA_GE(4, 9) || VER_RHEL_GE(7, 4)
+#if VER_NON_RHEL_GE(4, 9) || VER_RHEL_GE(7, 4)
 	if (vlan_proto != htons(ETH_P_8021Q))
 		return -EOPNOTSUPP;
 #endif

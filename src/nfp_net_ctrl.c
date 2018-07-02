@@ -33,7 +33,7 @@
 
 #include "nfpcore/kcompat.h"
 
-#if VER_VANILLA_GE(4, 9) || VER_RHEL_GE(7, 5)
+#if VER_NON_RHEL_GE(4, 9) || VER_RHEL_GE(7, 5)
 #include <linux/bitfield.h>
 #endif
 #include <linux/device.h>

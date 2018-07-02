@@ -90,7 +90,7 @@ RHEL_MINOR := \
 		     END {if (found != 1) print 0}' \
 		$(srctree)/include/generated/uapi/linux/version.h 2>/dev/null || echo 0)
 
-VER_IS_VANILLA := $(shell [ $(RHEL_MAJOR) -eq 0 ] && echo y)
+VER_IS_NON_RHEL := $(shell [ $(RHEL_MAJOR) -eq 0 ] && echo y)
 
 RHEL_GE_7_4 := \
 	$(shell [ $(RHEL_MAJOR) -gt 7 -o \
@@ -177,7 +177,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 		    echo y)
 
     ifeq ($(COMPAT__HAVE_METADATA_IP_TUNNEL), y)
-      ifeq ($(VER_IS_VANILLA), y)
+      ifeq ($(VER_IS_NON_RHEL), y)
 	ccflags-y += -DCOMPAT__HAVE_METADATA_IP_TUNNEL=1
 	nfp-objs += \
 		nfp_net_repr.o
