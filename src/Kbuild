@@ -80,6 +80,20 @@ nfp-objs += \
 		nfp_net_debugfs.o
 endif
 
+# Ubuntu version may contain non-digit characters, like rc, in such case
+# tell the compat code not to trust it.  This should only happen on unofficial,
+# non-LTS kernels.
+UBUNTU_BAD_VERSION := \
+	$(shell awk 'BEGIN {found=0} \
+		     /UTS_UBUNTU_RELEASE_ABI.*[a-zA-Z_-]/ {found=1} \
+		     END {print found}' \
+		$(objtree)/include/generated/utsrelease.h \
+		2>/dev/null)
+
+ifeq ($(UBUNTU_BAD_VERSION),1)
+  ccflags-y += -DCOMPAT__UTS_UBUNTU_RELEASE_ABI_BAD
+endif
+
 RHEL_MAJOR := \
 	$(shell awk '/RHEL_MAJOR/ {print $$3; found=1} \
 		     END {if (found != 1) print 0}' \
