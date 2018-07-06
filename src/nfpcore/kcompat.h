@@ -101,6 +101,12 @@
 #endif
 #include <linux/random.h>
 
+#ifdef GRO_HASH_BUCKETS
+#define LINUX_RELEASE_4_19     1
+#else
+#define LINUX_RELEASE_4_19     0
+#endif
+
 #ifndef PCI_VENDOR_ID_NETRONOME
 #define PCI_VENDOR_ID_NETRONOME		0x19ee
 #endif
@@ -109,6 +115,10 @@
 #endif
 #ifndef PCI_DEVICE_ID_NETRONOME_NFP6000
 #define PCI_DEVICE_ID_NETRONOME_NFP6000	0x6000
+#endif
+
+#ifndef U32_MAX
+#define U32_MAX			((u32)~0U)
 #endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 6, 0))
@@ -796,5 +806,52 @@ static inline void pcie_print_link_status(struct pci_dev *dev)
 
 #ifndef check_mul_overflow
 #define array_size(a, b)	((a) * (b))
+#endif
+
+#if !LINUX_RELEASE_4_19
+struct reciprocal_value_adv {
+	u32 m;
+	u8 sh, exp;
+	bool is_wide_m;
+};
+
+static inline struct reciprocal_value_adv reciprocal_value_adv(u32 d, u8 prec)
+{
+	struct reciprocal_value_adv R;
+	u32 l, post_shift;
+	u64 mhigh, mlow;
+
+	/* ceil(log2(d)) */
+	l = fls(d - 1);
+	/* NOTE: mlow/mhigh could overflow u64 when l == 32. This case needs to
+	 * be handled before calling "reciprocal_value_adv", please see the
+	 * comment at include/linux/reciprocal_div.h.
+	 */
+	WARN(l == 32,
+	     "ceil(log2(0x%08x)) == 32, %s doesn't support such divisor",
+	     d, __func__);
+	post_shift = l;
+	mlow = 1ULL << (32 + l);
+	do_div(mlow, d);
+	mhigh = (1ULL << (32 + l)) + (1ULL << (32 + l - prec));
+	do_div(mhigh, d);
+
+	for (; post_shift > 0; post_shift--) {
+		u64 lo = mlow >> 1, hi = mhigh >> 1;
+
+		if (lo >= hi)
+			break;
+
+		mlow = lo;
+		mhigh = hi;
+	}
+
+	R.m = (u32)mhigh;
+	R.sh = post_shift;
+	R.exp = l;
+	R.is_wide_m = mhigh > U32_MAX;
+
+	return R;
+}
 #endif
 #endif /* __KERNEL__NFP_COMPAT_H__ */
