@@ -1773,8 +1773,8 @@ static int shl_reg64(struct nfp_prog *nfp_prog, struct nfp_insn_meta *meta)
 	u8 dst, src;
 
 	dst = insn->dst_reg * 2;
-	umin = meta->umin;
-	umax = meta->umax;
+	umin = meta->umin_src;
+	umax = meta->umax_src;
 	if (umin == umax)
 		return __shl_imm64(nfp_prog, dst, umin);
 
@@ -1882,8 +1882,8 @@ static int shr_reg64(struct nfp_prog *nfp_prog, struct nfp_insn_meta *meta)
 	u8 dst, src;
 
 	dst = insn->dst_reg * 2;
-	umin = meta->umin;
-	umax = meta->umax;
+	umin = meta->umin_src;
+	umax = meta->umax_src;
 	if (umin == umax)
 		return __shr_imm64(nfp_prog, dst, umin);
 
@@ -1996,8 +1996,8 @@ static int ashr_reg64(struct nfp_prog *nfp_prog, struct nfp_insn_meta *meta)
 	u8 dst, src;
 
 	dst = insn->dst_reg * 2;
-	umin = meta->umin;
-	umax = meta->umax;
+	umin = meta->umin_src;
+	umax = meta->umax_src;
 	if (umin == umax)
 		return __ashr_imm64(nfp_prog, dst, umin);
 
