@@ -218,8 +218,6 @@ bool nfp_ctrl_tx(struct nfp_net *nn, struct sk_buff *skb);
 
 int nfp_ctrl_debug_start(struct nfp_pf *pf);
 void nfp_ctrl_debug_stop(struct nfp_pf *pf);
-void nfp_ctrl_debug_rx(struct nfp_pf *pf, struct sk_buff *skb);
-void nfp_ctrl_debug_deliver_tx(struct nfp_pf *pf, struct sk_buff *skb);
 
 #define NFP_DEV_CPP_TYPE	"nfp-dev-cpp"
 
