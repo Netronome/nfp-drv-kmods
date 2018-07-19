@@ -636,8 +636,10 @@ static int nfp_flower_setup_tc_block(struct net_device *netdev,
 	if (f->binder_type != TCF_BLOCK_BINDER_TYPE_CLSACT_INGRESS)
 		return -EOPNOTSUPP;
 
+#if !LINUX_RELEASE_4_19
 	if (tcf_block_shared(f->block))
 		return -EOPNOTSUPP;
+#endif
 
 	switch (f->command) {
 	case TC_BLOCK_BIND:
