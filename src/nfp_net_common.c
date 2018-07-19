@@ -62,6 +62,9 @@
 #include <linux/ip.h>
 #include <linux/ipv6.h>
 #include <linux/mm.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
+#include <linux/overflow.h>
+#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
 #include <linux/page_ref.h>
 #endif
@@ -1159,7 +1162,7 @@ nfp_net_tx_ring_reset(struct nfp_net_dp *dp, struct nfp_net_tx_ring *tx_ring)
 		tx_ring->rd_p++;
 	}
 
-	memset(tx_ring->txds, 0, sizeof(*tx_ring->txds) * tx_ring->cnt);
+	memset(tx_ring->txds, 0, tx_ring->size);
 	tx_ring->wr_p = 0;
 	tx_ring->rd_p = 0;
 	tx_ring->qcp_rd_p = 0;
@@ -1339,7 +1342,7 @@ static void nfp_net_rx_ring_reset(struct nfp_net_rx_ring *rx_ring)
 	rx_ring->rxbufs[last_idx].dma_addr = 0;
 	rx_ring->rxbufs[last_idx].frag = NULL;
 
-	memset(rx_ring->rxds, 0, sizeof(*rx_ring->rxds) * rx_ring->cnt);
+	memset(rx_ring->rxds, 0, rx_ring->size);
 	rx_ring->wr_p = 0;
 	rx_ring->rd_p = 0;
 }
@@ -2212,7 +2215,7 @@ nfp_net_tx_ring_alloc(struct nfp_net_dp *dp, struct nfp_net_tx_ring *tx_ring)
 
 	tx_ring->cnt = dp->txd_cnt;
 
-	tx_ring->size = sizeof(*tx_ring->txds) * tx_ring->cnt;
+	tx_ring->size = array_size(tx_ring->cnt, sizeof(*tx_ring->txds));
 	tx_ring->txds = dma_zalloc_coherent(dp->dev, tx_ring->size,
 					    &tx_ring->dma, GFP_KERNEL);
 	if (!tx_ring->txds)
@@ -2366,7 +2369,7 @@ nfp_net_rx_ring_alloc(struct nfp_net_dp *dp, struct nfp_net_rx_ring *rx_ring)
 	}
 
 	rx_ring->cnt = dp->rxd_cnt;
-	rx_ring->size = sizeof(*rx_ring->rxds) * rx_ring->cnt;
+	rx_ring->size = array_size(rx_ring->cnt, sizeof(*rx_ring->rxds));
 	rx_ring->rxds = dma_zalloc_coherent(dp->dev, rx_ring->size,
 					    &rx_ring->dma, GFP_KERNEL);
 	if (!rx_ring->rxds)

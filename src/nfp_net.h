@@ -259,7 +259,7 @@ struct nfp_net_tx_ring {
 	struct nfp_net_tx_desc *txds;
 
 	dma_addr_t dma;
-	unsigned int size;
+	size_t size;
 	bool is_xdp;
 } ____cacheline_aligned;
 
@@ -381,7 +381,7 @@ struct nfp_net_rx_ring {
 	struct xdp_rxq_info xdp_rxq;
 
 	dma_addr_t dma;
-	unsigned int size;
+	size_t size;
 } ____cacheline_aligned;
 
 /**
