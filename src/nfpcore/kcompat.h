@@ -100,6 +100,7 @@
 #include <linux/bitfield.h>
 #endif
 #include <linux/random.h>
+#include <linux/vmalloc.h>
 
 #ifdef GRO_HASH_BUCKETS
 #define LINUX_RELEASE_4_19	1
@@ -575,6 +576,16 @@ static inline int pci_vfs_assigned(struct pci_dev *pdev)
 }
 #endif
 
+#if VER_VANILLA_LT(3, 15) || VER_UBUNTU_LT(3, 13, 0) || VER_RHEL_LT(7, 1)
+static inline void kvfree(void *ptr)
+{
+	if (is_vmalloc_addr(ptr))
+		vfree(ptr);
+	else
+		kfree(ptr);
+}
+#endif
+
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0))
 static inline void compat_ether_addr_copy(u8 *dst, const u8 *src)
 {
@@ -818,6 +829,17 @@ static inline void compat_pci_sriov_reset_totalvfs(struct pci_dev *dev)
 	pci_sriov_set_totalvfs(dev, 0);
 #endif
 }
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
+static inline void *kvcalloc(size_t n, size_t size, gfp_t flags)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)
+	return kvmalloc_array(n, size, flags | __GFP_ZERO);
+#else
+	return kcalloc(n, size, flags);
+#endif
+}
+#endif
 
 #if !LINUX_RELEASE_4_19
 struct reciprocal_value_adv {
