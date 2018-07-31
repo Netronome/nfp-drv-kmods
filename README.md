@@ -1,7 +1,8 @@
 # Netronome Flow Processor (NFP) Kernel Drivers
 
 These drivers support Netronome's line of Flow Processor devices,
-including the NFP4000 and NFP6000 model lines.
+including the NFP4000 and NFP6000 models, which are also incorporated
+in the company's family of Agilio SmartNICs.
 
 The repository builds the `nfp.ko` module which can be used to expose
 networking devices (netdevs) and/or user space access to the device
