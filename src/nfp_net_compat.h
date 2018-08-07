@@ -173,6 +173,23 @@
 #define FLOW_DISSECTOR_KEY_ENC_IP       22
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
+#define FLOW_DISSECTOR_KEY_ENC_OPTS 23
+#define FLOW_DIS_TUN_OPTS_MAX 255
+
+/**
+ * struct flow_dissector_key_enc_opts:
+ * @data: tunnel option data
+ * @len: length of tunnel option data
+ * @dst_opt_type: tunnel option type
+ */
+struct flow_dissector_key_enc_opts {
+	u8 data[FLOW_DIS_TUN_OPTS_MAX];
+	u8 len;
+	__be16 dst_opt_type;
+};
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 3, 0)
 typedef u32 netdev_features_t;
 
