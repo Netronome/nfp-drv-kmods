@@ -169,6 +169,10 @@
 #define NETIF_F_GSO_UDP_TUNNEL	0
 #endif
 
+#if !LINUX_RELEASE_4_19
+#define FLOW_DISSECTOR_KEY_ENC_IP       22
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 3, 0)
 typedef u32 netdev_features_t;
 
