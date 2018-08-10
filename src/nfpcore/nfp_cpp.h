@@ -232,7 +232,7 @@ static inline int NFP_CPP_STEPPING_decode(const char *_str_major_minor)
  * NFP_CPP_MODEL_IS_6000() - Check for the NFP6000 family of devices
  * @model:      NFP CPP model id
  *
- * Note that the NFP4000 family is considered as a NFP6000 variant.
+ * Note that the NFP4000 and NFP5000 family are considered a NFP6000 variant.
  *
  * Return:      true if model is in the NFP6000 family, false otherwise.
  */

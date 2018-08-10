@@ -1,15 +1,15 @@
 # Netronome Flow Processor (NFP) Kernel Drivers
 
 These drivers support Netronome's line of Flow Processor devices,
-including the NFP4000 and NFP6000 models, which are also incorporated
-in the company's family of Agilio SmartNICs.
+including the NFP4000, NFP5000, and NFP6000 models, which are also
+incorporated in the company's family of Agilio SmartNICs.
 
 The repository builds the `nfp.ko` module which can be used to expose
 networking devices (netdevs) and/or user space access to the device
 via a character device.
 
-The VF driver for NFP4000 and NFP6000 is available in upstream Linux
-kernel since `4.5` release.  The PF driver was added in Linux `4.11`.
+The VF driver for NFP4000, NFP5000, and NFP6000 is available in upstream
+Linux kernel since `4.5` release.  The PF driver was added in Linux `4.11`.
 This repository contains the same driver as upstream with necessary
 compatibility code to make the latest version of the code build for
 older kernels. We currently support kernels back to the `3.8` version,
@@ -342,7 +342,7 @@ NIC style interface to the flows that match that rule.*
 
 ## nfp6000 quirks
 
-NFP4000/NFP6000 chips need a minor PCI quirk to avoid system crashing
+NFP4000/NFP5000/NFP6000 chips need a minor PCI quirk to avoid system crashing
 after particular type of PCI config space addresses from user space.
 If you're using the NFP on an old kernel you may see this message in
 the logs:
