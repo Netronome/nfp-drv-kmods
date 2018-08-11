@@ -169,27 +169,6 @@
 #define NETIF_F_GSO_UDP_TUNNEL	0
 #endif
 
-#if !LINUX_RELEASE_4_19
-#define FLOW_DISSECTOR_KEY_ENC_IP       22
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
-#define FLOW_DISSECTOR_KEY_ENC_OPTS 23
-#define FLOW_DIS_TUN_OPTS_MAX 255
-
-/**
- * struct flow_dissector_key_enc_opts:
- * @data: tunnel option data
- * @len: length of tunnel option data
- * @dst_opt_type: tunnel option type
- */
-struct flow_dissector_key_enc_opts {
-	u8 data[FLOW_DIS_TUN_OPTS_MAX];
-	u8 len;
-	__be16 dst_opt_type;
-};
-#endif
-
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 3, 0)
 typedef u32 netdev_features_t;
 
@@ -851,5 +830,16 @@ compat_bpf_offload_dev_match(struct bpf_prog *prog, struct net_device *dev)
 }
 #define bpf_offload_dev_match(prog, dev) compat_bpf_offload_dev_match(prog, dev)
 #endif
+
+#define FLOW_DISSECTOR_KEY_ENC_IP	22
+#define FLOW_DISSECTOR_KEY_ENC_OPTS	23
+
+#define FLOW_DIS_TUN_OPTS_MAX 255
+
+struct flow_dissector_key_enc_opts {
+	u8 data[FLOW_DIS_TUN_OPTS_MAX];
+	u8 len;
+	__be16 dst_opt_type;
+};
 #endif /* !LINUX_RELEASE_4_19 */
 #endif /* _NFP_NET_COMPAT_H_ */
