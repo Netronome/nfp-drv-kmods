@@ -71,6 +71,28 @@
 
 #define BAR_FLAG_LOCKED		BIT(0)
 
+/**
+ * NFP_CPP_MODEL_CHIP_of() - retrieve the chip ID from the model ID
+ * @model:   NFP CPP model id
+ *
+ * The chip ID is a 16-bit BCD+A-F encoding for the chip type.
+ *
+ * Return:      NFP CPP chip id
+ */
+#define NFP_CPP_MODEL_CHIP_of(model)        (((model) >> 16) & 0xffff)
+
+/**
+ * NFP_CPP_MODEL_IS_6000() - Check for the NFP6000 family of devices
+ * @model:      NFP CPP model id
+ *
+ * Note that the NFP4000 and NFP5000 family are considered a NFP6000 variant.
+ *
+ * Return:      true if model is in the NFP6000 family, false otherwise.
+ */
+#define NFP_CPP_MODEL_IS_6000(model)		     \
+	((0x4000 <= NFP_CPP_MODEL_CHIP_of(model)) && \
+	 (NFP_CPP_MODEL_CHIP_of(model) < 0x7000))
+
 struct nfp_plat_bar {
 	unsigned flags;
 	atomic_t usage;

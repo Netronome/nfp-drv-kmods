@@ -190,56 +190,6 @@ static inline u8 NFP_CPP_ID_ISLAND_of(u32 id)
 	return (id >> 0) & 0xff;
 }
 
-/**
- * NFP_CPP_MODEL_CHIP_of() - retrieve the chip ID from the model ID
- * @model:   NFP CPP model id
- *
- * The chip ID is a 16-bit BCD+A-F encoding for the chip type.
- *
- * Return:      NFP CPP chip id
- */
-#define NFP_CPP_MODEL_CHIP_of(model)        (((model) >> 16) & 0xffff)
-
-/**
- * NFP_CPP_MODEL_STEPPING_of() - retrieve the revision ID from the model ID
- * @model:      NFP CPP model id
- *
- * The revison ID is a 8-bit encoding of the chip revision.
- * Model A0 is 0x00, B4 is 0x14, G2 is 0x12 etc.
- *
- * Return:      NFP CPP stepping id
- */
-#define NFP_CPP_MODEL_STEPPING_of(model)    (((model) >>  0) & 0x00ff)
-
-/**
- * NFP_CPP_STEPPING() - Generate a NFP CPP stepping code
- * @major_minor: NFP CPP stepping major minor
- *
- * The revison ID is a 8-bit encoding of the chip revision.
- * Stepping A0 is 0x00, B4 is 0x14, G9 is 0xA9 etc.
- *
- * Return:      NFP CPP stepping
- */
-#define NFP_CPP_STEPPING(major_minor)   NFP_CPP_STEPPING_decode(#major_minor)
-
-static inline int NFP_CPP_STEPPING_decode(const char *_str_major_minor)
-{
-	return ((toupper(_str_major_minor[0]) - 'A') << 4) |
-		((_str_major_minor[1] - '0'));
-}
-
-/**
- * NFP_CPP_MODEL_IS_6000() - Check for the NFP6000 family of devices
- * @model:      NFP CPP model id
- *
- * Note that the NFP4000 and NFP5000 family are considered a NFP6000 variant.
- *
- * Return:      true if model is in the NFP6000 family, false otherwise.
- */
-#define NFP_CPP_MODEL_IS_6000(model)		     \
-	((0x4000 <= NFP_CPP_MODEL_CHIP_of(model)) && \
-	 (NFP_CPP_MODEL_CHIP_of(model) < 0x7000))
-
 /* NFP Interface types - logical interface for this CPP connection
  * 4 bits are reserved for interface type.
  */
