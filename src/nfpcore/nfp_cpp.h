@@ -67,7 +67,6 @@
 /* NFP hardware vendor/device ids.
  */
 #define PCI_DEVICE_ID_NETRONOME_NFP3800	0x3800
-#define PCI_DEVICE_NFP6010              0x6010
 
 #define NFP_CPP_NUM_TARGETS             16
 /* Max size of area it should be safe to request */

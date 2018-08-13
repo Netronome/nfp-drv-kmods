@@ -138,7 +138,7 @@
 
 /* The number of explicit BARs to reserve.
  * Minimum is 0, maximum is 4 on the NFP6000.
- * The NFP6010 can have only one per PF.
+ * The NFP3800 can have only one per PF.
  */
 static int nfp6000_explicit_bars = 2;
 module_param(nfp6000_explicit_bars, int, 0444);
