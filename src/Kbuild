@@ -227,7 +227,8 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 	  ccflags-y += -DCONFIG_NFP_APP_ABM_NIC
 	  nfp-objs += \
 		abm/ctrl.o \
-		abm/main.o
+		abm/main.o \
+		abm/qdisc.o
 	endif
       else
         $(warning NFP: RHEL kernel detected, disabling apps: flower)
