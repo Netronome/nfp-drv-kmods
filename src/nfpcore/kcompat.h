@@ -41,6 +41,13 @@
 #include <generated/utsrelease.h>
 #include <linux/version.h>
 
+/* Redefine LINUX_VERSION_CODE for *-next kernels */
+#include <net/pkt_cls.h>
+#ifdef tcf_exts_for_each_action
+#undef LINUX_VERSION_CODE
+#define LINUX_VERSION_CODE KERNEL_VERSION(4, 20, 0)
+#endif
+
 /* RHEL has a tendency to heavily patch their kernels.  Sometimes it
  * is necessary to check for specific RHEL releases and not just for
  * Linux kernel version.  Define RHEL version macros for Linux kernels

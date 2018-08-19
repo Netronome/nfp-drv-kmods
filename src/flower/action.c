@@ -798,11 +798,13 @@ int nfp_flower_compile_action(struct nfp_app *app,
 			      struct net_device *netdev,
 			      struct nfp_fl_payload *nfp_flow)
 {
-	int act_len, act_cnt, err, tun_out_cnt, out_cnt;
+	int act_len, act_cnt, err, tun_out_cnt, out_cnt, i;
 	enum nfp_flower_tun_type tun_type;
 	const struct tc_action *a;
 	u32 csum_updated = 0;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0)
 	LIST_HEAD(actions);
+#endif
 
 	memset(nfp_flow->action_data, 0, NFP_FL_MAX_A_SIZ);
 	nfp_flow->meta.act_len = 0;
@@ -812,8 +814,13 @@ int nfp_flower_compile_action(struct nfp_app *app,
 	tun_out_cnt = 0;
 	out_cnt = 0;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0)
+	i = 0; i = i;
 	tcf_exts_to_list(flow->exts, &actions);
 	list_for_each_entry(a, &actions, list) {
+#else
+	tcf_exts_for_each_action(i, a, flow->exts) {
+#endif
 		err = nfp_flower_loop_action(app, a, flow, nfp_flow, &act_len,
 					     netdev, &tun_type, &tun_out_cnt,
 					     &out_cnt, &csum_updated);
