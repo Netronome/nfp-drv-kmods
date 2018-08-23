@@ -349,8 +349,6 @@ static int nfp_nbi_tx_flush_flags(struct nfp_nbi_dev *nbi, u32 flags)
 		.tv_sec = 0,
 	};
 	struct timespec ts;
-	u64 cpp_addr;
-	u32 cpp_id;
 	u32 tmp;
 	int err;
 
@@ -361,17 +359,13 @@ static int nfp_nbi_tx_flush_flags(struct nfp_nbi_dev *nbi, u32 flags)
 		return 0;
 	sym = &priv->tx_flush_flags.sym;
 
-	cpp_id = NFP_CPP_ISLAND_ID(sym->target, NFP_CPP_ACTION_RW,
-				   0, sym->domain);
-	cpp_addr = sym->addr + 4;
-
 	/* Update the flags */
-	err = nfp_cpp_writel(nbi->cpp, cpp_id, cpp_addr, flags);
+	err = nfp_rtsym_writel(nbi->cpp, sym, 4, flags);
 	if (err < 0)
 		return err;
 
 	/* Readback to flush the write */
-	err = nfp_cpp_readl(nbi->cpp, cpp_id, cpp_addr, &tmp);
+	err = nfp_rtsym_readl(nbi->cpp, sym, 4, &tmp);
 	if (err < 0)
 		return err;
 
@@ -380,7 +374,7 @@ static int nfp_nbi_tx_flush_flags(struct nfp_nbi_dev *nbi, u32 flags)
 	timeout = timespec_add(ts, timeout);
 
 	do {
-		err = nfp_cpp_readl(nbi->cpp, cpp_id, cpp_addr, &tmp);
+		err = nfp_rtsym_readl(nbi->cpp, sym, 4, &tmp);
 		if (err < 0)
 			return err;
 
