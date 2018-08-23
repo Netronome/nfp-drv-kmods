@@ -248,6 +248,7 @@ int nfp_cpp_device_id(struct nfp_cpp *cpp);
 u32 nfp_cpp_model(struct nfp_cpp *cpp);
 u16 nfp_cpp_interface(struct nfp_cpp *cpp);
 int nfp_cpp_serial(struct nfp_cpp *cpp, const u8 **serial);
+unsigned int nfp_cpp_mu_locality_lsb(struct nfp_cpp *cpp);
 
 void *nfp_nbi_cache(struct nfp_cpp *cpp);
 void nfp_nbi_cache_set(struct nfp_cpp *cpp, void *val);

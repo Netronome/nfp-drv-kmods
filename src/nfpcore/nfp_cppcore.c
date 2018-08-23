@@ -88,6 +88,7 @@ struct nfp_cpp_resource {
  * @serial:		chip serial number
  * @imb_cat_table:	CPP Mapping Table
  * @island_mask:	present island mask
+ * @mu_locality_lsb:	MU access type bit offset
  * @feature:		array of child platform devices
  *
  * Following fields can be used only in probe() or with rtnl held:
@@ -126,6 +127,7 @@ struct nfp_cpp {
 
 	u32 imb_cat_table[16];
 	u64 island_mask;
+	unsigned int mu_locality_lsb;
 
 	struct mutex area_cache_mutex;
 	struct list_head area_cache_list;
@@ -439,6 +441,34 @@ void *nfp_nbi_cache(struct nfp_cpp *cpp)
 void nfp_nbi_cache_set(struct nfp_cpp *cpp, void *val)
 {
 	cpp->nbi = val;
+}
+
+#define NFP_IMB_TGTADDRESSMODECFG_MODE_of(_x)		(((_x) >> 13) & 0x7)
+#define NFP_IMB_TGTADDRESSMODECFG_ADDRMODE		BIT(12)
+#define   NFP_IMB_TGTADDRESSMODECFG_ADDRMODE_32_BIT	0
+#define   NFP_IMB_TGTADDRESSMODECFG_ADDRMODE_40_BIT	BIT(12)
+
+static int nfp_cpp_set_mu_locality_lsb(struct nfp_cpp *cpp)
+{
+	unsigned int mode, addr40;
+	u32 imbcppat;
+	int res;
+
+	imbcppat = cpp->imb_cat_table[NFP_CPP_TARGET_MU];
+	mode = NFP_IMB_TGTADDRESSMODECFG_MODE_of(imbcppat);
+	addr40 = !!(imbcppat & NFP_IMB_TGTADDRESSMODECFG_ADDRMODE);
+
+	res = nfp_cppat_mu_locality_lsb(mode, addr40);
+	if (res < 0)
+		return res;
+	cpp->mu_locality_lsb = res;
+
+	return 0;
+}
+
+unsigned int nfp_cpp_mu_locality_lsb(struct nfp_cpp *cpp)
+{
+	return cpp->mu_locality_lsb;
 }
 
 /**
@@ -1556,6 +1586,12 @@ nfp_cpp_from_operations(const struct nfp_cpp_operations *ops,
 		      &mask[1]);
 
 	cpp->island_mask = (u64)mask[1] << 32 | mask[0];
+
+	err = nfp_cpp_set_mu_locality_lsb(cpp);
+	if (err < 0) {
+		dev_err(parent,	"Can't calculate MU locality bit offset\n");
+		goto err_out;
+	}
 
 	write_lock(&nfp_cpp_list_lock);
 	list_add_tail(&cpp->list, &nfp_cpp_list);
