@@ -97,6 +97,8 @@ nfp_repr_get_locked(struct nfp_app *app, struct nfp_reprs *set,
 		    unsigned int id);
 
 void nfp_repr_inc_rx_stats(struct net_device *netdev, unsigned int len);
+void
+nfp_repr_transfer_features(struct net_device *netdev, struct net_device *lower);
 int nfp_repr_init(struct nfp_app *app, struct net_device *netdev,
 		  u32 cmsg_port_id, struct nfp_port *port,
 		  struct net_device *pf_netdev);
@@ -122,6 +124,12 @@ static inline bool nfp_netdev_is_nfp_repr(struct net_device *netdev)
 
 static inline void
 nfp_repr_inc_rx_stats(struct net_device *netdev, unsigned int len) {}
+
+static inline void
+nfp_repr_transfer_features(struct net_device *netdev, struct net_device *lower)
+{
+}
+
 static inline int nfp_reprs_resync_phys_ports(struct nfp_app *app)
 {
 	return 0;
