@@ -733,7 +733,7 @@ devlink_port_attrs_set(struct devlink_port *devlink_port,
 }
 #endif
 
-#if !LINUX_RELEASE_4_19
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
 #define tcf_block_cb_register(block, cb, ident, priv, ea)	\
 	tcf_block_cb_register(block, cb, ident, priv)
 
@@ -841,5 +841,5 @@ struct flow_dissector_key_enc_opts {
 	u8 len;
 	__be16 dst_opt_type;
 };
-#endif /* !LINUX_RELEASE_4_19 */
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0) */
 #endif /* _NFP_NET_COMPAT_H_ */

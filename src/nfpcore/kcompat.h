@@ -109,12 +109,6 @@
 #include <linux/random.h>
 #include <linux/vmalloc.h>
 
-#ifdef GRO_HASH_BUCKETS
-#define LINUX_RELEASE_4_19	1
-#else
-#define LINUX_RELEASE_4_19	0
-#endif
-
 #ifndef PCI_VENDOR_ID_NETRONOME
 #define PCI_VENDOR_ID_NETRONOME		0x19ee
 #endif
@@ -851,7 +845,7 @@ static inline void *kvcalloc(size_t n, size_t size, gfp_t flags)
 }
 #endif
 
-#if !LINUX_RELEASE_4_19
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
 struct reciprocal_value_adv {
 	u32 m;
 	u8 sh, exp;

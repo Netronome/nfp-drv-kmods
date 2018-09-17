@@ -3602,7 +3602,7 @@ static int nfp_net_xdp(struct net_device *netdev, struct netdev_bpf *xdp)
 		return nfp_net_xdp_setup_hw(nn, xdp);
 #endif
 	case XDP_QUERY_PROG:
-#if !LINUX_RELEASE_4_19
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
 		if (nn->xdp.prog)
 			return xdp_attachment_query(&nn->xdp, xdp);
 #else
