@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # Copyright (C) 2017 Netronome Systems, Inc.
 #
@@ -52,23 +52,23 @@ signal.signal(signal.SIGINT, intr)
 
 
 def usage():
-        print "Usage: %s [-E] [-c] [-crx] [-ctx] [-f pattern] [-x pattern] IFC" % \
-                sys.argv[0]
-        print "\tSources"
-        print "\t\t-E show only ethtool -S stats (exclude ifconfig statistics)"
-        print "\tColors"
-        print "\t\t-crx color RX stats"
-        print "\t\t-ctx color TX stats"
-        print "\t\t-cerr color error stats"
-        print "\t\t-cdisc color discard stats"
-        print "\t\t-cd dim idle stats"
-        print "\t\t-c enable all colors"
-        print "\tFilters"
-        print "\t\t-f <pattern> include only stats that match the pattern"
-        print "\t\t-x <pattern> exclude stats which match the pattern"
-        print "\t\texclude takes precedence, both can be repeated"
-        print ""
-        print "\tOrder of parameters doesn't matter."
+        print("Usage: %s [-E] [-c] [-crx] [-ctx] [-f pattern] [-x pattern] IFC" % \
+                sys.argv[0])
+        print("\tSources")
+        print("\t\t-E show only ethtool -S stats (exclude ifconfig statistics)")
+        print("\tColors")
+        print("\t\t-crx color RX stats")
+        print("\t\t-ctx color TX stats")
+        print("\t\t-cerr color error stats")
+        print("\t\t-cdisc color discard stats")
+        print("\t\t-cd dim idle stats")
+        print("\t\t-c enable all colors")
+        print("\tFilters")
+        print("\t\t-f <pattern> include only stats that match the pattern")
+        print("\t\t-x <pattern> exclude stats which match the pattern")
+        print("\t\texclude takes precedence, both can be repeated")
+        print("")
+        print("\tOrder of parameters doesn't matter.")
         sys.exit(1)
 
 
@@ -161,7 +161,7 @@ while True:
                 columns = int(columns)
         except:
                 os.system("clear")
-                print "Reading stats from device \033[1m%s\033[0m failed" % IFC
+                print("Reading stats from device \033[1m%s\033[0m failed" % IFC)
                 stats = {}
                 session = {}
                 time.sleep(0.5)
