@@ -3229,7 +3229,7 @@ nfp_net_vlan_rx_kill_vid(struct net_device *netdev, __be16 proto, u16 vid)
 	return nfp_net_reconfig_mbox(nn, NFP_NET_CFG_MBOX_CMD_CTAG_FILTER_KILL);
 }
 
-#ifdef CONFIG_NET_POLL_CONTROLLER
+#if COMPAT__NEED_NDO_POLL_CONTROLLER
 static void nfp_net_netpoll(struct net_device *netdev)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
@@ -3658,7 +3658,7 @@ const struct net_device_ops nfp_net_netdev_ops = {
 	.ndo_get_stats64	= nfp_net_stat64,
 	.ndo_vlan_rx_add_vid	= nfp_net_vlan_rx_add_vid,
 	.ndo_vlan_rx_kill_vid	= nfp_net_vlan_rx_kill_vid,
-#ifdef CONFIG_NET_POLL_CONTROLLER
+#if COMPAT__NEED_NDO_POLL_CONTROLLER
 	.ndo_poll_controller	= nfp_net_netpoll,
 #endif
 	.ndo_set_vf_mac         = nfp_app_set_vf_mac,
