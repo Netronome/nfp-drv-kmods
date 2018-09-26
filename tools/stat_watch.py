@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # Copyright (C) 2017 Netronome Systems, Inc.
 #
@@ -155,7 +155,8 @@ while True:
                 if not ONLY_ETHTOOL:
                        out += get_sysfs_stats()
 
-                out += subprocess.check_output(['ethtool', '-S', IFC])
+                out += subprocess.check_output(['ethtool', '-S', IFC],
+                                               encoding="utf-8")
 
                 _, columns = os.popen('stty size', 'r').read().split()
                 columns = int(columns)
@@ -169,8 +170,8 @@ while True:
 
         w = [26, 13, 19, 19]
         for i in range(3):
-                w[i] += (columns - 80) / 4
-        w[3] += (columns + 3 - 80) / 4
+                w[i] += int((columns - 80) / 4)
+        w[3] += int((columns + 3 - 80) / 4)
 
         pr = "\033[4;1mSTAT {:>{a}} {:>{c}} {:>{d}}\033[0m\n".\
              format("RATE", "SESSION", "TOTAL",
