@@ -2134,31 +2134,38 @@ nfp_ctrl_rx_one(struct nfp_net *nn, struct nfp_net_dp *dp,
 	return true;
 }
 
-static void nfp_ctrl_rx(struct nfp_net_r_vector *r_vec)
+static bool nfp_ctrl_rx(struct nfp_net_r_vector *r_vec)
 {
 	struct nfp_net_rx_ring *rx_ring = r_vec->rx_ring;
 	struct nfp_net *nn = r_vec->nfp_net;
 	struct nfp_net_dp *dp = &nn->dp;
+	unsigned int budget = 512;
 
-	while (nfp_ctrl_rx_one(nn, dp, r_vec, rx_ring))
+	while (nfp_ctrl_rx_one(nn, dp, r_vec, rx_ring) && budget--)
 		continue;
+
+	return budget;
 }
 #endif /* CONFIG_NFP_NET_PF */
 
 static void nfp_ctrl_poll(unsigned long arg)
 {
+#ifdef CONFIG_NFP_NET_PF
 	struct nfp_net_r_vector *r_vec = (void *)arg;
 
-#ifdef CONFIG_NFP_NET_PF
 	spin_lock(&r_vec->lock);
 	nfp_net_tx_complete(r_vec->tx_ring, 0);
 	__nfp_ctrl_tx_queued(r_vec);
 	spin_unlock(&r_vec->lock);
 
-	nfp_ctrl_rx(r_vec);
+	if (nfp_ctrl_rx(r_vec)) {
+		nfp_net_irq_unmask(r_vec->nfp_net, r_vec->irq_entry);
+	} else {
+		tasklet_schedule(&r_vec->tasklet);
+		nn_dp_warn(&r_vec->nfp_net->dp,
+			   "control message budget exceeded!\n");
+	}
 #endif
-
-	nfp_net_irq_unmask(r_vec->nfp_net, r_vec->irq_entry);
 }
 
 /* Setup and Configuration
