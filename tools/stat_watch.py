@@ -155,8 +155,8 @@ while True:
                 if not ONLY_ETHTOOL:
                        out += get_sysfs_stats()
 
-                out += subprocess.check_output(['ethtool', '-S', IFC],
-                                               encoding="utf-8")
+                stdout = subprocess.check_output(['ethtool', '-S', IFC])
+                out += stdout.decode("utf-8")
 
                 _, columns = os.popen('stty size', 'r').read().split()
                 columns = int(columns)
