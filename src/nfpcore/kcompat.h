@@ -42,8 +42,8 @@
 #include <linux/version.h>
 
 /* Redefine LINUX_VERSION_CODE for *-next kernels */
-#include <net/pkt_cls.h>
-#ifdef tcf_exts_for_each_action
+#include <linux/if_tun.h>
+#ifdef TUN_MSG_UBUF
 #undef LINUX_VERSION_CODE
 #define LINUX_VERSION_CODE KERNEL_VERSION(4, 20, 0)
 #endif

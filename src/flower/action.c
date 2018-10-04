@@ -808,7 +808,7 @@ int nfp_flower_compile_action(struct nfp_app *app,
 	enum nfp_flower_tun_type tun_type;
 	const struct tc_action *a;
 	u32 csum_updated = 0;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
 	LIST_HEAD(actions);
 #endif
 
@@ -820,7 +820,7 @@ int nfp_flower_compile_action(struct nfp_app *app,
 	tun_out_cnt = 0;
 	out_cnt = 0;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
 	i = 0; i = i;
 	tcf_exts_to_list(flow->exts, &actions);
 	list_for_each_entry(a, &actions, list) {
