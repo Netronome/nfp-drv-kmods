@@ -253,16 +253,20 @@ err_free:
 static int nfp_bpf_translate(struct nfp_net *nn, struct bpf_prog *prog)
 {
 	struct nfp_prog *nfp_prog = prog->aux->offload->dev_priv;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0)
 	unsigned int stack_size;
+#endif
 	unsigned int max_instr;
 	int err;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0)
 	stack_size = nn_readb(nn, NFP_NET_CFG_BPF_STACK_SZ) * 64;
 	if (prog->aux->stack_depth > stack_size) {
 		nn_info(nn, "stack too large: program %dB > FW stack %dB\n",
 			prog->aux->stack_depth, stack_size);
 		return -EOPNOTSUPP;
 	}
+#endif
 
 	max_instr = nn_readw(nn, NFP_NET_CFG_BPF_MAX_LEN);
 	nfp_prog->__prog_alloc_len = max_instr * sizeof(u64);
