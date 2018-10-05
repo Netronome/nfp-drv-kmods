@@ -640,6 +640,16 @@ nfp_verify_insn(struct bpf_verifier_env *env, int insn_idx, int prev_insn_idx)
 	return 0;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 20, 0)
+static int nfp_bpf_finalize(struct bpf_verifier_env *env)
+{
+	return 0;
+}
+#endif
+
 const struct bpf_prog_offload_ops nfp_bpf_analyzer_ops = {
-	.insn_hook = nfp_verify_insn,
+	.insn_hook	= nfp_verify_insn,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 20, 0)
+	.finalize	= nfp_bpf_finalize,
+#endif
 };
