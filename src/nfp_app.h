@@ -202,6 +202,7 @@ struct nfp_app {
 	void *priv;
 };
 
+void nfp_check_rhashtable_empty(void *ptr, void *arg);
 bool __nfp_ctrl_tx(struct nfp_net *nn, struct sk_buff *skb);
 bool nfp_ctrl_tx(struct nfp_net *nn, struct sk_buff *skb);
 void nfp_ctrl_debug_rx(struct nfp_pf *pf, struct sk_buff *skb);

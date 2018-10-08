@@ -39,6 +39,7 @@
 
 #include <linux/circ_buf.h>
 #include <linux/hashtable.h>
+#include <linux/rhashtable.h>
 #include <linux/time64.h>
 #include <linux/types.h>
 #include <net/pkt_cls.h>
@@ -54,7 +55,6 @@ struct nfp_app;
 #define NFP_FL_STATS_ENTRY_RS		BIT(20)
 #define NFP_FL_STATS_ELEM_RS		4
 #define NFP_FL_REPEATED_HASH_MAX	BIT(17)
-#define NFP_FLOWER_HASH_BITS		19
 #define NFP_FLOWER_MASK_ENTRY_RS	256
 #define NFP_FLOWER_MASK_ELEMENT_RS	1
 #define NFP_FLOWER_MASK_HASH_BITS	10
@@ -172,7 +172,7 @@ struct nfp_flower_priv {
 	struct nfp_fl_stats_id stats_ids;
 	struct nfp_fl_mask_id mask_ids;
 	DECLARE_HASHTABLE(mask_table, NFP_FLOWER_MASK_HASH_BITS);
-	DECLARE_HASHTABLE(flow_table, NFP_FLOWER_HASH_BITS);
+	struct rhashtable flow_table;
 	struct work_struct cmsg_work;
 	struct sk_buff_head cmsg_skbs_high;
 	struct sk_buff_head cmsg_skbs_low;
@@ -228,7 +228,7 @@ struct nfp_fl_stats {
 struct nfp_fl_payload {
 	struct nfp_fl_rule_metadata meta;
 	unsigned long tc_flower_cookie;
-	struct hlist_node link;
+	struct rhash_head fl_node;
 	struct rcu_head rcu;
 	spinlock_t lock; /* lock stats */
 	struct nfp_fl_stats stats;
@@ -239,6 +239,8 @@ struct nfp_fl_payload {
 	char *action_data;
 	bool ingress_offload;
 };
+
+extern const struct rhashtable_params nfp_flower_table_params;
 
 struct nfp_fl_stats_frame {
 	__be32 stats_con_id;
