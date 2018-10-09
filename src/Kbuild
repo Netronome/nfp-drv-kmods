@@ -226,6 +226,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 	ifeq ($(KERNEL_GE_4_21),y)
 	  ccflags-y += -DCONFIG_NFP_APP_ABM_NIC
 	  nfp-objs += \
+		abm/cls.o \
 		abm/ctrl.o \
 		abm/main.o \
 		abm/qdisc.o
