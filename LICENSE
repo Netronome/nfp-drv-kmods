@@ -1,0 +1,56 @@
+This software is dual licensed under the GNU General License Version 2,
+June 1991 as shown in the file COPYING in the top-level directory of this
+source tree or the BSD 2-Clause License provided below.  You have the
+option to license this software under the complete terms of either license.
+
+The BSD 2-Clause License:
+
+    Redistribution and use in source and binary forms, with or
+    without modification, are permitted provided that the following
+    conditions are met:
+
+     1. Redistributions of source code must retain the above
+        copyright notice, this list of conditions and the following
+        disclaimer.
+
+     2. Redistributions in binary form must reproduce the above
+        copyright notice, this list of conditions and the following
+        disclaimer in the documentation and/or other materials
+        provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+----------------------------------------------------------------------------
+Note:
+Individual files within this project are annotated with the following
+License Identifier in lieu of the full LICENSE text above:
+
+	SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+
+The SPDX (Software Package Data eXchange) License Identifier tag is a well
+recognized abbreviation carrying the same legal standing as including the
+full LICENSE text contained herein. This abbreviated mechanism is amenable
+to machine processing of license information based on the included SPDX
+License Identifiers and is less error-prone. The curated full license texts
+of commonly used Open Source licenses that correspond to the abbreviated
+License Identifiers are available here:
+
+	http://spdx.org/licenses/
+
+The listed Licenses and their Identifiers, as published at the above URL,
+are intended to be immutable and have equivalent semantics to this LICENSE
+notice. To the extent of any differences or ambiguity in interpretation,
+the terms contained within this LICENSE file prevail.
+
+For more information regarding SPDX and the interpretation of License
+Identifiers, please refer to the FAQ and specifications at: http://spdx.org/
