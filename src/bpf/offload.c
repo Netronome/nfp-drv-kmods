@@ -172,6 +172,13 @@ nfp_prog_prepare(struct nfp_prog *nfp_prog, const struct bpf_insn *prog,
 
 	nfp_bpf_jit_prepare(nfp_prog, cnt);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0)
+	nfp_prog->subprog = kzalloc(sizeof(nfp_prog->subprog[0]), GFP_KERNEL);
+	if (!nfp_prog->subprog)
+		return -ENOMEM;
+	nfp_prog->subprog_cnt = 1;
+#endif
+
 	return 0;
 }
 
@@ -236,6 +243,7 @@ static int nfp_bpf_translate(struct nfp_net *nn, struct bpf_prog *prog)
 			prog->aux->stack_depth, stack_size);
 		return -EOPNOTSUPP;
 	}
+	nfp_prog->subprog[0].stack_depth = prog->aux->stack_depth;
 #endif
 
 	max_instr = nn_readw(nn, NFP_NET_CFG_BPF_MAX_LEN);
