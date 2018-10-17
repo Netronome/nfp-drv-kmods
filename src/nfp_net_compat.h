@@ -819,4 +819,12 @@ struct flow_dissector_key_enc_opts {
 	__be16 dst_opt_type;
 };
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0) */
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0)
+static inline bool netif_is_vxlan(const struct net_device *dev)
+{
+	return dev->rtnl_link_ops &&
+		!strcmp(dev->rtnl_link_ops->kind, "vxlan");
+}
+#endif
 #endif /* _NFP_NET_COMPAT_H_ */
