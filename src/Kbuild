@@ -223,7 +223,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
           $(warning NFP: CONFIG_NET_SWITCHDEV not enabled in the kernel, disabling apps: flower)
 	endif
 
-	ifeq ($(KERNEL_GE_4_18),y)
+	ifeq ($(KERNEL_GE_4_21),y)
 	  ccflags-y += -DCONFIG_NFP_APP_ABM_NIC
 	  nfp-objs += \
 		abm/ctrl.o \
