@@ -130,7 +130,7 @@ static void trace_cdev_vma(struct nfp_dev_cpp_vma *cvma, loff_t offset, char c)
 static void nfp_dev_cpp_event_cb(void *opaque)
 {
 	struct nfp_dev_cpp_event *ev = opaque;
-	siginfo_t info = {
+	kernel_siginfo_t info = {
 		.si_signo = ev->signal,
 		.si_errno = 0,
 		.si_code = SI_KERNEL,

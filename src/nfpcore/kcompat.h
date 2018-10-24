@@ -866,4 +866,8 @@ struct xdp_attachment_info {
 	u32 flags;
 };
 #endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0)
+typedef siginfo_t kernel_siginfo_t;
+#endif
 #endif /* __KERNEL__NFP_COMPAT_H__ */
