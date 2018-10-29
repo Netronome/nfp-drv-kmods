@@ -935,7 +935,11 @@ static int nfp_dev_cpp_ioctl(struct inode *inode, struct file *filp,
 	}
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 20, 0)
+static vm_fault_t nfp_cpp_mmap_fault(struct vm_fault *vmf)
+{
+	struct vm_area_struct *vma = vmf->vma;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
 static int nfp_cpp_mmap_fault(struct vm_fault *vmf)
 {
 	struct vm_area_struct *vma = vmf->vma;
@@ -993,8 +997,13 @@ static int nfp_cpp_mmap_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 		 */
 		io = nfp_cpp_area_phys(area->area) + offset;
 		BUG_ON(io == 0);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0)
 		vm_insert_pfn(vma, compat_vmf_get_addr(vmf), io >> PAGE_SHIFT);
 		err = 0;
+#else
+		return vmf_insert_pfn(vma, compat_vmf_get_addr(vmf),
+				      io >> PAGE_SHIFT);
+#endif
 	}
 
 	switch (err) {
