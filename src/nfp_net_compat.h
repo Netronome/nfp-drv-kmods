@@ -217,6 +217,13 @@ enum {
 };
 #endif
 
+#if VER_NON_RHEL_LT(3, 11) || VER_RHEL_LT(7, 3)
+static inline struct net_device *netdev_notifier_info_to_dev(void *ptr)
+{
+	return ptr;
+}
+#endif
+
 #if VER_NON_RHEL_LT(3, 13) || VER_RHEL_LT(7, 1)
 static inline void u64_stats_init(struct u64_stats_sync *syncp)
 {
