@@ -312,7 +312,7 @@ static void nfp_net_vnic_schedule(struct nfp_net_vnic *vnic)
  * nfp_net_vnic_timer - Timer triggered to poll vnic queues
  * @data:	vnic pointer
  */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0)
+#if VER_NON_RHEL_LT(4, 14) || VER_RHEL_LT(7, 6)
 static void nfp_net_vnic_timer(unsigned long t)
 #else
 static void nfp_net_vnic_timer(struct timer_list *t)

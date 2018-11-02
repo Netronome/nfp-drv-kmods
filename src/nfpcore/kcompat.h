@@ -759,7 +759,7 @@ struct netlink_ext_ack;
 #define pci_enable_msix pci_enable_msix_exact
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0)
+#if VER_NON_RHEL_LT(4, 14) || VER_RHEL_LT(7, 6)
 static inline void timer_setup(struct timer_list *t, void (*f)(unsigned long),
 			       unsigned int flags)
 {
@@ -777,7 +777,7 @@ static inline void timer_setup(struct timer_list *t, void (*f)(unsigned long),
 #undef CONFIG_NFP_APP_FLOWER
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
+#if VER_NON_RHEL_LT(4, 16) || VER_RHEL_LT(7, 6)
 struct xdp_rxq_info {
 	int empty;
 };

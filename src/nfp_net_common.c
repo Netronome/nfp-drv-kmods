@@ -172,7 +172,7 @@ static int nfp_net_reconfig_wait(struct nfp_net *nn, unsigned long deadline)
 	return timed_out ? -EIO : 0;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0)
+#if VER_NON_RHEL_LT(4, 14) || VER_RHEL_LT(7, 6)
 static void nfp_net_reconfig_timer(unsigned long t)
 #else
 static void nfp_net_reconfig_timer(struct timer_list *t)

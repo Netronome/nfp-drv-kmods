@@ -636,7 +636,9 @@ enum tc_setup_type {
 static inline void skb_metadata_set(const struct sk_buff *skb, u8 value)
 {
 }
+#endif
 
+#if VER_NON_RHEL_LT(4, 15) || VER_RHEL_LT(7, 6)
 typedef int tc_setup_cb_t(enum tc_setup_type type, void *type_data,
 			  void *cb_priv);
 
@@ -666,7 +668,7 @@ tc_cls_can_offload_and_chain0(const struct net_device *dev,
 #endif
 
 #ifdef COMPAT__HAVE_METADATA_IP_TUNNEL
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
+#if VER_NON_RHEL_LT(4, 16) || VER_RHEL_LT(7, 6)
 static inline struct net_device *tcf_mirred_dev(const struct tc_action *action)
 {
 	int ifindex;
@@ -681,7 +683,7 @@ static inline struct net_device *tcf_mirred_dev(const struct tc_action *action)
 #define tcf_block_shared(b)	false
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
+#if VER_NON_RHEL_LT(4, 16) || VER_RHEL_LT(7, 6)
 static inline void xdp_rxq_info_unreg(struct xdp_rxq_info *xdp_rxq)
 {
 }
