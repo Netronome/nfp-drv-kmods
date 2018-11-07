@@ -12,10 +12,9 @@
 #include <linux/version.h>
 
 /* Redefine LINUX_VERSION_CODE for *-next kernels */
-#include <linux/if_tun.h>
-#ifdef TUN_MSG_UBUF
+#ifdef COMPAT__IS_NEXT
 #undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(4, 20, 0)
+#define LINUX_VERSION_CODE KERNEL_VERSION(4, 21, 0)
 #endif
 
 /* RHEL has a tendency to heavily patch their kernels.  Sometimes it

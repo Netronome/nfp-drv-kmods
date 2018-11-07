@@ -129,10 +129,19 @@ KERNEL_GE_4_18 := \
 	$(shell [ $(VERSION) -gt 4 -o \
 	\( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 18 \) ] && echo y)
 
+KERNEL_GE_4_21 := \
+	$(shell grep -C2 ip_fib_metrics_init $(srctree)/include/net/ip.h | \
+		grep extack >/dev/null 2>&1 && \
+		echo y)
+
 ifeq ($(KERNEL_GE_4_9),y)
   nfp-objs += nfp_hwmon.o
 else
   nfp-objs += nfp_hwmon_legacy.o
+endif
+
+ifeq ($(KERNEL_GE_4_21),y)
+  ccflags-y += -DCOMPAT__IS_NEXT
 endif
 
 ifeq ($(CONFIG_NFP_USER_SPACE_CPP),y)
