@@ -190,18 +190,10 @@ static void nfp_prog_free(struct nfp_prog *nfp_prog)
 	kfree(nfp_prog);
 }
 
-static int
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
-nfp_bpf_verifier_prep(struct nfp_app *app, struct nfp_net *nn,
-		      struct netdev_bpf *bpf)
+static int nfp_bpf_verifier_prep(struct bpf_prog *prog)
 {
-	struct bpf_prog *prog = bpf->verifier.prog;
-#else
-nfp_bpf_verifier_prep(struct net_device *netdev, struct bpf_prog *prog)
-{
-	struct nfp_net *nn = netdev_priv(netdev);
+	struct nfp_net *nn = netdev_priv(prog->aux->offload->netdev);
 	struct nfp_app *app = nn->app;
-#endif
 	struct nfp_prog *nfp_prog;
 	int ret;
 
@@ -228,16 +220,10 @@ err_free:
 	return ret;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
-static int nfp_bpf_translate(struct nfp_net *nn, struct bpf_prog *prog)
-#else
-static int nfp_bpf_translate(struct net_device *netdev, struct bpf_prog *prog)
-#endif
+static int nfp_bpf_translate(struct bpf_prog *prog)
 {
+	struct nfp_net *nn = netdev_priv(prog->aux->offload->netdev);
 	struct nfp_prog *nfp_prog = prog->aux->offload->dev_priv;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 21, 0)
-	struct nfp_net *nn = netdev_priv(netdev);
-#endif
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0)
 	unsigned int stack_size;
 #endif
@@ -453,9 +439,9 @@ int nfp_ndo_bpf(struct nfp_app *app, struct nfp_net *nn, struct netdev_bpf *bpf)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
 	case BPF_OFFLOAD_VERIFIER_PREP:
 		bpf->verifier.ops = &nfp_bpf_dev_ops;
-		return nfp_bpf_verifier_prep(app, nn, bpf);
+		return nfp_bpf_verifier_prep(bpf->verifier.prog);
 	case BPF_OFFLOAD_TRANSLATE:
-		return nfp_bpf_translate(nn, bpf->offload.prog);
+		return nfp_bpf_translate(bpf->offload.prog);
 	case BPF_OFFLOAD_DESTROY:
 		nfp_bpf_destroy(bpf->offload.prog);
 		return 0;
