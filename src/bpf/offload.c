@@ -34,9 +34,6 @@ nfp_map_ptr_record(struct nfp_app_bpf *bpf, struct nfp_prog *nfp_prog,
 	struct nfp_bpf_neutral_map *record;
 	int err;
 
-	/* Map record paths are entered via ndo, update side is protected. */
-	ASSERT_RTNL();
-
 	/* Reuse path - other offloaded program is already tracking this map. */
 	record = rhashtable_lookup_fast(&bpf->maps_neutral, &map->id,
 					nfp_bpf_maps_neutral_params);
@@ -84,8 +81,6 @@ nfp_map_ptrs_forget(struct nfp_app_bpf *bpf, struct nfp_prog *nfp_prog)
 {
 	bool freed = false;
 	int i;
-
-	ASSERT_RTNL();
 
 	for (i = 0; i < nfp_prog->map_records_cnt; i++) {
 		if (--nfp_prog->map_records[i]->count) {
@@ -234,9 +229,16 @@ err_free:
 	return ret;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
 static int nfp_bpf_translate(struct nfp_net *nn, struct bpf_prog *prog)
+#else
+static int nfp_bpf_translate(struct net_device *netdev, struct bpf_prog *prog)
+#endif
 {
 	struct nfp_prog *nfp_prog = prog->aux->offload->dev_priv;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 21, 0)
+	struct nfp_net *nn = netdev_priv(netdev);
+#endif
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0)
 	unsigned int stack_size;
 #endif
@@ -455,9 +457,9 @@ int nfp_ndo_bpf(struct nfp_app *app, struct nfp_net *nn, struct netdev_bpf *bpf)
 	case BPF_OFFLOAD_VERIFIER_PREP:
 		bpf->verifier.ops = &nfp_bpf_dev_ops;
 		return nfp_bpf_verifier_prep(app, nn, bpf);
-#endif
 	case BPF_OFFLOAD_TRANSLATE:
 		return nfp_bpf_translate(nn, bpf->offload.prog);
+#endif
 	case BPF_OFFLOAD_DESTROY:
 		return nfp_bpf_destroy(nn, bpf->offload.prog);
 	case BPF_OFFLOAD_MAP_ALLOC:
@@ -644,5 +646,6 @@ const struct bpf_prog_offload_ops nfp_bpf_dev_ops = {
 #endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 21, 0)
 	.prepare	= nfp_bpf_verifier_prep,
+	.translate	= nfp_bpf_translate,
 #endif
 };
