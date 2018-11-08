@@ -836,4 +836,12 @@ static inline bool netif_is_vxlan(const struct net_device *dev)
 		!strcmp(dev->rtnl_link_ops->kind, "vxlan");
 }
 #endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+static inline bool netif_is_geneve(const struct net_device *dev)
+{
+       return dev->rtnl_link_ops &&
+              !strcmp(dev->rtnl_link_ops->kind, "geneve");
+}
+#endif
 #endif /* _NFP_NET_COMPAT_H_ */
