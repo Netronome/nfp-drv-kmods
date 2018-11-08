@@ -733,7 +733,7 @@ xdp_attachment_query(struct xdp_attachment_info *info, struct netdev_bpf *bpf)
 {
 	bpf->prog_attached = !!info->prog;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
-	if (info->flags & XDP_FLAGS_HW_MODE)
+	if (bpf->prog_attached && info->flags & XDP_FLAGS_HW_MODE)
 		bpf->prog_attached = XDP_ATTACHED_HW;
 	bpf->prog_id = info->prog ? info->prog->aux->id : 0;
 #endif
