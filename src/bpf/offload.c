@@ -626,3 +626,10 @@ int nfp_net_bpf_offload(struct nfp_net *nn, struct bpf_prog *prog,
 
 	return 0;
 }
+
+const struct bpf_prog_offload_ops nfp_bpf_analyzer_ops = {
+	.insn_hook	= nfp_verify_insn,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 20, 0)
+	.finalize	= nfp_bpf_finalize,
+#endif
+};
