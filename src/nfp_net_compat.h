@@ -737,7 +737,12 @@ bpf_offload_dev_netdev_unregister(struct bpf_offload_dev *bpf_dev,
 {
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
 static inline struct bpf_offload_dev *bpf_offload_dev_create(void)
+#else
+static inline struct bpf_offload_dev *
+bpf_offload_dev_create(struct bpf_prog_offload_ops *dev_ops)
+#endif
 {
 	return NULL;
 }
