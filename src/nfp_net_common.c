@@ -930,8 +930,6 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 		u64_stats_update_end(&r_vec->tx_sync);
 	}
 
-	netdev_tx_sent_queue(nd_q, txbuf->real_len);
-
 	skb_tx_timestamp(skb);
 
 	tx_ring->wr_p += nr_frags + 1;
@@ -939,7 +937,7 @@ static int nfp_net_tx(struct sk_buff *skb, struct net_device *netdev)
 		nfp_net_tx_ring_stop(nd_q, tx_ring);
 
 	tx_ring->wr_ptr_add += nr_frags + 1;
-	if (!skb_xmit_more(skb) || netif_xmit_stopped(nd_q))
+	if (__netdev_tx_sent_queue(nd_q, txbuf->real_len, skb_xmit_more(skb)))
 		nfp_net_tx_xmit_more_flush(tx_ring);
 
 	return NETDEV_TX_OK;
