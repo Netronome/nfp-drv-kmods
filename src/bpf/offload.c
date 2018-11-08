@@ -273,15 +273,13 @@ static int nfp_bpf_translate(struct net_device *netdev, struct bpf_prog *prog)
 	return nfp_map_ptrs_record(nfp_prog->bpf, nfp_prog, prog);
 }
 
-static int nfp_bpf_destroy(struct nfp_net *nn, struct bpf_prog *prog)
+static void nfp_bpf_destroy(struct bpf_prog *prog)
 {
 	struct nfp_prog *nfp_prog = prog->aux->offload->dev_priv;
 
 	kvfree(nfp_prog->prog);
 	nfp_map_ptrs_forget(nfp_prog->bpf, nfp_prog);
 	nfp_prog_free(nfp_prog);
-
-	return 0;
 }
 
 /* Atomic engine requires values to be in big endian, we need to byte swap
@@ -459,9 +457,10 @@ int nfp_ndo_bpf(struct nfp_app *app, struct nfp_net *nn, struct netdev_bpf *bpf)
 		return nfp_bpf_verifier_prep(app, nn, bpf);
 	case BPF_OFFLOAD_TRANSLATE:
 		return nfp_bpf_translate(nn, bpf->offload.prog);
-#endif
 	case BPF_OFFLOAD_DESTROY:
-		return nfp_bpf_destroy(nn, bpf->offload.prog);
+		nfp_bpf_destroy(bpf->offload.prog);
+		return 0;
+#endif
 	case BPF_OFFLOAD_MAP_ALLOC:
 		return nfp_bpf_map_alloc(app->priv, bpf->offmap);
 	case BPF_OFFLOAD_MAP_FREE:
@@ -647,5 +646,6 @@ const struct bpf_prog_offload_ops nfp_bpf_dev_ops = {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 21, 0)
 	.prepare	= nfp_bpf_verifier_prep,
 	.translate	= nfp_bpf_translate,
+	.destroy	= nfp_bpf_destroy,
 #endif
 };
