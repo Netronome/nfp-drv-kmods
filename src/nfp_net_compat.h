@@ -846,6 +846,8 @@ __netdev_tx_sent_queue(struct netdev_queue *nd_q, u32 len, bool xmit_more)
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#undef CONFIG_NFP_APP_ABM_NIC
+
 static inline bool netif_is_geneve(const struct net_device *dev)
 {
        return dev->rtnl_link_ops &&
