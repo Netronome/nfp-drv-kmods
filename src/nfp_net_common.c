@@ -3650,7 +3650,7 @@ const struct net_device_ops nfp_net_netdev_ops = {
 #endif
 	.ndo_tx_timeout		= nfp_net_tx_timeout,
 	.ndo_set_rx_mode	= nfp_net_set_rx_mode,
-#if VER_IS_NON_RHEL || VER_RHEL_LT(7, 5)
+#if VER_IS_NON_RHEL || VER_RHEL_LT(7, 5) || VER_RHEL_GE(8, 0)
 	.ndo_change_mtu		= nfp_net_change_mtu,
 #elif VER_RHEL_GE(7, 5)
 	.ndo_change_mtu_rh74	= nfp_net_change_mtu,
@@ -3663,7 +3663,7 @@ const struct net_device_ops nfp_net_netdev_ops = {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
 	.ndo_get_phys_port_name	= nfp_net_get_phys_port_name,
 #endif
-#if VER_IS_NON_RHEL && COMPAT__HAVE_UDP_OFFLOAD
+#if (VER_IS_NON_RHEL || VER_RHEL_GE(8, 0)) && COMPAT__HAVE_UDP_OFFLOAD
 	.ndo_udp_tunnel_add	= nfp_net_add_vxlan_port,
 	.ndo_udp_tunnel_del	= nfp_net_del_vxlan_port,
 #elif VER_IS_NON_RHEL && COMPAT__HAVE_VXLAN_OFFLOAD
@@ -3677,7 +3677,7 @@ const struct net_device_ops nfp_net_netdev_ops = {
 	.ndo_xdp		= nfp_net_xdp,
 #endif
 #endif
-#if VER_RHEL_GE(7, 3)
+#if VER_RHEL_GE(7, 3) && VER_RHEL_LT(8, 0)
 	.ndo_size		= sizeof(nfp_net_netdev_ops),
 	.extended		= {
 #if VER_RHEL_GE(7, 4)

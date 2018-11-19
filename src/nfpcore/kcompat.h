@@ -859,7 +859,9 @@ static inline struct reciprocal_value_adv reciprocal_value_adv(u32 d, u8 prec)
 
 	return R;
 }
+#endif
 
+#if VER_NON_RHEL_LT(4, 19) || VER_RHEL_LT(8, 0)
 struct xdp_attachment_info {
 	struct bpf_prog *prog;
 	u32 flags;

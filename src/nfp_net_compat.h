@@ -720,6 +720,60 @@ devlink_port_attrs_set(struct devlink_port *devlink_port,
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
+struct bpf_offload_dev {
+	u32 empty;
+};
+
+static inline int
+bpf_offload_dev_netdev_register(struct bpf_offload_dev *bpf_dev,
+				struct net_device *dev)
+{
+	return 0;
+}
+
+static inline void
+bpf_offload_dev_netdev_unregister(struct bpf_offload_dev *bpf_dev,
+				  struct net_device *dev)
+{
+}
+
+static inline struct bpf_offload_dev *bpf_offload_dev_create(void)
+{
+	return NULL;
+}
+
+static inline void bpf_offload_dev_destroy(struct bpf_offload_dev *bpf_dev)
+{
+}
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
+static inline bool
+compat_bpf_offload_dev_match(struct bpf_prog *prog, struct net_device *dev)
+{
+	struct bpf_prog_offload *offload = prog->aux->offload;
+
+	if (!offload)
+		return false;
+	if (offload->netdev != dev)
+		return false;
+	return true;
+}
+#define bpf_offload_dev_match(prog, dev) compat_bpf_offload_dev_match(prog, dev)
+#endif
+
+#define FLOW_DISSECTOR_KEY_ENC_IP	22
+#define FLOW_DISSECTOR_KEY_ENC_OPTS	23
+
+#define FLOW_DIS_TUN_OPTS_MAX 255
+
+struct flow_dissector_key_enc_opts {
+	u8 data[FLOW_DIS_TUN_OPTS_MAX];
+	u8 len;
+	__be16 dst_opt_type;
+};
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0) */
+
+#if VER_NON_RHEL_LT(4, 19) || VER_RHEL_LT(8, 0)
 #define tcf_block_cb_register(block, cb, ident, priv, ea)	\
 	tcf_block_cb_register(block, cb, ident, priv)
 
@@ -775,59 +829,7 @@ xdp_attachment_setup(struct xdp_attachment_info *info, struct netdev_bpf *bpf)
 #endif
 }
 #endif /* COMPAT__HAVE_XDP */
-
-struct bpf_offload_dev {
-	u32 empty;
-};
-
-static inline int
-bpf_offload_dev_netdev_register(struct bpf_offload_dev *bpf_dev,
-				struct net_device *dev)
-{
-	return 0;
-}
-
-static inline void
-bpf_offload_dev_netdev_unregister(struct bpf_offload_dev *bpf_dev,
-				  struct net_device *dev)
-{
-}
-
-static inline struct bpf_offload_dev *bpf_offload_dev_create(void)
-{
-	return NULL;
-}
-
-static inline void bpf_offload_dev_destroy(struct bpf_offload_dev *bpf_dev)
-{
-}
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
-static inline bool
-compat_bpf_offload_dev_match(struct bpf_prog *prog, struct net_device *dev)
-{
-	struct bpf_prog_offload *offload = prog->aux->offload;
-
-	if (!offload)
-		return false;
-	if (offload->netdev != dev)
-		return false;
-	return true;
-}
-#define bpf_offload_dev_match(prog, dev) compat_bpf_offload_dev_match(prog, dev)
 #endif
-
-#define FLOW_DISSECTOR_KEY_ENC_IP	22
-#define FLOW_DISSECTOR_KEY_ENC_OPTS	23
-
-#define FLOW_DIS_TUN_OPTS_MAX 255
-
-struct flow_dissector_key_enc_opts {
-	u8 data[FLOW_DIS_TUN_OPTS_MAX];
-	u8 len;
-	__be16 dst_opt_type;
-};
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0) */
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0)
 static inline bool netif_is_vxlan(const struct net_device *dev)
