@@ -474,8 +474,7 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
 	ingr_dev = egress ? NULL : netdev;
-	flow_pay = nfp_flower_search_fl_table(app, flow->cookie, ingr_dev,
-					      NFP_FL_STATS_CTX_DONT_CARE);
+	flow_pay = nfp_flower_search_fl_table(app, flow->cookie, ingr_dev);
 	if (flow_pay) {
 		/* Ignore as duplicate if it has been added by different cb. */
 		if (flow_pay->ingress_offload && egress)
@@ -595,11 +594,9 @@ nfp_flower_del_offload(struct nfp_app *app, struct net_device *netdev,
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
 	ingr_dev = egress ? NULL : netdev;
-	nfp_flow = nfp_flower_search_fl_table(app, flow->cookie, ingr_dev,
-					      NFP_FL_STATS_CTX_DONT_CARE);
+	nfp_flow = nfp_flower_search_fl_table(app, flow->cookie, ingr_dev);
 #else
-	nfp_flow = nfp_flower_search_fl_table(app, flow->cookie, netdev,
-					      NFP_FL_STATS_CTX_DONT_CARE);
+	nfp_flow = nfp_flower_search_fl_table(app, flow->cookie, netdev);
 #endif
 	if (!nfp_flow)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
@@ -664,11 +661,9 @@ nfp_flower_get_stats(struct nfp_app *app, struct net_device *netdev,
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
 	ingr_dev = egress ? NULL : netdev;
-	nfp_flow = nfp_flower_search_fl_table(app, flow->cookie, ingr_dev,
-					      NFP_FL_STATS_CTX_DONT_CARE);
+	nfp_flow = nfp_flower_search_fl_table(app, flow->cookie, ingr_dev);
 #else
-	nfp_flow = nfp_flower_search_fl_table(app, flow->cookie, netdev,
-					      NFP_FL_STATS_CTX_DONT_CARE);
+	nfp_flow = nfp_flower_search_fl_table(app, flow->cookie, netdev);
 #endif
 	if (!nfp_flow)
 		return -EINVAL;
