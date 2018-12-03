@@ -9,7 +9,7 @@
 
 static struct dentry *nfp_dir;
 
-static int nfp_net_debugfs_rx_q_read(struct seq_file *file, void *data)
+static int nfp_rx_q_show(struct seq_file *file, void *data)
 {
 	struct nfp_net_r_vector *r_vec = file->private;
 	struct nfp_net_rx_ring *rx_ring;
@@ -66,31 +66,12 @@ out:
 	rtnl_unlock();
 	return 0;
 }
+DEFINE_SHOW_ATTRIBUTE(nfp_rx_q);
 
-static int nfp_net_debugfs_rx_q_open(struct inode *inode, struct file *f)
-{
-	return single_open(f, nfp_net_debugfs_rx_q_read, inode->i_private);
-}
+static int nfp_tx_q_show(struct seq_file *file, void *data);
+DEFINE_SHOW_ATTRIBUTE(nfp_tx_q);
 
-static const struct file_operations nfp_rx_q_fops = {
-	.owner = THIS_MODULE,
-	.open = nfp_net_debugfs_rx_q_open,
-	.release = single_release,
-	.read = seq_read,
-	.llseek = seq_lseek
-};
-
-static int nfp_net_debugfs_tx_q_open(struct inode *inode, struct file *f);
-
-static const struct file_operations nfp_tx_q_fops = {
-	.owner = THIS_MODULE,
-	.open = nfp_net_debugfs_tx_q_open,
-	.release = single_release,
-	.read = seq_read,
-	.llseek = seq_lseek
-};
-
-static int nfp_net_debugfs_tx_q_read(struct seq_file *file, void *data)
+static int nfp_tx_q_show(struct seq_file *file, void *data)
 {
 	struct nfp_net_r_vector *r_vec = file->private;
 	struct nfp_net_tx_ring *tx_ring;
@@ -159,19 +140,12 @@ out:
 	return 0;
 }
 
-static int nfp_net_debugfs_tx_q_open(struct inode *inode, struct file *f)
-{
-	return single_open(f, nfp_net_debugfs_tx_q_read, inode->i_private);
-}
-
 #if COMPAT__HAVE_XDP
-static const struct file_operations nfp_xdp_q_fops = {
-	.owner = THIS_MODULE,
-	.open = nfp_net_debugfs_tx_q_open,
-	.release = single_release,
-	.read = seq_read,
-	.llseek = seq_lseek
-};
+static int nfp_xdp_q_show(struct seq_file *file, void *data)
+{
+	return nfp_tx_q_show(file, data);
+}
+DEFINE_SHOW_ATTRIBUTE(nfp_xdp_q);
 #endif
 
 void nfp_net_debugfs_vnic_add(struct nfp_net *nn, struct dentry *ddir)
