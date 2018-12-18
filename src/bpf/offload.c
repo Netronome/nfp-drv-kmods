@@ -629,6 +629,9 @@ const struct bpf_prog_offload_ops nfp_bpf_dev_ops = {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 20, 0)
 	.finalize	= nfp_bpf_finalize,
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+	.replace_insn	= nfp_bpf_opt_replace_insn,
+#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
 	.prepare	= nfp_bpf_verifier_prep,
 	.translate	= nfp_bpf_translate,

@@ -42,6 +42,12 @@
 #endif
 #include <net/tc_act/tc_mirred.h>
 
+/* Redefine LINUX_VERSION_CODE for *-next kernels */
+#ifdef BPF_JMP32_REG
+#undef LINUX_VERSION_CODE
+#define LINUX_VERSION_CODE KERNEL_VERSION(5, 1, 0)
+#endif
+
 #include "nfp_net.h"
 
 #define COMPAT__HAVE_VXLAN_OFFLOAD \
