@@ -164,8 +164,9 @@ nfp_prog_prepare(struct nfp_prog *nfp_prog, const struct bpf_insn *prog,
 
 		list_add_tail(&meta->l, &nfp_prog->insns);
 	}
+	nfp_prog->n_insns = cnt;
 
-	nfp_bpf_jit_prepare(nfp_prog, cnt);
+	nfp_bpf_jit_prepare(nfp_prog);
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0)
 	nfp_prog->subprog = kzalloc(sizeof(nfp_prog->subprog[0]), GFP_KERNEL);
