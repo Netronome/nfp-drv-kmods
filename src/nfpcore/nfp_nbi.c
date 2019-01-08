@@ -7,6 +7,7 @@
  *          Jason McMullan <jason.mcmullan@netronome.com>
  */
 
+#include <linux/jiffies.h>
 #include <linux/kernel.h>
 #include <linux/netdevice.h>
 #include <linux/ethtool.h>
@@ -314,11 +315,7 @@ static int nfp_nbi_tx_flush_flags(struct nfp_nbi_dev *nbi, u32 flags)
 	struct nfp_nbi_priv *priv = nbi->priv;
 	const struct nfp_rtsym *sym;
 	const int timeout_ms = 100;
-	struct timespec timeout = {
-		.tv_nsec = timeout_ms * 1000 * 1000,
-		.tv_sec = 0,
-	};
-	struct timespec ts;
+	u64 wait_until;
 	u32 tmp;
 	int err;
 
@@ -340,8 +337,7 @@ static int nfp_nbi_tx_flush_flags(struct nfp_nbi_dev *nbi, u32 flags)
 		return err;
 
 	/* Readback to wait until acknowledgment */
-	ktime_get_ts(&ts);
-	timeout = timespec_add(ts, timeout);
+	wait_until = get_jiffies_64() + msecs_to_jiffies(timeout_ms);
 
 	do {
 		err = nfp_rtsym_readl(nbi->cpp, sym, 4, &tmp);
@@ -350,9 +346,7 @@ static int nfp_nbi_tx_flush_flags(struct nfp_nbi_dev *nbi, u32 flags)
 
 		if (tmp & TX_FLUSH_FLAG_ACK)
 			return 0;
-
-		ktime_get_ts(&ts);
-	} while (timespec_compare(&ts, &timeout) < 0);
+	} while (time_after64(get_jiffies_64(), wait_until));
 
 	/* Even though we timed out, this is currently a warning,
 	 * not an error, as the ME firmware may not be new enough
