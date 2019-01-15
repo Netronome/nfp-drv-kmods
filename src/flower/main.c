@@ -303,6 +303,7 @@ nfp_flower_spawn_vnic_reprs(struct nfp_app *app,
 
 		nfp_repr = netdev_priv(repr);
 		nfp_repr->app_priv = repr_priv;
+		repr_priv->nfp_repr = nfp_repr;
 
 		/* For now we only support 1 PF */
 		WARN_ON(repr_type == NFP_REPR_TYPE_PF && i);
@@ -417,6 +418,7 @@ nfp_flower_spawn_phy_reprs(struct nfp_app *app, struct nfp_flower_priv *priv)
 
 		nfp_repr = netdev_priv(repr);
 		nfp_repr->app_priv = repr_priv;
+		repr_priv->nfp_repr = nfp_repr;
 
 		port = nfp_port_alloc(app, NFP_PORT_PHYS_PORT, repr);
 		if (IS_ERR(port)) {
