@@ -24,7 +24,7 @@
 #else
 #include <linux/io-64-nonatomic-hi-lo.h>
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
+#if VER_NON_RHEL_GE(4, 16) || VER_RHEL_GE(7, 6)
 #include <net/xdp.h>
 #endif
 
