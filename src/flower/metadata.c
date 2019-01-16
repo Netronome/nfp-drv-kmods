@@ -285,7 +285,7 @@ int nfp_compile_flow_metadata(struct nfp_app *app,
 
 	nfp_flow->meta.host_ctx_id = cpu_to_be32(stats_cxt);
 	nfp_flow->meta.host_cookie = cpu_to_be64(flow->cookie);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
 	nfp_flow->ingress_dev = netdev;
 #endif
 
@@ -352,7 +352,7 @@ static int nfp_fl_obj_cmpfn(struct rhashtable_compare_arg *arg,
 	const struct nfp_fl_flow_table_cmp_arg *cmp_arg = arg->key;
 	const struct nfp_fl_payload *flow_entry = obj;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	if (!cmp_arg->netdev || flow_entry->ingress_dev == cmp_arg->netdev)
 #else
 	if (flow_entry->ingress_dev == cmp_arg->netdev)

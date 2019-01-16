@@ -11,12 +11,6 @@
 #include <generated/utsrelease.h>
 #include <linux/version.h>
 
-/* Redefine LINUX_VERSION_CODE for *-next kernels */
-#ifdef COMPAT__IS_NEXT
-#undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(4, 21, 0)
-#endif
-
 /* RHEL has a tendency to heavily patch their kernels.  Sometimes it
  * is necessary to check for specific RHEL releases and not just for
  * Linux kernel version.  Define RHEL version macros for Linux kernels

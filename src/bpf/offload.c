@@ -436,7 +436,7 @@ nfp_bpf_map_free(struct nfp_app_bpf *bpf, struct bpf_offloaded_map *offmap)
 int nfp_ndo_bpf(struct nfp_app *app, struct nfp_net *nn, struct netdev_bpf *bpf)
 {
 	switch (bpf->command) {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	case BPF_OFFLOAD_VERIFIER_PREP:
 		bpf->verifier.ops = &nfp_bpf_dev_ops;
 		return nfp_bpf_verifier_prep(bpf->verifier.prog);
@@ -514,7 +514,7 @@ nfp_net_bpf_load(struct nfp_net *nn, struct bpf_prog *prog,
 
 	fw_mtu = nn_readb(nn, NFP_NET_CFG_BPF_INL_MTU) * 64 - 32;
 	pkt_off = nn->dp.netdev->mtu;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
 	pkt_off = min(prog->aux->max_pkt_offset, pkt_off);
 #endif
 	if (fw_mtu < pkt_off) {
@@ -628,7 +628,7 @@ const struct bpf_prog_offload_ops nfp_bpf_dev_ops = {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 20, 0)
 	.finalize	= nfp_bpf_finalize,
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
 	.prepare	= nfp_bpf_verifier_prep,
 	.translate	= nfp_bpf_translate,
 	.destroy	= nfp_bpf_destroy,

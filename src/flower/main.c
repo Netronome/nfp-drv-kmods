@@ -148,7 +148,7 @@ nfp_flower_repr_netdev_stop(struct nfp_app *app, struct nfp_repr *repr)
 	return nfp_flower_cmsg_portmod(repr, false, repr->netdev->mtu, false);
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 static int
 nfp_flower_repr_netdev_init(struct nfp_app *app, struct net_device *netdev)
 {
@@ -164,7 +164,7 @@ nfp_flower_repr_netdev_clean(struct nfp_app *app, struct net_device *netdev)
 	struct nfp_repr *repr = netdev_priv(netdev);
 
 	kfree(repr->app_priv);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 
 	tc_setup_cb_egdev_unregister(netdev, nfp_flower_setup_tc_egress_cb,
 				     netdev_priv(netdev));
@@ -692,7 +692,7 @@ nfp_flower_netdev_event(struct nfp_app *app, struct net_device *netdev,
 			return ret;
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
 	ret = nfp_flower_reg_indir_block_handler(app, netdev, event);
 	if (ret & NOTIFY_STOP_MASK)
 		return ret;
@@ -719,7 +719,7 @@ const struct nfp_app_type app_flower = {
 	.vnic_init	= nfp_flower_vnic_init,
 	.vnic_clean	= nfp_flower_vnic_clean,
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	.repr_init	= nfp_flower_repr_netdev_init,
 #endif
 	.repr_preclean	= nfp_flower_repr_netdev_preclean,

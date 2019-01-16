@@ -128,7 +128,7 @@ nfp_flower_calc_opt_layer(struct flow_dissector_key_enc_opts *enc_opts,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 static int
 nfp_flower_calculate_key_layers(struct nfp_app *app,
 				struct net_device *netdev,
@@ -198,7 +198,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 			skb_flow_dissector_target(flow->dissector,
 						  FLOW_DISSECTOR_KEY_ENC_CONTROL,
 						  flow->key);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 		if (!egress)
 			return -EOPNOTSUPP;
 #endif
@@ -264,7 +264,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 		default:
 			return -EOPNOTSUPP;
 		}
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
 
 		/* Ensure the ingress netdev matches the expected tun type. */
 		if (!nfp_fl_netdev_is_tunnel_type(netdev, *tun_type))
@@ -409,7 +409,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 static struct nfp_fl_payload *
 nfp_flower_allocate_new(struct nfp_fl_key_ls *key_layer, bool egress)
 #else
@@ -439,7 +439,7 @@ nfp_flower_allocate_new(struct nfp_fl_key_ls *key_layer)
 
 	flow_pay->nfp_tun_ipv4_addr = 0;
 	flow_pay->meta.flags = 0;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	flow_pay->ingress_offload = !egress;
 #endif
 
@@ -465,7 +465,7 @@ err_free_flow:
  *
  * Return: negative value on error, 0 if configured successfully.
  */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 static int
 nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 		       struct tc_cls_flower_offload *flow, bool egress)
@@ -480,7 +480,7 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 	struct nfp_fl_payload *flow_pay;
 	struct nfp_fl_key_ls *key_layer;
 	struct nfp_port *port = NULL;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	struct net_device *ingr_dev;
 #endif
 	int err;
@@ -488,7 +488,7 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 	if (nfp_netdev_is_nfp_repr(netdev))
 		port = nfp_port_from_netdev(netdev);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	ingr_dev = egress ? NULL : netdev;
 	flow_pay = nfp_flower_search_fl_table(app, flow->cookie, ingr_dev);
 	if (flow_pay) {
@@ -504,7 +504,7 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 	if (!key_layer)
 		return -ENOMEM;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	err = nfp_flower_calculate_key_layers(app, netdev, key_layer, flow,
 					      egress, &tun_type);
 #else
@@ -514,7 +514,7 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 	if (err)
 		goto err_free_key_ls;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	flow_pay = nfp_flower_allocate_new(key_layer, egress);
 #else
 	flow_pay = nfp_flower_allocate_new(key_layer);
@@ -524,7 +524,7 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 		goto err_free_key_ls;
 	}
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	flow_pay->ingress_dev = egress ? NULL : netdev;
 
 #endif
@@ -537,7 +537,7 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 	if (err)
 		goto err_destroy_flow;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	err = nfp_compile_flow_metadata(app, flow, flow_pay,
 					flow_pay->ingress_dev);
 #else
@@ -593,7 +593,7 @@ err_free_key_ls:
  *
  * Return: negative value on error, 0 if removed successfully.
  */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 static int
 nfp_flower_del_offload(struct nfp_app *app, struct net_device *netdev,
 		       struct tc_cls_flower_offload *flow, bool egress)
@@ -606,7 +606,7 @@ nfp_flower_del_offload(struct nfp_app *app, struct net_device *netdev,
 	struct nfp_flower_priv *priv = app->priv;
 	struct nfp_fl_payload *nfp_flow;
 	struct nfp_port *port = NULL;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	struct net_device *ingr_dev;
 #endif
 	int err;
@@ -614,14 +614,14 @@ nfp_flower_del_offload(struct nfp_app *app, struct net_device *netdev,
 	if (nfp_netdev_is_nfp_repr(netdev))
 		port = nfp_port_from_netdev(netdev);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	ingr_dev = egress ? NULL : netdev;
 	nfp_flow = nfp_flower_search_fl_table(app, flow->cookie, ingr_dev);
 #else
 	nfp_flow = nfp_flower_search_fl_table(app, flow->cookie, netdev);
 #endif
 	if (!nfp_flow)
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 		return egress ? 0 : -ENOENT;
 #else
 		return -ENOENT;
@@ -664,7 +664,7 @@ err_free_flow:
  *
  * Return: negative value on error, 0 if stats populated successfully.
  */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 static int
 nfp_flower_get_stats(struct nfp_app *app, struct net_device *netdev,
 		     struct tc_cls_flower_offload *flow, bool egress)
@@ -676,12 +676,12 @@ nfp_flower_get_stats(struct nfp_app *app, struct net_device *netdev,
 {
 	struct nfp_flower_priv *priv = app->priv;
 	struct nfp_fl_payload *nfp_flow;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	struct net_device *ingr_dev;
 #endif
 	u32 ctx_id;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	ingr_dev = egress ? NULL : netdev;
 	nfp_flow = nfp_flower_search_fl_table(app, flow->cookie, ingr_dev);
 #else
@@ -690,7 +690,7 @@ nfp_flower_get_stats(struct nfp_app *app, struct net_device *netdev,
 	if (!nfp_flow)
 		return -EINVAL;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	if (nfp_flow->ingress_offload && egress)
 		return 0;
 
@@ -709,7 +709,7 @@ nfp_flower_get_stats(struct nfp_app *app, struct net_device *netdev,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 static int
 nfp_flower_repr_offload(struct nfp_app *app, struct net_device *netdev,
 			struct tc_cls_flower_offload *flower, bool egress)
@@ -726,19 +726,19 @@ nfp_flower_repr_offload(struct nfp_app *app, struct net_device *netdev,
 
 	switch (flower->command) {
 	case TC_CLSFLOWER_REPLACE:
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 		return nfp_flower_add_offload(app, netdev, flower, egress);
 #else
 		return nfp_flower_add_offload(app, netdev, flower);
 #endif
 	case TC_CLSFLOWER_DESTROY:
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 		return nfp_flower_del_offload(app, netdev, flower, egress);
 #else
 		return nfp_flower_del_offload(app, netdev, flower);
 #endif
 	case TC_CLSFLOWER_STATS:
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 		return nfp_flower_get_stats(app, netdev, flower, egress);
 #else
 		return nfp_flower_get_stats(app, netdev, flower);
@@ -749,7 +749,7 @@ nfp_flower_repr_offload(struct nfp_app *app, struct net_device *netdev,
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 int nfp_flower_setup_tc_egress_cb(enum tc_setup_type type, void *type_data,
 				  void *cb_priv)
 {
@@ -767,7 +767,7 @@ int nfp_flower_setup_tc_egress_cb(enum tc_setup_type type, void *type_data,
 	}
 }
 
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0) */
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0) */
 static int nfp_flower_setup_tc_block_cb(enum tc_setup_type type,
 					void *type_data, void *cb_priv)
 {
@@ -778,7 +778,7 @@ static int nfp_flower_setup_tc_block_cb(enum tc_setup_type type,
 
 	switch (type) {
 	case TC_SETUP_CLSFLOWER:
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 		return nfp_flower_repr_offload(repr->app, repr->netdev,
 					       type_data, false);
 #else
@@ -856,7 +856,7 @@ int nfp_flower_setup_tc(struct nfp_app *app, struct net_device *netdev,
 }
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
 struct nfp_flower_indr_block_cb_priv {
 	struct net_device *netdev;
 	struct nfp_app *app;

@@ -470,7 +470,7 @@ static int nfp_bpf_init(struct nfp_app *app)
 		app->ctrl_mtu = nfp_bpf_ctrl_cmsg_mtu(bpf);
 	}
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 21, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	bpf->bpf_dev = bpf_offload_dev_create();
 #else
 	bpf->bpf_dev = bpf_offload_dev_create(&nfp_bpf_dev_ops);
