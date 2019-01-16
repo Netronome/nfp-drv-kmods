@@ -214,7 +214,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 		flower/offload.o \
 		flower/main.o \
 		flower/tunnel_conf.o
-	else
+	else ifdef CONFIG_LOCALVERSION # don't warn on clean
           $(warning NFP: CONFIG_NET_SWITCHDEV not enabled in the kernel, disabling apps: flower)
 	endif
 
