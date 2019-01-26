@@ -887,4 +887,8 @@ static inline bool netif_is_geneve(const struct net_device *dev)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
 #define dma_zalloc_coherent	dma_alloc_coherent
 #endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
+#define BPF_JMP32	0x06
+#endif
 #endif /* _NFP_NET_COMPAT_H_ */
