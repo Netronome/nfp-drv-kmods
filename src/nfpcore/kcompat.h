@@ -784,6 +784,7 @@ static inline void pcie_print_link_status(struct pci_dev *dev)
 
 #ifndef check_mul_overflow
 #define array_size(a, b)	((a) * (b))
+#define struct_size(a, b, c)	(sizeof(*(a)) + sizeof((a)->b[0]) * (c))
 #endif
 
 static inline void compat_pci_sriov_reset_totalvfs(struct pci_dev *dev)
