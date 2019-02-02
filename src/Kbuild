@@ -125,6 +125,10 @@ KERNEL_GE_4_9 := \
 	$(shell [ $(VERSION) -gt 4 -o \
 	\( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 9 \) ] && echo y)
 
+KERNEL_GE_4_13 := \
+	$(shell [ $(VERSION) -gt 4 -o \
+	\( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 13 \) ] && echo y)
+
 KERNEL_GE_4_18 := \
 	$(shell [ $(VERSION) -gt 4 -o \
 	\( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 18 \) ] && echo y)
@@ -178,6 +182,11 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
     ifneq (,$(filter y,$(KERNEL_GE_4_7) $(RHEL_GE_7_4)))
       nfp-objs += \
 		nfp_shared_buf.o
+    endif
+
+    ifeq ($(KERNEL_GE_4_13),y)
+      nfp-objs += \
+		ccm.o
     endif
 
     ifeq ($(KERNEL_GE_4_18),y)
