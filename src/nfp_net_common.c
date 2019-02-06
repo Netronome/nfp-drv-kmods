@@ -48,9 +48,6 @@
 #include <linux/vmalloc.h>
 #include <linux/ktime.h>
 
-#if COMPAT__HAVE_SWITCHDEV_ATTRS
-#include <net/switchdev.h>
-#endif
 #if COMPAT__HAVE_VXLAN_OFFLOAD
 #include <net/vxlan.h>
 #endif
@@ -3695,6 +3692,9 @@ const struct net_device_ops nfp_net_netdev_ops = {
 #else
 	.ndo_xdp		= nfp_net_xdp,
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+	.ndo_get_port_parent_id	= nfp_port_get_port_parent_id,
+#endif
 #endif
 #if VER_RHEL_GE(7, 3) && VER_RHEL_LT(8, 0)
 	.ndo_size		= sizeof(nfp_net_netdev_ops),
@@ -3996,8 +3996,9 @@ static void nfp_net_netdev_init(struct nfp_net *nn)
 	netdev->netdev_ops = &nfp_net_netdev_ops;
 	netdev->watchdog_timeo = msecs_to_jiffies(5 * 1000);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
 	SWITCHDEV_SET_OPS(netdev, &nfp_port_switchdev_ops);
-
+#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
 	/* MTU range: 68 - hw-specific max */
 	netdev->min_mtu = ETH_MIN_MTU;

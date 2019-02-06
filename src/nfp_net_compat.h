@@ -1005,6 +1005,12 @@ static inline u32 compat__tca_pedit_offset(const struct tc_action *act, int idx)
 {
 	return tcf_pedit_offset(act, idx);
 }
+
+static inline bool
+netdev_port_same_parent_id(struct net_device *a, struct net_device *b)
+{
+	return switchdev_port_same_parent_id(a, b);
+}
 #endif /* COMPAT__HAVE_METADATA_IP_TUNNEL */
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0) */
 
