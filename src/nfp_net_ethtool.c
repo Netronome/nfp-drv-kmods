@@ -1011,6 +1011,7 @@ static int nfp_net_set_rxfh(struct net_device *netdev,
 
 		nfp_net_rss_write_itbl(nn);
 	}
+
 	return nfp_net_reconfig(nn, NFP_NET_CFG_UPDATE_RSS);
 }
 #endif
