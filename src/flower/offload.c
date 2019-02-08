@@ -123,13 +123,25 @@ static bool nfp_flower_check_higher_than_mac(struct tc_cls_flower_offload *f)
 }
 
 static int
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+nfp_flower_calc_opt_layer(struct flow_match_enc_opts *enc_opts,
+#else
 nfp_flower_calc_opt_layer(struct flow_dissector_key_enc_opts *enc_opts,
+#endif
 			  u32 *key_layer_two, int *key_size)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+	if (enc_opts->key->len > NFP_FL_MAX_GENEVE_OPT_KEY)
+#else
 	if (enc_opts->len > NFP_FL_MAX_GENEVE_OPT_KEY)
+#endif
 		return -EOPNOTSUPP;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+	if (enc_opts->key->len > 0) {
+#else
 	if (enc_opts->len > 0) {
+#endif
 		*key_layer_two |= NFP_FLOWER_LAYER2_GENEVE_OP;
 		*key_size += sizeof(struct nfp_flower_geneve_options);
 	}
@@ -154,20 +166,35 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 				enum nfp_flower_tun_type *tun_type)
 #endif
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+	struct flow_rule *rule = tc_cls_flower_offload_flow_rule(flow);
+	struct flow_dissector *dissector = rule->match.dissector;
+	struct flow_match_basic basic = { NULL, NULL};
+#else
 	struct flow_dissector_key_basic *mask_basic = NULL;
 	struct flow_dissector_key_basic *key_basic = NULL;
+#endif
 	struct nfp_flower_priv *priv = app->priv;
 	u32 key_layer_two;
 	u8 key_layer;
 	int key_size;
 	int err;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+	if (dissector->used_keys & ~NFP_FLOWER_WHITELIST_DISSECTOR)
+#else
 	if (flow->dissector->used_keys & ~NFP_FLOWER_WHITELIST_DISSECTOR)
+#endif
 		return -EOPNOTSUPP;
 
 	/* If any tun dissector is used then the required set must be used. */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+	if (dissector->used_keys & NFP_FLOWER_WHITELIST_TUN_DISSECTOR &&
+	    (dissector->used_keys & NFP_FLOWER_WHITELIST_TUN_DISSECTOR_R)
+#else
 	if (flow->dissector->used_keys & NFP_FLOWER_WHITELIST_TUN_DISSECTOR &&
 	    (flow->dissector->used_keys & NFP_FLOWER_WHITELIST_TUN_DISSECTOR_R)
+#endif
 	    != NFP_FLOWER_WHITELIST_TUN_DISSECTOR_R)
 		return -EOPNOTSUPP;
 
@@ -176,23 +203,66 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 	key_size = sizeof(struct nfp_flower_meta_tci) +
 		   sizeof(struct nfp_flower_in_port);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_ETH_ADDRS) ||
+	    flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_MPLS)) {
+#else
 	if (dissector_uses_key(flow->dissector, FLOW_DISSECTOR_KEY_ETH_ADDRS) ||
 	    dissector_uses_key(flow->dissector, FLOW_DISSECTOR_KEY_MPLS)) {
+#endif
 		key_layer |= NFP_FLOWER_LAYER_MAC;
 		key_size += sizeof(struct nfp_flower_mac_mpls);
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_VLAN)) {
+		struct flow_match_vlan vlan;
+
+		flow_rule_match_vlan(rule, &vlan);
+#else
 	if (dissector_uses_key(flow->dissector, FLOW_DISSECTOR_KEY_VLAN)) {
 		struct flow_dissector_key_vlan *flow_vlan;
 
 		flow_vlan = skb_flow_dissector_target(flow->dissector,
 						      FLOW_DISSECTOR_KEY_VLAN,
 						      flow->mask);
+#endif
 		if (!(priv->flower_ext_feats & NFP_FL_FEATS_VLAN_PCP) &&
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+		    vlan.key->vlan_priority)
+#else
 		    flow_vlan->vlan_priority)
+#endif
 			return -EOPNOTSUPP;
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_ENC_CONTROL)) {
+		struct flow_match_enc_opts enc_op = { NULL, NULL };
+		struct flow_match_ipv4_addrs ipv4_addrs;
+		struct flow_match_control enc_ctl;
+		struct flow_match_ports enc_ports;
+
+		flow_rule_match_enc_control(rule, &enc_ctl);
+
+		if (enc_ctl.mask->addr_type != 0xffff ||
+		    enc_ctl.key->addr_type != FLOW_DISSECTOR_KEY_IPV4_ADDRS)
+			return -EOPNOTSUPP;
+
+		/* These fields are already verified as used. */
+		flow_rule_match_enc_ipv4_addrs(rule, &ipv4_addrs);
+		if (ipv4_addrs.mask->dst != cpu_to_be32(~0))
+			return -EOPNOTSUPP;
+
+		flow_rule_match_enc_ports(rule, &enc_ports);
+		if (enc_ports.mask->dst != cpu_to_be16(~0))
+			return -EOPNOTSUPP;
+
+		if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_ENC_OPTS))
+			flow_rule_match_enc_opts(rule, &enc_op);
+
+		switch (enc_ports.key->dst) {
+#else
 	if (dissector_uses_key(flow->dissector,
 			       FLOW_DISSECTOR_KEY_ENC_CONTROL)) {
 		struct flow_dissector_key_ipv4_addrs *mask_ipv4 = NULL;
@@ -244,12 +314,17 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 		}
 
 		switch (enc_ports->dst) {
+#endif
 		case htons(NFP_FL_VXLAN_PORT):
 			*tun_type = NFP_FL_TUNNEL_VXLAN;
 			key_layer |= NFP_FLOWER_LAYER_VXLAN;
 			key_size += sizeof(struct nfp_flower_ipv4_udp_tun);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+			if (enc_op.key)
+#else
 			if (enc_op)
+#endif
 				return -EOPNOTSUPP;
 			break;
 		case htons(NFP_FL_GENEVE_PORT):
@@ -261,11 +336,19 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 			key_layer_two |= NFP_FLOWER_LAYER2_GENEVE;
 			key_size += sizeof(struct nfp_flower_ipv4_udp_tun);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+			if (!enc_op.key)
+#else
 			if (!enc_op)
+#endif
 				break;
 			if (!(priv->flower_ext_feats & NFP_FL_FEATS_GENEVE_OPT))
 				return -EOPNOTSUPP;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+			err = nfp_flower_calc_opt_layer(&enc_op, &key_layer_two,
+#else
 			err = nfp_flower_calc_opt_layer(enc_op, &key_layer_two,
+#endif
 							&key_size);
 			if (err)
 				return err;
@@ -285,6 +368,10 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 #endif
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_BASIC))
+		flow_rule_match_basic(rule, &basic);
+#else
 	if (dissector_uses_key(flow->dissector, FLOW_DISSECTOR_KEY_BASIC)) {
 		mask_basic = skb_flow_dissector_target(flow->dissector,
 						       FLOW_DISSECTOR_KEY_BASIC,
@@ -294,10 +381,19 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 						      FLOW_DISSECTOR_KEY_BASIC,
 						      flow->key);
 	}
+#endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+	if (basic.mask && basic.mask->n_proto) {
+#else
 	if (mask_basic && mask_basic->n_proto) {
+#endif
 		/* Ethernet type is present in the key. */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+		switch (basic.key->n_proto) {
+#else
 		switch (key_basic->n_proto) {
+#endif
 		case cpu_to_be16(ETH_P_IP):
 			key_layer |= NFP_FLOWER_LAYER_IPV4;
 			key_size += sizeof(struct nfp_flower_ipv4);
@@ -336,9 +432,17 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 		}
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+	if (basic.mask && basic.mask->ip_proto) {
+#else
 	if (mask_basic && mask_basic->ip_proto) {
+#endif
 		/* Ethernet type is present in the key. */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+		switch (basic.key->ip_proto) {
+#else
 		switch (key_basic->ip_proto) {
+#endif
 		case IPPROTO_TCP:
 		case IPPROTO_UDP:
 		case IPPROTO_SCTP:
@@ -355,14 +459,24 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 		}
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_TCP)) {
+		struct flow_match_tcp tcp;
+#else
 	if (dissector_uses_key(flow->dissector, FLOW_DISSECTOR_KEY_TCP)) {
 		struct flow_dissector_key_tcp *tcp;
+#endif
 		u32 tcp_flags;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+		flow_rule_match_tcp(rule, &tcp);
+		tcp_flags = be16_to_cpu(tcp.key->flags);
+#else
 		tcp = skb_flow_dissector_target(flow->dissector,
 						FLOW_DISSECTOR_KEY_TCP,
 						flow->key);
 		tcp_flags = be16_to_cpu(tcp->flags);
+#endif
 
 		if (tcp_flags & ~NFP_FLOWER_SUPPORTED_TCPFLAGS)
 			return -EOPNOTSUPP;
@@ -378,12 +492,20 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 		 * space, thus we need to ensure we include a IPv4/IPv6 key
 		 * layer if we have not done so already.
 		 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+		if (!basic.key)
+#else
 		if (!key_basic)
+#endif
 			return -EOPNOTSUPP;
 
 		if (!(key_layer & NFP_FLOWER_LAYER_IPV4) &&
 		    !(key_layer & NFP_FLOWER_LAYER_IPV6)) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+			switch (basic.key->n_proto) {
+#else
 			switch (key_basic->n_proto) {
+#endif
 			case cpu_to_be16(ETH_P_IP):
 				key_layer |= NFP_FLOWER_LAYER_IPV4;
 				key_size += sizeof(struct nfp_flower_ipv4);
@@ -400,6 +522,15 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 		}
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_CONTROL)) {
+		struct flow_match_control ctl;
+
+		flow_rule_match_control(rule, &ctl);
+		if (ctl.key->flags & ~NFP_FLOWER_SUPPORTED_CTLFLAGS)
+			return -EOPNOTSUPP;
+	}
+#else
 	if (dissector_uses_key(flow->dissector, FLOW_DISSECTOR_KEY_CONTROL)) {
 		struct flow_dissector_key_control *key_ctl;
 
@@ -410,6 +541,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 		if (key_ctl->flags & ~NFP_FLOWER_SUPPORTED_CTLFLAGS)
 			return -EOPNOTSUPP;
 	}
+#endif
 
 	ret_key_ls->key_layer = key_layer;
 	ret_key_ls->key_layer_two = key_layer_two;
