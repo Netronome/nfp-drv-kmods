@@ -900,6 +900,13 @@ static inline bool netif_is_geneve(const struct net_device *dev)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
 #define BPF_JMP32	0x06
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
+static inline struct nfp_net *compat__bpf_prog_get_nn(struct bpf_prog *prog)
+{
+	return netdev_priv(prog->aux->offload->netdev);
+}
+#endif
+
 #ifdef COMPAT__HAVE_METADATA_IP_TUNNEL
 enum flow_action_id {
 	FLOW_ACTION_ACCEPT,

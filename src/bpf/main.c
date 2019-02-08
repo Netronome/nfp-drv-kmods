@@ -472,8 +472,10 @@ static int nfp_bpf_init(struct nfp_app *app)
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	bpf->bpf_dev = bpf_offload_dev_create();
-#else
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
 	bpf->bpf_dev = bpf_offload_dev_create(&nfp_bpf_dev_ops);
+#else
+	bpf->bpf_dev = bpf_offload_dev_create(&nfp_bpf_dev_ops, bpf);
 #endif
 	err = PTR_ERR_OR_ZERO(bpf->bpf_dev);
 	if (err)

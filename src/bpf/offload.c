@@ -193,8 +193,6 @@ static void nfp_prog_free(struct nfp_prog *nfp_prog)
 
 static int nfp_bpf_verifier_prep(struct bpf_prog *prog)
 {
-	struct nfp_net *nn = netdev_priv(prog->aux->offload->netdev);
-	struct nfp_app *app = nn->app;
 	struct nfp_prog *nfp_prog;
 	int ret;
 
@@ -205,7 +203,11 @@ static int nfp_bpf_verifier_prep(struct bpf_prog *prog)
 
 	INIT_LIST_HEAD(&nfp_prog->insns);
 	nfp_prog->type = prog->type;
-	nfp_prog->bpf = app->priv;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
+	nfp_prog->bpf = compat__bpf_prog_get_nn(prog)->app->priv;
+#else
+	nfp_prog->bpf = bpf_offload_dev_priv(prog->aux->offload->offdev);
+#endif
 
 	ret = nfp_prog_prepare(nfp_prog, prog->insnsi, prog->len);
 	if (ret)
