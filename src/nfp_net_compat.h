@@ -40,12 +40,21 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
 #include <net/switchdev.h>
 #endif
-#include <net/tc_act/tc_mirred.h>
 
 /* Redefine LINUX_VERSION_CODE for *-next kernels */
 #ifdef BPF_JMP32_REG
 #undef LINUX_VERSION_CODE
 #define LINUX_VERSION_CODE KERNEL_VERSION(5, 1, 0)
+#endif
+
+#if (defined(COMPAT__HAVE_METADATA_IP_TUNNEL) ||	\
+     LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0))
+#include <net/tc_act/tc_mirred.h>
+#include <net/tc_act/tc_gact.h>
+#include <net/tc_act/tc_vlan.h>
+#include <net/tc_act/tc_tunnel_key.h>
+#include <net/tc_act/tc_pedit.h>
+#include <net/tc_act/tc_csum.h>
 #endif
 
 #include "nfp_net.h"
@@ -890,5 +899,191 @@ static inline bool netif_is_geneve(const struct net_device *dev)
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
 #define BPF_JMP32	0x06
+
+#ifdef COMPAT__HAVE_METADATA_IP_TUNNEL
+enum flow_action_id {
+	FLOW_ACTION_ACCEPT,
+	FLOW_ACTION_DROP,
+	FLOW_ACTION_TRAP,
+	FLOW_ACTION_GOTO,
+	FLOW_ACTION_REDIRECT,
+	FLOW_ACTION_MIRRED,
+	FLOW_ACTION_VLAN_PUSH,
+	FLOW_ACTION_VLAN_POP,
+	FLOW_ACTION_VLAN_MANGLE,
+	FLOW_ACTION_TUNNEL_ENCAP,
+	FLOW_ACTION_TUNNEL_DECAP,
+	FLOW_ACTION_MANGLE,
+	FLOW_ACTION_ADD,
+	FLOW_ACTION_CSUM,
+	FLOW_ACTION_MARK,
+	FLOW_ACTION_WAKE,
+	FLOW_ACTION_QUEUE,
+	FLOW_ACTION_UNKNOWN = 10000,
+};
+
+static inline int compat__tca_to_flow_act_id(const struct tc_action *act)
+{
+	if (is_tcf_gact_shot(act))
+		return FLOW_ACTION_DROP;
+	if (is_tcf_mirred_egress_redirect(act))
+		return FLOW_ACTION_REDIRECT;
+	if (is_tcf_mirred_egress_mirror(act))
+		return FLOW_ACTION_MIRRED;
+	if (is_tcf_vlan(act) && tcf_vlan_action(act) == TCA_VLAN_ACT_POP)
+		return FLOW_ACTION_VLAN_POP;
+	if (is_tcf_vlan(act) && tcf_vlan_action(act) == TCA_VLAN_ACT_PUSH)
+		return FLOW_ACTION_VLAN_PUSH;
+	if (is_tcf_tunnel_set(act))
+		return FLOW_ACTION_TUNNEL_ENCAP;
+	if (is_tcf_tunnel_release(act))
+		return FLOW_ACTION_TUNNEL_DECAP;
+	if (is_tcf_pedit(act))
+		return FLOW_ACTION_MANGLE;
+	if (is_tcf_csum(act))
+		return FLOW_ACTION_CSUM;
+	return FLOW_ACTION_UNKNOWN;
+}
+
+static inline void *compat__tca_tun_info(const struct tc_action *act)
+{
+	return tcf_tunnel_info(act);
+}
+
+static inline u32 compat__tca_csum_update_flags(const struct tc_action *act)
+{
+	return tcf_csum_update_flags(act);
+}
+
+static inline __be16 compat__tca_vlan_push_proto(const struct tc_action *act)
+{
+	return tcf_vlan_push_proto(act);
+}
+
+static inline u8 compat__tca_vlan_push_prio(const struct tc_action *act)
+{
+	return tcf_vlan_push_prio(act);
+}
+
+static inline u16 compat__tca_vlan_push_vid(const struct tc_action *act)
+{
+	return tcf_vlan_push_vid(act);
+}
+
+static inline struct net_device *
+compat__tca_mirred_dev(const struct tc_action *act)
+{
+	return tcf_mirred_dev(act);
+}
+
+static inline int compat__tca_pedit_nkeys(const struct tc_action *act)
+{
+	return tcf_pedit_nkeys(act);
+}
+
+static inline u32 compat__tca_pedit_val(const struct tc_action *act, int idx)
+{
+	return tcf_pedit_val(act, idx);
+}
+
+static inline u32 compat__tca_pedit_mask(const struct tc_action *act, int idx)
+{
+	return tcf_pedit_mask(act, idx);
+}
+
+static inline u32 compat__tca_pedit_cmd(const struct tc_action *act, int idx)
+{
+	return tcf_pedit_cmd(act, idx);
+}
+
+static inline int compat__tca_pedit_htype(const struct tc_action *act, int idx)
+{
+	return tcf_pedit_htype(act, idx);
+}
+
+static inline u32 compat__tca_pedit_offset(const struct tc_action *act, int idx)
+{
+	return tcf_pedit_offset(act, idx);
+}
+#endif /* COMPAT__HAVE_METADATA_IP_TUNNEL */
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0) */
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+static inline int
+compat__tca_to_flow_act_id(const struct flow_action_entry *act)
+{
+	return act->id;
+}
+
+static inline void *compat__tca_tun_info(const struct flow_action_entry *act)
+{
+	return (void *)act->tunnel;
+}
+
+static inline u32
+compat__tca_csum_update_flags(const struct flow_action_entry *act)
+{
+	return act->csum_flags;
+}
+
+static inline __be16
+compat__tca_vlan_push_proto(const struct flow_action_entry *act)
+{
+	return act->vlan.proto;
+}
+
+static inline u8
+compat__tca_vlan_push_prio(const struct flow_action_entry *act)
+{
+	return act->vlan.prio;
+}
+
+static inline u16
+compat__tca_vlan_push_vid(const struct flow_action_entry *act)
+{
+	return act->vlan.vid;
+}
+
+static inline struct net_device *
+compat__tca_mirred_dev(const struct flow_action_entry *act)
+{
+	return act->dev;
+}
+
+static inline int compat__tca_pedit_nkeys(const struct flow_action_entry *act)
+{
+	return 1;
+}
+
+static inline u32
+compat__tca_pedit_val(const struct flow_action_entry *act, int idx)
+{
+	return act->mangle.val;
+}
+
+static inline u32
+compat__tca_pedit_mask(const struct flow_action_entry *act, int idx)
+{
+	return act->mangle.mask;
+}
+
+static inline u32
+compat__tca_pedit_cmd(const struct flow_action_entry *act, int idx)
+{
+	return TCA_PEDIT_KEY_EX_CMD_SET;
+}
+
+static inline int
+compat__tca_pedit_htype(const struct flow_action_entry *act, int idx)
+{
+	return act->mangle.htype;
+}
+
+static inline u32
+compat__tca_pedit_offset(const struct flow_action_entry *act, int idx)
+{
+	return act->mangle.offset;
+}
 #endif
+
 #endif /* _NFP_NET_COMPAT_H_ */

@@ -104,6 +104,14 @@ nfp_flower_xmit_flow(struct nfp_app *app, struct nfp_fl_payload *nfp_flow,
 
 static bool nfp_flower_check_higher_than_mac(struct tc_cls_flower_offload *f)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+	struct flow_rule *rule = tc_cls_flower_offload_flow_rule(f);
+
+	return flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_IPV4_ADDRS) ||
+	       flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_IPV6_ADDRS) ||
+	       flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_PORTS) ||
+	       flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_ICMP);
+#else
 	return dissector_uses_key(f->dissector,
 				  FLOW_DISSECTOR_KEY_IPV4_ADDRS) ||
 		dissector_uses_key(f->dissector,
@@ -111,6 +119,7 @@ static bool nfp_flower_check_higher_than_mac(struct tc_cls_flower_offload *f)
 		dissector_uses_key(f->dissector,
 				   FLOW_DISSECTOR_KEY_PORTS) ||
 		dissector_uses_key(f->dissector, FLOW_DISSECTOR_KEY_ICMP);
+#endif
 }
 
 static int
@@ -698,9 +707,14 @@ nfp_flower_get_stats(struct nfp_app *app, struct net_device *netdev,
 	ctx_id = be32_to_cpu(nfp_flow->meta.host_ctx_id);
 
 	spin_lock_bh(&priv->stats_lock);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
 	tcf_exts_stats_update(flow->exts, priv->stats[ctx_id].bytes,
 			      priv->stats[ctx_id].pkts,
 			      priv->stats[ctx_id].used);
+#else
+	flow_stats_update(&flow->stats, priv->stats[ctx_id].bytes,
+			  priv->stats[ctx_id].pkts, priv->stats[ctx_id].used);
+#endif
 
 	priv->stats[ctx_id].pkts = 0;
 	priv->stats[ctx_id].bytes = 0;
