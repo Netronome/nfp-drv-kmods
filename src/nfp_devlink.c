@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
-/* Copyright (C) 2017-2018 Netronome Systems, Inc. */
+/* Copyright (C) 2017-2019 Netronome Systems, Inc. */
 
 #include "nfp_net_compat.h"
 
+#include <linux/firmware.h>
 #include <linux/rtnetlink.h>
 #include <net/devlink.h>
 
@@ -349,6 +350,15 @@ err_close_nsp:
 	nfp_nsp_close(nsp);
 	return err;
 }
+
+static int
+nfp_devlink_flash_update(struct devlink *devlink, const char *path,
+			 const char *component, struct netlink_ext_ack *extack)
+{
+	if (component)
+		return -EOPNOTSUPP;
+	return nfp_flash_update_common(devlink_priv(devlink), path, extack);
+}
 #endif
 
 const struct devlink_ops nfp_devlink_ops = {
@@ -364,6 +374,7 @@ const struct devlink_ops nfp_devlink_ops = {
 #endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 	.info_get		= nfp_devlink_info_get,
+	.flash_update		= nfp_devlink_flash_update,
 #endif
 };
 
