@@ -3694,6 +3694,9 @@ const struct net_device_ops nfp_net_netdev_ops = {
 #endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 	.ndo_get_port_parent_id	= nfp_port_get_port_parent_id,
+#ifdef CONFIG_NFP_NET_PF
+	.ndo_get_devlink	= nfp_devlink_get_devlink,
+#endif
 #endif
 #endif
 #if VER_RHEL_GE(7, 3) && VER_RHEL_LT(8, 0)
