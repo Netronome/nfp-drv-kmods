@@ -155,6 +155,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 		nfp_app.o \
 		nfp_net_ctrl.o \
 		nfp_net_common.o \
+		nfp_net_compat.o \
 		nfp_net_ethtool.o \
 		nfp_net_debugfs.o \
 		nfp_net_sriov.o \

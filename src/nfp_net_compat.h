@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause) */
-/* Copyright (C) 2015-2018 Netronome Systems, Inc. */
+/* Copyright (C) 2015-2019 Netronome Systems, Inc. */
 
 /*
  * nfp_net_compat.h
@@ -1097,6 +1097,13 @@ compat__tca_pedit_offset(const struct flow_action_entry *act, int idx)
 {
 	return act->mangle.offset;
 }
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
+int compat__nfp_net_flash_device(struct net_device *netdev,
+				 struct ethtool_flash *flash);
+#else
+#define compat__nfp_net_flash_device	NULL
 #endif
 
 #endif /* _NFP_NET_COMPAT_H_ */
