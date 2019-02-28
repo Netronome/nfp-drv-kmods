@@ -9,10 +9,10 @@
 #ifndef __NFP_H__
 #define __NFP_H__
 
+#include "kcompat.h"
+
 #include <linux/device.h>
 #include <linux/types.h>
-
-#include "kcompat.h"
 
 #include "nfp_cpp.h"
 

@@ -8,7 +8,6 @@
  *          Jason McMullan <jason.mcmullan@netronome.com>
  *          Rolf Neugebauer <rolf.neugebauer@netronome.com>
  */
-
 #include "kcompat.h"
 
 #include <asm/unaligned.h>

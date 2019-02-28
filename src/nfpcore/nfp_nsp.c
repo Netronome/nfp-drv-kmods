@@ -6,7 +6,6 @@
  * Author: Jakub Kicinski <jakub.kicinski@netronome.com>
  *         Jason McMullan <jason.mcmullan@netronome.com>
  */
-
 #include "kcompat.h"
 
 #include <asm/unaligned.h>

@@ -8,7 +8,6 @@
  *          Jason McMullan <jason.mcmullan@netronome.com>
  *          Rolf Neugebauer <rolf.neugebauer@netronome.com>
  */
-
 #include "nfpcore/kcompat.h"
 
 #include <linux/kernel.h>

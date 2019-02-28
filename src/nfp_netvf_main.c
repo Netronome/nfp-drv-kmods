@@ -7,14 +7,13 @@
  * Author: Jason McMullan <jason.mcmullan@netronome.com>
  *         Rolf Neugebauer <rolf.neugebauer@netronome.com>
  */
+#include "nfp_net_compat.h"
 
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/etherdevice.h>
 
-#include "nfpcore/kcompat.h"
-#include "nfp_net_compat.h"
 #include "nfp_net_ctrl.h"
 #include "nfp_net.h"
 #include "nfp_main.h"

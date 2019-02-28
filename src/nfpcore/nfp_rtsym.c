@@ -9,7 +9,6 @@
  *          Espen Skoglund <espen.skoglund@netronome.com>
  *          Francois H. Theron <francois.theron@netronome.com>
  */
-
 #include "kcompat.h"
 
 #include <asm/unaligned.h>

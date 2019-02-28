@@ -9,6 +9,7 @@
  *          Jason McMullan <jason.mcmullan@netronome.com>
  *          Rolf Neugebauer <rolf.neugebauer@netronome.com>
  */
+#include "nfp_net_compat.h"
 
 #include <linux/etherdevice.h>
 #include <linux/kernel.h>
@@ -26,7 +27,6 @@
 #include "nfpcore/nfp_nsp.h"
 #include "nfpcore/nfp6000_pcie.h"
 #include "nfp_app.h"
-#include "nfp_net_compat.h"
 #include "nfp_net_ctrl.h"
 #include "nfp_net_sriov.h"
 #include "nfp_net.h"

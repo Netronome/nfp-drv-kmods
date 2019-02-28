@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 /* Copyright (C) 2015-2018 Netronome Systems, Inc. */
+
+#include "nfp_net_compat.h"
+
 #include <linux/debugfs.h>
 #include <linux/module.h>
 #include <linux/rtnetlink.h>
 
 #include "nfp_net.h"
-#include "nfp_net_compat.h"
 
 static struct dentry *nfp_dir;
 

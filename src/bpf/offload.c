@@ -8,6 +8,8 @@
 
 #define pr_fmt(fmt)	"NFP net bpf: " fmt
 
+#include "../nfp_net_compat.h"
+
 #include <linux/bpf.h>
 #include <linux/kernel.h>
 #include <linux/netdevice.h>
@@ -25,7 +27,6 @@
 #include "../nfp_app.h"
 #include "../nfp_net_ctrl.h"
 #include "../nfp_net.h"
-#include "../nfp_net_compat.h"
 
 static int
 nfp_map_ptr_record(struct nfp_app_bpf *bpf, struct nfp_prog *nfp_prog,

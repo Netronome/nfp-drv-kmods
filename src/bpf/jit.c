@@ -3,6 +3,8 @@
 
 #define pr_fmt(fmt)	"NFP net bpf: " fmt
 
+#include "../nfpcore/kcompat.h"
+
 #include <linux/bug.h>
 #include <linux/bpf.h>
 #include <linux/filter.h>
@@ -14,7 +16,6 @@
 #include "main.h"
 #include "../nfp_asm.h"
 #include "../nfp_net_ctrl.h"
-#include "../nfpcore/kcompat.h"
 
 /* --- NFP prog --- */
 /* Foreach "multiple" entries macros provide pos and next<n> pointers.

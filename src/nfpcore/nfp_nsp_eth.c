@@ -5,7 +5,6 @@
  *          Jakub Kicinski <jakub.kicinski@netronome.com>
  *          Jason Mcmullan <jason.mcmullan@netronome.com>
  */
-
 #include "../nfp_net_compat.h"
 
 #if VER_NON_RHEL_GE(4, 9) || VER_RHEL_GE(7, 5)
