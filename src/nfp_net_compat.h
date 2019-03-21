@@ -132,6 +132,10 @@
 #define SPEED_100000		100000
 #endif
 
+#ifndef GENEVE_UDP_PORT
+#define GENEVE_UDP_PORT		6081
+#endif
+
 #ifndef XDP_PACKET_HEADROOM
 #define XDP_PACKET_HEADROOM	256
 #endif

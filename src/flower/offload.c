@@ -327,7 +327,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 #endif
 				return -EOPNOTSUPP;
 			break;
-		case htons(NFP_FL_GENEVE_PORT):
+		case htons(GENEVE_UDP_PORT):
 			if (!(priv->flower_ext_feats & NFP_FL_FEATS_GENEVE))
 				return -EOPNOTSUPP;
 			*tun_type = NFP_FL_TUNNEL_GENEVE;
