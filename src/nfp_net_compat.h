@@ -132,6 +132,9 @@
 #define SPEED_100000		100000
 #endif
 
+#ifndef IANA_VXLAN_UDP_PORT
+#define IANA_VXLAN_UDP_PORT	4789
+#endif
 #ifndef GENEVE_UDP_PORT
 #define GENEVE_UDP_PORT		6081
 #endif
