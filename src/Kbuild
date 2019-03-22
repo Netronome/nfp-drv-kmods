@@ -190,7 +190,8 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 
     ifeq ($(KERNEL_GE_4_13),y)
       nfp-objs += \
-		ccm.o
+		ccm.o \
+		ccm_mbox.o
     endif
 
     ifeq ($(KERNEL_GE_4_18),y)
