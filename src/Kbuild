@@ -141,6 +141,11 @@ KERNEL_GE_5_2 := \
 	$(shell [ $(VERSION) -gt 5 -o \
 	\( $(VERSION) -eq 5 -a $(PATCHLEVEL) -ge 2 \) ] && echo y)
 
+KERNEL_GE_5_3 := \
+	$(shell grep tls_driver_ctx $(srctree)/include/net/tls.h \
+		>/dev/null 2>&1 && \
+		echo y)
+
 ifeq ($(KERNEL_GE_4_9),y)
   nfp-objs += nfp_hwmon.o
 else
@@ -168,6 +173,13 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 		nfp_net_debugfs.o \
 		nfp_net_sriov.o \
 		nfp_port.o
+
+  ifeq ($(KERNEL_GE_5_3)$(CONFIG_TLS_DEVICE),yy)
+    ccflags-y += -DCOMPAT__HAVE_TLS_OFFLOAD=1
+
+    nfp-objs += \
+		crypto/tls.o
+  endif
 
   ifeq ($(CONFIG_NFP_NET_PF),y)
     ccflags-y += -DCONFIG_NFP_NET_PF=1
