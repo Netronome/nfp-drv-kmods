@@ -153,6 +153,8 @@ static inline void nfp_net_refresh_port_table(struct nfp_port *port)
 #if COMPAT__HAS_DEVLINK
 int nfp_devlink_port_register(struct nfp_app *app, struct nfp_port *port);
 void nfp_devlink_port_unregister(struct nfp_port *port);
+void nfp_devlink_port_type_eth_set(struct nfp_port *port);
+void nfp_devlink_port_type_clear(struct nfp_port *port);
 #else
 static inline int
 nfp_devlink_port_register(struct nfp_app *app, struct nfp_port *port)
@@ -161,6 +163,14 @@ nfp_devlink_port_register(struct nfp_app *app, struct nfp_port *port)
 }
 
 static inline void nfp_devlink_port_unregister(struct nfp_port *port)
+{
+}
+
+static inline void nfp_devlink_port_type_eth_set(struct nfp_port *port)
+{
+}
+
+static inline void nfp_devlink_port_type_clear(struct nfp_port *port)
 {
 }
 #endif
