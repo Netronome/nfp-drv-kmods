@@ -174,7 +174,7 @@ static int nfp_devlink_eswitch_mode_get(struct devlink *devlink, u16 *mode)
 	return nfp_app_eswitch_mode_get(pf->app, mode);
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0)
+#if VER_NON_RHEL_LT(4, 20) || VER_RHEL_LT(8, 0)
 static int nfp_devlink_eswitch_mode_set(struct devlink *devlink, u16 mode)
 #else
 static int nfp_devlink_eswitch_mode_set(struct devlink *devlink, u16 mode,
