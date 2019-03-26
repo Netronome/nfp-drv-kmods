@@ -142,7 +142,7 @@ KERNEL_GE_5_2 := \
 	\( $(VERSION) -eq 5 -a $(PATCHLEVEL) -ge 2 \) ] && echo y)
 
 KERNEL_GE_5_3 := \
-	$(shell grep tls_driver_ctx $(srctree)/include/net/tls.h \
+	$(shell grep tls_offload_rx_resync_set_t $(srctree)/include/net/tls.h \
 		>/dev/null 2>&1 && \
 		echo y)
 
