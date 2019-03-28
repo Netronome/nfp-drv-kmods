@@ -424,3 +424,14 @@ struct devlink *nfp_devlink_get_devlink(struct net_device *netdev)
 
 	return priv_to_devlink(app->pf);
 }
+
+struct devlink_port *nfp_devlink_get_devlink_port(struct net_device *netdev)
+{
+	struct nfp_port *port;
+
+	port = nfp_port_from_netdev(netdev);
+	if (!port)
+		return NULL;
+
+	return &port->dl_port;
+}
