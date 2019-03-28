@@ -257,6 +257,7 @@ struct nfp_fl_payload {
 	bool ingress_offload;
 #endif
 	struct list_head linked_flows;
+	bool in_hw;
 };
 
 struct nfp_fl_payload_link {
@@ -333,6 +334,8 @@ int nfp_compile_flow_metadata(struct nfp_app *app,
 			      struct tc_cls_flower_offload *flow,
 			      struct nfp_fl_payload *nfp_flow,
 			      struct net_device *netdev);
+void __nfp_modify_flow_metadata(struct nfp_flower_priv *priv,
+				struct nfp_fl_payload *nfp_flow);
 int nfp_modify_flow_metadata(struct nfp_app *app,
 			     struct nfp_fl_payload *nfp_flow);
 
