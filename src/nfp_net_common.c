@@ -3418,8 +3418,15 @@ nfp_net_get_phys_port_name(struct net_device *netdev, char *name, size_t len)
 	struct nfp_net *nn = netdev_priv(netdev);
 	int n;
 
+	/* If port is defined, devlink_port is registered and devlink core
+	 * is taking care of name formatting.
+	 */
 	if (nn->port)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 2, 0)
+		return -EOPNOTSUPP;
+#else
 		return nfp_port_get_phys_port_name(netdev, name, len);
+#endif
 
 	if (nn->dp.is_vf || nn->vnic_no_name)
 		return -EOPNOTSUPP;
