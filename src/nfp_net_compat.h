@@ -42,9 +42,9 @@
 #endif
 
 /* Redefine LINUX_VERSION_CODE for *-next kernels */
-#ifdef BPF_JMP32_REG
+#ifdef ETHTOOL_PHY_FAST_LINK_DOWN_ON
 #undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(5, 1, 0)
+#define LINUX_VERSION_CODE KERNEL_VERSION(5, 2, 0)
 #endif
 
 #if (defined(COMPAT__HAVE_METADATA_IP_TUNNEL) ||	\
