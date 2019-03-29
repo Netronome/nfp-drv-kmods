@@ -132,6 +132,19 @@
 #define SPEED_100000		100000
 #endif
 
+#ifndef ETH_MODULE_SFF_8636
+#define ETH_MODULE_SFF_8636	0x3
+#endif
+#ifndef ETH_MODULE_SFF_8636_LEN
+#define ETH_MODULE_SFF_8636_LEN	256
+#endif
+#ifndef ETH_MODULE_SFF_8436
+#define ETH_MODULE_SFF_8436	0x4
+#endif
+#ifndef ETH_MODULE_SFF_8436_LEN
+#define ETH_MODULE_SFF_8436_LEN	256
+#endif
+
 #ifndef IANA_VXLAN_UDP_PORT
 #define IANA_VXLAN_UDP_PORT	4789
 #endif
@@ -647,6 +660,10 @@ tcf_exts_stats_update(const struct tcf_exts *exts,
 	preempt_enable();
 #endif
 }
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0)
+#define SFP_SFF8472_COMPLIANCE		0x5e
 #endif
 
 #if VER_NON_RHEL_LT(4, 14) || VER_RHEL_LT(7, 5)
