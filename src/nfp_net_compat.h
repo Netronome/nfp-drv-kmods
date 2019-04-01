@@ -303,8 +303,10 @@ static inline int skb_xmit_more(struct sk_buff *skb)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 18, 0)
 	return false;
-#else
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(5, 2, 0)
 	return skb->xmit_more;
+#else
+	return netdev_xmit_more();
 #endif
 }
 
