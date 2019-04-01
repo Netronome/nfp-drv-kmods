@@ -3659,7 +3659,7 @@ const struct net_device_ops nfp_net_netdev_ops = {
 	.ndo_poll_controller	= nfp_net_netpoll,
 #endif
 	.ndo_set_vf_mac         = nfp_app_set_vf_mac,
-#if VER_IS_NON_RHEL || VER_RHEL_LT(7, 4)
+#if VER_IS_NON_RHEL || VER_RHEL_LT(7, 4) || VER_RHEL_GE(8, 0)
 	.ndo_set_vf_vlan        = nfp_app_set_vf_vlan,
 #endif
 	.ndo_set_vf_spoofchk    = nfp_app_set_vf_spoofchk,
