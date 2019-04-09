@@ -392,7 +392,11 @@ int nfp_devlink_port_register(struct nfp_app *app, struct nfp_port *port)
 
 	devlink_port_attrs_set(&port->dl_port, DEVLINK_PORT_FLAVOUR_PHYSICAL,
 			       eth_port.label_port, eth_port.is_split,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 2, 0)
 			       eth_port.label_subport);
+#else
+			       eth_port.label_subport, NULL, 0);
+#endif
 
 	devlink = priv_to_devlink(app->pf);
 
