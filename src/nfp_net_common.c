@@ -3733,6 +3733,9 @@ const struct net_device_ops nfp_net_netdev_ops = {
 	.ndo_set_vf_vlan        = nfp_app_set_vf_vlan,
 #endif
 	.ndo_set_vf_spoofchk    = nfp_app_set_vf_spoofchk,
+#if VER_NON_RHEL_GE(4, 4) || VER_RHEL_GE(8, 0)
+	.ndo_set_vf_trust	= nfp_app_set_vf_trust,
+#endif
 	.ndo_get_vf_config	= nfp_app_get_vf_config,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0)
 	.ndo_set_vf_link_state  = nfp_app_set_vf_link_state,
@@ -3782,6 +3785,7 @@ const struct net_device_ops nfp_net_netdev_ops = {
 #if VER_RHEL_GE(7, 3) && VER_RHEL_LT(8, 0)
 	.ndo_size		= sizeof(nfp_net_netdev_ops),
 	.extended		= {
+		.ndo_set_vf_trust	= nfp_app_set_vf_trust,
 #if VER_RHEL_GE(7, 4)
 		.ndo_set_vf_vlan	= nfp_app_set_vf_vlan,
 		.ndo_get_phys_port_name	= nfp_net_get_phys_port_name,
