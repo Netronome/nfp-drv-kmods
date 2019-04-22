@@ -157,7 +157,12 @@ nfp_devlink_sb_pool_get(struct devlink *devlink, unsigned int sb_index,
 static int
 nfp_devlink_sb_pool_set(struct devlink *devlink, unsigned int sb_index,
 			u16 pool_index,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 2, 0)
 			u32 size, enum devlink_sb_threshold_type threshold_type)
+#else
+			u32 size, enum devlink_sb_threshold_type threshold_type,
+			struct netlink_ext_ack *extack)
+#endif
 {
 	struct nfp_pf *pf = devlink_priv(devlink);
 
