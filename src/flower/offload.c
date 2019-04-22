@@ -997,7 +997,7 @@ int nfp_flower_merge_offloaded_flows(struct nfp_app *app,
 
 	merge_key_ls.key_size = sub_flow1->meta.key_len;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	merge_flow = nfp_flower_allocate_new(&merge_key_ls, false);
 #else
 	merge_flow = nfp_flower_allocate_new(&merge_key_ls);
