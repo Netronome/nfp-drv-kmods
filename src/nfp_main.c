@@ -342,6 +342,9 @@ static int nfp_pcie_sriov_disable(struct pci_dev *pdev)
 
 static int nfp_pcie_sriov_configure(struct pci_dev *pdev, int num_vfs)
 {
+	if (!pci_get_drvdata(pdev))
+		return -ENOENT;
+
 	if (num_vfs == 0)
 		return nfp_pcie_sriov_disable(pdev);
 	else
@@ -928,9 +931,13 @@ err_pci_disable:
 	return err;
 }
 
-static void nfp_pci_remove(struct pci_dev *pdev)
+static void __nfp_pci_shutdown(struct pci_dev *pdev, bool unload_fw)
 {
-	struct nfp_pf *pf = pci_get_drvdata(pdev);
+	struct nfp_pf *pf;
+
+	pf = pci_get_drvdata(pdev);
+	if (!pf)
+		return;
 
 	nfp_hwmon_unregister(pf);
 
@@ -949,7 +956,7 @@ static void nfp_pci_remove(struct pci_dev *pdev)
 	vfree(pf->dumpspec);
 	kfree(pf->rtbl);
 	nfp_mip_close(pf->mip);
-	if (pf->fw_loaded)
+	if (unload_fw && pf->fw_loaded)
 		nfp_fw_unload(pf);
 
 	if (pf->nfp_dev_cpp)
@@ -971,11 +978,22 @@ static void nfp_pci_remove(struct pci_dev *pdev)
 	pci_disable_device(pdev);
 }
 
+static void nfp_pci_remove(struct pci_dev *pdev)
+{
+	__nfp_pci_shutdown(pdev, true);
+}
+
+static void nfp_pci_shutdown(struct pci_dev *pdev)
+{
+	__nfp_pci_shutdown(pdev, false);
+}
+
 static struct pci_driver nfp_pci_driver = {
 	.name			= nfp_driver_name,
 	.id_table		= nfp_pci_device_ids,
 	.probe			= nfp_pci_probe,
 	.remove			= nfp_pci_remove,
+	.shutdown		= nfp_pci_shutdown,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
 	.sriov_configure	= nfp_pcie_sriov_configure,
 #endif
@@ -1026,11 +1044,23 @@ static void compat_nfp_remove(struct pci_dev *pdev)
 	nfp_pci_driver.remove(pdev);
 }
 
+static void compat_nfp_shutdown(struct pci_dev *pdev)
+{
+#ifdef CONFIG_NFP_NET_VF
+	if (pdev->device == 0x6003) {
+		nfp_netvf_pci_driver.shutdown(pdev);
+		return;
+	}
+#endif
+	nfp_pci_driver.shutdown(pdev);
+}
+
 static struct pci_driver compat_nfp_driver = {
 	.name        = nfp_driver_name,
 	.id_table    = compat_nfp_device_ids,
 	.probe       = compat_nfp_probe,
 	.remove      = compat_nfp_remove,
+	.shutdown    = compat_nfp_shutdown,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
 	.sriov_configure = nfp_pcie_sriov_configure,
 #endif
