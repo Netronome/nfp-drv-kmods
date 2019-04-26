@@ -65,7 +65,7 @@ nfp_port_attr_get(struct net_device *netdev, struct switchdev_attr *attr)
 const struct switchdev_ops nfp_port_switchdev_ops = {
 	.switchdev_port_attr_get	= nfp_port_attr_get,
 };
-#else
+#elif LINUX_VERSION_CODE == KERNEL_VERSION(5, 1, 0)
 int nfp_port_get_port_parent_id(struct net_device *netdev,
 				struct netdev_phys_item_id *ppid)
 {
@@ -80,5 +80,11 @@ int nfp_port_get_port_parent_id(struct net_device *netdev,
 	memcpy(&ppid->id, serial, ppid->id_len);
 
 	return 0;
+}
+#else
+int nfp_port_get_port_parent_id(struct net_device *netdev,
+				struct netdev_phys_item_id *ppid)
+{
+	return -EOPNOTSUPP;
 }
 #endif
