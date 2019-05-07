@@ -1133,4 +1133,12 @@ int compat__nfp_net_flash_device(struct net_device *netdev,
 #define compat__nfp_net_flash_device	NULL
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 2, 0)
+static inline int
+nfp_flower_setup_qos_offload(struct nfp_app *app, struct net_device *netdev,
+			     void *flow)
+{
+	return -EOPNOTSUPP;
+}
+#endif
 #endif /* _NFP_NET_COMPAT_H_ */

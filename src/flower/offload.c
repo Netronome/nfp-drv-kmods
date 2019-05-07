@@ -1526,6 +1526,9 @@ static int nfp_flower_setup_tc_block_cb(enum tc_setup_type type,
 		return nfp_flower_repr_offload(repr->app, repr->netdev,
 					       type_data);
 #endif
+	case TC_SETUP_CLSMATCHALL:
+		return nfp_flower_setup_qos_offload(repr->app, repr->netdev,
+						    type_data);
 	default:
 		return -EOPNOTSUPP;
 	}
