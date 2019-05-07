@@ -1134,11 +1134,24 @@ int compat__nfp_net_flash_device(struct net_device *netdev,
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 2, 0)
+static inline void nfp_flower_qos_init(struct nfp_app *app)
+{
+}
+
+static inline void nfp_flower_qos_cleanup(struct nfp_app *app)
+{
+}
+
 static inline int
 nfp_flower_setup_qos_offload(struct nfp_app *app, struct net_device *netdev,
 			     void *flow)
 {
 	return -EOPNOTSUPP;
+}
+
+static inline void
+nfp_flower_stats_rlim_reply(struct nfp_app *app, struct sk_buff *skb)
+{
 }
 #endif
 #endif /* _NFP_NET_COMPAT_H_ */
