@@ -743,7 +743,8 @@ static inline struct net_device *tcf_mirred_dev(const struct tc_action *action)
 #endif
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0) || !defined(CONFIG_NET_CLS)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0) || \
+    (!defined(CONFIG_NET_CLS) && LINUX_VERSION_CODE < KERNEL_VERSION(5, 2, 0))
 #define tcf_block_shared(b)	false
 #endif
 
