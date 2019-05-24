@@ -167,6 +167,10 @@
 #define XDP_FLAGS_MODES		(XDP_FLAGS_DRV_MODE | XDP_FLAGS_HW_MODE)
 #endif
 
+#ifndef NL_SET_ERR_MSG_MOD
+#define NL_SET_ERR_MSG_MOD(ea, msg)	pr_warn(KBUILD_MODNAME ": " msg)
+#endif
+
 #ifndef SWITCHDEV_SET_OPS
 #if COMPAT__HAVE_SWITCHDEV_ATTRS && defined(CONFIG_NET_SWITCHDEV)
 #define SWITCHDEV_SET_OPS(netdev, ops) ((netdev)->switchdev_ops = (ops))
@@ -623,8 +627,6 @@ trace_xdp_exception(const struct net_device *netdev,
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 12, 0)
 struct netdev_xdp;
 
-#define NL_SET_ERR_MSG_MOD(ea, msg)	pr_warn(KBUILD_MODNAME ": " msg)
-
 static inline struct netlink_ext_ack *compat__xdp_extact(struct netdev_xdp *xdp)
 {
 	return NULL;
@@ -680,7 +682,7 @@ enum tc_setup_type {
 };
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
+#if VER_NON_RHEL_LT(4, 15) || VER_RHEL_LT(7, 7)
 static inline void skb_metadata_set(const struct sk_buff *skb, u8 value)
 {
 }
@@ -760,7 +762,7 @@ xdp_rxq_info_reg(struct xdp_rxq_info *xdp_rxq, struct net_device *dev, u32 q)
 }
 #endif
 
-#if COMPAT__HAS_DEVLINK && LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
+#if COMPAT__HAS_DEVLINK && (VER_NON_RHEL_LT(4, 18) || VER_RHEL_LT(7, 7))
 enum devlink_port_flavour {
 	DEVLINK_PORT_FLAVOUR_PHYSICAL,
 	DEVLINK_PORT_FLAVOUR_CPU,
@@ -830,7 +832,7 @@ compat_bpf_offload_dev_match(struct bpf_prog *prog, struct net_device *dev)
 #define FLOW_DIS_TUN_OPTS_MAX 255
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0) */
 
-#if VER_NON_RHEL_LT(4, 19) || VER_RHEL_LT(8, 0)
+#if VER_NON_RHEL_LT(4, 19) || VER_RHEL_LT(7, 7)
 struct flow_dissector_key_enc_opts {
 	u8 data[FLOW_DIS_TUN_OPTS_MAX];
 	u8 len;
@@ -894,7 +896,7 @@ xdp_attachment_setup(struct xdp_attachment_info *info, struct netdev_bpf *bpf)
 #endif /* COMPAT__HAVE_XDP */
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0)
+#if VER_NON_RHEL_LT(4, 20) || VER_RHEL_LT(7, 7) || VER_RHEL_EQ(8, 0)
 static inline bool netif_is_vxlan(const struct net_device *dev)
 {
 	return dev->rtnl_link_ops &&

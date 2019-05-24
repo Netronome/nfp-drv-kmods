@@ -50,6 +50,7 @@
 	(RHEL_RELEASE_CODE && RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(x, y))
 #define VER_RHEL_GE(x, y)						\
 	(RHEL_RELEASE_CODE && RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(x, y))
+#define VER_RHEL_EQ(x, y)	(VER_RHEL_GE(x, y) && VER_RHEL_LT(x, y + 1))
 #define VER_IS_NON_RHEL	!RHEL_RELEASE_CODE
 
 #define COMPAT__USE_DMA_SKIP_SYNC	(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
@@ -776,7 +777,7 @@ struct xdp_rxq_info {
 };
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 17, 0)
+#if VER_NON_RHEL_LT(4, 17) || VER_RHEL_LT(7, 7)
 static inline void pcie_print_link_status(struct pci_dev *dev)
 {
 }
@@ -798,7 +799,7 @@ static inline void compat_pci_sriov_reset_totalvfs(struct pci_dev *dev)
 #endif
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
+#if VER_NON_RHEL_LT(4, 18) || VER_RHEL_LT(7, 7)
 static inline void *kvcalloc(size_t n, size_t size, gfp_t flags)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)
