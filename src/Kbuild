@@ -227,13 +227,13 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 		flower/offload.o \
 		flower/main.o \
 		flower/tunnel_conf.o
+
+	  ifeq ($(KERNEL_GE_5_2),y)
+	    nfp-objs += \
+		flower/qos_conf.o
+	  endif
 	else ifdef CONFIG_LOCALVERSION # don't warn on clean
           $(warning NFP: CONFIG_NET_SWITCHDEV not enabled in the kernel, disabling apps: flower)
-	endif
-
-	ifeq ($(KERNEL_GE_5_2),y)
-	  nfp-objs += \
-		flower/qos_conf.o
 	endif
 
 	ifeq ($(KERNEL_GE_5_0),y)
