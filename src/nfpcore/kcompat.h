@@ -86,6 +86,9 @@
 #define PCI_DEVICE_ID_NETRONOME_NFP6000	0x6000
 #endif
 
+#ifndef U16_MAX
+#define U16_MAX			((u16)~0U)
+#endif
 #ifndef U32_MAX
 #define U32_MAX			((u32)~0U)
 #endif
@@ -107,6 +110,9 @@
 #endif
 #ifndef BIT_ULL
 #define BIT_ULL(nr)		(1ULL << (nr))
+#endif
+#ifndef BITS_TO_LONGS
+#define BITS_TO_LONGS(n)	DIV_ROUND_UP(n, sizeof(long) * 8)
 #endif
 
 #ifndef GENMASK

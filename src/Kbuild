@@ -166,6 +166,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 
   nfp-objs += \
 		nfp_app.o \
+		ccm_mbox.o \
 		nfp_net_ctrl.o \
 		nfp_net_common.o \
 		nfp_net_compat.o \
@@ -202,8 +203,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 
     ifeq ($(KERNEL_GE_4_13),y)
       nfp-objs += \
-		ccm.o \
-		ccm_mbox.o
+		ccm.o
     endif
 
     ifeq ($(KERNEL_GE_4_18),y)
