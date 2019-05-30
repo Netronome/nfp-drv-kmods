@@ -30,7 +30,6 @@
 #include <linux/interrupt.h>
 #include <linux/ip.h>
 #include <linux/ipv6.h>
-#include <linux/lockdep.h>
 #include <linux/mm.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
 #include <linux/overflow.h>
@@ -299,8 +298,6 @@ static int __nfp_net_reconfig(struct nfp_net *nn, u32 update)
 {
 	int ret;
 
-	lockdep_assert_held(&nn->bar_lock);
-
 	nfp_net_reconfig_sync_enter(nn);
 
 	nfp_net_reconfig_start(nn, update);
@@ -355,7 +352,6 @@ int nfp_net_mbox_reconfig(struct nfp_net *nn, u32 mbox_cmd)
 	u32 mbox = nn->tlv_caps.mbox_off;
 	int ret;
 
-	lockdep_assert_held(&nn->bar_lock);
 	nn_writeq(nn, mbox + NFP_NET_CFG_MBOX_SIMPLE_CMD, mbox_cmd);
 
 	ret = __nfp_net_reconfig(nn, NFP_NET_CFG_UPDATE_MBOX);
@@ -3891,7 +3887,7 @@ nfp_net_alloc(struct pci_dev *pdev, void __iomem *ctrl_bar, bool needs_netdev,
 	nn->dp.txd_cnt = NFP_NET_TX_DESCS_DEFAULT;
 	nn->dp.rxd_cnt = NFP_NET_RX_DESCS_DEFAULT;
 
-	mutex_init(&nn->bar_lock);
+	sema_init(&nn->bar_lock, 1);
 
 	spin_lock_init(&nn->reconfig_lock);
 	spin_lock_init(&nn->link_status_lock);
@@ -3924,8 +3920,6 @@ void nfp_net_free(struct nfp_net *nn)
 	if (nn->xdp.prog)
 		bpf_prog_put(nn->xdp.prog);
 #endif
-
-	mutex_destroy(&nn->bar_lock);
 
 	if (nn->dp.netdev)
 		free_netdev(nn->dp.netdev);
