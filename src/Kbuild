@@ -138,7 +138,8 @@ KERNEL_GE_5_0 := \
 	\( $(VERSION) -eq 5 -a $(PATCHLEVEL) -ge 0 \) ] && echo y)
 
 KERNEL_GE_5_2 := \
-	$(shell [ -e $(srctree)/include/net/tc_act/tc_police.h ] && echo y)
+	$(shell [ $(VERSION) -gt 5 -o \
+	\( $(VERSION) -eq 5 -a $(PATCHLEVEL) -ge 2 \) ] && echo y)
 
 ifeq ($(KERNEL_GE_4_9),y)
   nfp-objs += nfp_hwmon.o
