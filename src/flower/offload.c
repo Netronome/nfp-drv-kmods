@@ -144,6 +144,20 @@ static bool nfp_flower_check_higher_than_mac(struct tc_cls_flower_offload *f)
 #endif
 }
 
+static bool nfp_flower_check_higher_than_l3(struct tc_cls_flower_offload *f)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+	struct flow_rule *rule = tc_cls_flower_offload_flow_rule(f);
+
+	return flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_PORTS) ||
+	       flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_ICMP);
+#else
+	return dissector_uses_key(f->dissector,
+				  FLOW_DISSECTOR_KEY_PORTS) ||
+	       dissector_uses_key(f->dissector, FLOW_DISSECTOR_KEY_ICMP);
+#endif
+}
+
 static int
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 nfp_flower_calc_opt_layer(struct flow_match_enc_opts *enc_opts,
@@ -459,7 +473,6 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 #else
 	if (mask_basic && mask_basic->ip_proto) {
 #endif
-		/* Ethernet type is present in the key. */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 		switch (basic.key->ip_proto) {
 #else
@@ -477,7 +490,9 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 			/* Other ip proto - we need check the masks for the
 			 * remainder of the key to ensure we can offload.
 			 */
-			return -EOPNOTSUPP;
+			if (nfp_flower_check_higher_than_l3(flow))
+				return -EOPNOTSUPP;
+			break;
 		}
 	}
 
