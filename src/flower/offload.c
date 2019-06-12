@@ -1054,12 +1054,16 @@ int nfp_flower_merge_offloaded_flows(struct nfp_app *app,
 {
 	struct tc_cls_flower_offload merge_tc_off;
 	struct nfp_flower_priv *priv = app->priv;
+	struct netlink_ext_ack *extack = NULL;
 	struct nfp_fl_payload *merge_flow;
 	struct nfp_fl_key_ls merge_key_ls;
 	int err;
 
 	ASSERT_RTNL();
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
+	extack = merge_tc_off.common.extack;
+#endif
 	if (sub_flow1 == sub_flow2 ||
 	    nfp_flower_is_merge_flow(sub_flow1) ||
 	    nfp_flower_is_merge_flow(sub_flow2))
@@ -1101,7 +1105,7 @@ int nfp_flower_merge_offloaded_flows(struct nfp_app *app,
 
 	merge_tc_off.cookie = merge_flow->tc_flower_cookie;
 	err = nfp_compile_flow_metadata(app, &merge_tc_off, merge_flow,
-					merge_flow->ingress_dev);
+					merge_flow->ingress_dev, extack);
 	if (err)
 		goto err_unlink_sub_flow2;
 
@@ -1219,19 +1223,19 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 
 #endif
 	err = nfp_flower_compile_flow_match(app, flow, key_layer, netdev,
-					    flow_pay, tun_type);
+					    flow_pay, tun_type, extack);
 	if (err)
 		goto err_destroy_flow;
 
-	err = nfp_flower_compile_action(app, flow, netdev, flow_pay);
+	err = nfp_flower_compile_action(app, flow, netdev, flow_pay, extack);
 	if (err)
 		goto err_destroy_flow;
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	err = nfp_compile_flow_metadata(app, flow, flow_pay,
-					flow_pay->ingress_dev);
+					flow_pay->ingress_dev, extack);
 #else
-	err = nfp_compile_flow_metadata(app, flow, flow_pay, netdev);
+	err = nfp_compile_flow_metadata(app, flow, flow_pay, netdev, extack);
 #endif
 	if (err)
 		goto err_destroy_flow;
