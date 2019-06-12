@@ -164,14 +164,17 @@ nfp_flower_calc_opt_layer(struct flow_match_enc_opts *enc_opts,
 #else
 nfp_flower_calc_opt_layer(struct flow_dissector_key_enc_opts *enc_opts,
 #endif
-			  u32 *key_layer_two, int *key_size)
+			  u32 *key_layer_two, int *key_size,
+			  struct netlink_ext_ack *extack)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-	if (enc_opts->key->len > NFP_FL_MAX_GENEVE_OPT_KEY)
+	if (enc_opts->key->len > NFP_FL_MAX_GENEVE_OPT_KEY) {
 #else
-	if (enc_opts->len > NFP_FL_MAX_GENEVE_OPT_KEY)
+	if (enc_opts->len > NFP_FL_MAX_GENEVE_OPT_KEY) {
 #endif
+		NL_SET_ERR_MSG_MOD(extack, "unsupported offload: geneve options exceed maximum length");
 		return -EOPNOTSUPP;
+	}
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 	if (enc_opts->key->len > 0) {
@@ -192,14 +195,16 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 				struct nfp_fl_key_ls *ret_key_ls,
 				struct tc_cls_flower_offload *flow,
 				bool egress,
-				enum nfp_flower_tun_type *tun_type)
+				enum nfp_flower_tun_type *tun_type,
+				struct netlink_ext_ack *extack)
 #else
 static int
 nfp_flower_calculate_key_layers(struct nfp_app *app,
 				struct net_device *netdev,
 				struct nfp_fl_key_ls *ret_key_ls,
 				struct tc_cls_flower_offload *flow,
-				enum nfp_flower_tun_type *tun_type)
+				enum nfp_flower_tun_type *tun_type,
+				struct netlink_ext_ack *extack)
 #endif
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
@@ -217,11 +222,13 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 	int err;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-	if (dissector->used_keys & ~NFP_FLOWER_WHITELIST_DISSECTOR)
+	if (dissector->used_keys & ~NFP_FLOWER_WHITELIST_DISSECTOR) {
 #else
-	if (flow->dissector->used_keys & ~NFP_FLOWER_WHITELIST_DISSECTOR)
+	if (flow->dissector->used_keys & ~NFP_FLOWER_WHITELIST_DISSECTOR) {
 #endif
+		NL_SET_ERR_MSG_MOD(extack, "unsupported offload: match not supported");
 		return -EOPNOTSUPP;
+	}
 
 	/* If any tun dissector is used then the required set must be used. */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
@@ -231,8 +238,10 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 	if (flow->dissector->used_keys & NFP_FLOWER_WHITELIST_TUN_DISSECTOR &&
 	    (flow->dissector->used_keys & NFP_FLOWER_WHITELIST_TUN_DISSECTOR_R)
 #endif
-	    != NFP_FLOWER_WHITELIST_TUN_DISSECTOR_R)
+	    != NFP_FLOWER_WHITELIST_TUN_DISSECTOR_R) {
+		NL_SET_ERR_MSG_MOD(extack, "unsupported offload: tunnel match not supported");
 		return -EOPNOTSUPP;
+	}
 
 	key_layer_two = 0;
 	key_layer = NFP_FLOWER_LAYER_PORT;
@@ -265,11 +274,13 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 #endif
 		if (!(priv->flower_ext_feats & NFP_FL_FEATS_VLAN_PCP) &&
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-		    vlan.key->vlan_priority)
+		    vlan.key->vlan_priority) {
 #else
-		    flow_vlan->vlan_priority)
+		    flow_vlan->vlan_priority) {
 #endif
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: loaded firmware does not support VLAN PCP offload");
 			return -EOPNOTSUPP;
+		}
 	}
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
@@ -281,18 +292,27 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 
 		flow_rule_match_enc_control(rule, &enc_ctl);
 
-		if (enc_ctl.mask->addr_type != 0xffff ||
-		    enc_ctl.key->addr_type != FLOW_DISSECTOR_KEY_IPV4_ADDRS)
+		if (enc_ctl.mask->addr_type != 0xffff) {
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: wildcarded protocols on tunnels are not supported");
 			return -EOPNOTSUPP;
+		}
+		if (enc_ctl.key->addr_type != FLOW_DISSECTOR_KEY_IPV4_ADDRS) {
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: only IPv4 tunnels are supported");
+			return -EOPNOTSUPP;
+		}
 
 		/* These fields are already verified as used. */
 		flow_rule_match_enc_ipv4_addrs(rule, &ipv4_addrs);
-		if (ipv4_addrs.mask->dst != cpu_to_be32(~0))
+		if (ipv4_addrs.mask->dst != cpu_to_be32(~0)) {
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: only an exact match IPv4 destination address is supported");
 			return -EOPNOTSUPP;
+		}
 
 		flow_rule_match_enc_ports(rule, &enc_ports);
-		if (enc_ports.mask->dst != cpu_to_be16(~0))
+		if (enc_ports.mask->dst != cpu_to_be16(~0)) {
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: only an exact match L4 destination port is supported");
 			return -EOPNOTSUPP;
+		}
 
 		if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_ENC_OPTS))
 			flow_rule_match_enc_opts(rule, &enc_op);
@@ -314,21 +334,31 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 						  FLOW_DISSECTOR_KEY_ENC_CONTROL,
 						  flow->key);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
-		if (!egress)
+		if (!egress) {
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: cannot offload tunnels without egress support");
 			return -EOPNOTSUPP;
+		}
 #endif
 
-		if (mask_enc_ctl->addr_type != 0xffff ||
-		    enc_ctl->addr_type != FLOW_DISSECTOR_KEY_IPV4_ADDRS)
+		if (mask_enc_ctl->addr_type != 0xffff) {
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: wildcarded protocols on tunnels are not supported");
 			return -EOPNOTSUPP;
+		}
+		if (enc_ctl->addr_type != FLOW_DISSECTOR_KEY_IPV4_ADDRS) {
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: only IPv4 tunnels are supported");
+			return -EOPNOTSUPP;
+		}
+
 
 		/* These fields are already verified as used. */
 		mask_ipv4 =
 			skb_flow_dissector_target(flow->dissector,
 						  FLOW_DISSECTOR_KEY_ENC_IPV4_ADDRS,
 						  flow->mask);
-		if (mask_ipv4->dst != cpu_to_be32(~0))
+		if (mask_ipv4->dst != cpu_to_be32(~0)) {
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: only an exact match IPv4 destination address is supported");
 			return -EOPNOTSUPP;
+		}
 
 		mask_enc_ports =
 			skb_flow_dissector_target(flow->dissector,
@@ -339,8 +369,10 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 						  FLOW_DISSECTOR_KEY_ENC_PORTS,
 						  flow->key);
 
-		if (mask_enc_ports->dst != cpu_to_be16(~0))
+		if (mask_enc_ports->dst != cpu_to_be16(~0)) {
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: only an exact match L4 destination port is supported");
 			return -EOPNOTSUPP;
+		}
 
 		if (dissector_uses_key(flow->dissector,
 				       FLOW_DISSECTOR_KEY_ENC_OPTS)) {
@@ -357,15 +389,19 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 			key_size += sizeof(struct nfp_flower_ipv4_udp_tun);
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-			if (enc_op.key)
+			if (enc_op.key) {
 #else
-			if (enc_op)
+			if (enc_op) {
 #endif
+				NL_SET_ERR_MSG_MOD(extack, "unsupported offload: encap options not supported on vxlan tunnels");
 				return -EOPNOTSUPP;
+			}
 			break;
 		case htons(GENEVE_UDP_PORT):
-			if (!(priv->flower_ext_feats & NFP_FL_FEATS_GENEVE))
+			if (!(priv->flower_ext_feats & NFP_FL_FEATS_GENEVE)) {
+				NL_SET_ERR_MSG_MOD(extack, "unsupported offload: loaded firmware does not support geneve offload");
 				return -EOPNOTSUPP;
+			}
 			*tun_type = NFP_FL_TUNNEL_GENEVE;
 			key_layer |= NFP_FLOWER_LAYER_EXT_META;
 			key_size += sizeof(struct nfp_flower_ext_meta);
@@ -378,28 +414,35 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 			if (!enc_op)
 #endif
 				break;
-			if (!(priv->flower_ext_feats & NFP_FL_FEATS_GENEVE_OPT))
+			if (!(priv->flower_ext_feats &
+			      NFP_FL_FEATS_GENEVE_OPT)) {
+				NL_SET_ERR_MSG_MOD(extack, "unsupported offload: loaded firmware does not support geneve option offload");
 				return -EOPNOTSUPP;
+			}
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 			err = nfp_flower_calc_opt_layer(&enc_op, &key_layer_two,
 #else
 			err = nfp_flower_calc_opt_layer(enc_op, &key_layer_two,
 #endif
-							&key_size);
+							&key_size, extack);
 			if (err)
 				return err;
 			break;
 		default:
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: tunnel type unknown");
 			return -EOPNOTSUPP;
 		}
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
 
 		/* Ensure the ingress netdev matches the expected tun type. */
-		if (!nfp_fl_netdev_is_tunnel_type(netdev, *tun_type))
+		if (!nfp_fl_netdev_is_tunnel_type(netdev, *tun_type)) {
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: ingress netdev does not match the expected tunnel type");
 			return -EOPNOTSUPP;
+		}
 #else
 	} else if (egress) {
 		/* Reject non tunnel matches offloaded to egress repr. */
+		NL_SET_ERR_MSG_MOD(extack, "unsupported offload: non tunnel match offload not supported on egress ports");
 		return -EOPNOTSUPP;
 #endif
 	}
@@ -444,6 +487,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 		 * because we rely on it to get to the host.
 		 */
 		case cpu_to_be16(ETH_P_ARP):
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: ARP not supported");
 			return -EOPNOTSUPP;
 
 		case cpu_to_be16(ETH_P_MPLS_UC):
@@ -462,8 +506,10 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 			/* Other ethtype - we need check the masks for the
 			 * remainder of the key to ensure we can offload.
 			 */
-			if (nfp_flower_check_higher_than_mac(flow))
+			if (nfp_flower_check_higher_than_mac(flow)) {
+				NL_SET_ERR_MSG_MOD(extack, "unsupported offload: non IPv4/IPv6 offload with L3/L4 matches not supported");
 				return -EOPNOTSUPP;
+			}
 			break;
 		}
 	}
@@ -490,8 +536,10 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 			/* Other ip proto - we need check the masks for the
 			 * remainder of the key to ensure we can offload.
 			 */
-			if (nfp_flower_check_higher_than_l3(flow))
+			if (nfp_flower_check_higher_than_l3(flow)) {
+				NL_SET_ERR_MSG_MOD(extack, "unsupported offload: unknown IP protocol with L4 matches not supported");
 				return -EOPNOTSUPP;
+			}
 			break;
 		}
 	}
@@ -515,26 +563,32 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 		tcp_flags = be16_to_cpu(tcp->flags);
 #endif
 
-		if (tcp_flags & ~NFP_FLOWER_SUPPORTED_TCPFLAGS)
+		if (tcp_flags & ~NFP_FLOWER_SUPPORTED_TCPFLAGS) {
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: no match support for selected TCP flags");
 			return -EOPNOTSUPP;
+		}
 
 		/* We only support PSH and URG flags when either
 		 * FIN, SYN or RST is present as well.
 		 */
 		if ((tcp_flags & (TCPHDR_PSH | TCPHDR_URG)) &&
-		    !(tcp_flags & (TCPHDR_FIN | TCPHDR_SYN | TCPHDR_RST)))
+		    !(tcp_flags & (TCPHDR_FIN | TCPHDR_SYN | TCPHDR_RST))) {
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: PSH and URG is only supported when used with FIN, SYN or RST");
 			return -EOPNOTSUPP;
+		}
 
 		/* We need to store TCP flags in the either the IPv4 or IPv6 key
 		 * space, thus we need to ensure we include a IPv4/IPv6 key
 		 * layer if we have not done so already.
 		 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-		if (!basic.key)
+		if (!basic.key) {
 #else
-		if (!key_basic)
+		if (!key_basic) {
 #endif
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: match on TCP flags requires a match on L3 protocol");
 			return -EOPNOTSUPP;
+		}
 
 		if (!(key_layer & NFP_FLOWER_LAYER_IPV4) &&
 		    !(key_layer & NFP_FLOWER_LAYER_IPV6)) {
@@ -554,6 +608,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 				break;
 
 			default:
+				NL_SET_ERR_MSG_MOD(extack, "unsupported offload: match on TCP flags requires a match on IPv4/IPv6");
 				return -EOPNOTSUPP;
 			}
 		}
@@ -564,8 +619,10 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 		struct flow_match_control ctl;
 
 		flow_rule_match_control(rule, &ctl);
-		if (ctl.key->flags & ~NFP_FLOWER_SUPPORTED_CTLFLAGS)
+		if (ctl.key->flags & ~NFP_FLOWER_SUPPORTED_CTLFLAGS) {
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: match on unknown control flag");
 			return -EOPNOTSUPP;
+		}
 	}
 #else
 	if (dissector_uses_key(flow->dissector, FLOW_DISSECTOR_KEY_CONTROL)) {
@@ -575,8 +632,10 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 						    FLOW_DISSECTOR_KEY_CONTROL,
 						    flow->key);
 
-		if (key_ctl->flags & ~NFP_FLOWER_SUPPORTED_CTLFLAGS)
+		if (key_ctl->flags & ~NFP_FLOWER_SUPPORTED_CTLFLAGS) {
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: match on unknown control flag");
 			return -EOPNOTSUPP;
+		}
 	}
 #endif
 
@@ -1102,6 +1161,7 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 {
 	enum nfp_flower_tun_type tun_type = NFP_FL_TUNNEL_NONE;
 	struct nfp_flower_priv *priv = app->priv;
+	struct netlink_ext_ack *extack = NULL;
 	struct nfp_fl_payload *flow_pay;
 	struct nfp_fl_key_ls *key_layer;
 	struct nfp_port *port = NULL;
@@ -1110,6 +1170,9 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 #endif
 	int err;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
+	extack = flow->common.extack;
+#endif
 	if (nfp_netdev_is_nfp_repr(netdev))
 		port = nfp_port_from_netdev(netdev);
 
@@ -1118,10 +1181,12 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 	flow_pay = nfp_flower_search_fl_table(app, flow->cookie, ingr_dev);
 	if (flow_pay) {
 		/* Ignore as duplicate if it has been added by different cb. */
-		if (flow_pay->ingress_offload && egress)
+		if (flow_pay->ingress_offload && egress) {
 			return 0;
-		else
+		} else {
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: cannot offload duplicate flow entry");
 			return -EOPNOTSUPP;
+		}
 	}
 
 #endif
@@ -1131,10 +1196,10 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	err = nfp_flower_calculate_key_layers(app, netdev, key_layer, flow,
-					      egress, &tun_type);
+					      egress, &tun_type, extack);
 #else
 	err = nfp_flower_calculate_key_layers(app, netdev, key_layer, flow,
-					      &tun_type);
+					      &tun_type, extack);
 #endif
 	if (err)
 		goto err_free_key_ls;
@@ -1174,8 +1239,10 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 	flow_pay->tc_flower_cookie = flow->cookie;
 	err = rhashtable_insert_fast(&priv->flow_table, &flow_pay->fl_node,
 				     nfp_flower_table_params);
-	if (err)
+	if (err) {
+		NL_SET_ERR_MSG_MOD(extack, "invalid entry: cannot insert flow into tables for offloads");
 		goto err_release_metadata;
+	}
 
 	err = nfp_flower_xmit_flow(app, flow_pay,
 				   NFP_FLOWER_CMSG_TYPE_FLOW_ADD);
@@ -1300,6 +1367,7 @@ nfp_flower_del_offload(struct nfp_app *app, struct net_device *netdev,
 #endif
 {
 	struct nfp_flower_priv *priv = app->priv;
+	struct netlink_ext_ack *extack = NULL;
 	struct nfp_fl_payload *nfp_flow;
 	struct nfp_port *port = NULL;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
@@ -1307,6 +1375,9 @@ nfp_flower_del_offload(struct nfp_app *app, struct net_device *netdev,
 #endif
 	int err;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
+	extack = flow->common.extack;
+#endif
 	if (nfp_netdev_is_nfp_repr(netdev))
 		port = nfp_port_from_netdev(netdev);
 
@@ -1316,12 +1387,14 @@ nfp_flower_del_offload(struct nfp_app *app, struct net_device *netdev,
 #else
 	nfp_flow = nfp_flower_search_fl_table(app, flow->cookie, netdev);
 #endif
-	if (!nfp_flow)
+	if (!nfp_flow) {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
-		return egress ? 0 : -ENOENT;
-#else
-		return -ENOENT;
+		if (egress)
+			return 0;
 #endif
+		NL_SET_ERR_MSG_MOD(extack, "invalid entry: cannot remove flow that does not exist");
+		return -ENOENT;
+	}
 
 	err = nfp_modify_flow_metadata(app, nfp_flow);
 	if (err)
@@ -1422,20 +1495,26 @@ nfp_flower_get_stats(struct nfp_app *app, struct net_device *netdev,
 #endif
 {
 	struct nfp_flower_priv *priv = app->priv;
+	struct netlink_ext_ack *extack = NULL;
 	struct nfp_fl_payload *nfp_flow;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	struct net_device *ingr_dev;
 #endif
 	u32 ctx_id;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
+	extack = flow->common.extack;
+#endif
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	ingr_dev = egress ? NULL : netdev;
 	nfp_flow = nfp_flower_search_fl_table(app, flow->cookie, ingr_dev);
 #else
 	nfp_flow = nfp_flower_search_fl_table(app, flow->cookie, netdev);
 #endif
-	if (!nfp_flow)
+	if (!nfp_flow) {
+		NL_SET_ERR_MSG_MOD(extack, "invalid entry: cannot dump stats for flow that does not exist");
 		return -EINVAL;
+	}
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	if (nfp_flow->ingress_offload && egress)
