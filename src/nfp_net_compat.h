@@ -927,6 +927,12 @@ static inline bool netif_is_geneve(const struct net_device *dev)
        return dev->rtnl_link_ops &&
               !strcmp(dev->rtnl_link_ops->kind, "geneve");
 }
+
+static inline bool netif_is_gretap(const struct net_device *dev)
+{
+	return dev->rtnl_link_ops &&
+	       !strcmp(dev->rtnl_link_ops->kind, "gretap");
+}
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
