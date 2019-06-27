@@ -519,13 +519,13 @@ nfp_ccm_mbox_msg_prepare(struct nfp_net *nn, struct sk_buff *skb,
 
 static int
 nfp_ccm_mbox_msg_enqueue(struct nfp_net *nn, struct sk_buff *skb,
-			 enum nfp_ccm_type type)
+			 enum nfp_ccm_type type, bool critical)
 {
 	struct nfp_ccm_hdr *hdr;
 
 	assert_spin_locked(&nn->mbox_cmsg.queue.lock);
 
-	if (nn->mbox_cmsg.queue.qlen >= NFP_CCM_MAX_QLEN) {
+	if (!critical && nn->mbox_cmsg.queue.qlen >= NFP_CCM_MAX_QLEN) {
 		nn_dp_warn(&nn->dp, "mailbox request queue too long\n");
 		return -EBUSY;
 	}
@@ -540,10 +540,10 @@ nfp_ccm_mbox_msg_enqueue(struct nfp_net *nn, struct sk_buff *skb,
 	return 0;
 }
 
-int nfp_ccm_mbox_communicate(struct nfp_net *nn, struct sk_buff *skb,
-			     enum nfp_ccm_type type,
-			     unsigned int reply_size,
-			     unsigned int max_reply_size)
+int __nfp_ccm_mbox_communicate(struct nfp_net *nn, struct sk_buff *skb,
+			       enum nfp_ccm_type type,
+			       unsigned int reply_size,
+			       unsigned int max_reply_size, bool critical)
 {
 	int err;
 
@@ -554,7 +554,7 @@ int nfp_ccm_mbox_communicate(struct nfp_net *nn, struct sk_buff *skb,
 
 	spin_lock_bh(&nn->mbox_cmsg.queue.lock);
 
-	err = nfp_ccm_mbox_msg_enqueue(nn, skb, type);
+	err = nfp_ccm_mbox_msg_enqueue(nn, skb, type, critical);
 	if (err)
 		goto err_unlock;
 
@@ -596,6 +596,15 @@ err_unlock:
 err_free_skb:
 	dev_kfree_skb_any(skb);
 	return err;
+}
+
+int nfp_ccm_mbox_communicate(struct nfp_net *nn, struct sk_buff *skb,
+			     enum nfp_ccm_type type,
+			     unsigned int reply_size,
+			     unsigned int max_reply_size)
+{
+	return __nfp_ccm_mbox_communicate(nn, skb, type, reply_size,
+					  max_reply_size, false);
 }
 
 static void nfp_ccm_mbox_post_runq_work(struct work_struct *work)
@@ -654,7 +663,7 @@ int nfp_ccm_mbox_post(struct nfp_net *nn, struct sk_buff *skb,
 
 	spin_lock_bh(&nn->mbox_cmsg.queue.lock);
 
-	err = nfp_ccm_mbox_msg_enqueue(nn, skb, type);
+	err = nfp_ccm_mbox_msg_enqueue(nn, skb, type, false);
 	if (err)
 		goto err_unlock;
 
