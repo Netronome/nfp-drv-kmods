@@ -502,6 +502,44 @@ nfp_flower_compile_geneve_opt(void *key_buf, struct tc_cls_flower_offload *flow,
 }
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+static void
+nfp_flower_compile_tun_ipv4_addrs(struct nfp_flower_tun_ipv4 *ext,
+				  struct nfp_flower_tun_ipv4 *msk,
+				  struct tc_cls_flower_offload *flow)
+{
+	struct flow_rule *rule = tc_cls_flower_offload_flow_rule(flow);
+
+	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_ENC_IPV4_ADDRS)) {
+		struct flow_match_ipv4_addrs match;
+
+		flow_rule_match_enc_ipv4_addrs(rule, &match);
+		ext->src = match.key->src;
+		ext->dst = match.key->dst;
+		msk->src = match.mask->src;
+		msk->dst = match.mask->dst;
+	}
+}
+
+static void
+nfp_flower_compile_tun_ip_ext(struct nfp_flower_tun_ip_ext *ext,
+			      struct nfp_flower_tun_ip_ext *msk,
+			      struct tc_cls_flower_offload *flow)
+{
+	struct flow_rule *rule = tc_cls_flower_offload_flow_rule(flow);
+
+	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_ENC_IP)) {
+		struct flow_match_ip match;
+
+		flow_rule_match_enc_ip(rule, &match);
+		ext->tos = match.key->tos;
+		ext->ttl = match.key->ttl;
+		msk->tos = match.mask->tos;
+		msk->ttl = match.mask->ttl;
+	}
+}
+#endif
+
 static void
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 nfp_flower_compile_ipv4_udp_tun(struct nfp_flower_ipv4_udp_tun *ext,
@@ -524,25 +562,9 @@ nfp_flower_compile_ipv4_udp_tun(struct nfp_flower_ipv4_udp_tun *ext,
 		msk->tun_id = cpu_to_be32(temp_vni);
 	}
 
-	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_ENC_IPV4_ADDRS)) {
-		struct flow_match_ipv4_addrs match;
+	nfp_flower_compile_tun_ipv4_addrs(&ext->ipv4, &msk->ipv4, flow);
+	nfp_flower_compile_tun_ip_ext(&ext->ip_ext, &msk->ip_ext, flow);
 
-		flow_rule_match_enc_ipv4_addrs(rule, &match);
-		ext->ip_src = match.key->src;
-		ext->ip_dst = match.key->dst;
-		msk->ip_src = match.mask->src;
-		msk->ip_dst = match.mask->dst;
-	}
-
-	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_ENC_IP)) {
-		struct flow_match_ip match;
-
-		flow_rule_match_enc_ip(rule, &match);
-		ext->tos = match.key->tos;
-		ext->ttl = match.key->ttl;
-		msk->tos = match.mask->tos;
-		msk->ttl = match.mask->ttl;
-	}
 }
 #else
 nfp_flower_compile_ipv4_udp_tun(struct nfp_flower_ipv4_udp_tun *frame,
@@ -573,16 +595,16 @@ nfp_flower_compile_ipv4_udp_tun(struct nfp_flower_ipv4_udp_tun *frame,
 		   skb_flow_dissector_target(flow->dissector,
 					     FLOW_DISSECTOR_KEY_ENC_IPV4_ADDRS,
 					     target);
-		frame->ip_src = tun_ips->src;
-		frame->ip_dst = tun_ips->dst;
+		frame->ipv4.src = tun_ips->src;
+		frame->ipv4.dst = tun_ips->dst;
 	}
 
 	if (dissector_uses_key(flow->dissector, FLOW_DISSECTOR_KEY_ENC_IP)) {
 		ip = skb_flow_dissector_target(flow->dissector,
 					       FLOW_DISSECTOR_KEY_ENC_IP,
 					       target);
-		frame->tos = ip->tos;
-		frame->ttl = ip->ttl;
+		frame->ip_ext.tos = ip->tos;
+		frame->ip_ext.ttl = ip->ttl;
 	}
 }
 #endif
@@ -728,7 +750,7 @@ int nfp_flower_compile_flow_match(struct nfp_app *app,
 		/* Populate Mask VXLAN Data. */
 		nfp_flower_compile_ipv4_udp_tun((void *)msk, flow, true);
 #endif
-		tun_dst = ((struct nfp_flower_ipv4_udp_tun *)ext)->ip_dst;
+		tun_dst = ((struct nfp_flower_ipv4_udp_tun *)ext)->ipv4.dst;
 		ext += sizeof(struct nfp_flower_ipv4_udp_tun);
 		msk += sizeof(struct nfp_flower_ipv4_udp_tun);
 
