@@ -159,28 +159,16 @@ static bool nfp_flower_check_higher_than_l3(struct tc_cls_flower_offload *f)
 }
 
 static int
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-nfp_flower_calc_opt_layer(struct flow_match_enc_opts *enc_opts,
-#else
 nfp_flower_calc_opt_layer(struct flow_dissector_key_enc_opts *enc_opts,
-#endif
 			  u32 *key_layer_two, int *key_size,
 			  struct netlink_ext_ack *extack)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-	if (enc_opts->key->len > NFP_FL_MAX_GENEVE_OPT_KEY) {
-#else
 	if (enc_opts->len > NFP_FL_MAX_GENEVE_OPT_KEY) {
-#endif
 		NL_SET_ERR_MSG_MOD(extack, "unsupported offload: geneve options exceed maximum length");
 		return -EOPNOTSUPP;
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-	if (enc_opts->key->len > 0) {
-#else
 	if (enc_opts->len > 0) {
-#endif
 		*key_layer_two |= NFP_FLOWER_LAYER2_GENEVE_OP;
 		*key_size += sizeof(struct nfp_flower_geneve_options);
 	}
@@ -188,24 +176,67 @@ nfp_flower_calc_opt_layer(struct flow_dissector_key_enc_opts *enc_opts,
 	return 0;
 }
 
+static int
+nfp_flower_calc_udp_tun_layer(struct flow_dissector_key_ports *enc_ports,
+			      struct flow_dissector_key_enc_opts *enc_op,
+			      u32 *key_layer_two, u8 *key_layer, int *key_size,
+			      struct nfp_flower_priv *priv,
+			      enum nfp_flower_tun_type *tun_type,
+			      struct netlink_ext_ack *extack)
+{
+	int err;
+
+	switch (enc_ports->dst) {
+	case htons(IANA_VXLAN_UDP_PORT):
+		*tun_type = NFP_FL_TUNNEL_VXLAN;
+		*key_layer |= NFP_FLOWER_LAYER_VXLAN;
+		*key_size += sizeof(struct nfp_flower_ipv4_udp_tun);
+
+		if (enc_op) {
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: encap options not supported on vxlan tunnels");
+			return -EOPNOTSUPP;
+		}
+		break;
+	case htons(GENEVE_UDP_PORT):
+		if (!(priv->flower_ext_feats & NFP_FL_FEATS_GENEVE)) {
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: loaded firmware does not support geneve offload");
+			return -EOPNOTSUPP;
+		}
+		*tun_type = NFP_FL_TUNNEL_GENEVE;
+		*key_layer |= NFP_FLOWER_LAYER_EXT_META;
+		*key_size += sizeof(struct nfp_flower_ext_meta);
+		*key_layer_two |= NFP_FLOWER_LAYER2_GENEVE;
+		*key_size += sizeof(struct nfp_flower_ipv4_udp_tun);
+
+		if (!enc_op)
+			break;
+		if (!(priv->flower_ext_feats & NFP_FL_FEATS_GENEVE_OPT)) {
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: loaded firmware does not support geneve option offload");
+			return -EOPNOTSUPP;
+		}
+		err = nfp_flower_calc_opt_layer(enc_op, key_layer_two,
+						key_size, extack);
+		if (err)
+			return err;
+		break;
+	default:
+		NL_SET_ERR_MSG_MOD(extack, "unsupported offload: tunnel type unknown");
+		return -EOPNOTSUPP;
+	}
+
+	return 0;
+}
+
+static int
+nfp_flower_calculate_key_layers(struct nfp_app *app,
+				struct net_device *netdev,
+				struct nfp_fl_key_ls *ret_key_ls,
+				struct tc_cls_flower_offload *flow,
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
-static int
-nfp_flower_calculate_key_layers(struct nfp_app *app,
-				struct net_device *netdev,
-				struct nfp_fl_key_ls *ret_key_ls,
-				struct tc_cls_flower_offload *flow,
 				bool egress,
-				enum nfp_flower_tun_type *tun_type,
-				struct netlink_ext_ack *extack)
-#else
-static int
-nfp_flower_calculate_key_layers(struct nfp_app *app,
-				struct net_device *netdev,
-				struct nfp_fl_key_ls *ret_key_ls,
-				struct tc_cls_flower_offload *flow,
-				enum nfp_flower_tun_type *tun_type,
-				struct netlink_ext_ack *extack)
 #endif
+				enum nfp_flower_tun_type *tun_type,
+				struct netlink_ext_ack *extack)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 	struct flow_rule *rule = tc_cls_flower_offload_flow_rule(flow);
@@ -317,7 +348,12 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 		if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_ENC_OPTS))
 			flow_rule_match_enc_opts(rule, &enc_op);
 
-		switch (enc_ports.key->dst) {
+		err = nfp_flower_calc_udp_tun_layer(enc_ports.key, enc_op.key,
+						    &key_layer_two, &key_layer,
+						    &key_size, priv, tun_type,
+						    extack);
+		if (err)
+			return err;
 #else
 	if (dissector_uses_key(flow->dissector,
 			       FLOW_DISSECTOR_KEY_ENC_CONTROL)) {
@@ -381,57 +417,13 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 							   flow->key);
 		}
 
-		switch (enc_ports->dst) {
+		err = nfp_flower_calc_udp_tun_layer(enc_ports, enc_op,
+						    &key_layer_two, &key_layer,
+						    &key_size, priv, tun_type,
+						    extack);
+		if (err)
+			return err;
 #endif
-		case htons(IANA_VXLAN_UDP_PORT):
-			*tun_type = NFP_FL_TUNNEL_VXLAN;
-			key_layer |= NFP_FLOWER_LAYER_VXLAN;
-			key_size += sizeof(struct nfp_flower_ipv4_udp_tun);
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-			if (enc_op.key) {
-#else
-			if (enc_op) {
-#endif
-				NL_SET_ERR_MSG_MOD(extack, "unsupported offload: encap options not supported on vxlan tunnels");
-				return -EOPNOTSUPP;
-			}
-			break;
-		case htons(GENEVE_UDP_PORT):
-			if (!(priv->flower_ext_feats & NFP_FL_FEATS_GENEVE)) {
-				NL_SET_ERR_MSG_MOD(extack, "unsupported offload: loaded firmware does not support geneve offload");
-				return -EOPNOTSUPP;
-			}
-			*tun_type = NFP_FL_TUNNEL_GENEVE;
-			key_layer |= NFP_FLOWER_LAYER_EXT_META;
-			key_size += sizeof(struct nfp_flower_ext_meta);
-			key_layer_two |= NFP_FLOWER_LAYER2_GENEVE;
-			key_size += sizeof(struct nfp_flower_ipv4_udp_tun);
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-			if (!enc_op.key)
-#else
-			if (!enc_op)
-#endif
-				break;
-			if (!(priv->flower_ext_feats &
-			      NFP_FL_FEATS_GENEVE_OPT)) {
-				NL_SET_ERR_MSG_MOD(extack, "unsupported offload: loaded firmware does not support geneve option offload");
-				return -EOPNOTSUPP;
-			}
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-			err = nfp_flower_calc_opt_layer(&enc_op, &key_layer_two,
-#else
-			err = nfp_flower_calc_opt_layer(enc_op, &key_layer_two,
-#endif
-							&key_size, extack);
-			if (err)
-				return err;
-			break;
-		default:
-			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: tunnel type unknown");
-			return -EOPNOTSUPP;
-		}
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
 
 		/* Ensure the ingress netdev matches the expected tun type. */
