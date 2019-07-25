@@ -47,10 +47,10 @@
 
 /* Redefine LINUX_VERSION_CODE for *-next kernels */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0)
-#include <net/af_vsock.h>
-#ifdef VSOCK_TRANSPORT_F_LOCAL
+#include <net/bluetooth/bluetooth.h>
+#ifdef BT_MODE
 #undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(5, 6, 0)
+#define LINUX_VERSION_CODE KERNEL_VERSION(5, 8, 0)
 #endif
 #endif
 
