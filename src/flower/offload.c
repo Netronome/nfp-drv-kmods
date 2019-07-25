@@ -1649,11 +1649,18 @@ static int nfp_flower_setup_tc_block_cb(enum tc_setup_type type,
 	}
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0)
+static LIST_HEAD(nfp_block_cb_list);
+#endif
+
 static int nfp_flower_setup_tc_block(struct net_device *netdev,
-				     struct tc_block_offload *f)
+				     compat__flow_block_offload *f)
 {
 	struct nfp_repr *repr = netdev_priv(netdev);
 	struct nfp_flower_repr_priv *repr_priv;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0)
+	struct flow_block_cb *block_cb;
+#endif
 
 	if (f->binder_type != FLOW_BLOCK_BINDER_TYPE_CLSACT_INGRESS)
 		return -EOPNOTSUPP;
@@ -1663,17 +1670,44 @@ static int nfp_flower_setup_tc_block(struct net_device *netdev,
 		return -EOPNOTSUPP;
 #endif
 	repr_priv = repr->app_priv;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
 	repr_priv->block_shared = tcf_block_shared(f->block);
+#else
+	repr_priv->block_shared = f->block_shared;
+	f->driver_block_list = &nfp_block_cb_list;
+#endif
 
 	switch (f->command) {
 	case FLOW_BLOCK_BIND:
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
 		return tcf_block_cb_register(f->block,
 					     nfp_flower_setup_tc_block_cb,
 					     repr, repr, f->extack);
+#else
+		block_cb = flow_block_cb_alloc(nfp_flower_setup_tc_block_cb,
+					       repr, repr, NULL);
+		if (IS_ERR(block_cb))
+			return PTR_ERR(block_cb);
+
+		flow_block_cb_add(block_cb, f);
+		list_add_tail(&block_cb->driver_list, &nfp_block_cb_list);
+		return 0;
+#endif
 	case FLOW_BLOCK_UNBIND:
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
 		tcf_block_cb_unregister(f->block,
 					nfp_flower_setup_tc_block_cb,
 					repr);
+#else
+		block_cb = flow_block_cb_lookup(f->block,
+						nfp_flower_setup_tc_block_cb,
+						repr);
+		if (!block_cb)
+			return -ENOENT;
+
+		flow_block_cb_remove(block_cb, f);
+		list_del(&block_cb->driver_list);
+#endif
 		return 0;
 	default:
 		return -EOPNOTSUPP;
@@ -1760,13 +1794,27 @@ static int nfp_flower_setup_indr_block_cb(enum tc_setup_type type,
 	}
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0)
+static void nfp_flower_setup_indr_tc_release(void *cb_priv)
+{
+	struct nfp_flower_indr_block_cb_priv *priv = cb_priv;
+
+	list_del(&priv->list);
+	kfree(priv);
+}
+#endif
+
 static int
 nfp_flower_setup_indr_tc_block(struct net_device *netdev, struct nfp_app *app,
-			       struct tc_block_offload *f)
+			       compat__flow_block_offload *f)
 {
 	struct nfp_flower_indr_block_cb_priv *cb_priv;
 	struct nfp_flower_priv *priv = app->priv;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
 	int err;
+#else
+	struct flow_block_cb *block_cb;
+#endif
 
 	if (f->binder_type != FLOW_BLOCK_BINDER_TYPE_CLSACT_INGRESS &&
 	    !(f->binder_type == FLOW_BLOCK_BINDER_TYPE_CLSACT_EGRESS &&
@@ -1783,25 +1831,53 @@ nfp_flower_setup_indr_tc_block(struct net_device *netdev, struct nfp_app *app,
 		cb_priv->app = app;
 		list_add(&cb_priv->list, &priv->indr_block_cb_priv);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
 		err = tcf_block_cb_register(f->block,
 					    nfp_flower_setup_indr_block_cb,
 					    cb_priv, cb_priv, f->extack);
 		if (err) {
+#else
+		block_cb = flow_block_cb_alloc(nfp_flower_setup_indr_block_cb,
+					       cb_priv, cb_priv,
+					       nfp_flower_setup_indr_tc_release);
+		if (IS_ERR(block_cb)) {
+#endif
 			list_del(&cb_priv->list);
 			kfree(cb_priv);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0)
+			return PTR_ERR(block_cb);
+#endif
 		}
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
 		return err;
+#else
+		flow_block_cb_add(block_cb, f);
+		list_add_tail(&block_cb->driver_list, &nfp_block_cb_list);
+		return 0;
+#endif
 	case FLOW_BLOCK_UNBIND:
 		cb_priv = nfp_flower_indr_block_cb_priv_lookup(app, netdev);
 		if (!cb_priv)
 			return -ENOENT;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
 		tcf_block_cb_unregister(f->block,
 					nfp_flower_setup_indr_block_cb,
 					cb_priv);
 		list_del(&cb_priv->list);
 		kfree(cb_priv);
+#else
+		block_cb = flow_block_cb_lookup(f->block,
+						nfp_flower_setup_indr_block_cb,
+						cb_priv);
+
+		if (!block_cb)
+			return -ENOENT;
+
+		flow_block_cb_remove(block_cb, f);
+		list_del(&block_cb->driver_list);
+#endif
 
 		return 0;
 	default:
