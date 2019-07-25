@@ -37,6 +37,39 @@ int compat__nfp_net_flash_device(struct net_device *netdev,
 }
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0) &&	\
+    LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
+int compat__flow_block_cb_setup_simple(struct tc_block_offload *f,
+				       struct list_head *driver_list,
+				       tc_setup_cb_t *nfp_cb, void *cb_ident,
+				       void *cb_priv, bool ingress_only)
+{
+	if (ingress_only &&
+	    f->binder_type != TCF_BLOCK_BINDER_TYPE_CLSACT_INGRESS)
+		return -EOPNOTSUPP;
+
+	if (!ingress_only &&
+	    f->binder_type != TCF_BLOCK_BINDER_TYPE_CLSACT_EGRESS)
+		return -EOPNOTSUPP;
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
+	if (ingress_only && tcf_block_shared(f->block))
+		return -EOPNOTSUPP;
+#endif
+
+	switch (f->command) {
+	case TC_BLOCK_BIND:
+		return tcf_block_cb_register(f->block, nfp_cb, cb_ident,
+					     cb_priv, f->extack);
+	case TC_BLOCK_UNBIND:
+		tcf_block_cb_unregister(f->block, nfp_cb, cb_ident);
+		return 0;
+	default:
+		return -EOPNOTSUPP;
+	}
+}
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
 static int
 nfp_port_attr_get(struct net_device *netdev, struct switchdev_attr *attr)

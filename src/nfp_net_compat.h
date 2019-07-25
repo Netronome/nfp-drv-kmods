@@ -185,6 +185,12 @@
 #define NETIF_F_GSO_UDP_TUNNEL	0
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
+typedef struct tc_block_offload compat__flow_block_offload;
+#else
+typedef struct flow_block_offload compat__flow_block_offload;
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 3, 0)
 typedef u32 netdev_features_t;
 
@@ -1146,6 +1152,25 @@ int compat__nfp_net_flash_device(struct net_device *netdev,
 				 struct ethtool_flash *flash);
 #else
 #define compat__nfp_net_flash_device	NULL
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
+int compat__flow_block_cb_setup_simple(struct tc_block_offload *f,
+				       struct list_head *driver_list,
+				       tc_setup_cb_t *nfp_cb, void *cb_ident,
+				       void *cb_priv, bool ingress_only);
+#else
+static inline int
+compat__flow_block_cb_setup_simple(struct flow_block_offload *f,
+				   struct list_head *driver_list,
+				   flow_setup_cb_t *nfp_cb, void *cb_ident,
+				   void *cb_priv, bool ingress_only)
+{
+	return flow_block_cb_setup_simple(f, driver_list, nfp_cb, cb_ident,
+					  cb_priv, ingress_only);
+}
+#endif
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 2, 0)
