@@ -41,12 +41,6 @@
 #include <net/switchdev.h>
 #endif
 
-/* Redefine LINUX_VERSION_CODE for *-next kernels */
-#ifdef BPF_F_TEST_RND_HI32
-#undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(5, 3, 0)
-#endif
-
 #if (defined(COMPAT__HAVE_METADATA_IP_TUNNEL) ||	\
      LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0))
 #include <net/tc_act/tc_mirred.h>

@@ -142,9 +142,8 @@ KERNEL_GE_5_2 := \
 	\( $(VERSION) -eq 5 -a $(PATCHLEVEL) -ge 2 \) ] && echo y)
 
 KERNEL_GE_5_3 := \
-	$(shell grep tls_offload_rx_resync_set_t $(srctree)/include/net/tls.h \
-		>/dev/null 2>&1 && \
-		echo y)
+	$(shell [ $(VERSION) -gt 5 -o \
+	\( $(VERSION) -eq 5 -a $(PATCHLEVEL) -ge 3 \) ] && echo y)
 
 ifeq ($(KERNEL_GE_4_9),y)
   nfp-objs += nfp_hwmon.o
