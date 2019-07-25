@@ -187,8 +187,16 @@
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
 typedef struct tc_block_offload compat__flow_block_offload;
+typedef struct tc_cls_flower_offload compat__flow_cls_offload;
 #else
 typedef struct flow_block_offload compat__flow_block_offload;
+typedef struct flow_cls_offload compat__flow_cls_offload;
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
+#define FLOW_CLS_REPLACE TC_CLSFLOWER_REPLACE
+#define FLOW_CLS_DESTROY TC_CLSFLOWER_DESTROY
+#define FLOW_CLS_STATS TC_CLSFLOWER_STATS
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 3, 0)
@@ -1152,6 +1160,18 @@ int compat__nfp_net_flash_device(struct net_device *netdev,
 				 struct ethtool_flash *flash);
 #else
 #define compat__nfp_net_flash_device	NULL
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+static inline struct flow_rule *
+compat__flow_cls_offload_flow_rule(compat__flow_cls_offload *flow)
+{
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
+	return tc_cls_flower_offload_flow_rule(flow);
+#else
+	return flow_cls_offload_flow_rule(flow);
+#endif
+}
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)

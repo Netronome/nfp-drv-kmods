@@ -123,10 +123,10 @@ nfp_flower_xmit_flow(struct nfp_app *app, struct nfp_fl_payload *nfp_flow,
 	return 0;
 }
 
-static bool nfp_flower_check_higher_than_mac(struct tc_cls_flower_offload *f)
+static bool nfp_flower_check_higher_than_mac(compat__flow_cls_offload *f)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-	struct flow_rule *rule = tc_cls_flower_offload_flow_rule(f);
+	struct flow_rule *rule = compat__flow_cls_offload_flow_rule(f);
 
 	return flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_IPV4_ADDRS) ||
 	       flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_IPV6_ADDRS) ||
@@ -143,10 +143,10 @@ static bool nfp_flower_check_higher_than_mac(struct tc_cls_flower_offload *f)
 #endif
 }
 
-static bool nfp_flower_check_higher_than_l3(struct tc_cls_flower_offload *f)
+static bool nfp_flower_check_higher_than_l3(compat__flow_cls_offload *f)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-	struct flow_rule *rule = tc_cls_flower_offload_flow_rule(f);
+	struct flow_rule *rule = compat__flow_cls_offload_flow_rule(f);
 
 	return flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_PORTS) ||
 	       flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_ICMP);
@@ -230,7 +230,7 @@ static int
 nfp_flower_calculate_key_layers(struct nfp_app *app,
 				struct net_device *netdev,
 				struct nfp_fl_key_ls *ret_key_ls,
-				struct tc_cls_flower_offload *flow,
+				compat__flow_cls_offload *flow,
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 				bool egress,
 #endif
@@ -238,7 +238,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 				struct netlink_ext_ack *extack)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-	struct flow_rule *rule = tc_cls_flower_offload_flow_rule(flow);
+	struct flow_rule *rule = compat__flow_cls_offload_flow_rule(flow);
 	struct flow_dissector *dissector = rule->match.dissector;
 	struct flow_match_basic basic = { NULL, NULL};
 #else
@@ -1069,7 +1069,7 @@ int nfp_flower_merge_offloaded_flows(struct nfp_app *app,
 				     struct nfp_fl_payload *sub_flow1,
 				     struct nfp_fl_payload *sub_flow2)
 {
-	struct tc_cls_flower_offload merge_tc_off;
+	compat__flow_cls_offload merge_tc_off;
 	struct nfp_flower_priv *priv = app->priv;
 	struct netlink_ext_ack *extack = NULL;
 	struct nfp_fl_payload *merge_flow;
@@ -1173,11 +1173,11 @@ err_destroy_merge_flow:
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 static int
 nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
-		       struct tc_cls_flower_offload *flow, bool egress)
+		       compat__flow_cls_offload *flow, bool egress)
 #else
 static int
 nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
-		       struct tc_cls_flower_offload *flow)
+		       compat__flow_cls_offload *flow)
 #endif
 {
 	enum nfp_flower_tun_type tun_type = NFP_FL_TUNNEL_NONE;
@@ -1384,7 +1384,7 @@ nfp_flower_del_offload(struct nfp_app *app, struct net_device *netdev,
 #else
 static int
 nfp_flower_del_offload(struct nfp_app *app, struct net_device *netdev,
-		       struct tc_cls_flower_offload *flow)
+		       compat__flow_cls_offload *flow)
 #endif
 {
 	struct nfp_flower_priv *priv = app->priv;
@@ -1512,7 +1512,7 @@ nfp_flower_get_stats(struct nfp_app *app, struct net_device *netdev,
 #else
 static int
 nfp_flower_get_stats(struct nfp_app *app, struct net_device *netdev,
-		     struct tc_cls_flower_offload *flow)
+		     compat__flow_cls_offload *flow)
 #endif
 {
 	struct nfp_flower_priv *priv = app->priv;
@@ -1572,7 +1572,7 @@ nfp_flower_repr_offload(struct nfp_app *app, struct net_device *netdev,
 #else
 static int
 nfp_flower_repr_offload(struct nfp_app *app, struct net_device *netdev,
-			struct tc_cls_flower_offload *flower)
+			compat__flow_cls_offload *flower)
 #endif
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
@@ -1581,19 +1581,19 @@ nfp_flower_repr_offload(struct nfp_app *app, struct net_device *netdev,
 #endif
 
 	switch (flower->command) {
-	case TC_CLSFLOWER_REPLACE:
+	case FLOW_CLS_REPLACE:
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 		return nfp_flower_add_offload(app, netdev, flower, egress);
 #else
 		return nfp_flower_add_offload(app, netdev, flower);
 #endif
-	case TC_CLSFLOWER_DESTROY:
+	case FLOW_CLS_DESTROY:
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 		return nfp_flower_del_offload(app, netdev, flower, egress);
 #else
 		return nfp_flower_del_offload(app, netdev, flower);
 #endif
-	case TC_CLSFLOWER_STATS:
+	case FLOW_CLS_STATS:
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 		return nfp_flower_get_stats(app, netdev, flower, egress);
 #else
@@ -1694,7 +1694,7 @@ int nfp_flower_setup_tc(struct nfp_app *app, struct net_device *netdev,
 int nfp_flower_setup_tc(struct nfp_app *app, struct net_device *netdev,
 			enum tc_setup_type type, void *type_data)
 {
-	struct tc_cls_flower_offload *cls_flower = type_data;
+	compat__flow_cls_offload *cls_flower = type_data;
 
 	if (type != TC_SETUP_CLSFLOWER ||
 	    !is_classid_clsact_ingress(cls_flower->common.classid) ||
@@ -1746,7 +1746,7 @@ static int nfp_flower_setup_indr_block_cb(enum tc_setup_type type,
 					  void *type_data, void *cb_priv)
 {
 	struct nfp_flower_indr_block_cb_priv *priv = cb_priv;
-	struct tc_cls_flower_offload *flower = type_data;
+	compat__flow_cls_offload *flower = type_data;
 
 	if (flower->common.chain_index)
 		return -EOPNOTSUPP;

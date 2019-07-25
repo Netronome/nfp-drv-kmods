@@ -188,7 +188,7 @@ nfp_fl_output(struct nfp_app *app, struct nfp_fl_output *output,
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 static enum nfp_flower_tun_type
-nfp_flower_tun_is_gre(struct tc_cls_flower_offload *flow, int start_idx)
+nfp_flower_tun_is_gre(compat__flow_cls_offload *flow, int start_idx)
 {
 	struct flow_action_entry *act = flow->rule->action.entries;
 	int num_act = flow->rule->action.num_entries;
@@ -207,7 +207,7 @@ nfp_flower_tun_is_gre(struct tc_cls_flower_offload *flow, int start_idx)
 static enum nfp_flower_tun_type
 nfp_fl_get_tun_from_act(struct nfp_app *app,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-			struct tc_cls_flower_offload *flow,
+			compat__flow_cls_offload *flow,
 			const struct flow_action_entry *act, int act_idx)
 #else
 			const struct tc_action *act)
@@ -720,12 +720,12 @@ struct nfp_flower_pedit_acts {
 };
 
 static int
-nfp_fl_commit_mangle(struct tc_cls_flower_offload *flow, char *nfp_action,
+nfp_fl_commit_mangle(compat__flow_cls_offload *flow, char *nfp_action,
 		     int *a_len, struct nfp_flower_pedit_acts *set_act,
 		     u32 *csum_updated)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-	struct flow_rule *rule = tc_cls_flower_offload_flow_rule(flow);
+	struct flow_rule *rule = compat__flow_cls_offload_flow_rule(flow);
 #endif
 	size_t act_size = 0;
 	u8 ip_proto = 0;
@@ -836,7 +836,7 @@ nfp_fl_commit_mangle(struct tc_cls_flower_offload *flow, char *nfp_action,
 static int
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 nfp_fl_pedit(const struct flow_action_entry *act,
-	     struct tc_cls_flower_offload *flow, char *nfp_action, int *a_len,
+	     compat__flow_cls_offload *flow, char *nfp_action, int *a_len,
 	     u32 *csum_updated, struct nfp_flower_pedit_acts *set_act,
 	     struct netlink_ext_ack *extack)
 {
@@ -971,7 +971,7 @@ nfp_flower_output_action(struct nfp_app *app, const struct tc_action *act,
 static int
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 nfp_flower_loop_action(struct nfp_app *app, const struct flow_action_entry *act,
-		       struct tc_cls_flower_offload *flow,
+		       compat__flow_cls_offload *flow,
 		       struct nfp_fl_payload *nfp_fl, int *a_len,
 		       struct net_device *netdev,
 		       enum nfp_flower_tun_type *tun_type, int *tun_out_cnt,
@@ -1152,7 +1152,7 @@ static bool nfp_fl_check_mangle_end(struct flow_action *flow_act,
 }
 #endif
 int nfp_flower_compile_action(struct nfp_app *app,
-			      struct tc_cls_flower_offload *flow,
+			      compat__flow_cls_offload *flow,
 			      struct net_device *netdev,
 			      struct nfp_fl_payload *nfp_flow,
 			      struct netlink_ext_ack *extack)
