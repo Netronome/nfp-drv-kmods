@@ -1223,4 +1223,12 @@ nfp_flower_stats_rlim_reply(struct nfp_app *app, struct sk_buff *skb)
 {
 }
 #endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0)
+enum {
+	FLOW_ACTION_REDIRECT_INGRESS = 0xfe,
+	FLOW_ACTION_MIRRED_INGRESS = 0xff,
+};
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0) */
+
 #endif /* _NFP_NET_COMPAT_H_ */

@@ -698,6 +698,7 @@ nfp_flower_allocate_new(struct nfp_fl_key_ls *key_layer)
 #endif
 	INIT_LIST_HEAD(&flow_pay->linked_flows);
 	flow_pay->in_hw = false;
+	flow_pay->pre_tun_rule.dev = NULL;
 
 	return flow_pay;
 
@@ -1212,6 +1213,24 @@ err_destroy_merge_flow:
 }
 
 /**
+ * nfp_flower_validate_pre_tun_rule()
+ * @app:	Pointer to the APP handle
+ * @flow:	Pointer to NFP flow representation of rule
+ * @extack:	Netlink extended ACK report
+ *
+ * Verifies the flow as a pre-tunnel rule.
+ *
+ * Return: negative value on error, 0 if verified.
+ */
+static int
+nfp_flower_validate_pre_tun_rule(struct nfp_app *app,
+				 struct nfp_fl_payload *flow,
+				 struct netlink_ext_ack *extack)
+{
+	return -EOPNOTSUPP;
+}
+
+/**
  * nfp_flower_add_offload() - Adds a new flow to hardware.
  * @app:	Pointer to the APP handle
  * @netdev:	netdev structure.
@@ -1299,6 +1318,12 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 	err = nfp_flower_compile_action(app, flow, netdev, flow_pay, extack);
 	if (err)
 		goto err_destroy_flow;
+
+	if (flow_pay->pre_tun_rule.dev) {
+		err = nfp_flower_validate_pre_tun_rule(app, flow_pay, extack);
+		if (err)
+			goto err_destroy_flow;
+	}
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	err = nfp_compile_flow_metadata(app, flow, flow_pay,
