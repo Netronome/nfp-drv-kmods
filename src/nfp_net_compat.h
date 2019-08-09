@@ -1229,6 +1229,20 @@ enum {
 	FLOW_ACTION_REDIRECT_INGRESS = 0xfe,
 	FLOW_ACTION_MIRRED_INGRESS = 0xff,
 };
+
+static inline int
+__flow_indr_block_cb_register(struct net_device *dev, void *cb_priv,
+			      tc_indr_block_bind_cb_t *cb, void *cb_ident)
+{
+	return __tc_indr_block_cb_register(dev, cb_priv, cb, cb_ident);
+}
+
+static inline void
+__flow_indr_block_cb_unregister(struct net_device *dev,
+				tc_indr_block_bind_cb_t *cb, void *cb_ident)
+{
+	__tc_indr_block_cb_unregister(dev, cb, cb_ident);
+}
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0) */
 
 #endif /* _NFP_NET_COMPAT_H_ */
