@@ -1230,6 +1230,7 @@ enum {
 	FLOW_ACTION_MIRRED_INGRESS = 0xff,
 };
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
 static inline int
 __flow_indr_block_cb_register(struct net_device *dev, void *cb_priv,
 			      tc_indr_block_bind_cb_t *cb, void *cb_ident)
@@ -1243,6 +1244,7 @@ __flow_indr_block_cb_unregister(struct net_device *dev,
 {
 	__tc_indr_block_cb_unregister(dev, cb, cb_ident);
 }
+#endif
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0) */
 
 #endif /* _NFP_NET_COMPAT_H_ */
