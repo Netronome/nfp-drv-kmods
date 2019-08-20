@@ -1819,7 +1819,7 @@ static int nfp_flower_setup_tc_block_cb(enum tc_setup_type type,
 	}
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
 static LIST_HEAD(nfp_block_cb_list);
 #endif
 
@@ -1997,6 +1997,13 @@ nfp_flower_setup_indr_tc_block(struct net_device *netdev, struct nfp_app *app,
 
 	switch (f->command) {
 	case FLOW_BLOCK_BIND:
+		cb_priv = nfp_flower_indr_block_cb_priv_lookup(app, netdev);
+		if (cb_priv &&
+		    flow_block_cb_is_busy(nfp_flower_setup_indr_block_cb,
+					  cb_priv,
+					  &nfp_block_cb_list))
+			return -EBUSY;
+
 		cb_priv = kmalloc(sizeof(*cb_priv), GFP_KERNEL);
 		if (!cb_priv)
 			return -ENOMEM;

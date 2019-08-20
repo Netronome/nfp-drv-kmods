@@ -1189,6 +1189,13 @@ int compat__flow_block_cb_setup_simple(struct tc_block_offload *f,
 				       struct list_head *driver_list,
 				       tc_setup_cb_t *nfp_cb, void *cb_ident,
 				       void *cb_priv, bool ingress_only);
+
+static inline bool
+flow_block_cb_is_busy(tc_setup_cb_t *cb, void *cb_ident,
+		      struct list_head *driver_block_list)
+{
+	return false;
+}
 #else
 static inline int
 compat__flow_block_cb_setup_simple(struct flow_block_offload *f,
