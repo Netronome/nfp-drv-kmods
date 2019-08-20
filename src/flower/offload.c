@@ -1854,6 +1854,10 @@ static int nfp_flower_setup_tc_block(struct net_device *netdev,
 					     nfp_flower_setup_tc_block_cb,
 					     repr, repr, f->extack);
 #else
+		if (flow_block_cb_is_busy(nfp_flower_setup_tc_block_cb, repr,
+					  &nfp_block_cb_list))
+			return -EBUSY;
+
 		block_cb = flow_block_cb_alloc(nfp_flower_setup_tc_block_cb,
 					       repr, repr, NULL);
 		if (IS_ERR(block_cb))
