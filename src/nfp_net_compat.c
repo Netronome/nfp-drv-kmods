@@ -13,6 +13,42 @@
 #include "nfp_main.h"
 #include "nfp_port.h"
 
+#ifndef CONFIG_NFP_NET_PF
+int nfp_net_pci_probe(struct nfp_pf *pf)
+{
+	return -ENODEV;
+}
+
+void nfp_net_pci_remove(struct nfp_pf *pf)
+{
+}
+
+int nfp_net_refresh_eth_port(struct nfp_port *port)
+{
+	return -ENODEV;
+}
+
+void nfp_net_refresh_port_table(struct nfp_port *port)
+{
+}
+#endif
+
+#ifndef COMPAT__HAVE_METADATA_IP_TUNNEL
+void nfp_repr_inc_rx_stats(struct net_device *netdev, unsigned int len)
+{
+}
+
+void nfp_repr_transfer_features(struct net_device *netdev,
+				struct net_device *lower)
+{
+}
+
+int nfp_reprs_resync_phys_ports(struct nfp_app *app)
+{
+	return 0;
+}
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
 int compat__nfp_net_flash_device(struct net_device *netdev,
 				 struct ethtool_flash *flash)
@@ -70,6 +106,25 @@ int compat__flow_block_cb_setup_simple(struct tc_block_offload *f,
 }
 #endif
 
+#if !COMPAT__HAS_DEVLINK
+int nfp_devlink_port_register(struct nfp_app *app, struct nfp_port *port)
+{
+	return 0;
+}
+
+void nfp_devlink_port_unregister(struct nfp_port *port)
+{
+}
+
+void nfp_devlink_port_type_eth_set(struct nfp_port *port)
+{
+}
+
+void nfp_devlink_port_type_clear(struct nfp_port *port)
+{
+}
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
 static int
 nfp_port_attr_get(struct net_device *netdev, struct switchdev_attr *attr)
@@ -98,4 +153,15 @@ nfp_port_attr_get(struct net_device *netdev, struct switchdev_attr *attr)
 const struct switchdev_ops nfp_port_switchdev_ops = {
 	.switchdev_port_attr_get	= nfp_port_attr_get,
 };
+#endif
+
+#if !COMPAT__HAS_DEVLINK_SB
+int nfp_shared_buf_register(struct nfp_pf *pf)
+{
+	return 0;
+}
+
+void nfp_shared_buf_unregister(struct nfp_pf *pf)
+{
+}
 #endif

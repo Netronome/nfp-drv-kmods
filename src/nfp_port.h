@@ -135,45 +135,14 @@ void nfp_port_free(struct nfp_port *port);
 int nfp_port_init_phy_port(struct nfp_pf *pf, struct nfp_app *app,
 			   struct nfp_port *port, unsigned int id);
 
-#ifdef CONFIG_NFP_NET_PF
 int nfp_net_refresh_eth_port(struct nfp_port *port);
 void nfp_net_refresh_port_table(struct nfp_port *port);
 int nfp_net_refresh_port_table_sync(struct nfp_pf *pf);
-#else
-static inline int nfp_net_refresh_eth_port(struct nfp_port *port)
-{
-	return -ENODEV;
-}
 
-static inline void nfp_net_refresh_port_table(struct nfp_port *port)
-{
-}
-#endif
-
-#if COMPAT__HAS_DEVLINK
 int nfp_devlink_port_register(struct nfp_app *app, struct nfp_port *port);
 void nfp_devlink_port_unregister(struct nfp_port *port);
 void nfp_devlink_port_type_eth_set(struct nfp_port *port);
 void nfp_devlink_port_type_clear(struct nfp_port *port);
-#else
-static inline int
-nfp_devlink_port_register(struct nfp_app *app, struct nfp_port *port)
-{
-	return 0;
-}
-
-static inline void nfp_devlink_port_unregister(struct nfp_port *port)
-{
-}
-
-static inline void nfp_devlink_port_type_eth_set(struct nfp_port *port)
-{
-}
-
-static inline void nfp_devlink_port_type_clear(struct nfp_port *port)
-{
-}
-#endif
 
 /**
  * Mac stats (0x0000 - 0x0200)

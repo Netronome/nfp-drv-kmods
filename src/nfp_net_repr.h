@@ -91,6 +91,12 @@ static inline int nfp_repr_get_port_id(struct net_device *netdev)
 
 	return priv->dst->u.port_info.port_id;
 }
+#else
+static inline bool nfp_netdev_is_nfp_repr(struct net_device *netdev)
+{
+	return false;
+}
+#endif
 
 struct net_device *
 nfp_repr_get_locked(struct nfp_app *app, struct nfp_reprs *set,
@@ -116,24 +122,5 @@ static inline struct net_device *nfp_repr_alloc(struct nfp_app *app)
 {
 	return nfp_repr_alloc_mqs(app, 1, 1);
 }
-#else
-static inline bool nfp_netdev_is_nfp_repr(struct net_device *netdev)
-{
-	return false;
-}
-
-static inline void
-nfp_repr_inc_rx_stats(struct net_device *netdev, unsigned int len) {}
-
-static inline void
-nfp_repr_transfer_features(struct net_device *netdev, struct net_device *lower)
-{
-}
-
-static inline int nfp_reprs_resync_phys_ports(struct nfp_app *app)
-{
-	return 0;
-}
-#endif
 
 #endif /* NFP_NET_REPR_H */

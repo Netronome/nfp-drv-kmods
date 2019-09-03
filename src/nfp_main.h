@@ -9,7 +9,7 @@
 #ifndef NFP_MAIN_H
 #define NFP_MAIN_H
 
-#include "nfpcore/kcompat.h"
+#include "nfp_net_compat.h"
 
 #include <linux/ethtool.h>
 #include <linux/list.h>
@@ -163,19 +163,8 @@ extern struct pci_driver nfp_netvf_pci_driver;
 
 extern const struct devlink_ops nfp_devlink_ops;
 
-#ifdef CONFIG_NFP_NET_PF
 int nfp_net_pci_probe(struct nfp_pf *pf);
 void nfp_net_pci_remove(struct nfp_pf *pf);
-#else
-static inline int nfp_net_pci_probe(struct nfp_pf *pf)
-{
-	return -ENODEV;
-}
-
-static inline void nfp_net_pci_remove(struct nfp_pf *pf)
-{
-}
-#endif
 
 int nfp_hwmon_register(struct nfp_pf *pf);
 void nfp_hwmon_unregister(struct nfp_pf *pf);
@@ -226,7 +215,6 @@ s64 nfp_net_dump_calculate_size(struct nfp_pf *pf, struct nfp_dumpspec *spec,
 int nfp_net_dump_populate_buffer(struct nfp_pf *pf, struct nfp_dumpspec *spec,
 				 struct ethtool_dump *dump_param, void *dest);
 
-#if COMPAT__HAS_DEVLINK_SB
 int nfp_shared_buf_register(struct nfp_pf *pf);
 void nfp_shared_buf_unregister(struct nfp_pf *pf);
 int nfp_shared_buf_pool_get(struct nfp_pf *pf, unsigned int sb, u16 pool_index,
@@ -234,14 +222,4 @@ int nfp_shared_buf_pool_get(struct nfp_pf *pf, unsigned int sb, u16 pool_index,
 int nfp_shared_buf_pool_set(struct nfp_pf *pf, unsigned int sb,
 			    u16 pool_index, u32 size,
 			    enum devlink_sb_threshold_type threshold_type);
-#else
-static inline int nfp_shared_buf_register(struct nfp_pf *pf)
-{
-	return 0;
-}
-
-static inline void nfp_shared_buf_unregister(struct nfp_pf *pf)
-{
-}
-#endif
 #endif /* NFP_MAIN_H */

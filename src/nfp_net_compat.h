@@ -608,6 +608,15 @@ static inline void napi_consume_skb(struct sk_buff *skb, int budget)
 }
 #endif
 
+#if !COMPAT__HAS_DEVLINK_SB
+struct devlink_sb_pool_info;
+
+enum devlink_sb_threshold_type {
+	DEVLINK_SB_THRESHOLD_TYPE_STATIC,
+	DEVLINK_SB_THRESHOLD_TYPE_DYNAMIC,
+};
+#endif
+
 #if VER_NON_RHEL_LT(4, 8) || VER_RHEL_LT(7, 5)
 static inline void trace_devlink_hwmsg(void *devlink,
 				       bool incoming, unsigned long type,
