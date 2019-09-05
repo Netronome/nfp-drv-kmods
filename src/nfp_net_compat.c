@@ -165,3 +165,14 @@ void nfp_shared_buf_unregister(struct nfp_pf *pf)
 {
 }
 #endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0)
+int nfp_devlink_params_register(struct nfp_pf *pf)
+{
+	return 0;
+}
+
+void nfp_devlink_params_unregister(struct nfp_pf *pf)
+{
+}
+#endif

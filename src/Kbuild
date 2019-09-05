@@ -145,6 +145,10 @@ KERNEL_GE_5_3 := \
 	$(shell [ $(VERSION) -gt 5 -o \
 	\( $(VERSION) -eq 5 -a $(PATCHLEVEL) -ge 3 \) ] && echo y)
 
+KERNEL_GE_5_4 := \
+	$(shell grep -qr DEVLINK_PARAM_GENERIC_RESET_DEV_ON_DRV_PROBE_NAME \
+		$(srctree)/include/net/devlink.h 2>/dev/null && echo y)
+
 ifeq ($(KERNEL_GE_4_9),y)
   nfp-objs += nfp_hwmon.o
 else
@@ -193,6 +197,11 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
     ifneq (,$(filter y,$(KERNEL_GE_4_6) $(RHEL_GE_7_4)))
       nfp-objs += \
 	       nfp_devlink.o
+    endif
+
+    ifeq ($(KERNEL_GE_5_4),y)
+      nfp-objs += \
+	       devlink_param.o
     endif
 
     ifneq (,$(filter y,$(KERNEL_GE_4_7) $(RHEL_GE_7_4)))
