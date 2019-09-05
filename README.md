@@ -64,8 +64,12 @@ kernel sources.  To override the detected location, set `KSRC`:
 # Acquiring Firmware
 
 The NFP4000 and NFP6000 devices require application specific firmware
-to function.  Firmware files contain card type (`AMDA-*` string), media
-config etc.  They should be placed in `/lib/firmware/netronome` directory.
+to function.  Application firmware can be located either on the host file system
+or in the device flash (if supported by management firmware).
+
+Firmware files on the host filesystem contain card type (`AMDA-*` string), media
+config etc.  They should be placed in `/lib/firmware/netronome` directory to
+load firmware from the host file system.
 
 Firmware for basic NIC operation is available in the upstream
 `linux-firmware.git` repository, and if your distribution kernel is `4.11`
@@ -73,10 +77,25 @@ or newer you will most likely have it on your system already.  For
 more application specific firmware files please contact
 support@netronome.com.
 
+## Firmware in NVRAM
+
+Recent versions of management firmware supports loading application
+firmware from flash when the host driver gets probed.  The firmware loading
+policy configuration may be used to configure this feature appropriately.
+
+Devlink or ethtool can be used to update the application firmware on the device
+flash by providing the appropriate `nic_AMDA*.nffw` file to the respective
+command.  Users need to take care to write the correct firmware image for the
+card and media configuration to flash.
+
+Available storage space in flash depends on the card being used.
+
 ## Dealing with multiple projects
 
 NFP hardware is fully programmable therefore there can be different
-firmware images targeting different applications.  We recommend placing
+firmware images targeting different applications.  
+
+When using application firmware from host, we recommend placing
 actual firmware files in application-named subdirectories in
 `/lib/firmware/netronome` and linking the desired files, e.g.:
 ```
