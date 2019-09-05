@@ -23,7 +23,9 @@ Compared to upstream drivers this repository contains:
  - optional low-level user space ABI for accessing card internals.
 
 For more information, please visit: http://www.netronome.com or
-http://open-nfp.org/.
+http://open-nfp.org/. Additional driver documentation is also available
+in tree at /Documentation/networking/device_drivers/netronome/nfp.rst from
+the Linux kernel `5.4` release.
 
 If questions arise or an issue is identified related the released
 driver code, please contact either your local Netronome contact or
