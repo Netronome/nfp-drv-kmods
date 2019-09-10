@@ -146,8 +146,8 @@ KERNEL_GE_5_3 := \
 	\( $(VERSION) -eq 5 -a $(PATCHLEVEL) -ge 3 \) ] && echo y)
 
 KERNEL_GE_5_4 := \
-	$(shell grep -qr DEVLINK_PARAM_GENERIC_RESET_DEV_ON_DRV_PROBE_NAME \
-		$(srctree)/include/net/devlink.h 2>/dev/null && echo y)
+	$(shell grep -qr DEVLINK_PARAM_FW_LOAD_POLICY_VALUE_UNKNOWN \
+		$(srctree)/include/uapi/linux/devlink.h 2>/dev/null && echo y)
 
 ifeq ($(KERNEL_GE_4_9),y)
   nfp-objs += nfp_hwmon.o
