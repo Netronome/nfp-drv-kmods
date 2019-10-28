@@ -42,10 +42,9 @@
 #endif
 
 /* Redefine LINUX_VERSION_CODE for *-next kernels */
-#include <linux/if_bridge.h>
-#ifdef MDB_FLAGS_FAST_LEAVE
+#ifdef SPEED_400000
 #undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(5, 4, 0)
+#define LINUX_VERSION_CODE KERNEL_VERSION(5, 5, 0)
 #endif
 
 #if (defined(COMPAT__HAVE_METADATA_IP_TUNNEL) ||	\
