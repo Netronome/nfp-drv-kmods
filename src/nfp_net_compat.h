@@ -40,6 +40,9 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
 #include <net/switchdev.h>
 #endif
+#ifdef COMPAT__HAVE_TLS_OFFLOAD
+#include <net/tls.h>
+#endif
 
 /* Redefine LINUX_VERSION_CODE for *-next kernels */
 #ifdef SPEED_400000
@@ -1261,5 +1264,17 @@ __flow_indr_block_cb_unregister(struct net_device *dev,
 }
 #endif
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0) */
+
+#ifdef COMPAT__HAVE_TLS_OFFLOAD
+static inline void
+compat__tls_offload_tx_resync_request(struct sock *sk, u32 got_seq, u32 exp_seq)
+{
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 5, 0)
+	tls_offload_tx_resync_request(sk);
+#else
+	tls_offload_tx_resync_request(sk, got_seq, exp_seq);
+#endif
+}
+#endif /* COMPAT__HAVE_TLS_OFFLOAD */
 
 #endif /* _NFP_NET_COMPAT_H_ */
