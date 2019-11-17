@@ -48,7 +48,7 @@ nfp_map_ptr_record(struct nfp_app_bpf *bpf, struct nfp_prog *nfp_prog,
 	/* Grab a single ref to the map for our record.  The prog destroy ndo
 	 * happens after free_used_maps().
 	 */
-	map = bpf_map_inc(map, false);
+	map = compat__bpf_map_inc(map, false);
 	if (IS_ERR(map))
 		return PTR_ERR(map);
 

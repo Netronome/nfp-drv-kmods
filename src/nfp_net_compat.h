@@ -1277,4 +1277,17 @@ compat__tls_offload_tx_resync_request(struct sock *sk, u32 got_seq, u32 exp_seq)
 }
 #endif /* COMPAT__HAVE_TLS_OFFLOAD */
 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(4, 5, 0)
+static inline struct bpf_map *
+compat__bpf_map_inc(struct bpf_map *map, bool uref)
+{
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 5, 0)
+	return bpf_map_inc(map, uref);
+#else
+	bpf_map_inc(map);
+	return map;
+#endif
+}
+#endif
+
 #endif /* _NFP_NET_COMPAT_H_ */
