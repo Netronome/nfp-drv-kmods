@@ -1322,4 +1322,8 @@ static inline bool tls_is_sk_rx_device_offloaded(struct sock *sk)
 }
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
+#define sizeof_field(TYPE, MEMBER) sizeof((((TYPE *)0)->MEMBER))
+#endif
+
 #endif /* _NFP_NET_COMPAT_H_ */
