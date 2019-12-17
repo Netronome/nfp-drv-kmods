@@ -45,9 +45,12 @@
 #endif
 
 /* Redefine LINUX_VERSION_CODE for *-next kernels */
-#ifdef SPEED_400000
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0)
+#include <net/af_vsock.h>
+#ifdef VSOCK_TRANSPORT_F_LOCAL
 #undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(5, 5, 0)
+#define LINUX_VERSION_CODE KERNEL_VERSION(5, 6, 0)
+#endif
 #endif
 
 #if (defined(COMPAT__HAVE_METADATA_IP_TUNNEL) ||	\
