@@ -1315,4 +1315,11 @@ compat__ipv6_dst_lookup_flow(struct net *net, struct sock *sk,
 }
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 6, 0)
+static inline bool tls_is_sk_rx_device_offloaded(struct sock *sk)
+{
+	return true;
+}
+#endif
+
 #endif /* _NFP_NET_COMPAT_H_ */
