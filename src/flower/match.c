@@ -11,9 +11,8 @@ static void
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 nfp_flower_compile_meta_tci(struct nfp_flower_meta_tci *ext,
 			    struct nfp_flower_meta_tci *msk,
-			    compat__flow_cls_offload *flow, u8 key_type)
+			    struct flow_rule *rule, u8 key_type)
 {
-	struct flow_rule *rule = compat__flow_cls_offload_flow_rule(flow);
 	u16 tmp_tci;
 
 	memset(ext, 0, sizeof(struct nfp_flower_meta_tci));
@@ -107,11 +106,8 @@ nfp_flower_compile_port(struct nfp_flower_in_port *frame, u32 cmsg_port,
 static void
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 nfp_flower_compile_mac(struct nfp_flower_mac_mpls *ext,
-		       struct nfp_flower_mac_mpls *msk,
-		       compat__flow_cls_offload *flow)
+		       struct nfp_flower_mac_mpls *msk, struct flow_rule *rule)
 {
-	struct flow_rule *rule = compat__flow_cls_offload_flow_rule(flow);
-
 	memset(ext, 0, sizeof(struct nfp_flower_mac_mpls));
 	memset(msk, 0, sizeof(struct nfp_flower_mac_mpls));
 
@@ -211,10 +207,8 @@ static void
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 nfp_flower_compile_tport(struct nfp_flower_tp_ports *ext,
 			 struct nfp_flower_tp_ports *msk,
-			 compat__flow_cls_offload *flow)
+			 struct flow_rule *rule)
 {
-	struct flow_rule *rule = compat__flow_cls_offload_flow_rule(flow);
-
 	memset(ext, 0, sizeof(struct nfp_flower_tp_ports));
 	memset(msk, 0, sizeof(struct nfp_flower_tp_ports));
 
@@ -251,11 +245,8 @@ nfp_flower_compile_tport(struct nfp_flower_tp_ports *frame,
 static void
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 nfp_flower_compile_ip_ext(struct nfp_flower_ip_ext *ext,
-			  struct nfp_flower_ip_ext *msk,
-			  compat__flow_cls_offload *flow)
+			  struct nfp_flower_ip_ext *msk, struct flow_rule *rule)
 {
-	struct flow_rule *rule = compat__flow_cls_offload_flow_rule(flow);
-
 	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_BASIC)) {
 		struct flow_match_basic match;
 
@@ -385,10 +376,8 @@ nfp_flower_compile_ip_ext(struct nfp_flower_ip_ext *frame,
 static void
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 nfp_flower_compile_ipv4(struct nfp_flower_ipv4 *ext,
-			struct nfp_flower_ipv4 *msk,
-			compat__flow_cls_offload *flow)
+			struct nfp_flower_ipv4 *msk, struct flow_rule *rule)
 {
-	struct flow_rule *rule = compat__flow_cls_offload_flow_rule(flow);
 	struct flow_match_ipv4_addrs match;
 
 	memset(ext, 0, sizeof(struct nfp_flower_ipv4));
@@ -402,7 +391,7 @@ nfp_flower_compile_ipv4(struct nfp_flower_ipv4 *ext,
 		msk->ipv4_dst = match.mask->dst;
 	}
 
-	nfp_flower_compile_ip_ext(&ext->ip_ext, &msk->ip_ext, flow);
+	nfp_flower_compile_ip_ext(&ext->ip_ext, &msk->ip_ext, rule);
 }
 #else
 nfp_flower_compile_ipv4(struct nfp_flower_ipv4 *frame,
@@ -430,11 +419,8 @@ nfp_flower_compile_ipv4(struct nfp_flower_ipv4 *frame,
 static void
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 nfp_flower_compile_ipv6(struct nfp_flower_ipv6 *ext,
-			struct nfp_flower_ipv6 *msk,
-			compat__flow_cls_offload *flow)
+			struct nfp_flower_ipv6 *msk, struct flow_rule *rule)
 {
-	struct flow_rule *rule = compat__flow_cls_offload_flow_rule(flow);
-
 	memset(ext, 0, sizeof(struct nfp_flower_ipv6));
 	memset(msk, 0, sizeof(struct nfp_flower_ipv6));
 
@@ -448,7 +434,7 @@ nfp_flower_compile_ipv6(struct nfp_flower_ipv6 *ext,
 		msk->ipv6_dst = match.mask->dst;
 	}
 
-	nfp_flower_compile_ip_ext(&ext->ip_ext, &msk->ip_ext, flow);
+	nfp_flower_compile_ip_ext(&ext->ip_ext, &msk->ip_ext, rule);
 }
 #else
 nfp_flower_compile_ipv6(struct nfp_flower_ipv6 *frame,
@@ -475,12 +461,11 @@ nfp_flower_compile_ipv6(struct nfp_flower_ipv6 *frame,
 
 static int
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-nfp_flower_compile_geneve_opt(void *ext, void *msk,
-			      compat__flow_cls_offload *flow)
+nfp_flower_compile_geneve_opt(void *ext, void *msk, struct flow_rule *rule)
 {
 	struct flow_match_enc_opts match;
 
-	flow_rule_match_enc_opts(flow->rule, &match);
+	flow_rule_match_enc_opts(rule, &match);
 	memcpy(ext, match.key->data, match.key->len);
 	memcpy(msk, match.mask->data, match.mask->len);
 
@@ -506,10 +491,8 @@ nfp_flower_compile_geneve_opt(void *key_buf, struct tc_cls_flower_offload *flow,
 static void
 nfp_flower_compile_tun_ipv4_addrs(struct nfp_flower_tun_ipv4 *ext,
 				  struct nfp_flower_tun_ipv4 *msk,
-				  compat__flow_cls_offload *flow)
+				  struct flow_rule *rule)
 {
-	struct flow_rule *rule = compat__flow_cls_offload_flow_rule(flow);
-
 	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_ENC_IPV4_ADDRS)) {
 		struct flow_match_ipv4_addrs match;
 
@@ -524,10 +507,8 @@ nfp_flower_compile_tun_ipv4_addrs(struct nfp_flower_tun_ipv4 *ext,
 static void
 nfp_flower_compile_tun_ip_ext(struct nfp_flower_tun_ip_ext *ext,
 			      struct nfp_flower_tun_ip_ext *msk,
-			      compat__flow_cls_offload *flow)
+			      struct flow_rule *rule)
 {
-	struct flow_rule *rule = compat__flow_cls_offload_flow_rule(flow);
-
 	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_ENC_IP)) {
 		struct flow_match_ip match;
 
@@ -544,10 +525,8 @@ nfp_flower_compile_tun_ip_ext(struct nfp_flower_tun_ip_ext *ext,
 static void
 nfp_flower_compile_ipv4_gre_tun(struct nfp_flower_ipv4_gre_tun *ext,
 				struct nfp_flower_ipv4_gre_tun *msk,
-				compat__flow_cls_offload *flow)
+				struct flow_rule *rule)
 {
-	struct flow_rule *rule = compat__flow_cls_offload_flow_rule(flow);
-
 	memset(ext, 0, sizeof(struct nfp_flower_ipv4_gre_tun));
 	memset(msk, 0, sizeof(struct nfp_flower_ipv4_gre_tun));
 
@@ -566,8 +545,8 @@ nfp_flower_compile_ipv4_gre_tun(struct nfp_flower_ipv4_gre_tun *ext,
 		msk->tun_flags = cpu_to_be16(NFP_FL_GRE_FLAG_KEY);
 	}
 
-	nfp_flower_compile_tun_ipv4_addrs(&ext->ipv4, &msk->ipv4, flow);
-	nfp_flower_compile_tun_ip_ext(&ext->ip_ext, &msk->ip_ext, flow);
+	nfp_flower_compile_tun_ipv4_addrs(&ext->ipv4, &msk->ipv4, rule);
+	nfp_flower_compile_tun_ip_ext(&ext->ip_ext, &msk->ip_ext, rule);
 }
 #endif
 
@@ -575,10 +554,8 @@ static void
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 nfp_flower_compile_ipv4_udp_tun(struct nfp_flower_ipv4_udp_tun *ext,
 				struct nfp_flower_ipv4_udp_tun *msk,
-				compat__flow_cls_offload *flow)
+				struct flow_rule *rule)
 {
-	struct flow_rule *rule = compat__flow_cls_offload_flow_rule(flow);
-
 	memset(ext, 0, sizeof(struct nfp_flower_ipv4_udp_tun));
 	memset(msk, 0, sizeof(struct nfp_flower_ipv4_udp_tun));
 
@@ -593,8 +570,8 @@ nfp_flower_compile_ipv4_udp_tun(struct nfp_flower_ipv4_udp_tun *ext,
 		msk->tun_id = cpu_to_be32(temp_vni);
 	}
 
-	nfp_flower_compile_tun_ipv4_addrs(&ext->ipv4, &msk->ipv4, flow);
-	nfp_flower_compile_tun_ip_ext(&ext->ip_ext, &msk->ip_ext, flow);
+	nfp_flower_compile_tun_ipv4_addrs(&ext->ipv4, &msk->ipv4, rule);
+	nfp_flower_compile_tun_ip_ext(&ext->ip_ext, &msk->ip_ext, rule);
 
 }
 #else
@@ -648,6 +625,9 @@ int nfp_flower_compile_flow_match(struct nfp_app *app,
 				  enum nfp_flower_tun_type tun_type,
 				  struct netlink_ext_ack *extack)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+	struct flow_rule *rule = compat__flow_cls_offload_flow_rule(flow);
+#endif
 	u32 port_id;
 	int err;
 	u8 *ext;
@@ -664,7 +644,7 @@ int nfp_flower_compile_flow_match(struct nfp_app *app,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 	nfp_flower_compile_meta_tci((struct nfp_flower_meta_tci *)ext,
 				    (struct nfp_flower_meta_tci *)msk,
-				    flow, key_ls->key_layer);
+				    rule, key_ls->key_layer);
 #else
 	/* Populate Exact Metadata. */
 	nfp_flower_compile_meta_tci((struct nfp_flower_meta_tci *)ext,
@@ -705,7 +685,7 @@ int nfp_flower_compile_flow_match(struct nfp_app *app,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 		nfp_flower_compile_mac((struct nfp_flower_mac_mpls *)ext,
 				       (struct nfp_flower_mac_mpls *)msk,
-				       flow);
+				       rule);
 #else
 		/* Populate Exact MAC Data. */
 		nfp_flower_compile_mac((struct nfp_flower_mac_mpls *)ext,
@@ -722,7 +702,7 @@ int nfp_flower_compile_flow_match(struct nfp_app *app,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 		nfp_flower_compile_tport((struct nfp_flower_tp_ports *)ext,
 					 (struct nfp_flower_tp_ports *)msk,
-					 flow);
+					 rule);
 #else
 		/* Populate Exact TP Data. */
 		nfp_flower_compile_tport((struct nfp_flower_tp_ports *)ext,
@@ -739,7 +719,7 @@ int nfp_flower_compile_flow_match(struct nfp_app *app,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 		nfp_flower_compile_ipv4((struct nfp_flower_ipv4 *)ext,
 					(struct nfp_flower_ipv4 *)msk,
-					flow);
+					rule);
 #else
 		/* Populate Exact IPv4 Data. */
 		nfp_flower_compile_ipv4((struct nfp_flower_ipv4 *)ext,
@@ -756,7 +736,7 @@ int nfp_flower_compile_flow_match(struct nfp_app *app,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 		nfp_flower_compile_ipv6((struct nfp_flower_ipv6 *)ext,
 					(struct nfp_flower_ipv6 *)msk,
-					flow);
+					rule);
 #else
 		/* Populate Exact IPv4 Data. */
 		nfp_flower_compile_ipv6((struct nfp_flower_ipv6 *)ext,
@@ -773,7 +753,7 @@ int nfp_flower_compile_flow_match(struct nfp_app *app,
 	if (key_ls->key_layer_two & NFP_FLOWER_LAYER2_GRE) {
 		__be32 tun_dst;
 
-		nfp_flower_compile_ipv4_gre_tun((void *)ext, (void *)msk, flow);
+		nfp_flower_compile_ipv4_gre_tun((void *)ext, (void *)msk, rule);
 		tun_dst = ((struct nfp_flower_ipv4_gre_tun *)ext)->ipv4.dst;
 		ext += sizeof(struct nfp_flower_ipv4_gre_tun);
 		msk += sizeof(struct nfp_flower_ipv4_gre_tun);
@@ -791,7 +771,7 @@ int nfp_flower_compile_flow_match(struct nfp_app *app,
 		__be32 tun_dst;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-		nfp_flower_compile_ipv4_udp_tun((void *)ext, (void *)msk, flow);
+		nfp_flower_compile_ipv4_udp_tun((void *)ext, (void *)msk, rule);
 #else
 		/* Populate Exact VXLAN Data. */
 		nfp_flower_compile_ipv4_udp_tun((void *)ext, flow, false);
@@ -810,7 +790,7 @@ int nfp_flower_compile_flow_match(struct nfp_app *app,
 
 		if (key_ls->key_layer_two & NFP_FLOWER_LAYER2_GENEVE_OP) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-			err = nfp_flower_compile_geneve_opt(ext, msk, flow);
+			err = nfp_flower_compile_geneve_opt(ext, msk, rule);
 #else
 			err = nfp_flower_compile_geneve_opt(ext, flow, false);
 			if (err)
