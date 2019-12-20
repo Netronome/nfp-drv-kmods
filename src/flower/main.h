@@ -429,6 +429,7 @@ nfp_tunnel_add_ipv6_off(struct nfp_app *app, struct in6_addr *ipv6);
 void nfp_tunnel_request_route_v4(struct nfp_app *app, struct sk_buff *skb);
 void nfp_tunnel_request_route_v6(struct nfp_app *app, struct sk_buff *skb);
 void nfp_tunnel_keep_alive(struct nfp_app *app, struct sk_buff *skb);
+void nfp_tunnel_keep_alive_v6(struct nfp_app *app, struct sk_buff *skb);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 int nfp_flower_setup_tc_egress_cb(enum tc_setup_type type, void *type_data,
 				  void *cb_priv);
