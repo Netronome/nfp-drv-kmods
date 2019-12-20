@@ -33,6 +33,7 @@
 #include <linux/udp.h>
 
 #include <net/act_api.h>
+#include <net/addrconf.h>
 #include <net/pkt_cls.h>
 #if COMPAT__HAS_DEVLINK
 #include <net/devlink.h>
@@ -1289,6 +1290,27 @@ compat__bpf_map_inc(struct bpf_map *map, bool uref)
 #else
 	bpf_map_inc(map);
 	return map;
+#endif
+}
+#endif
+
+#if defined(CONFIG_INET) && defined(CONFIG_IPV6)
+static inline struct dst_entry *
+compat__ipv6_dst_lookup_flow(struct net *net, struct sock *sk,
+			     struct flowi6 *fl6,
+			     const struct in6_addr *final_dst)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0)
+	return ipv6_stub->ipv6_dst_lookup_flow(net, sk, fl6, final_dst);
+#else
+	struct dst_entry *dst;
+	int err;
+
+	err = ipv6_stub->ipv6_dst_lookup(net, sk, &dst, fl6);
+	if (err)
+		return ERR_PTR(err);
+
+	return dst;
 #endif
 }
 #endif
