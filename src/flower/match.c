@@ -505,6 +505,22 @@ nfp_flower_compile_tun_ipv4_addrs(struct nfp_flower_tun_ipv4 *ext,
 }
 
 static void
+nfp_flower_compile_tun_ipv6_addrs(struct nfp_flower_tun_ipv6 *ext,
+				  struct nfp_flower_tun_ipv6 *msk,
+				  struct flow_rule *rule)
+{
+	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_ENC_IPV6_ADDRS)) {
+		struct flow_match_ipv6_addrs match;
+
+		flow_rule_match_enc_ipv6_addrs(rule, &match);
+		ext->src = match.key->src;
+		ext->dst = match.key->dst;
+		msk->src = match.mask->src;
+		msk->dst = match.mask->dst;
+	}
+}
+
+static void
 nfp_flower_compile_tun_ip_ext(struct nfp_flower_tun_ip_ext *ext,
 			      struct nfp_flower_tun_ip_ext *msk,
 			      struct flow_rule *rule)
@@ -626,6 +642,39 @@ nfp_flower_compile_ipv4_udp_tun(struct nfp_flower_ipv4_udp_tun *frame,
 		frame->ip_ext.tos = ip->tos;
 		frame->ip_ext.ttl = ip->ttl;
 	}
+}
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+static void
+nfp_flower_compile_ipv6_udp_tun(struct nfp_flower_ipv6_udp_tun *ext,
+				struct nfp_flower_ipv6_udp_tun *msk,
+				struct flow_rule *rule)
+{
+	memset(ext, 0, sizeof(struct nfp_flower_ipv6_udp_tun));
+	memset(msk, 0, sizeof(struct nfp_flower_ipv6_udp_tun));
+
+	nfp_flower_compile_tun_ipv6_addrs(&ext->ipv6, &msk->ipv6, rule);
+	nfp_flower_compile_tun_ip_ext(&ext->ip_ext, &msk->ip_ext, rule);
+	nfp_flower_compile_tun_udp_key(&ext->tun_id, &msk->tun_id, rule);
+}
+
+static void
+nfp_flower_compile_ipv6_gre_tun(struct nfp_flower_ipv6_gre_tun *ext,
+				struct nfp_flower_ipv6_gre_tun *msk,
+				struct flow_rule *rule)
+{
+	memset(ext, 0, sizeof(struct nfp_flower_ipv6_gre_tun));
+	memset(msk, 0, sizeof(struct nfp_flower_ipv6_gre_tun));
+
+	/* NVGRE is the only supported GRE tunnel type */
+	ext->ethertype = cpu_to_be16(ETH_P_TEB);
+	msk->ethertype = cpu_to_be16(~0);
+
+	nfp_flower_compile_tun_ipv6_addrs(&ext->ipv6, &msk->ipv6, rule);
+	nfp_flower_compile_tun_ip_ext(&ext->ip_ext, &msk->ip_ext, rule);
+	nfp_flower_compile_tun_gre_key(&ext->tun_key, &msk->tun_key,
+				       &ext->tun_flags, &msk->tun_flags, rule);
 }
 #endif
 
@@ -763,42 +812,64 @@ int nfp_flower_compile_flow_match(struct nfp_app *app,
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 	if (key_ls->key_layer_two & NFP_FLOWER_LAYER2_GRE) {
-		__be32 tun_dst;
+		if (key_ls->key_layer_two & NFP_FLOWER_LAYER2_TUN_IPV6) {
+			nfp_flower_compile_ipv6_gre_tun((void *)ext,
+							(void *)msk, rule);
+			ext += sizeof(struct nfp_flower_ipv6_gre_tun);
+			msk += sizeof(struct nfp_flower_ipv6_gre_tun);
+		} else {
+			__be32 dst;
 
-		nfp_flower_compile_ipv4_gre_tun((void *)ext, (void *)msk, rule);
-		tun_dst = ((struct nfp_flower_ipv4_gre_tun *)ext)->ipv4.dst;
-		ext += sizeof(struct nfp_flower_ipv4_gre_tun);
-		msk += sizeof(struct nfp_flower_ipv4_gre_tun);
+			nfp_flower_compile_ipv4_gre_tun((void *)ext,
+							(void *)msk, rule);
+			dst = ((struct nfp_flower_ipv4_gre_tun *)ext)->ipv4.dst;
+			ext += sizeof(struct nfp_flower_ipv4_gre_tun);
+			msk += sizeof(struct nfp_flower_ipv4_gre_tun);
 
-		/* Store the tunnel destination in the rule data.
-		 * This must be present and be an exact match.
-		 */
-		nfp_flow->nfp_tun_ipv4_addr = tun_dst;
-		nfp_tunnel_add_ipv4_off(app, tun_dst);
+			/* Store the tunnel destination in the rule data.
+			 * This must be present and be an exact match.
+			 */
+			nfp_flow->nfp_tun_ipv4_addr = dst;
+			nfp_tunnel_add_ipv4_off(app, dst);
+		}
 	}
 #endif
 
 	if (key_ls->key_layer & NFP_FLOWER_LAYER_VXLAN ||
 	    key_ls->key_layer_two & NFP_FLOWER_LAYER2_GENEVE) {
-		__be32 tun_dst;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+		if (key_ls->key_layer_two & NFP_FLOWER_LAYER2_TUN_IPV6) {
+			nfp_flower_compile_ipv6_udp_tun((void *)ext,
+							(void *)msk, rule);
+			ext += sizeof(struct nfp_flower_ipv6_udp_tun);
+			msk += sizeof(struct nfp_flower_ipv6_udp_tun);
+		} else {
+#endif
+			__be32 dst;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-		nfp_flower_compile_ipv4_udp_tun((void *)ext, (void *)msk, rule);
+			nfp_flower_compile_ipv4_udp_tun((void *)ext,
+							(void *)msk, rule);
 #else
-		/* Populate Exact VXLAN Data. */
-		nfp_flower_compile_ipv4_udp_tun((void *)ext, flow, false);
-		/* Populate Mask VXLAN Data. */
-		nfp_flower_compile_ipv4_udp_tun((void *)msk, flow, true);
+			/* Populate Exact VXLAN Data. */
+			nfp_flower_compile_ipv4_udp_tun((void *)ext, flow,
+							false);
+			/* Populate Mask VXLAN Data. */
+			nfp_flower_compile_ipv4_udp_tun((void *)msk, flow,
+							true);
 #endif
-		tun_dst = ((struct nfp_flower_ipv4_udp_tun *)ext)->ipv4.dst;
-		ext += sizeof(struct nfp_flower_ipv4_udp_tun);
-		msk += sizeof(struct nfp_flower_ipv4_udp_tun);
+			dst = ((struct nfp_flower_ipv4_udp_tun *)ext)->ipv4.dst;
+			ext += sizeof(struct nfp_flower_ipv4_udp_tun);
+			msk += sizeof(struct nfp_flower_ipv4_udp_tun);
 
-		/* Store the tunnel destination in the rule data.
-		 * This must be present and be an exact match.
-		 */
-		nfp_flow->nfp_tun_ipv4_addr = tun_dst;
-		nfp_tunnel_add_ipv4_off(app, tun_dst);
+			/* Store the tunnel destination in the rule data.
+			 * This must be present and be an exact match.
+			 */
+			nfp_flow->nfp_tun_ipv4_addr = dst;
+			nfp_tunnel_add_ipv4_off(app, dst);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+		}
+#endif
 
 		if (key_ls->key_layer_two & NFP_FLOWER_LAYER2_GENEVE_OP) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)

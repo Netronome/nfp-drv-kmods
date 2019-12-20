@@ -56,6 +56,10 @@
 	(BIT(FLOW_DISSECTOR_KEY_ENC_CONTROL) | \
 	 BIT(FLOW_DISSECTOR_KEY_ENC_IPV4_ADDRS))
 
+#define NFP_FLOWER_WHITELIST_TUN_DISSECTOR_V6_R \
+	(BIT(FLOW_DISSECTOR_KEY_ENC_CONTROL) | \
+	 BIT(FLOW_DISSECTOR_KEY_ENC_IPV6_ADDRS))
+
 #define NFP_FLOWER_MERGE_FIELDS \
 	(NFP_FLOWER_LAYER_PORT | \
 	 NFP_FLOWER_LAYER_MAC | \
@@ -164,10 +168,11 @@ static bool nfp_flower_check_higher_than_l3(compat__flow_cls_offload *f)
 
 static int
 nfp_flower_calc_opt_layer(struct flow_dissector_key_enc_opts *enc_opts,
-			  u32 *key_layer_two, int *key_size,
+			  u32 *key_layer_two, int *key_size, bool ipv6,
 			  struct netlink_ext_ack *extack)
 {
-	if (enc_opts->len > NFP_FL_MAX_GENEVE_OPT_KEY) {
+	if (enc_opts->len > NFP_FL_MAX_GENEVE_OPT_KEY ||
+	    (ipv6 && enc_opts->len > NFP_FL_MAX_GENEVE_OPT_KEY_V6)) {
 		NL_SET_ERR_MSG_MOD(extack, "unsupported offload: geneve options exceed maximum length");
 		return -EOPNOTSUPP;
 	}
@@ -185,7 +190,7 @@ nfp_flower_calc_udp_tun_layer(struct flow_dissector_key_ports *enc_ports,
 			      struct flow_dissector_key_enc_opts *enc_op,
 			      u32 *key_layer_two, u8 *key_layer, int *key_size,
 			      struct nfp_flower_priv *priv,
-			      enum nfp_flower_tun_type *tun_type,
+			      enum nfp_flower_tun_type *tun_type, bool ipv6,
 			      struct netlink_ext_ack *extack)
 {
 	int err;
@@ -194,7 +199,15 @@ nfp_flower_calc_udp_tun_layer(struct flow_dissector_key_ports *enc_ports,
 	case htons(IANA_VXLAN_UDP_PORT):
 		*tun_type = NFP_FL_TUNNEL_VXLAN;
 		*key_layer |= NFP_FLOWER_LAYER_VXLAN;
-		*key_size += sizeof(struct nfp_flower_ipv4_udp_tun);
+
+		if (ipv6) {
+			*key_layer |= NFP_FLOWER_LAYER_EXT_META;
+			*key_size += sizeof(struct nfp_flower_ext_meta);
+			*key_layer_two |= NFP_FLOWER_LAYER2_TUN_IPV6;
+			*key_size += sizeof(struct nfp_flower_ipv6_udp_tun);
+		} else {
+			*key_size += sizeof(struct nfp_flower_ipv4_udp_tun);
+		}
 
 		if (enc_op) {
 			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: encap options not supported on vxlan tunnels");
@@ -210,7 +223,13 @@ nfp_flower_calc_udp_tun_layer(struct flow_dissector_key_ports *enc_ports,
 		*key_layer |= NFP_FLOWER_LAYER_EXT_META;
 		*key_size += sizeof(struct nfp_flower_ext_meta);
 		*key_layer_two |= NFP_FLOWER_LAYER2_GENEVE;
-		*key_size += sizeof(struct nfp_flower_ipv4_udp_tun);
+
+		if (ipv6) {
+			*key_layer_two |= NFP_FLOWER_LAYER2_TUN_IPV6;
+			*key_size += sizeof(struct nfp_flower_ipv6_udp_tun);
+		} else {
+			*key_size += sizeof(struct nfp_flower_ipv4_udp_tun);
+		}
 
 		if (!enc_op)
 			break;
@@ -218,8 +237,8 @@ nfp_flower_calc_udp_tun_layer(struct flow_dissector_key_ports *enc_ports,
 			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: loaded firmware does not support geneve option offload");
 			return -EOPNOTSUPP;
 		}
-		err = nfp_flower_calc_opt_layer(enc_op, key_layer_two,
-						key_size, extack);
+		err = nfp_flower_calc_opt_layer(enc_op, key_layer_two, key_size,
+						ipv6, extack);
 		if (err)
 			return err;
 		break;
@@ -268,6 +287,8 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 	/* If any tun dissector is used then the required set must be used. */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 	if (dissector->used_keys & NFP_FLOWER_WHITELIST_TUN_DISSECTOR &&
+	    (dissector->used_keys & NFP_FLOWER_WHITELIST_TUN_DISSECTOR_V6_R)
+	    != NFP_FLOWER_WHITELIST_TUN_DISSECTOR_V6_R &&
 	    (dissector->used_keys & NFP_FLOWER_WHITELIST_TUN_DISSECTOR_R)
 #else
 	if (flow->dissector->used_keys & NFP_FLOWER_WHITELIST_TUN_DISSECTOR &&
@@ -322,8 +343,10 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_ENC_CONTROL)) {
 		struct flow_match_enc_opts enc_op = { NULL, NULL };
 		struct flow_match_ipv4_addrs ipv4_addrs;
+		struct flow_match_ipv6_addrs ipv6_addrs;
 		struct flow_match_control enc_ctl;
 		struct flow_match_ports enc_ports;
+		bool ipv6_tun = false;
 
 		flow_rule_match_enc_control(rule, &enc_ctl);
 
@@ -331,16 +354,34 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: wildcarded protocols on tunnels are not supported");
 			return -EOPNOTSUPP;
 		}
-		if (enc_ctl.key->addr_type != FLOW_DISSECTOR_KEY_IPV4_ADDRS) {
-			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: only IPv4 tunnels are supported");
+
+		ipv6_tun = enc_ctl.key->addr_type ==
+				FLOW_DISSECTOR_KEY_IPV6_ADDRS;
+		if (ipv6_tun &&
+		    !(priv->flower_ext_feats & NFP_FL_FEATS_IPV6_TUN)) {
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: firmware does not support IPv6 tunnels");
 			return -EOPNOTSUPP;
 		}
 
-		/* These fields are already verified as used. */
-		flow_rule_match_enc_ipv4_addrs(rule, &ipv4_addrs);
-		if (ipv4_addrs.mask->dst != cpu_to_be32(~0)) {
-			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: only an exact match IPv4 destination address is supported");
+		if (!ipv6_tun &&
+		    enc_ctl.key->addr_type != FLOW_DISSECTOR_KEY_IPV4_ADDRS) {
+			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: tunnel address type not IPv4 or IPv6");
 			return -EOPNOTSUPP;
+		}
+
+		if (ipv6_tun) {
+			flow_rule_match_enc_ipv6_addrs(rule, &ipv6_addrs);
+			if (memchr_inv(&ipv6_addrs.mask->dst, 0xff,
+				       sizeof(ipv6_addrs.mask->dst))) {
+				NL_SET_ERR_MSG_MOD(extack, "unsupported offload: only an exact match IPv6 destination address is supported");
+				return -EOPNOTSUPP;
+			}
+		} else {
+			flow_rule_match_enc_ipv4_addrs(rule, &ipv4_addrs);
+			if (ipv4_addrs.mask->dst != cpu_to_be32(~0)) {
+				NL_SET_ERR_MSG_MOD(extack, "unsupported offload: only an exact match IPv4 destination address is supported");
+				return -EOPNOTSUPP;
+			}
 		}
 
 		if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_ENC_OPTS))
@@ -348,20 +389,27 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 
 		if (!flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_ENC_PORTS)) {
 			/* check if GRE, which has no enc_ports */
-			if (netif_is_gretap(netdev)) {
-				*tun_type = NFP_FL_TUNNEL_GRE;
-				key_layer |= NFP_FLOWER_LAYER_EXT_META;
-				key_size += sizeof(struct nfp_flower_ext_meta);
-				key_layer_two |= NFP_FLOWER_LAYER2_GRE;
-				key_size +=
-					sizeof(struct nfp_flower_ipv4_gre_tun);
-
-				if (enc_op.key) {
-					NL_SET_ERR_MSG_MOD(extack, "unsupported offload: encap options not supported on GRE tunnels");
-					return -EOPNOTSUPP;
-				}
-			} else {
+			if (!netif_is_gretap(netdev)) {
 				NL_SET_ERR_MSG_MOD(extack, "unsupported offload: an exact match on L4 destination port is required for non-GRE tunnels");
+				return -EOPNOTSUPP;
+			}
+
+			*tun_type = NFP_FL_TUNNEL_GRE;
+			key_layer |= NFP_FLOWER_LAYER_EXT_META;
+			key_size += sizeof(struct nfp_flower_ext_meta);
+			key_layer_two |= NFP_FLOWER_LAYER2_GRE;
+
+			if (ipv6_tun) {
+				key_layer_two |= NFP_FLOWER_LAYER2_TUN_IPV6;
+				key_size +=
+					sizeof(struct nfp_flower_ipv6_udp_tun);
+			} else {
+				key_size +=
+					sizeof(struct nfp_flower_ipv4_udp_tun);
+			}
+
+			if (enc_op.key) {
+				NL_SET_ERR_MSG_MOD(extack, "unsupported offload: encap options not supported on GRE tunnels");
 				return -EOPNOTSUPP;
 			}
 		} else {
@@ -376,7 +424,8 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 							    &key_layer_two,
 							    &key_layer,
 							    &key_size, priv,
-							    tun_type, extack);
+							    tun_type, ipv6_tun,
+							    extack);
 			if (err)
 				return err;
 
@@ -456,7 +505,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 		err = nfp_flower_calc_udp_tun_layer(enc_ports, enc_op,
 						    &key_layer_two, &key_layer,
 						    &key_size, priv, tun_type,
-						    extack);
+						    false, extack);
 		if (err)
 			return err;
 
