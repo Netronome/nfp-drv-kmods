@@ -1300,7 +1300,7 @@ compat__ipv6_dst_lookup_flow(struct net *net, struct sock *sk,
 			     struct flowi6 *fl6,
 			     const struct in6_addr *final_dst)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 5)
 	return ipv6_stub->ipv6_dst_lookup_flow(net, sk, fl6, final_dst);
 #else
 	struct dst_entry *dst;
