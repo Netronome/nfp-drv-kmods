@@ -791,8 +791,8 @@ static int enable_bars(struct nfp6000_pcie *nfp, u16 interface)
 	/* Configure, and lock, BAR0.0 for General Target use (MSI-X SRAM) */
 	bar = &nfp->bar[0];
 	if (nfp_bar_resource_len(bar) >= NFP_PCI_MIN_MAP_SIZE)
-		bar->iomem = ioremap_nocache(nfp_bar_resource_start(bar),
-					     nfp_bar_resource_len(bar));
+		bar->iomem = ioremap(nfp_bar_resource_start(bar),
+				     nfp_bar_resource_len(bar));
 	if (bar->iomem) {
 		int pf;
 
@@ -857,8 +857,8 @@ static int enable_bars(struct nfp6000_pcie *nfp, u16 interface)
 		}
 
 		bar = &nfp->bar[4 + i];
-		bar->iomem = ioremap_nocache(nfp_bar_resource_start(bar),
-					     nfp_bar_resource_len(bar));
+		bar->iomem = ioremap(nfp_bar_resource_start(bar),
+				     nfp_bar_resource_len(bar));
 		if (bar->iomem) {
 			msg += snprintf(msg, end - msg,
 					"0.%d: Explicit%d, ", 4 + i, i);
@@ -1041,7 +1041,7 @@ static int nfp6000_area_acquire(struct nfp_cpp_area *area)
 		priv->iomem = priv->bar->iomem + priv->bar_offset;
 	else
 		/* Must have been too big. Sub-allocate. */
-		priv->iomem = ioremap_nocache(priv->phys, priv->size);
+		priv->iomem = ioremap(priv->phys, priv->size);
 
 	if (IS_ERR_OR_NULL(priv->iomem)) {
 		dev_err(nfp->dev, "Can't ioremap() a %d byte region of BAR %d\n",

@@ -690,8 +690,8 @@ static int nfp_net_vnic_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, vnic);
 
 	/* Control registers and packet data are in BAR0 (64bit) */
-	vnic->pktbufs = devm_ioremap_nocache(
-		&pdev->dev, nfp_cpp_area_phys(area), barsz);
+	vnic->pktbufs = devm_ioremap(&pdev->dev, nfp_cpp_area_phys(area),
+				     barsz);
 	if (!vnic->pktbufs) {
 		nfp_net_vnic_err(vnic, "Failed to map packet buffers\n");
 		err = -EIO;
