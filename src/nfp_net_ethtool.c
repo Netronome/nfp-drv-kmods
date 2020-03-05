@@ -1422,6 +1422,7 @@ static int nfp_net_set_coalesce(struct net_device *netdev,
 	struct nfp_net *nn = netdev_priv(netdev);
 	unsigned int factor;
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0))
 	if (ec->rx_coalesce_usecs_irq ||
 	    ec->rx_max_coalesced_frames_irq ||
 	    ec->tx_coalesce_usecs_irq ||
@@ -1441,6 +1442,7 @@ static int nfp_net_set_coalesce(struct net_device *netdev,
 	    ec->tx_max_coalesced_frames_high ||
 	    ec->rate_sample_interval)
 		return -EOPNOTSUPP;
+#endif
 
 	/* Compute factor used to convert coalesce '_usecs' parameters to
 	 * ME timestamp ticks.  There are 16 ME clock cycles for each timestamp
@@ -1555,6 +1557,10 @@ static int nfp_net_set_channels(struct net_device *netdev,
 }
 
 static const struct ethtool_ops nfp_net_ethtool_ops = {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0))
+	.supported_coalesce_params = ETHTOOL_COALESCE_USECS |
+				     ETHTOOL_COALESCE_MAX_FRAMES,
+#endif /* 5.7 */
 	.get_drvinfo		= nfp_net_get_drvinfo,
 	.get_link		= ethtool_op_get_link,
 	.get_ringparam		= nfp_net_get_ringparam,
