@@ -1356,6 +1356,12 @@ int nfp_flower_compile_action(struct nfp_app *app,
 	LIST_HEAD(actions);
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)
+	if (!flow_action_basic_hw_stats_types_check(&flow->rule->action,
+						    extack))
+		return -EOPNOTSUPP;
+#endif
+
 	memset(nfp_flow->action_data, 0, NFP_FL_MAX_A_SIZ);
 	nfp_flow->meta.act_len = 0;
 	tun_type = NFP_FL_TUNNEL_NONE;
