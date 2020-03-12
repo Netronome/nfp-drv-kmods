@@ -1333,8 +1333,8 @@ static inline bool tls_is_sk_rx_device_offloaded(struct sock *sk)
 #define sizeof_field(TYPE, MEMBER) sizeof((((TYPE *)0)->MEMBER))
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0) && \
-    LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 enum flow_action_hw_stats_bit {
 	FLOW_ACTION_HW_STATS_IMMEDIATE_BIT,
 	FLOW_ACTION_HW_STATS_DELAYED_BIT,
@@ -1354,6 +1354,11 @@ compat__flow_stats_update(struct flow_stats *flow_stats,
 
 #define flow_stats_update compat__flow_stats_update
 
-#endif /* < v5.7.0 && >= v5.1.0 */
+#endif /* >= v5.1.0 */
+
+/* Firmware bundle identifier */
+#define DEVLINK_INFO_VERSION_GENERIC_FW_BUNDLE_ID	"fw.bundle_id"
+
+#endif /* < v5.7.0 */
 
 #endif /* _NFP_NET_COMPAT_H_ */
