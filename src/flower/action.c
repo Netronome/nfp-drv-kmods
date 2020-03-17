@@ -1357,7 +1357,8 @@ int nfp_flower_compile_action(struct nfp_app *app,
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)
-	if (!flow_action_basic_hw_stats_check(&flow->rule->action, extack))
+	if (!flow_action_hw_stats_check(&flow->rule->action, extack,
+					FLOW_ACTION_HW_STATS_DELAYED_BIT))
 		return -EOPNOTSUPP;
 #endif
 
