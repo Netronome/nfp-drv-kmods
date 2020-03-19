@@ -336,7 +336,7 @@ static inline int skb_xmit_more(struct sk_buff *skb)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 18, 0)
 	return false;
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(5, 2, 0)
+#elif VER_NON_RHEL_LT(5, 2) || VER_RHEL_LT(8, 2)
 	return skb->xmit_more;
 #else
 	return netdev_xmit_more();
@@ -817,7 +817,7 @@ devlink_port_attrs_set(struct devlink_port *devlink_port,
 }
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
+#if VER_NON_RHEL_LT(4, 19) || VER_RHEL_LT(8, 1)
 struct bpf_offload_dev {
 	u32 empty;
 };
@@ -867,10 +867,10 @@ compat_bpf_offload_dev_match(struct bpf_prog *prog, struct net_device *dev)
 #define FLOW_DISSECTOR_KEY_ENC_IP	22
 #define FLOW_DISSECTOR_KEY_ENC_OPTS	23
 
-#define FLOW_DIS_TUN_OPTS_MAX 255
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0) */
 
 #if VER_NON_RHEL_LT(4, 19) || VER_RHEL_LT(7, 7)
+#define FLOW_DIS_TUN_OPTS_MAX 255
 struct flow_dissector_key_enc_opts {
 	u8 data[FLOW_DIS_TUN_OPTS_MAX];
 	u8 len;
@@ -934,7 +934,7 @@ xdp_attachment_setup(struct xdp_attachment_info *info, struct netdev_bpf *bpf)
 #endif /* COMPAT__HAVE_XDP */
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0)
+#if VER_NON_RHEL_LT(4, 20) || (VER_RHEL_LT(8, 1) && !VER_RHEL_EQ(7, 8))
 static inline struct sk_buff *__skb_peek(const struct sk_buff_head *list)
 {
 	return list->next;
@@ -1199,7 +1199,7 @@ compat__flow_cls_offload_flow_rule(compat__flow_cls_offload *flow)
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
+#if VER_NON_RHEL_LT(5, 3) || VER_RHEL_LT(8, 2)
 int compat__flow_block_cb_setup_simple(struct tc_block_offload *f,
 				       struct list_head *driver_list,
 				       tc_setup_cb_t *nfp_cb, void *cb_ident,
@@ -1246,7 +1246,7 @@ nfp_flower_stats_rlim_reply(struct nfp_app *app, struct sk_buff *skb)
 }
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0)
+#if VER_NON_RHEL_LT(5, 4) || VER_RHEL_LT(8, 2)
 enum {
 	FLOW_ACTION_REDIRECT_INGRESS = 0xfe,
 	FLOW_ACTION_MIRRED_INGRESS = 0xff,
@@ -1294,7 +1294,8 @@ compat__bpf_map_inc(struct bpf_map *map, bool uref)
 }
 #endif
 
-#if defined(CONFIG_INET) && defined(CONFIG_IPV6)
+#if defined(CONFIG_INET) && defined(CONFIG_IPV6) && \
+	(VER_NON_RHEL_GE(3, 12) || VER_RHEL_GE(7, 0))
 static inline struct dst_entry *
 compat__ipv6_dst_lookup_flow(struct net *net, struct sock *sk,
 			     struct flowi6 *fl6,
@@ -1302,11 +1303,17 @@ compat__ipv6_dst_lookup_flow(struct net *net, struct sock *sk,
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 5)
 	return ipv6_stub->ipv6_dst_lookup_flow(net, sk, fl6, final_dst);
+#elif VER_RHEL_GE(8, 2)
+	return ipv6_stub->ipv6_dst_lookup_flow(net, sk, fl6, final_dst);
 #else
 	struct dst_entry *dst;
 	int err;
 
+#if VER_NON_RHEL_LT(4, 3) || VER_RHEL_LT(7, 3)
+	err = ipv6_stub->ipv6_dst_lookup(sk, &dst, fl6);
+#else
 	err = ipv6_stub->ipv6_dst_lookup(net, sk, &dst, fl6);
+#endif
 	if (err)
 		return ERR_PTR(err);
 

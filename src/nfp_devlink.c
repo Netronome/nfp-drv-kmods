@@ -157,7 +157,7 @@ nfp_devlink_sb_pool_get(struct devlink *devlink, unsigned int sb_index,
 static int
 nfp_devlink_sb_pool_set(struct devlink *devlink, unsigned int sb_index,
 			u16 pool_index,
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 2, 0)
+#if VER_NON_RHEL_LT(5, 2) || VER_RHEL_LT(8, 2)
 			u32 size, enum devlink_sb_threshold_type threshold_type)
 #else
 			u32 size, enum devlink_sb_threshold_type threshold_type,
@@ -400,7 +400,7 @@ int nfp_devlink_port_register(struct nfp_app *app, struct nfp_port *port)
 	serial_len = nfp_cpp_serial(port->app->cpp, &serial);
 	devlink_port_attrs_set(&port->dl_port, DEVLINK_PORT_FLAVOUR_PHYSICAL,
 			       eth_port.label_port, eth_port.is_split,
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 2, 0)
+#if VER_NON_RHEL_LT(5, 2) || VER_RHEL_LT(8, 2)
 			       eth_port.label_subport);
 #else
 			       eth_port.label_subport, serial, serial_len);

@@ -73,8 +73,8 @@ int compat__nfp_net_flash_device(struct net_device *netdev,
 }
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0) &&	\
-    LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
+#if (VER_NON_RHEL_GE(4, 18) && VER_NON_RHEL_LT(5, 3)) || \
+	(VER_RHEL_LT(8, 2) && VER_RHEL_GE(8, 0))
 int compat__flow_block_cb_setup_simple(struct tc_block_offload *f,
 				       struct list_head *driver_list,
 				       tc_setup_cb_t *nfp_cb, void *cb_ident,
@@ -125,7 +125,7 @@ void nfp_devlink_port_type_clear(struct nfp_port *port)
 }
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_LT(5, 1) || VER_RHEL_LT(8, 2)
 static int
 nfp_port_attr_get(struct net_device *netdev, struct switchdev_attr *attr)
 {

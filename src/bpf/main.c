@@ -483,9 +483,9 @@ static int nfp_bpf_init(struct nfp_app *app)
 		app->ctrl_mtu = nfp_bpf_ctrl_cmsg_mtu(bpf);
 	}
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0) || VER_RHEL_LT(8, 1)
 	bpf->bpf_dev = bpf_offload_dev_create();
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
+#elif VER_NON_RHEL_LT(5, 1) || VER_RHEL_EQ(8, 1)
 	bpf->bpf_dev = bpf_offload_dev_create(&nfp_bpf_dev_ops);
 #else
 	bpf->bpf_dev = bpf_offload_dev_create(&nfp_bpf_dev_ops, bpf);

@@ -819,7 +819,7 @@ static inline void *kvcalloc(size_t n, size_t size, gfp_t flags)
 }
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
+#if VER_NON_RHEL_LT(4, 19) || VER_RHEL_LT(8, 1)
 struct reciprocal_value_adv {
 	u32 m;
 	u8 sh, exp;
@@ -873,7 +873,7 @@ struct xdp_attachment_info {
 };
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0)
+#if VER_NON_RHEL_LT(4, 20) || VER_RHEL_LT(8, 1)
 typedef siginfo_t kernel_siginfo_t;
 #endif
 #endif /* __KERNEL__NFP_COMPAT_H__ */
