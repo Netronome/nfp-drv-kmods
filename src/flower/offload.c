@@ -2025,8 +2025,8 @@ nfp_flower_indr_block_cb_priv_lookup(struct nfp_app *app,
 	return NULL;
 }
 
-static int nfp_flower_setup_indr_block_cb(enum tc_setup_type type,
-					  void *type_data, void *cb_priv)
+int nfp_flower_setup_indr_block_cb(enum tc_setup_type type,
+				   void *type_data, void *cb_priv)
 {
 	struct nfp_flower_indr_block_cb_priv *priv = cb_priv;
 	compat__flow_cls_offload *flower = type_data;
@@ -2143,10 +2143,13 @@ nfp_flower_setup_indr_tc_block(struct net_device *netdev, struct nfp_app *app,
 	return 0;
 }
 
-static int
-nfp_flower_indr_setup_tc_cb(struct net_device *netdev, void *cb_priv,
-			    enum tc_setup_type type, void *type_data)
+int nfp_flower_indr_setup_tc_cb(struct net_device *netdev, void *cb_priv,
+				enum tc_setup_type type, void *type_data)
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
+	if (!nfp_fl_is_netdev_to_offload(netdev))
+		return -EOPNOTSUPP;
+#endif
 	switch (type) {
 	case TC_SETUP_BLOCK:
 		return nfp_flower_setup_indr_tc_block(netdev, cb_priv,
@@ -2156,6 +2159,7 @@ nfp_flower_indr_setup_tc_cb(struct net_device *netdev, void *cb_priv,
 	}
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
 int nfp_flower_reg_indir_block_handler(struct nfp_app *app,
 				       struct net_device *netdev,
 				       unsigned long event)
@@ -2181,4 +2185,5 @@ int nfp_flower_reg_indir_block_handler(struct nfp_app *app,
 
 	return NOTIFY_OK;
 }
-#endif
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0) */
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0) */
