@@ -2055,7 +2055,8 @@ static void nfp_flower_setup_indr_tc_release(void *cb_priv)
 
 static int
 nfp_flower_setup_indr_tc_block(struct net_device *netdev, struct nfp_app *app,
-			       compat__flow_block_offload *f)
+			       compat__flow_block_offload *f, void *data,
+			       void (*cleanup)(struct flow_block_cb *block_cb))
 {
 	struct nfp_flower_indr_block_cb_priv *cb_priv;
 	struct nfp_flower_priv *priv = app->priv;
@@ -2094,9 +2095,16 @@ nfp_flower_setup_indr_tc_block(struct net_device *netdev, struct nfp_app *app,
 					    cb_priv, cb_priv, f->extack);
 		if (err) {
 #else
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
 		block_cb = flow_block_cb_alloc(nfp_flower_setup_indr_block_cb,
 					       cb_priv, cb_priv,
 					       nfp_flower_setup_indr_tc_release);
+#else
+		block_cb = flow_indr_block_cb_alloc(nfp_flower_setup_indr_block_cb,
+						    cb_priv, cb_priv,
+						    nfp_flower_setup_indr_tc_release,
+						    f, netdev, data, cleanup);
+#endif
 		if (IS_ERR(block_cb)) {
 #endif
 			list_del(&cb_priv->list);
@@ -2132,7 +2140,11 @@ nfp_flower_setup_indr_tc_block(struct net_device *netdev, struct nfp_app *app,
 		if (!block_cb)
 			return -ENOENT;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
 		flow_block_cb_remove(block_cb, f);
+#else
+		flow_indr_block_cb_remove(block_cb, f);
+#endif
 		list_del(&block_cb->driver_list);
 #endif
 
@@ -2143,17 +2155,25 @@ nfp_flower_setup_indr_tc_block(struct net_device *netdev, struct nfp_app *app,
 	return 0;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
 int nfp_flower_indr_setup_tc_cb(struct net_device *netdev, void *cb_priv,
 				enum tc_setup_type type, void *type_data)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
+	void (*cleanup)(struct flow_block_cb *block_cb) = NULL;
+	void *data = NULL;
+#else
+int nfp_flower_indr_setup_tc_cb(struct net_device *netdev, void *cb_priv,
+				enum tc_setup_type type, void *type_data,
+				void *data,
+				void (*cleanup)(struct flow_block_cb *block_cb))
+{
 	if (!nfp_fl_is_netdev_to_offload(netdev))
 		return -EOPNOTSUPP;
 #endif
 	switch (type) {
 	case TC_SETUP_BLOCK:
 		return nfp_flower_setup_indr_tc_block(netdev, cb_priv,
-						      type_data);
+						      type_data, data, cleanup);
 	default:
 		return -EOPNOTSUPP;
 	}

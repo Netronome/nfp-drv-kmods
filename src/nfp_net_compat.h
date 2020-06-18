@@ -1360,4 +1360,9 @@ compat__flow_stats_update(struct flow_stats *flow_stats,
 
 #endif /* < v5.7.0 */
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0) && \
+    LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
+struct flow_block_cb {};
+#endif
+
 #endif /* _NFP_NET_COMPAT_H_ */
