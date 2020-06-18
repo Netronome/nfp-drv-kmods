@@ -881,7 +881,7 @@ static void nfp_flower_clean(struct nfp_app *app)
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
 	flow_indr_dev_unregister(nfp_flower_indr_setup_tc_cb, app,
-				 nfp_flower_setup_indr_block_cb);
+				 nfp_flower_setup_indr_tc_release);
 #endif
 
 	if (app_priv->flower_ext_feats & NFP_FL_FEATS_VF_RLIM)
