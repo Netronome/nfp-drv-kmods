@@ -1332,8 +1332,9 @@ static inline bool tls_is_sk_rx_device_offloaded(struct sock *sk)
 #define sizeof_field(TYPE, MEMBER) sizeof((((TYPE *)0)->MEMBER))
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
 enum flow_action_hw_stats_bit {
 	FLOW_ACTION_HW_STATS_IMMEDIATE_BIT,
 	FLOW_ACTION_HW_STATS_DELAYED_BIT,
@@ -1342,13 +1343,18 @@ enum flow_action_hw_stats_bit {
 enum flow_action_hw_stats {
 	FLOW_ACTION_HW_STATS_DELAYED = BIT(FLOW_ACTION_HW_STATS_DELAYED_BIT),
 };
+#endif
 
 static inline void
 compat__flow_stats_update(struct flow_stats *flow_stats,
-			  u64 bytes, u64 pkts, u64 lastused,
+			  u64 bytes, u64 pkts, u64 drops, u64 lastused,
 			  enum flow_action_hw_stats used_hw_stats)
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
 	flow_stats_update(flow_stats, bytes, pkts, lastused);
+#else
+	flow_stats_update(flow_stats, bytes, pkts, lastused, used_hw_stats);
+#endif
 }
 
 #define flow_stats_update compat__flow_stats_update
