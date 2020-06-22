@@ -44,6 +44,11 @@
 	 ((VER_KERN_EQ(x, y) && UTS_UBUNTU_RELEASE_ABI < (z)) ||	\
 	  VER_KERN_LT(x, y)))
 
+#define VER_UBUNTU_GE(x, y, z)						\
+	(UTS_UBUNTU_RELEASE_ABI &&					\
+	 ((VER_KERN_EQ(x, y) && UTS_UBUNTU_RELEASE_ABI >= (z)) ||	\
+	  (VER_KERN_GE(x, y) && !VER_KERN_EQ(x, y))))
+
 #define VER_NON_RHEL_LT(x, y)	(!RHEL_RELEASE_CODE && VER_KERN_LT(x, y))
 #define VER_NON_RHEL_GE(x, y)	(!RHEL_RELEASE_CODE && VER_KERN_GE(x, y))
 #define VER_RHEL_LT(x, y)						\
