@@ -69,7 +69,12 @@ nfp_flower_install_rate_limiter(struct nfp_app *app, struct net_device *netdev,
 	struct nfp_repr *repr;
 	struct sk_buff *skb;
 	u32 netdev_port_id;
-	u64 burst, rate;
+	u32 burst;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
+	u32 rate;
+#else
+	u64 rate;
+#endif
 
 	if (!nfp_netdev_is_nfp_repr(netdev)) {
 		NL_SET_ERR_MSG_MOD(extack, "unsupported offload: qos rate limit offload not supported on higher level port");
@@ -108,8 +113,12 @@ nfp_flower_install_rate_limiter(struct nfp_app *app, struct net_device *netdev,
 	}
 
 	rate = action->police.rate_bytes_ps;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
 	burst = div_u64(rate * PSCHED_NS2TICKS(action->police.burst),
 			PSCHED_TICKS_PER_SEC);
+#else
+	burst = action->police.burst;
+#endif
 	netdev_port_id = nfp_repr_get_port_id(netdev);
 
 	skb = nfp_flower_cmsg_alloc(repr->app, sizeof(struct nfp_police_config),
