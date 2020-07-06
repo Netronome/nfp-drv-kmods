@@ -155,6 +155,21 @@ else
   nfp-objs += nfp_hwmon_legacy.o
 endif
 
+# Check for ipv6_dst_lookup_flow - in two different locations as some
+# distros have backported this at different times
+ipv6_stubs_h_path := $(srctree)/include/net/ipv6_stubs.h
+addrconf_h_path := $(srctree)/include/net/addrconf.h
+ifneq (,$(wildcard $(ipv6_stubs_h_path)))
+  COMPAT__HAVE_IP6_DST_FLOW_LOOKUP := \
+        $(shell grep -q ipv6_dst_lookup_flow $(ipv6_stubs_h_path) && echo y)
+else
+  COMPAT__HAVE_IP6_DST_FLOW_LOOKUP := \
+        $(shell grep -q ipv6_dst_lookup_flow $(addrconf_h_path) && echo y)
+endif
+ifeq ($(COMPAT__HAVE_IP6_DST_FLOW_LOOKUP), y)
+  ccflags-y += -DCOMPAT__HAVE_IP6_DST_FLOW_LOOKUP=1
+endif
+
 ifeq ($(CONFIG_NFP_USER_SPACE_CPP),y)
   ccflags-y += -DCONFIG_NFP_USER_SPACE_CPP
 
