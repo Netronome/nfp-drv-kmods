@@ -806,16 +806,53 @@ enum devlink_port_flavour {
 	DEVLINK_PORT_FLAVOUR_CPU,
 	DEVLINK_PORT_FLAVOUR_DSA,
 };
-
-static inline void
-devlink_port_attrs_set(struct devlink_port *devlink_port,
-		       enum devlink_port_flavour flavour,
-		       u32 port_number, bool split, u32 split_subport_number)
-{
-	if (split)
-		devlink_port_split_set(devlink_port, port_number);
-}
 #endif
+
+#if COMPAT__HAS_DEVLINK
+
+#if VER_NON_RHEL_LT(5, 3) || VER_RHEL_LT(8, 2)
+struct devlink_port_phys_attrs {
+	u32 port_number; /* Same value as "split group".
+			  * A physical port which is visible to the user
+			  * for a given port flavour.
+			  */
+	u32 split_subport_number; /* If the port is split, this is the number of subport. */
+};
+
+struct compat__devlink_port_attrs {
+	u8 split:1;
+	enum devlink_port_flavour flavour;
+	struct netdev_phys_item_id switch_id;
+	struct devlink_port_phys_attrs phys;
+};
+#else
+#define compat__devlink_port_attrs devlink_port_attrs
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
+static inline
+void compat__devlink_port_attrs_set(struct devlink_port *devlink_port,
+				    struct compat__devlink_port_attrs *attrs)
+{
+#if VER_NON_RHEL_LT(4, 18) || VER_RHEL_LT(7, 7)
+	if (attrs->split)
+		devlink_port_split_set(devlink_port, attrs->phys.port_number);
+#else
+	devlink_port_attrs_set(devlink_port, attrs->flavour,
+			       attrs->phys.port_number, attrs->split,
+			       attrs->phys.split_subport_number
+#if !(VER_NON_RHEL_LT(5, 2) || VER_RHEL_LT(8, 2))
+			       ,
+			       attrs->switch_id.id, attrs->switch_id.id_len
+#endif
+			       );
+#endif /* COMPAT__HAS_DEVLINK && (VER_NON_RHEL_LT(4, 18) || VER_RHEL_LT(7, 7)) */
+}
+#else
+#define compat__devlink_port_attrs_set devlink_port_attrs_set
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0) */
+
+#endif /* COMPAT__HAS_DEVLINK */
 
 #if VER_NON_RHEL_LT(4, 19) || VER_RHEL_LT(8, 1)
 struct bpf_offload_dev {
