@@ -99,9 +99,6 @@ nfp_devlink_port_split(struct devlink *devlink, struct devlink_port *port,
 	unsigned int lanes;
 	int ret;
 
-	if (count < 2)
-		return -EINVAL;
-
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 	devl_lock(devlink);
 #endif
@@ -119,7 +116,7 @@ nfp_devlink_port_split(struct devlink *devlink, struct devlink_port *port,
 	if (ret)
 		goto out;
 
-	if (eth_port.is_split || eth_port.port_lanes % count) {
+	if (eth_port.port_lanes % count) {
 		ret = -EINVAL;
 		goto out;
 	}
