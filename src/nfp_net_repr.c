@@ -283,7 +283,7 @@ const struct net_device_ops nfp_repr_netdev_ops = {
 	.ndo_fix_features	= nfp_repr_fix_features,
 	.ndo_set_features	= nfp_port_set_features,
 	.ndo_set_mac_address    = eth_mac_addr,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 2)
 	.ndo_get_port_parent_id	= nfp_port_get_port_parent_id,
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 2, 0)
 	.ndo_get_devlink	= nfp_devlink_get_devlink,
@@ -354,7 +354,7 @@ int nfp_repr_init(struct nfp_app *app, struct net_device *netdev,
 
 	netdev->max_mtu = pf_netdev->max_mtu;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_LT(5, 1) || VER_RHEL_LT(8, 2)
 	SWITCHDEV_SET_OPS(netdev, &nfp_port_switchdev_ops);
 #endif
 	/* Set features the lower device can support with representors */
