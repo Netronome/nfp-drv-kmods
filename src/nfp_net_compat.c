@@ -8,6 +8,10 @@
 #include <net/switchdev.h>
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+#include "flower/main.h"
+#endif
+
 #include "nfpcore/nfp_cpp.h"
 #include "nfp_app.h"
 #include "nfp_main.h"
@@ -175,4 +179,25 @@ int nfp_devlink_params_register(struct nfp_pf *pf)
 void nfp_devlink_params_unregister(struct nfp_pf *pf)
 {
 }
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
+int compat__nfp_flower_indr_setup_tc_cb(struct net_device *netdev,
+					void *cb_priv, enum tc_setup_type type,
+					void *type_data)
+{
+	return nfp_flower_indr_setup_tc_cb(netdev, NULL, cb_priv, type,
+					   type_data, NULL, NULL);
+}
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
+int compat__nfp_flower_indr_setup_tc_cb(struct net_device *netdev,
+					void *cb_priv, enum tc_setup_type type,
+					void *type_data, void *data,
+					void (*cleanup)(struct flow_block_cb *block_cb))
+{
+	return nfp_flower_indr_setup_tc_cb(netdev, NULL, cb_priv, type,
+					   type_data, data, cleanup);
+}
+#endif
 #endif

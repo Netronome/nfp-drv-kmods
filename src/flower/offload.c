@@ -2055,7 +2055,7 @@ void nfp_flower_setup_indr_tc_release(void *cb_priv)
 #endif
 
 static int
-nfp_flower_setup_indr_tc_block(struct net_device *netdev, struct nfp_app *app,
+nfp_flower_setup_indr_tc_block(struct net_device *netdev, struct Qdisc *sch, struct nfp_app *app,
 			       compat__flow_block_offload *f, void *data,
 			       void (*cleanup)(struct flow_block_cb *block_cb))
 {
@@ -2096,16 +2096,10 @@ nfp_flower_setup_indr_tc_block(struct net_device *netdev, struct nfp_app *app,
 					    cb_priv, cb_priv, f->extack);
 		if (err) {
 #else
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
-		block_cb = flow_block_cb_alloc(nfp_flower_setup_indr_block_cb,
-					       cb_priv, cb_priv,
-					       nfp_flower_setup_indr_tc_release);
-#else
-		block_cb = flow_indr_block_cb_alloc(nfp_flower_setup_indr_block_cb,
-						    cb_priv, cb_priv,
-						    nfp_flower_setup_indr_tc_release,
-						    f, netdev, data, app, cleanup);
-#endif
+		block_cb = compat__flow_indr_block_cb_alloc(nfp_flower_setup_indr_block_cb,
+							    cb_priv, cb_priv,
+							    nfp_flower_setup_indr_tc_release,
+							    f, netdev, sch, data, app, cleanup);
 		if (IS_ERR(block_cb)) {
 #endif
 			list_del(&cb_priv->list);
@@ -2156,24 +2150,17 @@ nfp_flower_setup_indr_tc_block(struct net_device *netdev, struct nfp_app *app,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
-int nfp_flower_indr_setup_tc_cb(struct net_device *netdev, void *cb_priv,
-				enum tc_setup_type type, void *type_data)
-{
-	void (*cleanup)(struct flow_block_cb *block_cb) = NULL;
-	void *data = NULL;
-#else
-int nfp_flower_indr_setup_tc_cb(struct net_device *netdev, void *cb_priv,
+int nfp_flower_indr_setup_tc_cb(struct net_device *netdev, struct Qdisc *sch, void *cb_priv,
 				enum tc_setup_type type, void *type_data,
-				void *data,
-				void (*cleanup)(struct flow_block_cb *block_cb))
+				void *data, void (*cleanup)(struct flow_block_cb *block_cb))
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
 	if (!nfp_fl_is_netdev_to_offload(netdev))
 		return -EOPNOTSUPP;
 #endif
 	switch (type) {
 	case TC_SETUP_BLOCK:
-		return nfp_flower_setup_indr_tc_block(netdev, cb_priv,
+		return nfp_flower_setup_indr_tc_block(netdev, sch, cb_priv,
 						      type_data, data, cleanup);
 	default:
 		return -EOPNOTSUPP;
@@ -2192,7 +2179,7 @@ int nfp_flower_reg_indir_block_handler(struct nfp_app *app,
 
 	if (event == NETDEV_REGISTER) {
 		err = __flow_indr_block_cb_register(netdev, app,
-						    nfp_flower_indr_setup_tc_cb,
+						    compat__nfp_flower_indr_setup_tc_cb,
 						    app);
 		if (err)
 			nfp_flower_cmsg_warn(app,
@@ -2200,7 +2187,7 @@ int nfp_flower_reg_indir_block_handler(struct nfp_app *app,
 					     netdev->name);
 	} else if (event == NETDEV_UNREGISTER) {
 		__flow_indr_block_cb_unregister(netdev,
-						nfp_flower_indr_setup_tc_cb,
+						compat__nfp_flower_indr_setup_tc_cb,
 						app);
 	}
 

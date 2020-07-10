@@ -1402,9 +1402,46 @@ compat__flow_stats_update(struct flow_stats *flow_stats,
 
 #endif /* < v5.7.0 */
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0) && \
-    LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
+#if VER_NON_RHEL_LT(5, 3) || VER_RHEL_LT(8, 2)
 struct flow_block_cb {};
 #endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#define compat__nfp_flower_indr_setup_tc_cb nfp_flower_indr_setup_tc_cb
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
+int compat__nfp_flower_indr_setup_tc_cb(struct net_device *netdev,
+					void *cb_priv, enum tc_setup_type type,
+					void *type_data, void *data,
+					void (*cleanup)(struct flow_block_cb *block_cb));
+#else
+int compat__nfp_flower_indr_setup_tc_cb(struct net_device *netdev,
+					void *cb_priv, enum tc_setup_type type,
+					void *type_data);
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#define compat__flow_indr_block_cb_alloc flow_indr_block_cb_alloc
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0)
+static inline struct flow_block_cb *
+compat__flow_indr_block_cb_alloc(flow_setup_cb_t *cb, void *cb_ident,
+				 void *cb_priv, void (*release)(void *cb_priv),
+				 struct flow_block_offload *bo,
+				 struct net_device *dev,
+				 struct Qdisc *sch, void *data,
+				 void *indr_cb_priv,
+				 void (*cleanup)(struct flow_block_cb *block_cb))
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
+	return flow_indr_block_cb_alloc(cb, cb_ident, cb_priv, release, bo,
+					dev, data, indr_cb_priv, cleanup);
+#else
+	return flow_block_cb_alloc(cb, cb_ident, cb_priv, release);
+#endif
+}
+#endif
+
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0) */
 
 #endif /* _NFP_NET_COMPAT_H_ */

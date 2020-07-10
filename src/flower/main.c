@@ -848,7 +848,7 @@ static int nfp_flower_init(struct nfp_app *app)
 		goto err_cleanup;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
-	err = flow_indr_dev_register(nfp_flower_indr_setup_tc_cb, app);
+	err = flow_indr_dev_register(compat__nfp_flower_indr_setup_tc_cb, app);
 	if (err)
 		goto err_cleanup;
 #endif
@@ -880,7 +880,7 @@ static void nfp_flower_clean(struct nfp_app *app)
 	flush_work(&app_priv->cmsg_work);
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
-	flow_indr_dev_unregister(nfp_flower_indr_setup_tc_cb, app,
+	flow_indr_dev_unregister(compat__nfp_flower_indr_setup_tc_cb, app,
 				 nfp_flower_setup_indr_tc_release);
 #endif
 
