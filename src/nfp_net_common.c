@@ -2940,7 +2940,7 @@ static int nfp_net_set_config_and_enable(struct nfp_net *nn)
 	for (r = 0; r < nn->dp.num_rx_rings; r++)
 		nfp_net_rx_ring_fill_freelist(&nn->dp, &nn->dp.rx_rings[r]);
 
-#if COMPAT__HAVE_VXLAN_OFFLOAD
+#if COMPAT__HAVE_VXLAN_OFFLOAD && LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
 	/* Since reconfiguration requests while NFP is down are ignored we
 	 * have to wipe the entire VXLAN configuration and reinitialize it.
 	 */
@@ -3681,7 +3681,7 @@ nfp_net_get_phys_port_name(struct net_device *netdev, char *name, size_t len)
 }
 #endif
 
-#if COMPAT__HAVE_VXLAN_OFFLOAD
+#if COMPAT__HAVE_VXLAN_OFFLOAD && LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
 /**
  * nfp_net_set_vxlan_port() - set vxlan port in SW and reconfigure HW
  * @nn:   NFP Net device to reconfigure
@@ -3931,8 +3931,8 @@ const struct net_device_ops nfp_net_netdev_ops = {
 	.ndo_get_phys_port_name	= nfp_net_get_phys_port_name,
 #endif
 #if (VER_IS_NON_RHEL || VER_RHEL_GE(8, 0)) && COMPAT__HAVE_UDP_OFFLOAD
-	.ndo_udp_tunnel_add	= nfp_net_add_vxlan_port,
-	.ndo_udp_tunnel_del	= nfp_net_del_vxlan_port,
+	.ndo_udp_tunnel_add	= udp_tunnel_nic_add_port,
+	.ndo_udp_tunnel_del	= udp_tunnel_nic_del_port,
 #elif VER_IS_NON_RHEL && COMPAT__HAVE_VXLAN_OFFLOAD
 	.ndo_add_vxlan_port     = nfp_net_add_vxlan_port,
 	.ndo_del_vxlan_port     = nfp_net_del_vxlan_port,
@@ -3963,12 +3963,45 @@ const struct net_device_ops nfp_net_netdev_ops = {
 #if VER_RHEL_GE(7, 4)
 		.ndo_set_vf_vlan	= nfp_app_set_vf_vlan,
 		.ndo_get_phys_port_name	= nfp_net_get_phys_port_name,
-		.ndo_udp_tunnel_add	= nfp_net_add_vxlan_port,
-		.ndo_udp_tunnel_del	= nfp_net_del_vxlan_port,
+		.ndo_udp_tunnel_add	= udp_tunnel_nic_add_port,
+		.ndo_udp_tunnel_del	= udp_tunnel_nic_del_port,
 #endif
 	},
 #endif
 };
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+static int nfp_udp_tunnel_sync(struct net_device *netdev, unsigned int table)
+{
+	struct nfp_net *nn = netdev_priv(netdev);
+	int i;
+
+	BUILD_BUG_ON(NFP_NET_N_VXLAN_PORTS & 1);
+	for (i = 0; i < NFP_NET_N_VXLAN_PORTS; i += 2) {
+		struct udp_tunnel_info ti0, ti1;
+
+		udp_tunnel_nic_get_port(netdev, table, i, &ti0);
+		udp_tunnel_nic_get_port(netdev, table, i + 1, &ti1);
+
+		nn_writel(nn, NFP_NET_CFG_VXLAN_PORT + i * sizeof(ti0.port),
+			  be16_to_cpu(ti1.port) << 16 | be16_to_cpu(ti0.port));
+	}
+
+	return nfp_net_reconfig(nn, NFP_NET_CFG_UPDATE_VXLAN);
+}
+
+static const struct udp_tunnel_nic_info nfp_udp_tunnels = {
+	.sync_table     = nfp_udp_tunnel_sync,
+	.flags          = UDP_TUNNEL_NIC_INFO_MAY_SLEEP |
+			  UDP_TUNNEL_NIC_INFO_OPEN_ONLY,
+	.tables         = {
+		{
+			.n_entries      = NFP_NET_N_VXLAN_PORTS,
+			.tunnel_types   = UDP_TUNNEL_TYPE_VXLAN,
+		},
+	},
+};
+#endif
 
 /**
  * nfp_net_info() - Print general info about the NIC
@@ -4221,6 +4254,9 @@ static void nfp_net_netdev_init(struct nfp_net *nn)
 	if (nn->cap & NFP_NET_CFG_CTRL_VXLAN) {
 		if (nn->cap & NFP_NET_CFG_CTRL_LSO)
 			netdev->hw_features |= NETIF_F_GSO_UDP_TUNNEL;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+		netdev->udp_tunnel_nic_info = &nfp_udp_tunnels;
+#endif
 		nn->dp.ctrl |= NFP_NET_CFG_CTRL_VXLAN;
 	}
 	if (nn->cap & NFP_NET_CFG_CTRL_NVGRE) {

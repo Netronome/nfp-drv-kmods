@@ -1454,4 +1454,9 @@ flow_indr_block_cb_remove(struct flow_block_cb *block_cb,
 }
 #endif
 
+#if COMPAT__HAVE_UDP_OFFLOAD && LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
+#define udp_tunnel_nic_add_port nfp_net_add_vxlan_port
+#define udp_tunnel_nic_del_port nfp_net_del_vxlan_port
+#endif
+
 #endif /* _NFP_NET_COMPAT_H_ */

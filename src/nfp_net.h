@@ -670,8 +670,11 @@ struct nfp_net {
 	u32 tx_coalesce_usecs;
 	u32 tx_coalesce_max_frames;
 
+#if (VER_NON_RHEL_GE(3, 12) || VER_RHEL_GE(7, 4)) && \
+    LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
 	__be16 vxlan_ports[NFP_NET_N_VXLAN_PORTS];
 	u8 vxlan_usecnt[NFP_NET_N_VXLAN_PORTS];
+#endif
 
 	u8 __iomem *qcp_cfg;
 
