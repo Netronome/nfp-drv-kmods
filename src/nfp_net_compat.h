@@ -1444,4 +1444,14 @@ compat__flow_indr_block_cb_alloc(flow_setup_cb_t *cb, void *cb_ident,
 
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0) */
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0) && \
+    LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
+static inline void
+flow_indr_block_cb_remove(struct flow_block_cb *block_cb,
+			  struct flow_block_offload *offload)
+{
+	return flow_block_cb_remove(block_cb, offload);
+}
+#endif
+
 #endif /* _NFP_NET_COMPAT_H_ */

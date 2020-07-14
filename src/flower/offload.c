@@ -2135,11 +2135,7 @@ nfp_flower_setup_indr_tc_block(struct net_device *netdev, struct Qdisc *sch, str
 		if (!block_cb)
 			return -ENOENT;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
-		flow_block_cb_remove(block_cb, f);
-#else
 		flow_indr_block_cb_remove(block_cb, f);
-#endif
 		list_del(&block_cb->driver_list);
 #endif
 
