@@ -3954,6 +3954,9 @@ const struct net_device_ops nfp_net_netdev_ops = {
 	.ndo_get_devlink_port	= nfp_devlink_get_devlink_port,
 #endif
 #endif
+#if VER_RHEL_GE(8, 2)
+	.ndo_get_devlink_port	= nfp_devlink_get_devlink_port,
+#endif
 #endif
 #endif
 #if VER_RHEL_GE(7, 3) && VER_RHEL_LT(8, 0)

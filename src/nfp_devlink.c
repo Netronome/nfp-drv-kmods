@@ -197,7 +197,7 @@ static int nfp_devlink_eswitch_mode_set(struct devlink *devlink, u16 mode,
 }
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 2)
 static const struct nfp_devlink_versions_simple {
 	const char *key;
 	const char *hwinfo;
@@ -236,7 +236,11 @@ static const struct nfp_devlink_versions {
 	enum nfp_nsp_versions id;
 	const char *key;
 } nfp_devlink_versions_nsp[] = {
+#if VER_RHEL_GE(8, 2)
+	{ NFP_VERSIONS_BUNDLE,  "fw.bundle_id", },
+#else
 	{ NFP_VERSIONS_BUNDLE,	DEVLINK_INFO_VERSION_GENERIC_FW_BUNDLE_ID, },
+#endif
 	{ NFP_VERSIONS_BSP,	DEVLINK_INFO_VERSION_GENERIC_FW_MGMT, },
 	{ NFP_VERSIONS_CPLD,	"fw.cpld", },
 	{ NFP_VERSIONS_APP,	DEVLINK_INFO_VERSION_GENERIC_FW_APP, },
@@ -377,7 +381,7 @@ const struct devlink_ops nfp_devlink_ops = {
 	.eswitch_mode_get	= nfp_devlink_eswitch_mode_get,
 	.eswitch_mode_set	= nfp_devlink_eswitch_mode_set,
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 2)
 	.info_get		= nfp_devlink_info_get,
 	.flash_update		= nfp_devlink_flash_update,
 #endif

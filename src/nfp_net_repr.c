@@ -285,7 +285,7 @@ const struct net_device_ops nfp_repr_netdev_ops = {
 	.ndo_set_mac_address    = eth_mac_addr,
 #if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 2)
 	.ndo_get_port_parent_id	= nfp_port_get_port_parent_id,
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 2, 0)
+#if VER_NON_RHEL_LT(5, 2) || VER_RHEL_LT(8, 2)
 	.ndo_get_devlink	= nfp_devlink_get_devlink,
 #else
 	.ndo_get_devlink_port	= nfp_devlink_get_devlink_port,
