@@ -826,13 +826,8 @@ static int do_cpp_area_release(struct nfp_dev_cpp *cdev, u16 interface,
 
 /* Manage the CPP Areas
  */
-#ifdef HAVE_UNLOCKED_IOCTL
 static long nfp_dev_cpp_ioctl(struct file *filp, unsigned int cmd,
 			      unsigned long arg)
-#else
-static int nfp_dev_cpp_ioctl(struct inode *inode, struct file *filp,
-			     unsigned int cmd, unsigned long arg)
-#endif
 {
 	struct nfp_dev_cpp_channel *chan = filp->private_data;
 	struct nfp_dev_cpp *cdev = chan->cdev;
@@ -1125,11 +1120,7 @@ static const struct file_operations nfp_cpp_fops = {
 	.mmap    = nfp_dev_cpp_mmap,
 	.read    = nfp_dev_cpp_read,
 	.write   = nfp_dev_cpp_write,
-#ifdef HAVE_UNLOCKED_IOCTL
 	.unlocked_ioctl   = nfp_dev_cpp_ioctl,
-#else
-	.ioctl   = nfp_dev_cpp_ioctl,
-#endif
 };
 
 static ssize_t show_firmware(struct device *dev,
