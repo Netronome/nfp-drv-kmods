@@ -11,7 +11,7 @@ static void
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 nfp_flower_compile_meta_tci(struct nfp_flower_meta_tci *ext,
 			    struct nfp_flower_meta_tci *msk,
-			    struct flow_rule *rule, u8 key_type)
+			    struct flow_rule *rule, u8 key_type, bool qinq_sup)
 {
 	u16 tmp_tci;
 
@@ -25,7 +25,7 @@ nfp_flower_compile_meta_tci(struct nfp_flower_meta_tci *ext,
 	msk->nfp_flow_key_layer = key_type;
 	msk->mask_id = ~0;
 
-	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_VLAN)) {
+	if (!qinq_sup && flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_VLAN)) {
 		struct flow_match_vlan match;
 
 		flow_rule_match_vlan(rule, &match);
@@ -48,7 +48,7 @@ nfp_flower_compile_meta_tci(struct nfp_flower_meta_tci *ext,
 #else
 nfp_flower_compile_meta_tci(struct nfp_flower_meta_tci *frame,
 			    compat__flow_cls_offload *flow, u8 key_type,
-			    bool mask_version)
+			    bool mask_version, bool qinq_sup)
 {
 	struct fl_flow_key *target = mask_version ? flow->mask : flow->key;
 	struct flow_dissector_key_vlan *flow_vlan;
@@ -59,7 +59,7 @@ nfp_flower_compile_meta_tci(struct nfp_flower_meta_tci *frame,
 	frame->nfp_flow_key_layer = key_type;
 	frame->mask_id = ~0;
 
-	if (dissector_uses_key(flow->dissector, FLOW_DISSECTOR_KEY_VLAN)) {
+	if (!qinq_sup && dissector_uses_key(flow->dissector, FLOW_DISSECTOR_KEY_VLAN)) {
 		flow_vlan = skb_flow_dissector_target(flow->dissector,
 						      FLOW_DISSECTOR_KEY_VLAN,
 						      target);
@@ -231,6 +231,85 @@ nfp_flower_compile_mac(struct nfp_flower_mac_mpls *frame,
 	}
 }
 #endif
+
+static void
+nfp_flower_fill_vlan(struct flow_dissector_key_vlan *key,
+		     struct nfp_flower_vlan *frame,
+		     bool outer_vlan)
+{
+	u16 tci;
+
+	tci = NFP_FLOWER_MASK_VLAN_PRESENT;
+	tci |= FIELD_PREP(NFP_FLOWER_MASK_VLAN_PRIO,
+			  key->vlan_priority) |
+	       FIELD_PREP(NFP_FLOWER_MASK_VLAN_VID,
+			  key->vlan_id);
+
+	if (outer_vlan) {
+		frame->outer_tci = cpu_to_be16(tci);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
+		frame->outer_tpid = key->vlan_tpid;
+#else
+		frame->outer_tpid = htons(ETH_P_8021Q);
+#endif
+	} else {
+		frame->inner_tci = cpu_to_be16(tci);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
+		frame->inner_tpid = key->vlan_tpid;
+#else
+		frame->inner_tpid = htons(ETH_P_8021Q);
+#endif
+	}
+}
+
+static void
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+nfp_flower_compile_vlan(struct nfp_flower_vlan *ext,
+			struct nfp_flower_vlan *msk,
+			struct flow_rule *rule)
+{
+	struct flow_match_vlan match;
+
+	memset(ext, 0, sizeof(struct nfp_flower_vlan));
+	memset(msk, 0, sizeof(struct nfp_flower_vlan));
+
+	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_VLAN)) {
+		flow_rule_match_vlan(rule, &match);
+		nfp_flower_fill_vlan(match.key, ext, true);
+		nfp_flower_fill_vlan(match.mask, msk, true);
+	}
+	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_CVLAN)) {
+		flow_rule_match_cvlan(rule, &match);
+		nfp_flower_fill_vlan(match.key, ext, false);
+		nfp_flower_fill_vlan(match.mask, msk, false);
+	}
+}
+#else
+nfp_flower_compile_vlan(struct nfp_flower_vlan *frame,
+			compat__flow_cls_offload *flow,
+			bool mask_version)
+{
+	struct fl_flow_key *target = mask_version ? flow->mask : flow->key;
+	struct flow_dissector_key_vlan *flow_vlan;
+
+	memset(frame, 0, sizeof(struct nfp_flower_vlan));
+
+	if (dissector_uses_key(flow->dissector, FLOW_DISSECTOR_KEY_VLAN)) {
+		flow_vlan = skb_flow_dissector_target(flow->dissector,
+						      FLOW_DISSECTOR_KEY_VLAN,
+						      target);
+		nfp_flower_fill_vlan(flow_vlan, frame, true);
+	}
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
+	if (dissector_uses_key(flow->dissector, FLOW_DISSECTOR_KEY_CVLAN)) {
+		flow_vlan = skb_flow_dissector_target(flow->dissector,
+						      FLOW_DISSECTOR_KEY_CVLAN,
+						      target);
+		nfp_flower_fill_vlan(flow_vlan, frame, false);
+	}
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0) */
+}
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0) */
 
 static void
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
@@ -718,6 +797,8 @@ int nfp_flower_compile_flow_match(struct nfp_app *app,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 	struct flow_rule *rule = compat__flow_cls_offload_flow_rule(flow);
 #endif
+	struct nfp_flower_priv *priv = app->priv;
+	bool qinq_sup;
 	u32 port_id;
 	int ext_len;
 	int err;
@@ -732,17 +813,19 @@ int nfp_flower_compile_flow_match(struct nfp_app *app,
 	ext = nfp_flow->unmasked_data;
 	msk = nfp_flow->mask_data;
 
+	qinq_sup = !!(priv->flower_ext_feats & NFP_FL_FEATS_VLAN_QINQ);
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
 	nfp_flower_compile_meta_tci((struct nfp_flower_meta_tci *)ext,
 				    (struct nfp_flower_meta_tci *)msk,
-				    rule, key_ls->key_layer);
+				    rule, key_ls->key_layer, qinq_sup);
 #else
 	/* Populate Exact Metadata. */
 	nfp_flower_compile_meta_tci((struct nfp_flower_meta_tci *)ext,
-				    flow, key_ls->key_layer, false);
+				    flow, key_ls->key_layer, false, qinq_sup);
 	/* Populate Mask Metadata. */
 	nfp_flower_compile_meta_tci((struct nfp_flower_meta_tci *)msk,
-				    flow, key_ls->key_layer, true);
+				    flow, key_ls->key_layer, true, qinq_sup);
 #endif
 	ext += sizeof(struct nfp_flower_meta_tci);
 	msk += sizeof(struct nfp_flower_meta_tci);
@@ -878,6 +961,23 @@ int nfp_flower_compile_flow_match(struct nfp_app *app,
 		}
 	}
 #endif
+
+	if (NFP_FLOWER_LAYER2_QINQ & key_ls->key_layer_two) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+		nfp_flower_compile_vlan((struct nfp_flower_vlan *)ext,
+					(struct nfp_flower_vlan *)msk,
+					rule);
+#else
+		/* Populate Exact MAC Data. */
+		nfp_flower_compile_vlan((struct nfp_flower_vlan *)ext,
+					flow, false);
+		/* Populate Mask MAC Data. */
+		nfp_flower_compile_vlan((struct nfp_flower_vlan *)msk,
+					flow, true);
+#endif
+		ext += sizeof(struct nfp_flower_vlan);
+		msk += sizeof(struct nfp_flower_vlan);
+	}
 
 	if (key_ls->key_layer & NFP_FLOWER_LAYER_VXLAN ||
 	    key_ls->key_layer_two & NFP_FLOWER_LAYER2_GENEVE) {

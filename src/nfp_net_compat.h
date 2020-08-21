@@ -44,6 +44,9 @@
 #ifdef COMPAT__HAVE_TLS_OFFLOAD
 #include <net/tls.h>
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#include <net/flow_offload.h>
+#endif
 
 /* Redefine LINUX_VERSION_CODE for *-next kernels */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
@@ -901,6 +904,7 @@ compat_bpf_offload_dev_match(struct bpf_prog *prog, struct net_device *dev)
 #define bpf_offload_dev_match(prog, dev) compat_bpf_offload_dev_match(prog, dev)
 #endif
 
+#define FLOW_DISSECTOR_KEY_CVLAN	21
 #define FLOW_DISSECTOR_KEY_ENC_IP	22
 #define FLOW_DISSECTOR_KEY_ENC_OPTS	23
 
@@ -1457,6 +1461,12 @@ flow_indr_block_cb_remove(struct flow_block_cb *block_cb,
 #if COMPAT__HAVE_UDP_OFFLOAD && LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
 #define udp_tunnel_nic_add_port nfp_net_add_vxlan_port
 #define udp_tunnel_nic_del_port nfp_net_del_vxlan_port
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0) && \
+	LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 5)
+void flow_rule_match_cvlan(const struct flow_rule *rule,
+			   struct flow_match_vlan *out);
 #endif
 
 #endif /* _NFP_NET_COMPAT_H_ */

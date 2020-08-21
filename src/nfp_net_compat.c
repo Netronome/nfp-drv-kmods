@@ -201,3 +201,16 @@ int compat__nfp_flower_indr_setup_tc_cb(struct net_device *netdev,
 }
 #endif
 #endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0) && \
+	LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 5)
+void flow_rule_match_cvlan(const struct flow_rule *rule,
+			   struct flow_match_vlan *out)
+{
+	const struct flow_match *match = &rule->match;
+	struct flow_dissector *d = match->dissector;
+
+	out->key = skb_flow_dissector_target(d, FLOW_DISSECTOR_KEY_CVLAN, match->key);
+	out->mask = skb_flow_dissector_target(d, FLOW_DISSECTOR_KEY_CVLAN, match->mask);
+}
+#endif
