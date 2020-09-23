@@ -212,7 +212,7 @@ int nfp_app_start(struct nfp_app *app, struct nfp_net *ctrl)
 	}
 
 	app->netdev_nb.notifier_call = nfp_app_netdev_event;
-	err = register_netdevice_notifier(&app->netdev_nb);
+	err = compat_register_netdevice_notifier(&app->netdev_nb);
 	if (err)
 		goto err_app_stop;
 
@@ -226,7 +226,7 @@ err_app_stop:
 
 void nfp_app_stop(struct nfp_app *app)
 {
-	unregister_netdevice_notifier(&app->netdev_nb);
+	compat_unregister_netdevice_notifier(&app->netdev_nb);
 
 	if (app->type->stop)
 		app->type->stop(app);

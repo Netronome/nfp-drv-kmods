@@ -241,6 +241,16 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
       endif
     endif
 
+    netdevice_h_path := $(srctree)/include/linux/netdevice.h
+    COMPAT__HAVE_REGISTER_NETDEVICE_NOTIFIER_RH := \
+	    $(shell [ -e $(netdevice_h_path) ] && \
+		    grep register_netdevice_notifier_rh $(netdevice_h_path) > /dev/null && \
+		    echo y)
+
+    ifeq ($(COMPAT__HAVE_REGISTER_NETDEVICE_NOTIFIER_RH), y)
+        ccflags-y += -DCOMPAT__HAVE_REGISTER_NETDEVICE_NOTIFIER_RH=1
+    endif
+
     metadata_h_path := $(srctree)/include/net/dst_metadata.h
     COMPAT__HAVE_METADATA_IP_TUNNEL := \
 	    $(shell [ -e $(metadata_h_path) ] && \

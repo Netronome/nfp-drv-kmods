@@ -203,6 +203,14 @@ typedef struct flow_block_offload compat__flow_block_offload;
 typedef struct flow_cls_offload compat__flow_cls_offload;
 #endif
 
+#ifdef COMPAT__HAVE_REGISTER_NETDEVICE_NOTIFIER_RH
+#define compat_register_netdevice_notifier	register_netdevice_notifier_rh
+#define compat_unregister_netdevice_notifier	unregister_netdevice_notifier_rh
+#else
+#define compat_register_netdevice_notifier	register_netdevice_notifier
+#define compat_unregister_netdevice_notifier	unregister_netdevice_notifier
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
 #define FLOW_CLS_REPLACE TC_CLSFLOWER_REPLACE
 #define FLOW_CLS_DESTROY TC_CLSFLOWER_DESTROY
