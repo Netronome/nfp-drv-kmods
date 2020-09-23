@@ -49,11 +49,11 @@
 #endif
 
 /* Redefine LINUX_VERSION_CODE for *-next kernels */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
-#include <net/tso.h>
-#if TSO_HEADER_SIZE > 128
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#include <net/netlink.h>
+#ifdef NLA_ENSURE_UINT_OR_BINARY_TYPE
 #undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(5, 9, 0)
+#define LINUX_VERSION_CODE KERNEL_VERSION(5, 10, 0)
 #endif
 #endif
 
