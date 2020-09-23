@@ -2358,10 +2358,18 @@ static bool nfp_ctrl_rx(struct nfp_net_r_vector *r_vec)
 }
 #endif /* CONFIG_NFP_NET_PF */
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
+static void nfp_ctrl_poll(struct tasklet_struct *t)
+#else
 static void nfp_ctrl_poll(unsigned long arg)
+#endif
 {
 #ifdef CONFIG_NFP_NET_PF
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
+	struct nfp_net_r_vector *r_vec = from_tasklet(r_vec, t, tasklet);
+#else
 	struct nfp_net_r_vector *r_vec = (void *)arg;
+#endif
 
 	spin_lock(&r_vec->lock);
 	nfp_net_tx_complete(r_vec->tx_ring, 0);
@@ -2410,8 +2418,12 @@ static void nfp_net_vecs_init(struct nfp_net *nn)
 
 			__skb_queue_head_init(&r_vec->queue);
 			spin_lock_init(&r_vec->lock);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
+			tasklet_setup(&r_vec->tasklet, nfp_ctrl_poll);
+#else
 			tasklet_init(&r_vec->tasklet, nfp_ctrl_poll,
 				     (unsigned long)r_vec);
+#endif
 			tasklet_disable(&r_vec->tasklet);
 		}
 
