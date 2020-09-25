@@ -360,16 +360,24 @@ err_close_nsp:
 	return err;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0)
 static int
 nfp_devlink_flash_update(struct devlink *devlink, const char *path,
 			 const char *component, struct netlink_ext_ack *extack)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0)
 	if (component)
 		return -EOPNOTSUPP;
-#endif
 	return nfp_flash_update_common(devlink_priv(devlink), path, extack);
 }
+#else
+static int
+nfp_devlink_flash_update(struct devlink *devlink,
+			 struct devlink_flash_update_params *params,
+			 struct netlink_ext_ack *extack)
+{
+	return nfp_flash_update_common(devlink_priv(devlink), params->file_name, extack);
+}
+#endif
 #endif
 
 const struct devlink_ops nfp_devlink_ops = {
