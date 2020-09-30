@@ -170,7 +170,7 @@ void nfp_shared_buf_unregister(struct nfp_pf *pf)
 }
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0)
+#if VER_NON_RHEL_LT(5, 4) || VER_RHEL_LT(8, 3)
 int nfp_devlink_params_register(struct nfp_pf *pf)
 {
 	return 0;

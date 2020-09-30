@@ -1358,7 +1358,7 @@ nfp_net_tx_ring_reset(struct nfp_net_dp *dp, struct nfp_net_tx_ring *tx_ring)
 	netdev_tx_reset_queue(nd_q);
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 6, 0)
+#if VER_NON_RHEL_LT(5, 6) || VER_RHEL_LT(8, 3)
 static void nfp_net_tx_timeout(struct net_device *netdev)
 {
 	struct nfp_net *nn = netdev_priv(netdev);

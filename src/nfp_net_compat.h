@@ -1334,7 +1334,7 @@ compat__tls_offload_tx_resync_request(struct sock *sk, u32 got_seq, u32 exp_seq)
 static inline struct bpf_map *
 compat__bpf_map_inc(struct bpf_map *map, bool uref)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 5, 0)
+#if VER_NON_RHEL_LT(5, 5) || VER_RHEL_LT(8, 3)
 	return bpf_map_inc(map, uref);
 #else
 	bpf_map_inc(map);

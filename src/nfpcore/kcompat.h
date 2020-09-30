@@ -882,7 +882,7 @@ struct xdp_attachment_info {
 typedef siginfo_t kernel_siginfo_t;
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
+#if VER_NON_RHEL_LT(5, 7) || VER_RHEL_LT(8, 3)
 /**
  * pci_get_dsn - Read and return the 8-byte Device Serial Number
  * @dev: PCI device to query
