@@ -375,7 +375,13 @@ nfp_devlink_flash_update(struct devlink *devlink,
 			 struct devlink_flash_update_params *params,
 			 struct netlink_ext_ack *extack)
 {
-	return nfp_flash_update_common(devlink_priv(devlink), params->file_name, extack);
+	return nfp_flash_update_common(devlink_priv(devlink),
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
+				       params->fw,
+#else
+				       params->file_name,
+#endif
+				       extack);
 }
 #endif
 #endif

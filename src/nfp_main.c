@@ -443,11 +443,18 @@ static void nfp_sriov_attr_remove(struct device *dev)
 #endif /* CONFIG_PCI_IOV */
 #endif /* Linux kernel version */
 
-int nfp_flash_update_common(struct nfp_pf *pf, const char *path,
+int nfp_flash_update_common(struct nfp_pf *pf,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
+			    const struct firmware *fw,
+#else
+			    const char *path,
+#endif
 			    struct netlink_ext_ack *extack)
 {
 	struct device *dev = &pf->pdev->dev;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 11, 0)
 	const struct firmware *fw;
+#endif
 	struct nfp_nsp *nsp;
 	int err;
 
@@ -461,6 +468,7 @@ int nfp_flash_update_common(struct nfp_pf *pf, const char *path,
 		return err;
 	}
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 11, 0)
 	err = request_firmware_direct(&fw, path, dev);
 	if (err) {
 		NL_SET_ERR_MSG_MOD(extack,
@@ -470,6 +478,7 @@ int nfp_flash_update_common(struct nfp_pf *pf, const char *path,
 
 	dev_info(dev, "Please be patient while writing flash image: %s\n",
 		 path);
+#endif
 
 	err = nfp_nsp_write_flash(nsp, fw);
 	if (err < 0)
@@ -478,8 +487,10 @@ int nfp_flash_update_common(struct nfp_pf *pf, const char *path,
 	err = 0;
 
 exit_release_fw:
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 11, 0)
 	release_firmware(fw);
 exit_close_nsp:
+#endif
 	nfp_nsp_close(nsp);
 	return err;
 }
