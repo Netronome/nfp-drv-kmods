@@ -4014,7 +4014,7 @@ static int nfp_net_xdp(struct net_device *netdev, struct netdev_bpf *xdp)
 	case XDP_QUERY_PROG_HW:
 #endif
 		return xdp_attachment_query(&nn->xdp_hw, xdp);
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0) */
+#endif /* VER_NON_RHEL_LT(5, 9) || VER_RHEL_LT(8, 4) */
 	default:
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
 		return nfp_app_bpf(nn->app, nn, xdp);

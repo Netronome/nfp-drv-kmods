@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 /* Copyright (C) 2021 Corigine, Inc. */
 
+#include <linux/netfilter.h>
+
 #include "conntrack.h"
 #include "../nfp_port.h"
 
@@ -1766,7 +1768,7 @@ int nfp_fl_ct_del_flow(struct nfp_fl_ct_map_entry *ct_map_ent)
 		 * nft table would already have been freed at that time.
 		 */
 		if (!zt->pre_ct_count) {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 14, 0)
+#if VER_NON_RHEL_LT(5, 14) || VER_RHEL_LT(8, 5)
 			rtnl_unlock(); /* avoid deadlock */
 			nf_flow_table_offload_del_cb(zt->nft,
 						     nfp_fl_ct_handle_nft_flow,

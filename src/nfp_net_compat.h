@@ -44,7 +44,7 @@
 #ifdef COMPAT__HAVE_TLS_OFFLOAD
 #include <net/tls.h>
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 #include <net/flow_offload.h>
 #endif
 
@@ -195,7 +195,7 @@
 #define NETIF_F_GSO_UDP_TUNNEL	0
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
+#if VER_NON_RHEL_LT(5, 3) || VER_RHEL_LT(8, 2)
 typedef struct tc_block_offload compat__flow_block_offload;
 typedef struct tc_cls_flower_offload compat__flow_cls_offload;
 #else
@@ -211,7 +211,7 @@ typedef struct flow_cls_offload compat__flow_cls_offload;
 #define compat_unregister_netdevice_notifier	unregister_netdevice_notifier
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
+#if VER_NON_RHEL_LT(5, 3) || VER_RHEL_LT(8, 2)
 #define FLOW_CLS_REPLACE TC_CLSFLOWER_REPLACE
 #define FLOW_CLS_DESTROY TC_CLSFLOWER_DESTROY
 #define FLOW_CLS_STATS TC_CLSFLOWER_STATS
@@ -795,7 +795,7 @@ static inline struct net_device *tcf_mirred_dev(const struct tc_action *action)
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0) || \
-    (!defined(CONFIG_NET_CLS) && LINUX_VERSION_CODE < KERNEL_VERSION(5, 2, 0))
+    (!defined(CONFIG_NET_CLS) && (VER_NON_RHEL_LT(5, 2) || VER_RHEL_GE(8, 0)))
 #define tcf_block_shared(b)	false
 #endif
 
@@ -861,7 +861,7 @@ void compat__devlink_port_attrs_set(struct devlink_port *devlink_port,
 }
 #else
 #define compat__devlink_port_attrs_set devlink_port_attrs_set
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0) */
+#endif /* VER_NON_RHEL_LT(5, 9) || VER_RHEL_LT(8, 4) */
 
 #endif /* COMPAT__HAS_DEVLINK */
 
@@ -1043,7 +1043,9 @@ __netdev_tx_sent_queue(struct netdev_queue *nd_q, u32 len, bool xmit_more)
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 #undef CONFIG_NFP_APP_ABM_NIC
+#endif
 
+#if VER_NON_RHEL_LT(5, 0) || VER_RHEL_LT(8, 1)
 static inline bool netif_is_geneve(const struct net_device *dev)
 {
        return dev->rtnl_link_ops &&
@@ -1067,16 +1069,19 @@ static inline bool netif_is_ip6gretap(const struct net_device *dev)
 #define dma_zalloc_coherent	dma_alloc_coherent
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_LT(5, 1) || VER_RHEL_LT(8, 2)
 #define BPF_JMP32	0x06
+#endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0) && \
+    LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
 static inline struct nfp_net *compat__bpf_prog_get_nn(struct bpf_prog *prog)
 {
 	return netdev_priv(prog->aux->offload->netdev);
 }
 #endif
 
+#if VER_NON_RHEL_LT(5, 1) || VER_RHEL_LT(8, 1)
 #ifdef COMPAT__HAVE_METADATA_IP_TUNNEL
 enum flow_action_id {
 	FLOW_ACTION_ACCEPT,
@@ -1189,9 +1194,7 @@ netdev_port_same_parent_id(struct net_device *a, struct net_device *b)
 	return switchdev_port_same_parent_id(a, b);
 }
 #endif /* COMPAT__HAVE_METADATA_IP_TUNNEL */
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0) */
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#else /* !(VER_NON_RHEL_LT(5, 1) || VER_RHEL_LT(8, 1)) */
 static inline int
 compat__tca_to_flow_act_id(const struct flow_action_entry *act)
 {
@@ -1267,7 +1270,7 @@ compat__tca_pedit_offset(const struct flow_action_entry *act, int idx)
 {
 	return act->mangle.offset;
 }
-#endif
+#endif /* !(VER_NON_RHEL_LT(5, 1) || VER_RHEL_LT(8, 1)) */
 
 #if VER_NON_RHEL_LT(5, 1) || VER_RHEL_LT(8, 5)
 int compat__nfp_net_flash_device(struct net_device *netdev,
@@ -1276,11 +1279,11 @@ int compat__nfp_net_flash_device(struct net_device *netdev,
 #define compat__nfp_net_flash_device	NULL
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 static inline struct flow_rule *
 compat__flow_cls_offload_flow_rule(compat__flow_cls_offload *flow)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
+#if VER_NON_RHEL_LT(5, 3) || VER_RHEL_LT(8, 2)
 	return tc_cls_flower_offload_flow_rule(flow);
 #else
 	return flow_cls_offload_flow_rule(flow);
@@ -1314,7 +1317,7 @@ compat__flow_block_cb_setup_simple(struct flow_block_offload *f,
 #endif
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 2, 0)
+#if VER_NON_RHEL_LT(5, 2) || VER_RHEL_LT(8, 2)
 static inline void nfp_flower_qos_init(struct nfp_app *app)
 {
 }
@@ -1342,7 +1345,7 @@ enum {
 	FLOW_ACTION_MIRRED_INGRESS = 0xff,
 };
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_GE(5, 0) || VER_RHEL_EQ(8, 1)
 static inline int
 __flow_indr_block_cb_register(struct net_device *dev, void *cb_priv,
 			      tc_indr_block_bind_cb_t *cb, void *cb_ident)
@@ -1421,9 +1424,9 @@ static inline bool tls_is_sk_rx_device_offloaded(struct sock *sk)
 #define sizeof_field(TYPE, MEMBER) sizeof((((TYPE *)0)->MEMBER))
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
+#if VER_NON_RHEL_LT(5, 9) || VER_RHEL_LT(8, 4)
+#if VER_NON_RHEL_LT(5, 7) || VER_RHEL_LT(8, 3)
 enum flow_action_hw_stats_bit {
 	FLOW_ACTION_HW_STATS_IMMEDIATE_BIT,
 	FLOW_ACTION_HW_STATS_DELAYED_BIT,
@@ -1432,14 +1435,14 @@ enum flow_action_hw_stats_bit {
 enum flow_action_hw_stats {
 	FLOW_ACTION_HW_STATS_DELAYED = BIT(FLOW_ACTION_HW_STATS_DELAYED_BIT),
 };
-#endif
+#endif /* VER_NON_RHEL_LT(5, 7) || VER_RHEL_LT(8, 2) */
 
 static inline void
 compat__flow_stats_update(struct flow_stats *flow_stats,
 			  u64 bytes, u64 pkts, u64 drops, u64 lastused,
 			  enum flow_action_hw_stats used_hw_stats)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
+#if VER_NON_RHEL_LT(5, 7) || VER_RHEL_LT(8, 3)
 	flow_stats_update(flow_stats, bytes, pkts, lastused);
 #else
 	flow_stats_update(flow_stats, bytes, pkts, lastused, used_hw_stats);
@@ -1448,35 +1451,45 @@ compat__flow_stats_update(struct flow_stats *flow_stats,
 
 #define flow_stats_update compat__flow_stats_update
 
-#endif /* >= v5.1.0 */
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0) */
 
 /* Firmware bundle identifier */
 #define DEVLINK_INFO_VERSION_GENERIC_FW_BUNDLE_ID	"fw.bundle_id"
 
-#endif /* < v5.7.0 */
+#endif /* VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1) */
 
 #if VER_NON_RHEL_LT(5, 3) || VER_RHEL_LT(8, 2)
 struct flow_block_cb {};
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_GE(5, 0) || VER_RHEL_GE(8, 0)
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 4)
 #define compat__nfp_flower_indr_setup_tc_cb nfp_flower_indr_setup_tc_cb
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
+#elif VER_NON_RHEL_GE(5, 8) || VER_BCL_GE(8, 3)
 int compat__nfp_flower_indr_setup_tc_cb(struct net_device *netdev,
 					void *cb_priv, enum tc_setup_type type,
 					void *type_data, void *data,
 					void (*cleanup)(struct flow_block_cb *block_cb));
-#else
+#elif VER_NON_RHEL_GE(5, 0) || VER_RHEL_GE(8, 1)
 int compat__nfp_flower_indr_setup_tc_cb(struct net_device *netdev,
 					void *cb_priv, enum tc_setup_type type,
 					void *type_data);
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if VER_NON_RHEL_GE(5, 8) || VER_BCL_GE(8, 3) || VER_NON_BCL_GE(8, 4)
+#define compat__nfp_flower_setup_indr_tc_release \
+	nfp_flower_setup_indr_tc_release
+#elif VER_RHEL_GE(8, 3)
+int nfp_flower_setup_indr_block_cb(enum tc_setup_type type,
+				   void *type_data, void *cb_priv);
+#define compat__nfp_flower_setup_indr_tc_release \
+	nfp_flower_setup_indr_block_cb
+#endif
+
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 4)
 #define compat__flow_indr_block_cb_alloc flow_indr_block_cb_alloc
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0)
+#elif VER_NON_RHEL_GE(5, 3) || VER_RHEL_GE(8, 2)
 static inline struct flow_block_cb *
 compat__flow_indr_block_cb_alloc(flow_setup_cb_t *cb, void *cb_ident,
 				 void *cb_priv, void (*release)(void *cb_priv),
@@ -1486,7 +1499,7 @@ compat__flow_indr_block_cb_alloc(flow_setup_cb_t *cb, void *cb_ident,
 				 void *indr_cb_priv,
 				 void (*cleanup)(struct flow_block_cb *block_cb))
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
+#if VER_NON_RHEL_GE(5, 8) || VER_BCL_GE(8, 3)
 	return flow_indr_block_cb_alloc(cb, cb_ident, cb_priv, release, bo,
 					dev, data, indr_cb_priv, cleanup);
 #else
@@ -1495,10 +1508,10 @@ compat__flow_indr_block_cb_alloc(flow_setup_cb_t *cb, void *cb_ident,
 }
 #endif
 
-#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0) */
+#endif /* VER_NON_RHEL_GE(5, 0) || VER_RHEL_GE(8, 0) */
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0) && \
-    LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
+#if (VER_NON_RHEL_GE(5, 3) && VER_NON_RHEL_LT(5, 8)) || \
+	(VER_RHEL_GE(8, 2) && (VER_NON_BCL_LT(8, 4) || VER_BCL_LT(8, 3)))
 static inline void
 flow_indr_block_cb_remove(struct flow_block_cb *block_cb,
 			  struct flow_block_offload *offload)

@@ -25,6 +25,9 @@
 #ifndef RHEL_MAJOR
 #define RHEL_MAJOR 0
 #endif
+#ifndef COMPAT_BCLINUX
+#define COMPAT_BCLINUX 0
+#endif
 
 #ifdef COMPAT__UTS_UBUNTU_RELEASE_ABI_BAD
 #undef UTS_UBUNTU_RELEASE_ABI
@@ -61,6 +64,13 @@
 #define VER_RHEL_EQ(x, y)	(VER_RHEL_GE(x, y) && VER_RHEL_LT(x, y + 1))
 #define RHEL_MAJOR_EQ(r)	(RHEL_RELEASE_CODE && (RHEL_MAJOR == r))
 #define VER_IS_NON_RHEL	!RHEL_RELEASE_CODE
+
+#define VER_NON_BCL_GE(x, y)	(!COMPAT_BCLINUX && VER_RHEL_GE(x, y))
+#define VER_NON_BCL_LT(x, y)	(!COMPAT_BCLINUX && VER_RHEL_LT(x, y))
+#define VER_NON_BCL_EQ(x, y)	(!COMPAT_BCLINUX && VER_RHEL_EQ(x, y))
+#define VER_BCL_GE(x, y)	(COMPAT_BCLINUX && VER_RHEL_GE(x, y))
+#define VER_BCL_LT(x, y)	(COMPAT_BCLINUX && VER_RHEL_LT(x, y))
+#define VER_BCL_EQ(x, y)	(COMPAT_BCLINUX && VER_RHEL_EQ(x, y))
 
 #define RHEL_RELEASE_MERGE(a, b, c) (((a) << 16) + ((b) << 8) + (c))
 #define RHEL_RELEASE_EXTRACT\
@@ -790,12 +800,6 @@ static inline void timer_setup(struct timer_list *t, void (*f)(unsigned long),
 	container_of((void *)callback_timer, typeof(*var), timer_fieldname)
 #endif
 
-/* Kconfig will add this variable for RHEL 7.5+, however, we intentionally
- * disable support for this feature.
- */
-#if VER_RHEL_GE(7, 5)
-#undef CONFIG_NFP_APP_FLOWER
-#endif
 
 #if VER_NON_RHEL_LT(4, 16) || VER_RHEL_LT(7, 6)
 struct xdp_rxq_info {

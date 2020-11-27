@@ -231,7 +231,7 @@ struct nfp_flower_priv {
 	spinlock_t qos_stats_lock; /* Protect the qos stats */
 	int pre_tun_rule_cnt;
 	struct rhashtable merge_table;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 3)
 	struct rhashtable ct_zone_table;
 	struct nfp_fl_ct_zone_entry *ct_zone_wc;
 	struct rhashtable ct_map_table;
@@ -336,7 +336,7 @@ struct nfp_fl_payload {
 	char *unmasked_data;
 	char *mask_data;
 	char *action_data;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 	bool ingress_offload;
 #endif
 	struct list_head linked_flows;
@@ -419,7 +419,7 @@ int nfp_flower_setup_tc(struct nfp_app *app, struct net_device *netdev,
 int nfp_flower_merge_offloaded_flows(struct nfp_app *app,
 				     struct nfp_fl_payload *sub_flow1,
 				     struct nfp_fl_payload *sub_flow2);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 void
 nfp_flower_compile_meta(struct nfp_flower_meta_tci *ext,
 			struct nfp_flower_meta_tci *msk, u8 key_type);
@@ -434,7 +434,7 @@ int
 nfp_flower_compile_port(struct nfp_flower_in_port *frame, u32 cmsg_port,
 			bool mask_version, enum nfp_flower_tun_type tun_type,
 			struct netlink_ext_ack *extack);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 void
 nfp_flower_compile_mac(struct nfp_flower_mac_mpls *ext,
 		       struct nfp_flower_mac_mpls *msk,
@@ -478,7 +478,7 @@ nfp_flower_compile_ipv6_gre_tun(struct nfp_flower_ipv6_gre_tun *ext,
 				struct flow_rule *rule);
 #endif
 int nfp_flower_compile_flow_match(struct nfp_app *app,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 				  struct flow_rule *rule,
 #else
 				  compat__flow_cls_offload *flow,
@@ -489,7 +489,7 @@ int nfp_flower_compile_flow_match(struct nfp_app *app,
 				  enum nfp_flower_tun_type tun_type,
 				  struct netlink_ext_ack *extack);
 int nfp_flower_compile_action(struct nfp_app *app,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 			      struct flow_rule *rule,
 #else
 			      compat__flow_cls_offload *flow,
@@ -531,7 +531,7 @@ void nfp_tunnel_request_route_v4(struct nfp_app *app, struct sk_buff *skb);
 void nfp_tunnel_request_route_v6(struct nfp_app *app, struct sk_buff *skb);
 void nfp_tunnel_keep_alive(struct nfp_app *app, struct sk_buff *skb);
 void nfp_tunnel_keep_alive_v6(struct nfp_app *app, struct sk_buff *skb);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 int nfp_flower_setup_tc_egress_cb(enum tc_setup_type type, void *type_data,
 				  void *cb_priv);
 #endif
@@ -548,7 +548,7 @@ int nfp_flower_lag_populate_pre_action(struct nfp_app *app,
 				       struct netlink_ext_ack *extack);
 int nfp_flower_lag_get_output_id(struct nfp_app *app,
 				 struct net_device *master);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 2, 0)
+#if VER_NON_RHEL_GE(5, 2) || VER_RHEL_GE(8, 2)
 void nfp_flower_qos_init(struct nfp_app *app);
 void nfp_flower_qos_cleanup(struct nfp_app *app);
 int nfp_flower_setup_qos_offload(struct nfp_app *app, struct net_device *netdev,
@@ -580,20 +580,20 @@ int nfp_flower_xmit_pre_tun_flow(struct nfp_app *app,
 int nfp_flower_xmit_pre_tun_del_flow(struct nfp_app *app,
 				     struct nfp_fl_payload *flow);
 struct nfp_fl_payload *
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
-nfp_flower_allocate_new(struct nfp_fl_key_ls *key_layer);
-#else
+#if VER_NON_RHEL_LT(5, 0)
 nfp_flower_allocate_new(struct nfp_fl_key_ls *key_layer, bool egress);
+#else
+nfp_flower_allocate_new(struct nfp_fl_key_ls *key_layer);
 #endif
 int nfp_flower_calculate_key_layers(struct nfp_app *app,
 				    struct net_device *netdev,
 				    struct nfp_fl_key_ls *ret_key_ls,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 				    struct flow_rule *flow,
 #else
 				    compat__flow_cls_offload *flow,
 #endif
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 				    bool egress,
 #endif
 				    enum nfp_flower_tun_type *tun_type,

@@ -3,6 +3,7 @@
 
 #include "nfp_net_compat.h"
 
+#include <linux/netfilter.h>
 #include <linux/skbuff.h>
 #include <net/devlink.h>
 #include <net/pkt_cls.h>
@@ -10,7 +11,7 @@
 #include "cmsg.h"
 #include "main.h"
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 3)
 #include "conntrack.h"
 #endif
 
@@ -29,7 +30,7 @@
 	(FLOW_DIS_IS_FRAGMENT | \
 	 FLOW_DIS_FIRST_FRAG)
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 3)
 #define NFP_FLOWER_WHITELIST_DISSECTOR \
 	(BIT(FLOW_DISSECTOR_KEY_CONTROL) | \
 	 BIT(FLOW_DISSECTOR_KEY_BASIC) | \
@@ -164,7 +165,7 @@ nfp_flower_xmit_flow(struct nfp_app *app, struct nfp_fl_payload *nfp_flow,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 static bool nfp_flower_check_higher_than_mac(struct flow_rule *rule)
 {
 	return flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_IPV4_ADDRS) ||
@@ -185,7 +186,7 @@ static bool nfp_flower_check_higher_than_mac(compat__flow_cls_offload *f)
 }
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 static bool nfp_flower_check_higher_than_l3(struct flow_rule *rule)
 {
 	return flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_PORTS) ||
@@ -288,18 +289,18 @@ int
 nfp_flower_calculate_key_layers(struct nfp_app *app,
 				struct net_device *netdev,
 				struct nfp_fl_key_ls *ret_key_ls,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 				struct flow_rule *rule,
 #else
 				compat__flow_cls_offload *flow,
 #endif
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 				bool egress,
 #endif
 				enum nfp_flower_tun_type *tun_type,
 				struct netlink_ext_ack *extack)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 	struct flow_dissector *dissector = rule->match.dissector;
 	struct flow_match_basic basic = { NULL, NULL};
 #else
@@ -312,7 +313,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 	int key_size;
 	int err;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 	if (dissector->used_keys & ~NFP_FLOWER_WHITELIST_DISSECTOR) {
 #else
 	if (flow->dissector->used_keys & ~NFP_FLOWER_WHITELIST_DISSECTOR) {
@@ -322,7 +323,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 	}
 
 	/* If any tun dissector is used then the required set must be used. */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 	if (dissector->used_keys & NFP_FLOWER_WHITELIST_TUN_DISSECTOR &&
 	    (dissector->used_keys & NFP_FLOWER_WHITELIST_TUN_DISSECTOR_V6_R)
 	    != NFP_FLOWER_WHITELIST_TUN_DISSECTOR_V6_R &&
@@ -341,7 +342,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 	key_size = sizeof(struct nfp_flower_meta_tci) +
 		   sizeof(struct nfp_flower_in_port);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_ETH_ADDRS) ||
 	    flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_MPLS)) {
 #else
@@ -352,7 +353,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 		key_size += sizeof(struct nfp_flower_mac_mpls);
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_VLAN)) {
 		struct flow_match_vlan vlan;
 
@@ -366,7 +367,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 						      flow->mask);
 #endif
 		if (!(priv->flower_ext_feats & NFP_FL_FEATS_VLAN_PCP) &&
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 		    vlan.key->vlan_priority) {
 #else
 		    flow_vlan->vlan_priority) {
@@ -382,7 +383,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 			key_layer_two |= NFP_FLOWER_LAYER2_QINQ;
 		}
 	}
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_CVLAN)) {
 		struct flow_match_vlan cvlan;
 
@@ -413,7 +414,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 		}
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_ENC_CONTROL)) {
 		struct flow_match_enc_opts enc_op = { NULL, NULL };
 		struct flow_match_ipv4_addrs ipv4_addrs;
@@ -503,7 +504,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 			if (err)
 				return err;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_GE(5, 0) || VER_RHEL_GE(8, 0)
 			/* Ensure the ingress netdev matches the expected
 			 * tun type.
 			 */
@@ -528,7 +529,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 			skb_flow_dissector_target(flow->dissector,
 						  FLOW_DISSECTOR_KEY_ENC_CONTROL,
 						  flow->key);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 		if (!egress) {
 			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: cannot offload tunnels without egress support");
 			return -EOPNOTSUPP;
@@ -583,7 +584,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 		if (err)
 			return err;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_GE(5, 0) || VER_RHEL_GE(8, 0)
 		/* Ensure the ingress netdev matches the expected tun type. */
 		if (!nfp_fl_netdev_is_tunnel_type(netdev, *tun_type)) {
 			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: ingress netdev does not match the expected tunnel type");
@@ -598,7 +599,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 #endif
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_BASIC))
 		flow_rule_match_basic(rule, &basic);
 #else
@@ -613,13 +614,13 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 	}
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 	if (basic.mask && basic.mask->n_proto) {
 #else
 	if (mask_basic && mask_basic->n_proto) {
 #endif
 		/* Ethernet type is present in the key. */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 		switch (basic.key->n_proto) {
 #else
 		switch (key_basic->n_proto) {
@@ -657,7 +658,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: match on given EtherType is not supported");
 			return -EOPNOTSUPP;
 		}
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 	} else if (nfp_flower_check_higher_than_mac(rule)) {
 #else
 	} else if (nfp_flower_check_higher_than_mac(flow)) {
@@ -666,12 +667,12 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 		return -EOPNOTSUPP;
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 	if (basic.mask && basic.mask->ip_proto) {
 #else
 	if (mask_basic && mask_basic->ip_proto) {
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 		switch (basic.key->ip_proto) {
 #else
 		switch (key_basic->ip_proto) {
@@ -688,7 +689,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 	}
 
 	if (!(key_layer & NFP_FLOWER_LAYER_TP) &&
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 	    nfp_flower_check_higher_than_l3(rule)) {
 #else
 	    nfp_flower_check_higher_than_l3(flow)) {
@@ -697,7 +698,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 		return -EOPNOTSUPP;
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_TCP)) {
 		struct flow_match_tcp tcp;
 #else
@@ -706,7 +707,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 #endif
 		u32 tcp_flags;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 		flow_rule_match_tcp(rule, &tcp);
 		tcp_flags = be16_to_cpu(tcp.key->flags);
 #else
@@ -734,7 +735,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 		 * space, thus we need to ensure we include a IPv4/IPv6 key
 		 * layer if we have not done so already.
 		 */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 		if (!basic.key) {
 #else
 		if (!key_basic) {
@@ -745,7 +746,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 
 		if (!(key_layer & NFP_FLOWER_LAYER_IPV4) &&
 		    !(key_layer & NFP_FLOWER_LAYER_IPV6)) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 			switch (basic.key->n_proto) {
 #else
 			switch (key_basic->n_proto) {
@@ -767,7 +768,7 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 		}
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_CONTROL)) {
 		struct flow_match_control ctl;
 
@@ -800,10 +801,10 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 }
 
 struct nfp_fl_payload *
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
-nfp_flower_allocate_new(struct nfp_fl_key_ls *key_layer)
-#else
+#if VER_NON_RHEL_LT(5, 0)
 nfp_flower_allocate_new(struct nfp_fl_key_ls *key_layer, bool egress)
+#else
+nfp_flower_allocate_new(struct nfp_fl_key_ls *key_layer)
 #endif
 {
 	struct nfp_fl_payload *flow_pay;
@@ -829,7 +830,7 @@ nfp_flower_allocate_new(struct nfp_fl_key_ls *key_layer, bool egress)
 	flow_pay->nfp_tun_ipv4_addr = 0;
 	flow_pay->nfp_tun_ipv6 = NULL;
 	flow_pay->meta.flags = 0;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 	flow_pay->ingress_offload = !egress;
 #endif
 	INIT_LIST_HEAD(&flow_pay->linked_flows);
@@ -1297,7 +1298,7 @@ int nfp_flower_merge_offloaded_flows(struct nfp_app *app,
 
 	merge_key_ls.key_size = sub_flow1->meta.key_len;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 	merge_flow = nfp_flower_allocate_new(&merge_key_ls, false);
 #else
 	merge_flow = nfp_flower_allocate_new(&merge_key_ls);
@@ -1540,7 +1541,7 @@ nfp_flower_validate_pre_tun_rule(struct nfp_app *app,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 3)
 static bool offload_pre_check(struct flow_cls_offload *flow)
 {
 	struct flow_rule *rule = flow_cls_offload_flow_rule(flow);
@@ -1567,7 +1568,7 @@ static bool offload_pre_check(struct flow_cls_offload *flow)
  *
  * Return: negative value on error, 0 if configured successfully.
  */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 static int
 nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 		       compat__flow_cls_offload *flow, bool egress)
@@ -1577,7 +1578,7 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 		       compat__flow_cls_offload *flow)
 #endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 	struct flow_rule *rule = compat__flow_cls_offload_flow_rule(flow);
 #endif
 	enum nfp_flower_tun_type tun_type = NFP_FL_TUNNEL_NONE;
@@ -1586,7 +1587,7 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 	struct nfp_fl_payload *flow_pay;
 	struct nfp_fl_key_ls *key_layer;
 	struct nfp_port *port = NULL;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 	struct net_device *ingr_dev;
 #endif
 	int err;
@@ -1597,7 +1598,7 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 	if (nfp_netdev_is_nfp_repr(netdev))
 		port = nfp_port_from_netdev(netdev);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 3)
 	if (is_pre_ct_flow(flow))
 		return nfp_fl_ct_handle_pre_ct(priv, netdev, flow, extack);
 
@@ -1608,7 +1609,7 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 		return -EOPNOTSUPP;
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 	ingr_dev = egress ? NULL : netdev;
 	flow_pay = nfp_flower_search_fl_table(app, flow->cookie, ingr_dev);
 	if (flow_pay) {
@@ -1626,10 +1627,10 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 	if (!key_layer)
 		return -ENOMEM;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 	err = nfp_flower_calculate_key_layers(app, netdev, key_layer, flow,
 					      egress, &tun_type, extack);
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
+#elif VER_NON_RHEL_LT(5, 1) || VER_RHEL_LT(8, 1)
 	err = nfp_flower_calculate_key_layers(app, netdev, key_layer, flow,
 					      &tun_type, extack);
 #else
@@ -1639,7 +1640,7 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 	if (err)
 		goto err_free_key_ls;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 	flow_pay = nfp_flower_allocate_new(key_layer, egress);
 #else
 	flow_pay = nfp_flower_allocate_new(key_layer);
@@ -1649,11 +1650,11 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 		goto err_free_key_ls;
 	}
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 	flow_pay->ingress_dev = egress ? NULL : netdev;
 
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 	err = nfp_flower_compile_flow_match(app, rule, key_layer, netdev,
 					    flow_pay, tun_type, extack);
 #else
@@ -1663,7 +1664,7 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 	if (err)
 		goto err_destroy_flow;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 	err = nfp_flower_compile_action(app, rule, netdev, flow_pay, extack);
 #else
 	err = nfp_flower_compile_action(app, flow, netdev, flow_pay, extack);
@@ -1677,7 +1678,7 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 			goto err_destroy_flow;
 	}
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 	err = nfp_compile_flow_metadata(app, flow->cookie, flow_pay,
 					flow_pay->ingress_dev, extack);
 #else
@@ -1827,7 +1828,7 @@ nfp_flower_del_linked_merge_flows(struct nfp_app *app,
  *
  * Return: negative value on error, 0 if removed successfully.
  */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 static int
 nfp_flower_del_offload(struct nfp_app *app, struct net_device *netdev,
 		       struct tc_cls_flower_offload *flow, bool egress)
@@ -1838,13 +1839,13 @@ nfp_flower_del_offload(struct nfp_app *app, struct net_device *netdev,
 #endif
 {
 	struct nfp_flower_priv *priv = app->priv;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 3)
 	struct nfp_fl_ct_map_entry *ct_map_ent;
 #endif
 	struct netlink_ext_ack *extack = NULL;
 	struct nfp_fl_payload *nfp_flow;
 	struct nfp_port *port = NULL;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 	struct net_device *ingr_dev;
 #endif
 	int err;
@@ -1855,7 +1856,7 @@ nfp_flower_del_offload(struct nfp_app *app, struct net_device *netdev,
 	if (nfp_netdev_is_nfp_repr(netdev))
 		port = nfp_port_from_netdev(netdev);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 3)
 	/* Check ct_map_table */
 	ct_map_ent = rhashtable_lookup_fast(&priv->ct_map_table, &flow->cookie,
 					    nfp_ct_map_params);
@@ -1865,14 +1866,14 @@ nfp_flower_del_offload(struct nfp_app *app, struct net_device *netdev,
 	}
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 	ingr_dev = egress ? NULL : netdev;
 	nfp_flow = nfp_flower_search_fl_table(app, flow->cookie, ingr_dev);
 #else
 	nfp_flow = nfp_flower_search_fl_table(app, flow->cookie, netdev);
 #endif
 	if (!nfp_flow) {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 		if (egress)
 			return 0;
 #endif
@@ -1975,7 +1976,7 @@ nfp_flower_update_merge_stats(struct nfp_app *app,
  *
  * Return: negative value on error, 0 if stats populated successfully.
  */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 static int
 nfp_flower_get_stats(struct nfp_app *app, struct net_device *netdev,
 		     struct tc_cls_flower_offload *flow, bool egress)
@@ -1986,17 +1987,17 @@ nfp_flower_get_stats(struct nfp_app *app, struct net_device *netdev,
 #endif
 {
 	struct nfp_flower_priv *priv = app->priv;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 3)
 	struct nfp_fl_ct_map_entry *ct_map_ent;
 #endif
 	struct netlink_ext_ack *extack = NULL;
 	struct nfp_fl_payload *nfp_flow;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 	struct net_device *ingr_dev;
 #endif
 	u32 ctx_id;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 3)
 	/* Check ct_map table first */
 	ct_map_ent = rhashtable_lookup_fast(&priv->ct_map_table, &flow->cookie,
 					    nfp_ct_map_params);
@@ -2007,7 +2008,7 @@ nfp_flower_get_stats(struct nfp_app *app, struct net_device *netdev,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
 	extack = flow->common.extack;
 #endif
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 	ingr_dev = egress ? NULL : netdev;
 	nfp_flow = nfp_flower_search_fl_table(app, flow->cookie, ingr_dev);
 #else
@@ -2018,7 +2019,7 @@ nfp_flower_get_stats(struct nfp_app *app, struct net_device *netdev,
 		return -EINVAL;
 	}
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 	if (nfp_flow->ingress_offload && egress)
 		return 0;
 
@@ -2030,7 +2031,7 @@ nfp_flower_get_stats(struct nfp_app *app, struct net_device *netdev,
 	if (!list_empty(&nfp_flow->linked_flows))
 		nfp_flower_update_merge_stats(app, nfp_flow);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_LT(5, 1) || VER_RHEL_LT(8, 1)
 	tcf_exts_stats_update(flow->exts, priv->stats[ctx_id].bytes,
 			      priv->stats[ctx_id].pkts,
 			      priv->stats[ctx_id].used);
@@ -2048,7 +2049,7 @@ nfp_flower_get_stats(struct nfp_app *app, struct net_device *netdev,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 static int
 nfp_flower_repr_offload(struct nfp_app *app, struct net_device *netdev,
 			struct tc_cls_flower_offload *flower, bool egress)
@@ -2065,19 +2066,19 @@ nfp_flower_repr_offload(struct nfp_app *app, struct net_device *netdev,
 
 	switch (flower->command) {
 	case FLOW_CLS_REPLACE:
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 		return nfp_flower_add_offload(app, netdev, flower, egress);
 #else
 		return nfp_flower_add_offload(app, netdev, flower);
 #endif
 	case FLOW_CLS_DESTROY:
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 		return nfp_flower_del_offload(app, netdev, flower, egress);
 #else
 		return nfp_flower_del_offload(app, netdev, flower);
 #endif
 	case FLOW_CLS_STATS:
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 		return nfp_flower_get_stats(app, netdev, flower, egress);
 #else
 		return nfp_flower_get_stats(app, netdev, flower);
@@ -2088,7 +2089,7 @@ nfp_flower_repr_offload(struct nfp_app *app, struct net_device *netdev,
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 int nfp_flower_setup_tc_egress_cb(enum tc_setup_type type, void *type_data,
 				  void *cb_priv)
 {
@@ -2106,25 +2107,25 @@ int nfp_flower_setup_tc_egress_cb(enum tc_setup_type type, void *type_data,
 	}
 }
 
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0) */
+#endif /* VER_NON_RHEL_LT(5, 0) */
 static int nfp_flower_setup_tc_block_cb(enum tc_setup_type type,
 					void *type_data, void *cb_priv)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 3)
 	struct flow_cls_common_offload *common = type_data;
 #endif
 	struct nfp_repr *repr = cb_priv;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
-	if (!tc_cls_can_offload_and_chain0(repr->netdev, type_data))
-#else
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 3)
 	if (!tc_can_offload_extack(repr->netdev, common->extack))
+#else
+	if (!tc_cls_can_offload_and_chain0(repr->netdev, type_data))
 #endif
 		return -EOPNOTSUPP;
 
 	switch (type) {
 	case TC_SETUP_CLSFLOWER:
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_LT(5, 0)
 		return nfp_flower_repr_offload(repr->app, repr->netdev,
 					       type_data, false);
 #else
@@ -2139,7 +2140,7 @@ static int nfp_flower_setup_tc_block_cb(enum tc_setup_type type,
 	}
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_GE(5, 0) || VER_RHEL_GE(8, 0)
 static LIST_HEAD(nfp_block_cb_list);
 #endif
 
@@ -2148,19 +2149,19 @@ static int nfp_flower_setup_tc_block(struct net_device *netdev,
 {
 	struct nfp_repr *repr = netdev_priv(netdev);
 	struct nfp_flower_repr_priv *repr_priv;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0)
+#if VER_NON_RHEL_GE(5, 3) || VER_RHEL_GE(8, 2)
 	struct flow_block_cb *block_cb;
 #endif
 
 	if (f->binder_type != FLOW_BLOCK_BINDER_TYPE_CLSACT_INGRESS)
 		return -EOPNOTSUPP;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
+#if VER_NON_RHEL_LT(4, 19)
 	if (tcf_block_shared(f->block))
 		return -EOPNOTSUPP;
 #endif
 	repr_priv = repr->app_priv;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
+#if VER_NON_RHEL_LT(5, 3) || VER_RHEL_LT(8, 2)
 	repr_priv->block_shared = tcf_block_shared(f->block);
 #else
 	repr_priv->block_shared = f->block_shared;
@@ -2169,7 +2170,7 @@ static int nfp_flower_setup_tc_block(struct net_device *netdev,
 
 	switch (f->command) {
 	case FLOW_BLOCK_BIND:
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
+#if VER_NON_RHEL_LT(5, 3) || VER_RHEL_LT(8, 2)
 		return tcf_block_cb_register(f->block,
 					     nfp_flower_setup_tc_block_cb,
 					     repr, repr, f->extack);
@@ -2188,7 +2189,7 @@ static int nfp_flower_setup_tc_block(struct net_device *netdev,
 		return 0;
 #endif
 	case FLOW_BLOCK_UNBIND:
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
+#if VER_NON_RHEL_LT(5, 3) || VER_RHEL_LT(8, 2)
 		tcf_block_cb_unregister(f->block,
 					nfp_flower_setup_tc_block_cb,
 					repr);
@@ -2246,7 +2247,7 @@ int nfp_flower_setup_tc(struct nfp_app *app, struct net_device *netdev,
 }
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_GE(5, 0) || VER_RHEL_GE(8, 0)
 struct nfp_flower_indr_block_cb_priv {
 	struct net_device *netdev;
 	struct nfp_app *app;
@@ -2272,11 +2273,14 @@ nfp_flower_indr_block_cb_priv_lookup(struct nfp_app *app,
 	return NULL;
 }
 
-static int nfp_flower_setup_indr_block_cb(enum tc_setup_type type,
-					  void *type_data, void *cb_priv)
+#if !VER_RHEL_GE(8, 3)
+static
+#endif
+int nfp_flower_setup_indr_block_cb(enum tc_setup_type type, void *type_data,
+				   void *cb_priv)
 {
 	struct nfp_flower_indr_block_cb_priv *priv = cb_priv;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
+#if VER_NON_RHEL_LT(5, 9) || VER_RHEL_LT(8, 3)
 	compat__flow_cls_offload *flower = type_data;
 
 	if (flower->common.chain_index)
@@ -2292,7 +2296,7 @@ static int nfp_flower_setup_indr_block_cb(enum tc_setup_type type,
 	}
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0)
+#if VER_NON_RHEL_GE(5, 3) || VER_RHEL_GE(8, 2)
 void nfp_flower_setup_indr_tc_release(void *cb_priv)
 {
 	struct nfp_flower_indr_block_cb_priv *priv = cb_priv;
@@ -2309,7 +2313,7 @@ nfp_flower_setup_indr_tc_block(struct net_device *netdev, struct Qdisc *sch, str
 {
 	struct nfp_flower_indr_block_cb_priv *cb_priv;
 	struct nfp_flower_priv *priv = app->priv;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
+#if VER_NON_RHEL_LT(5, 3) || VER_RHEL_LT(8, 2)
 	int err;
 #else
 	struct flow_block_cb *block_cb;
@@ -2338,7 +2342,7 @@ nfp_flower_setup_indr_tc_block(struct net_device *netdev, struct Qdisc *sch, str
 		cb_priv->app = app;
 		list_add(&cb_priv->list, &priv->indr_block_cb_priv);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
+#if VER_NON_RHEL_LT(5, 3) || VER_RHEL_LT(8, 2)
 		err = tcf_block_cb_register(f->block,
 					    nfp_flower_setup_indr_block_cb,
 					    cb_priv, cb_priv, f->extack);
@@ -2352,12 +2356,12 @@ nfp_flower_setup_indr_tc_block(struct net_device *netdev, struct Qdisc *sch, str
 #endif
 			list_del(&cb_priv->list);
 			kfree(cb_priv);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0)
+#if VER_NON_RHEL_GE(5, 3) || VER_RHEL_GE(8, 2)
 			return PTR_ERR(block_cb);
 #endif
 		}
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
+#if VER_NON_RHEL_LT(5, 3) || VER_RHEL_LT(8, 2)
 		return err;
 #else
 		flow_block_cb_add(block_cb, f);
@@ -2369,7 +2373,7 @@ nfp_flower_setup_indr_tc_block(struct net_device *netdev, struct Qdisc *sch, str
 		if (!cb_priv)
 			return -ENOENT;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
+#if VER_NON_RHEL_LT(5, 3) || VER_RHEL_LT(8, 2)
 		tcf_block_cb_unregister(f->block,
 					nfp_flower_setup_indr_block_cb,
 					cb_priv);
@@ -2413,7 +2417,7 @@ int nfp_flower_indr_setup_tc_cb(struct net_device *netdev, struct Qdisc *sch, vo
 	}
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
+#if VER_NON_RHEL_LT(5, 8) || (VER_RHEL_GE(8, 1) && VER_RHEL_LT(8, 3))
 int nfp_flower_reg_indir_block_handler(struct nfp_app *app,
 				       struct net_device *netdev,
 				       unsigned long event)
@@ -2439,5 +2443,5 @@ int nfp_flower_reg_indir_block_handler(struct nfp_app *app,
 
 	return NOTIFY_OK;
 }
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0) */
-#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0) */
+#endif /* VER_NON_RHEL_LT(5, 8) || (VER_RHEL_GE(8, 1) && VER_RHEL_LT(8, 3)) */
+#endif /* VER_NON_RHEL_GE(5, 0) || VER_RHEL_GE(8, 0) */

@@ -130,6 +130,15 @@ RHEL_GE_7_4 := \
 	$(shell [ $(RHEL_MAJOR) -gt 7 -o \
 	\( $(RHEL_MAJOR) -eq 7 -a $(RHEL_MINOR) -ge 4 \) ] && echo y)
 
+RHEL_GE_8_0 := $(shell [ $(RHEL_MAJOR) -ge 8 ] && echo y)
+RHEL_GE_8_2 := \
+	$(shell [ $(RHEL_MAJOR) -gt 8 -o \
+	\( $(RHEL_MAJOR) -eq 8 -a $(RHEL_MINOR) -ge 2 \) ] && echo y)
+
+RHEL_GE_8_3 := \
+        $(shell [ $(RHEL_MAJOR) -gt 8 -o \
+        \( $(RHEL_MAJOR) -eq 8 -a $(RHEL_MINOR) -ge 3 \) ] && echo y)
+
 KERNEL_GE_4_6 := \
 	$(shell [ $(VERSION) -gt 4 -o \
 	\( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 6 \) ] && echo y)
@@ -231,6 +240,16 @@ ifeq ($(COMPAT__HAVE_NETIF_SET_REAL_NUM_QUEUES),y)
         ccflags-y +=-DCOMPAT__HAVE_NETIF_SET_REAL_NUM_QUEUES=1
 endif
 
+# Check for BC Linux
+utsrelease_h_path :=$(srctree)/include/generated/utsrelease.h
+ifneq (,$(wildcard $(utsrelease_h_path)))
+  COMPAT_BCLINUX := \
+        $(shell grep -q bclinux $(utsrelease_h_path) && echo y)
+endif
+ifeq ($(COMPAT_BCLINUX),y)
+        ccflags-y +=-DCOMPAT_BCLINUX=1
+endif
+
 ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
   ccflags-y += -DCONFIG_NFP_DEBUG
 
@@ -310,7 +329,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 		    echo y)
 
     ifeq ($(COMPAT__HAVE_METADATA_IP_TUNNEL), y)
-      ifeq ($(VER_IS_NON_RHEL), y)
+      ifneq (,$(filter y,$(VER_IS_NON_RHEL) $(RHEL_GE_8_0)))
 	ccflags-y += -DCOMPAT__HAVE_METADATA_IP_TUNNEL=1
 	nfp-objs += \
 		nfp_net_repr.o
@@ -327,12 +346,12 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 		flower/main.o \
 		flower/tunnel_conf.o
 
-	  ifeq ($(KERNEL_GE_5_2),y)
+          ifneq (,$(filter y,$(KERNEL_GE_5_2) $(RHEL_GE_8_2)))
 	    nfp-objs += \
 		flower/qos_conf.o
 	  endif
 
-	  ifeq ($(KERNEL_GE_5_9),y)
+          ifneq (,$(filter y,$(KERNEL_GE_5_9) $(RHEL_GE_8_3)))
 	    nfp-objs += \
 		flower/conntrack.o
 	  endif

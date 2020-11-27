@@ -8,7 +8,7 @@
 #include <net/switchdev.h>
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_GE(5, 0) || VER_RHEL_GE(8, 0)
 #include "flower/main.h"
 #endif
 
@@ -181,8 +181,8 @@ void nfp_devlink_params_unregister(struct nfp_pf *pf)
 }
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
+#if VER_NON_RHEL_GE(5, 0) || VER_RHEL_GE(8, 1)
+#if VER_NON_RHEL_LT(5, 8) || VER_NON_BCL_LT(8, 4) || VER_BCL_LT(8, 3)
 int compat__nfp_flower_indr_setup_tc_cb(struct net_device *netdev,
 					void *cb_priv, enum tc_setup_type type,
 					void *type_data)
@@ -190,7 +190,7 @@ int compat__nfp_flower_indr_setup_tc_cb(struct net_device *netdev,
 	return nfp_flower_indr_setup_tc_cb(netdev, NULL, cb_priv, type,
 					   type_data, NULL, NULL);
 }
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
+#elif VER_NON_RHEL_LT(5, 9) || VER_BCL_LT(8, 4)
 int compat__nfp_flower_indr_setup_tc_cb(struct net_device *netdev,
 					void *cb_priv, enum tc_setup_type type,
 					void *type_data, void *data,

@@ -87,10 +87,10 @@ nfp_flower_install_rate_limiter(struct nfp_app *app, struct net_device *netdev,
 	u32 pps_num = 0;
 #endif
 	u32 burst;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
-	u32 rate;
-#else
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 2)
 	u64 rate;
+#else
+	u32 rate;
 #endif
 
 	if (!nfp_netdev_is_nfp_repr(netdev)) {
@@ -126,7 +126,7 @@ nfp_flower_install_rate_limiter(struct nfp_app *app, struct net_device *netdev,
 		}
 	}
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
+#if VER_NON_RHEL_LT(5, 3)
 	if (flow->common.prio != (1 << 16)) {
 #else
 	if (flow->common.prio != 1) {

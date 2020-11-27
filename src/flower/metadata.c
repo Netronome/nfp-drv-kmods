@@ -6,11 +6,12 @@
 #include <linux/jhash.h>
 #include <linux/math64.h>
 #include <linux/vmalloc.h>
+#include <linux/netfilter.h>
 #include <net/pkt_cls.h>
 
 #include "cmsg.h"
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 3)
 #include "conntrack.h"
 #endif
 
@@ -326,7 +327,7 @@ int nfp_compile_flow_metadata(struct nfp_app *app, u32 cookie,
 
 	nfp_flow->meta.host_ctx_id = cpu_to_be32(stats_cxt);
 	nfp_flow->meta.host_cookie = cpu_to_be64(cookie);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_GE(5, 0) || VER_RHEL_GE(8, 0)
 	nfp_flow->ingress_dev = netdev;
 #endif
 
@@ -457,7 +458,7 @@ static int nfp_fl_obj_cmpfn(struct rhashtable_compare_arg *arg,
 	const struct nfp_fl_flow_table_cmp_arg *cmp_arg = arg->key;
 	const struct nfp_fl_payload *flow_entry = obj;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#if VER_NON_RHEL_GE(5, 0)
 	if (!cmp_arg->netdev || flow_entry->ingress_dev == cmp_arg->netdev)
 #else
 	if (flow_entry->ingress_dev == cmp_arg->netdev)
@@ -498,7 +499,7 @@ const struct rhashtable_params merge_table_params = {
 	.key_len	= sizeof(u64),
 };
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 3)
 const struct rhashtable_params nfp_zone_table_params = {
 	.head_offset		= offsetof(struct nfp_fl_ct_zone_entry, hash_node),
 	.key_len		= sizeof(u16),
@@ -534,7 +535,7 @@ int nfp_flower_metadata_init(struct nfp_app *app, u64 host_ctx_count,
 	if (err)
 		goto err_free_stats_ctx_table;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 3)
 	err = rhashtable_init(&priv->ct_zone_table, &nfp_zone_table_params);
 	if (err)
 		goto err_free_merge_table;
@@ -551,10 +552,10 @@ int nfp_flower_metadata_init(struct nfp_app *app, u64 host_ctx_count,
 		kmalloc_array(NFP_FLOWER_MASK_ENTRY_RS,
 			      NFP_FLOWER_MASK_ELEMENT_RS, GFP_KERNEL);
 	if (!priv->mask_ids.mask_id_free_list.buf)
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
-		goto err_free_merge_table;
-#else
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 3)
 		goto err_free_ct_map_table;
+#else
+		goto err_free_merge_table;
 #endif
 
 	priv->mask_ids.init_unallocated = NFP_FLOWER_MASK_ENTRY_RS - 1;
@@ -592,7 +593,7 @@ err_free_last_used:
 	kfree(priv->mask_ids.last_used);
 err_free_mask_id:
 	kfree(priv->mask_ids.mask_id_free_list.buf);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 3)
 err_free_ct_map_table:
 	rhashtable_destroy(&priv->ct_map_table);
 err_free_ct_zone_table:
@@ -607,7 +608,7 @@ err_free_flow_table:
 	return -ENOMEM;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 3)
 static void nfp_zone_table_entry_destroy(struct nfp_fl_ct_zone_entry *zt)
 {
 	if (!zt)
@@ -716,7 +717,7 @@ void nfp_flower_metadata_cleanup(struct nfp_app *app)
 				    nfp_check_rhashtable_empty, NULL);
 	rhashtable_free_and_destroy(&priv->merge_table,
 				    nfp_check_rhashtable_empty, NULL);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 3)
 	rhashtable_free_and_destroy(&priv->ct_zone_table,
 				    nfp_free_zone_table_entry, NULL);
 	nfp_zone_table_entry_destroy(priv->ct_zone_wc);
