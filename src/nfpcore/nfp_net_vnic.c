@@ -54,7 +54,7 @@ struct nfp_net_vnic_queue {
 		u32 enabled;
 		u32 __rsvd;
 	} ctrl;
-	char pktdata[0];
+	char pktdata[];
 };
 
 struct nfp_net_vnic {
