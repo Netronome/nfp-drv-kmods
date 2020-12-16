@@ -879,11 +879,6 @@ static void nfp_flower_clean(struct nfp_app *app)
 	skb_queue_purge(&app_priv->cmsg_skbs_low);
 	flush_work(&app_priv->cmsg_work);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
-	flow_indr_dev_unregister(compat__nfp_flower_indr_setup_tc_cb, app,
-				 nfp_flower_setup_indr_tc_release);
-#endif
-
 	if (app_priv->flower_ext_feats & NFP_FL_FEATS_VF_RLIM)
 		nfp_flower_qos_cleanup(app);
 
@@ -972,6 +967,11 @@ static int nfp_flower_start(struct nfp_app *app)
 static void nfp_flower_stop(struct nfp_app *app)
 {
 	nfp_tunnel_config_stop(app);
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
+	flow_indr_dev_unregister(compat__nfp_flower_indr_setup_tc_cb, app,
+				 nfp_flower_setup_indr_tc_release);
+#endif
 }
 
 static int
