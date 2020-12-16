@@ -2154,6 +2154,14 @@ nfp_ctrl_tx_one(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 	dp = &r_vec->nfp_net->dp;
 	tx_ring = r_vec->tx_ring;
 
+	if (!tx_ring->txbufs)
+		/* On cleanup the txbufs are freed before APP cleanup.
+		 * But app clean-up may result in CTRL messages due to use
+		 * of common control paths. There is no need to clean-up
+		 * the NIC in such cases so simply discard requests.
+		 */
+		goto err_free;
+
 	if (WARN_ON_ONCE(skb_shinfo(skb)->nr_frags)) {
 		nn_dp_warn(dp, "Driver's CTRL TX does not implement gather\n");
 		goto err_free;
