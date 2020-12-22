@@ -1877,11 +1877,9 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 	rcu_read_lock();
 	xdp_prog = READ_ONCE(dp->xdp_prog);
 	true_bufsz = xdp_prog ? PAGE_SIZE : dp->fl_bufsz;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
-	xdp.frame_sz = PAGE_SIZE - NFP_NET_RX_BUF_HEADROOM;
-#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
-	xdp.rxq = &rx_ring->xdp_rxq;
+	xdp_init_buff(&xdp, PAGE_SIZE - NFP_NET_RX_BUF_HEADROOM,
+		      &rx_ring->xdp_rxq);
 #endif
 	tx_ring = r_vec->xdp_ring;
 

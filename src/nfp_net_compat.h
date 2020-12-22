@@ -983,6 +983,18 @@ xdp_attachment_setup(struct xdp_attachment_info *info, struct netdev_bpf *bpf)
 #endif /* COMPAT__HAVE_XDP */
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0) && \
+	LINUX_VERSION_CODE < KERNEL_VERSION(5, 12, 0)
+static __always_inline void
+xdp_init_buff(struct xdp_buff *xdp, u32 frame_sz, struct xdp_rxq_info *rxq)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
+	xdp->frame_sz = frame_sz;
+#endif
+	xdp->rxq = rxq;
+}
+#endif
+
 #if VER_NON_RHEL_LT(4, 20) || VER_RHEL_LT(7, 8) || VER_RHEL_EQ(8, 0)
 static inline struct sk_buff *__skb_peek(const struct sk_buff_head *list)
 {
