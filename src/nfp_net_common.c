@@ -1972,14 +1972,10 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 			unsigned int dma_off;
 			int act;
 
-#if COMPAT__HAVE_XDP_ADJUST_HEAD
-			xdp.data_hard_start = rxbuf->frag + NFP_NET_RX_BUF_HEADROOM;
-#endif
-			xdp.data = orig_data;
-#if COMPAT__HAVE_XDP_METADATA
-			xdp.data_meta = orig_data;
-#endif
-			xdp.data_end = orig_data + pkt_len;
+			xdp_prepare_buff(&xdp,
+					 rxbuf->frag + NFP_NET_RX_BUF_HEADROOM,
+					 pkt_off - NFP_NET_RX_BUF_HEADROOM,
+					 pkt_len, true);
 
 			act = bpf_prog_run_xdp(xdp_prog, &xdp);
 

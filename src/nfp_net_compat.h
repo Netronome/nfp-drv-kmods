@@ -995,6 +995,25 @@ xdp_init_buff(struct xdp_buff *xdp, u32 frame_sz, struct xdp_rxq_info *rxq)
 }
 #endif
 
+#if COMPAT__HAVE_XDP && LINUX_VERSION_CODE < KERNEL_VERSION(5, 12, 0)
+static __always_inline void
+xdp_prepare_buff(struct xdp_buff *xdp, unsigned char *hard_start,
+		 int headroom, int data_len, const bool meta_valid)
+{
+	unsigned char *data = hard_start + headroom;
+
+#if COMPAT__HAVE_XDP_ADJUST_HEAD
+	xdp->data_hard_start = hard_start;
+#endif
+	xdp->data = data;
+	xdp->data_end = data + data_len;
+#if COMPAT__HAVE_XDP_METADATA
+	xdp->data_meta = meta_valid ? data : data + 1;
+#endif
+}
+#endif
+
+
 #if VER_NON_RHEL_LT(4, 20) || VER_RHEL_LT(7, 8) || VER_RHEL_EQ(8, 0)
 static inline struct sk_buff *__skb_peek(const struct sk_buff_head *list)
 {
