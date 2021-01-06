@@ -3961,12 +3961,14 @@ const struct net_device_ops nfp_net_netdev_ops = {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
 	.ndo_get_phys_port_name	= nfp_net_get_phys_port_name,
 #endif
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 12, 0)
 #if (VER_IS_NON_RHEL || VER_RHEL_GE(8, 0)) && COMPAT__HAVE_UDP_OFFLOAD
 	.ndo_udp_tunnel_add	= udp_tunnel_nic_add_port,
 	.ndo_udp_tunnel_del	= udp_tunnel_nic_del_port,
 #elif VER_IS_NON_RHEL && COMPAT__HAVE_VXLAN_OFFLOAD
 	.ndo_add_vxlan_port     = nfp_net_add_vxlan_port,
 	.ndo_del_vxlan_port     = nfp_net_del_vxlan_port,
+#endif
 #endif
 #if COMPAT__HAVE_XDP
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
