@@ -48,12 +48,12 @@
 #include <net/flow_offload.h>
 #endif
 
-/* Redefine LINUX_VERSION_CODE for *-next kernels */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
-#include <linux/netfilter/ipset/ip_set.h>
-#ifdef IPSET_REVISION_MAX
+/* Redefine LINUX_VERSION_CODE for net and *-next kernels */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
+#include <linux/brcmphy.h>
+#ifdef PHY_ID_BCM72116
 #undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(5, 11, 0)
+#define LINUX_VERSION_CODE KERNEL_VERSION(5, 12, 0)
 #endif
 #endif
 
