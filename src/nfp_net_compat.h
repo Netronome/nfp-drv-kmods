@@ -1013,6 +1013,9 @@ xdp_prepare_buff(struct xdp_buff *xdp, unsigned char *hard_start,
 }
 #endif
 
+#ifndef BPF_ATOMIC
+#define BPF_ATOMIC BPF_XADD
+#endif
 
 #if VER_NON_RHEL_LT(4, 20) || VER_RHEL_LT(7, 8) || VER_RHEL_EQ(8, 0)
 static inline struct sk_buff *__skb_peek(const struct sk_buff_head *list)
