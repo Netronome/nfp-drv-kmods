@@ -170,6 +170,16 @@ ifeq ($(COMPAT__HAVE_IP6_DST_FLOW_LOOKUP), y)
   ccflags-y += -DCOMPAT__HAVE_IP6_DST_FLOW_LOOKUP=1
 endif
 
+# Check for rate_pkt_ps
+flow_offload_h_path := $(srctree)/include/net/flow_offload.h
+ifneq (,$(wildcard $(flow_offload_h_path)))
+  COMPAT__HAVE_RATE_PKT_PS := \
+        $(shell grep -q rate_pkt_ps $(flow_offload_h_path) && echo y)
+endif
+ifeq ($(COMPAT__HAVE_RATE_PKT_PS), y)
+  ccflags-y += -DCOMPAT__HAVE_RATE_PKT_PS=1
+endif
+
 ifeq ($(CONFIG_NFP_USER_SPACE_CPP),y)
   ccflags-y += -DCONFIG_NFP_USER_SPACE_CPP
 

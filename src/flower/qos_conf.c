@@ -112,6 +112,13 @@ nfp_flower_install_rate_limiter(struct nfp_app *app, struct net_device *netdev,
 		return -EOPNOTSUPP;
 	}
 
+#ifdef COMPAT__HAVE_RATE_PKT_PS
+	if (action->police.rate_pkt_ps) {
+		NL_SET_ERR_MSG_MOD(extack, "unsupported offload: qos rate limit offload not support packets per second");
+		return -EOPNOTSUPP;
+	}
+#endif
+
 	rate = action->police.rate_bytes_ps;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
 	burst = div_u64(rate * PSCHED_NS2TICKS(action->police.burst),
