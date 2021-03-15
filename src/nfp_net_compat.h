@@ -49,11 +49,11 @@
 #endif
 
 /* Redefine LINUX_VERSION_CODE for net and *-next kernels */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
-#include <linux/brcmphy.h>
-#ifdef PHY_ID_BCM72116
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
+#include <net/ipv6.h>
+#ifdef NEXTHDR_IPV4
 #undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(5, 12, 0)
+#define LINUX_VERSION_CODE KERNEL_VERSION(5, 13, 0)
 #endif
 #endif
 
