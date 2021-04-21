@@ -421,6 +421,7 @@ int nfp_devlink_port_register(struct nfp_app *app, struct nfp_port *port)
 	attrs.split = eth_port.is_split;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
 	attrs.splittable = !attrs.split;
+	attrs.lanes = eth_port.port_lanes;
 #endif
 	attrs.flavour = DEVLINK_PORT_FLAVOUR_PHYSICAL;
 	attrs.phys.port_number = eth_port.label_port;
