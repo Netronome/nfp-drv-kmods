@@ -1,0 +1,23 @@
+name: Build
+
+description: Build against kernel headers
+
+inputs:
+  search-path:
+    description: "Path to search for headers to build against"
+    required: true
+  search-pattern:
+    description: "Pattern to search for"
+    default: "*"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Build
+      shell: sh
+      run: |
+        export MAKEFLAGS="${{ env.MAKEFLAGS }} -s -j$(nproc) M=$(pwd)/src"
+        find "${{ inputs.search-path }}" -mindepth 1 -maxdepth 1 -type d \
+          -name "${{ inputs.search-pattern }}" -print0 | \
+          xargs -t -r -0 -n 1 -I "{}" \
+            sh -c 'make -C "{}" clean && make -C "{}"'

@@ -1,0 +1,22 @@
+name: Unpack RPM package
+
+description: Unppack RPM Package
+
+inputs:
+  input-path:
+    description: "Path to search for packages to unpack"
+    required: true
+  output-path:
+    description: "Path to unpack packages into"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Unpack
+      shell: sh
+      run: |
+        mkdir -p "${{ inputs.output-path }}"
+        find "${{ inputs.input-path }}" -type f -name "*.rpm" -print0 | \
+          xargs -t -r -0 -n 1 -P "$(nproc)" -I "{}" \
+            sh -c 'rpm2cpio "{}" | { cd ${{ inputs.output-path }} ; cpio -dmi; }'
