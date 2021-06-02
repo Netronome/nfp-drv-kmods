@@ -1505,6 +1505,22 @@ nfp_flower_validate_pre_tun_rule(struct nfp_app *app,
 	return 0;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+static bool offload_pre_check(struct flow_cls_offload *flow)
+{
+	struct flow_rule *rule = flow_cls_offload_flow_rule(flow);
+	struct flow_dissector *dissector = rule->match.dissector;
+
+	if (dissector->used_keys & BIT(FLOW_DISSECTOR_KEY_CT))
+		return false;
+
+	if (flow->common.chain_index)
+		return false;
+
+	return true;
+}
+#endif
+
 /**
  * nfp_flower_add_offload() - Adds a new flow to hardware.
  * @app:	Pointer to the APP handle
@@ -1542,6 +1558,11 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 #endif
 	if (nfp_netdev_is_nfp_repr(netdev))
 		port = nfp_port_from_netdev(netdev);
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+	if (!offload_pre_check(flow))
+		return -EOPNOTSUPP;
+#endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	ingr_dev = egress ? NULL : netdev;
@@ -2009,9 +2030,16 @@ int nfp_flower_setup_tc_egress_cb(enum tc_setup_type type, void *type_data,
 static int nfp_flower_setup_tc_block_cb(enum tc_setup_type type,
 					void *type_data, void *cb_priv)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+	struct flow_cls_common_offload *common = type_data;
+#endif
 	struct nfp_repr *repr = cb_priv;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
 	if (!tc_cls_can_offload_and_chain0(repr->netdev, type_data))
+#else
+	if (!tc_can_offload_extack(repr->netdev, common->extack))
+#endif
 		return -EOPNOTSUPP;
 
 	switch (type) {
@@ -2166,10 +2194,12 @@ static int nfp_flower_setup_indr_block_cb(enum tc_setup_type type,
 					  void *type_data, void *cb_priv)
 {
 	struct nfp_flower_indr_block_cb_priv *priv = cb_priv;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
 	compat__flow_cls_offload *flower = type_data;
 
 	if (flower->common.chain_index)
 		return -EOPNOTSUPP;
+#endif
 
 	switch (type) {
 	case TC_SETUP_CLSFLOWER:
