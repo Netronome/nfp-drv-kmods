@@ -514,6 +514,13 @@ const struct rhashtable_params nfp_zone_table_params = {
 	.key_offset		= offsetof(struct nfp_fl_ct_zone_entry, zone),
 	.automatic_shrinking	= false,
 };
+
+const struct rhashtable_params nfp_ct_map_params = {
+	.head_offset            = offsetof(struct nfp_fl_ct_map_entry, hash_node),
+	.key_len                = sizeof(unsigned long),
+	.key_offset             = offsetof(struct nfp_fl_ct_map_entry, cookie),
+	.automatic_shrinking    = true,
+};
 #endif
 
 int nfp_flower_metadata_init(struct nfp_app *app, u64 host_ctx_count,
@@ -540,6 +547,10 @@ int nfp_flower_metadata_init(struct nfp_app *app, u64 host_ctx_count,
 	err = rhashtable_init(&priv->ct_zone_table, &nfp_zone_table_params);
 	if (err)
 		goto err_free_merge_table;
+
+	err = rhashtable_init(&priv->ct_map_table, &nfp_ct_map_params);
+	if (err)
+		goto err_free_ct_zone_table;
 #endif
 
 	get_random_bytes(&priv->mask_id_seed, sizeof(priv->mask_id_seed));
@@ -552,7 +563,7 @@ int nfp_flower_metadata_init(struct nfp_app *app, u64 host_ctx_count,
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
 		goto err_free_merge_table;
 #else
-		goto err_free_ct_zone_table;
+		goto err_free_ct_map_table;
 #endif
 
 	priv->mask_ids.init_unallocated = NFP_FLOWER_MASK_ENTRY_RS - 1;
@@ -591,6 +602,8 @@ err_free_last_used:
 err_free_mask_id:
 	kfree(priv->mask_ids.mask_id_free_list.buf);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+err_free_ct_map_table:
+	rhashtable_destroy(&priv->ct_map_table);
 err_free_ct_zone_table:
 	rhashtable_destroy(&priv->ct_zone_table);
 #endif
@@ -610,22 +623,40 @@ static void nfp_zone_table_entry_destroy(struct nfp_fl_ct_zone_entry *zt)
 		return;
 
 	if (!list_empty(&zt->pre_ct_list)) {
+		struct rhashtable *m_table = &zt->priv->ct_map_table;
 		struct nfp_fl_ct_flow_entry *entry, *tmp;
+		struct nfp_fl_ct_map_entry *map;
 
 		WARN_ONCE(1, "pre_ct_list not empty as expected, cleaning up\n");
 		list_for_each_entry_safe(entry, tmp, &zt->pre_ct_list,
 					 list_node) {
+			map = rhashtable_lookup_fast(m_table,
+						     &entry->cookie,
+						     nfp_ct_map_params);
+			WARN_ON_ONCE(rhashtable_remove_fast(m_table,
+							    &map->hash_node,
+							    nfp_ct_map_params));
 			nfp_fl_ct_clean_flow_entry(entry);
+			kfree(map);
 		}
 	}
 
 	if (!list_empty(&zt->post_ct_list)) {
+		struct rhashtable *m_table = &zt->priv->ct_map_table;
 		struct nfp_fl_ct_flow_entry *entry, *tmp;
+		struct nfp_fl_ct_map_entry *map;
 
 		WARN_ONCE(1, "post_ct_list not empty as expected, cleaning up\n");
 		list_for_each_entry_safe(entry, tmp, &zt->post_ct_list,
 					 list_node) {
+			map = rhashtable_lookup_fast(m_table,
+						     &entry->cookie,
+						     nfp_ct_map_params);
+			WARN_ON_ONCE(rhashtable_remove_fast(m_table,
+							    &map->hash_node,
+							    nfp_ct_map_params));
 			nfp_fl_ct_clean_flow_entry(entry);
+			kfree(map);
 		}
 	}
 	kfree(zt);
@@ -636,6 +667,16 @@ static void nfp_free_zone_table_entry(void *ptr, void *arg)
 	struct nfp_fl_ct_zone_entry *zt = ptr;
 
 	nfp_zone_table_entry_destroy(zt);
+}
+
+static void nfp_free_map_table_entry(void *ptr, void *arg)
+{
+	struct nfp_fl_ct_map_entry *map = ptr;
+
+	if (!map)
+		return;
+
+	kfree(map);
 }
 #endif
 
@@ -656,6 +697,9 @@ void nfp_flower_metadata_cleanup(struct nfp_app *app)
 	rhashtable_free_and_destroy(&priv->ct_zone_table,
 				    nfp_free_zone_table_entry, NULL);
 	nfp_zone_table_entry_destroy(priv->ct_zone_wc);
+
+	rhashtable_free_and_destroy(&priv->ct_map_table,
+				    nfp_free_map_table_entry, NULL);
 #endif
 	kvfree(priv->stats);
 	kfree(priv->mask_ids.mask_id_free_list.buf);
