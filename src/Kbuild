@@ -149,6 +149,10 @@ KERNEL_GE_5_4 := \
 	$(shell grep -qr DEVLINK_PARAM_FW_LOAD_POLICY_VALUE_UNKNOWN \
 		$(srctree)/include/uapi/linux/devlink.h 2>/dev/null && echo y)
 
+KERNEL_GE_5_9 := \
+        $(shell [ $(VERSION) -gt 5 -o \
+        \( $(VERSION) -eq 5 -a $(PATCHLEVEL) -ge 9 \) ] && echo y)
+
 ifeq ($(KERNEL_GE_4_9),y)
   nfp-objs += nfp_hwmon.o
 else
@@ -289,6 +293,12 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 	    nfp-objs += \
 		flower/qos_conf.o
 	  endif
+
+	  ifeq ($(KERNEL_GE_5_9),y)
+	    nfp-objs += \
+		flower/conntrack.o
+	  endif
+
 	else ifdef CONFIG_LOCALVERSION # don't warn on clean
           $(warning NFP: CONFIG_NET_SWITCHDEV not enabled in the kernel, disabling apps: flower)
 	endif

@@ -9,6 +9,11 @@
 
 #include "cmsg.h"
 #include "main.h"
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#include "conntrack.h"
+#endif
+
 #include "../nfpcore/nfp_cpp.h"
 #include "../nfpcore/nfp_nsp.h"
 #include "../nfp_app.h"
@@ -1560,6 +1565,12 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 		port = nfp_port_from_netdev(netdev);
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+	if (is_pre_ct_flow(flow))
+		return nfp_fl_ct_handle_pre_ct(priv, netdev, flow, extack);
+
+	if (is_post_ct_flow(flow))
+		return nfp_fl_ct_handle_post_ct(priv, netdev, flow, extack);
+
 	if (!offload_pre_check(flow))
 		return -EOPNOTSUPP;
 #endif
