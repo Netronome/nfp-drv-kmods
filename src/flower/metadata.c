@@ -606,6 +606,9 @@ err_free_flow_table:
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
 static void nfp_free_zone_table_entry(void *ptr, void *arg)
 {
+	struct nfp_fl_ct_zone_entry *zt = ptr;
+
+	kfree(zt);
 }
 #endif
 
@@ -625,6 +628,7 @@ void nfp_flower_metadata_cleanup(struct nfp_app *app)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
 	rhashtable_free_and_destroy(&priv->ct_zone_table,
 				    nfp_free_zone_table_entry, NULL);
+	kfree(priv->ct_zone_wc);
 #endif
 	kvfree(priv->stats);
 	kfree(priv->mask_ids.mask_id_free_list.buf);
