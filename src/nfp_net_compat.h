@@ -49,11 +49,11 @@
 #endif
 
 /* Redefine LINUX_VERSION_CODE for net and *-next kernels */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
-#include <net/ipv6.h>
-#ifdef NEXTHDR_IPV4
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0)
+#include <net/ip_fib.h>
+#ifdef FIB_MULTIPATH_HASH_FIELD_SRC_IP
 #undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(5, 13, 0)
+#define LINUX_VERSION_CODE KERNEL_VERSION(5, 14, 0)
 #endif
 #endif
 
