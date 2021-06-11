@@ -191,6 +191,7 @@ jobs:
           { name: "net-next",  runs-on: "20.04", },
           { name: "net",       runs-on: "20.04", },
           { name: "5.11",      runs-on: "20.04", },
+          { name: "5.12",      runs-on: "20.04", },
           { name: "5.10",      runs-on: "20.04", },
           { name: "5.9",       runs-on: "20.04", },
           { name: "5.8",       runs-on: "20.04", },
