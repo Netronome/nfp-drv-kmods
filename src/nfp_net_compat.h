@@ -840,7 +840,7 @@ struct compat__devlink_port_attrs {
 #define compat__devlink_port_attrs devlink_port_attrs
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
+#if VER_NON_RHEL_LT(5, 9) || VER_RHEL_LT(8, 4)
 static inline
 void compat__devlink_port_attrs_set(struct devlink_port *devlink_port,
 				    struct compat__devlink_port_attrs *attrs)
@@ -1500,7 +1500,7 @@ flow_indr_block_cb_remove(struct flow_block_cb *block_cb,
 }
 #endif
 
-#if COMPAT__HAVE_UDP_OFFLOAD && LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
+#if COMPAT__HAVE_UDP_OFFLOAD && (VER_NON_RHEL_LT(5, 9) || VER_RHEL_LT(8, 4))
 #define udp_tunnel_nic_add_port nfp_net_add_vxlan_port
 #define udp_tunnel_nic_del_port nfp_net_del_vxlan_port
 #endif
