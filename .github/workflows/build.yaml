@@ -100,6 +100,7 @@ jobs:
                 { "name": "8.1.1911", "container": "8.3.2011" },
                 { "name": "8.2.2004", "container": "8.3.2011" },
                 { "name": "8.3.2011", "container": "8.3.2011" },
+                { "name": "8.4.2105", "container": "8.3.2011" },
         ]
     container:
       image: centos:${{ matrix.release.container }}
@@ -112,7 +113,7 @@ jobs:
           RELEASE_NAME: ${{ matrix.release.name }}
         run: |
           case $RELEASE_NAME in
-          7.[0-8].*|8.[0-2].*) MIRROR="vault.centos.org" ;;
+          7.[0-8].*|8.[0-3].*) MIRROR="vault.centos.org" ;;
           *)                   MIRROR="mirror.centos.org/centos" ;;
           esac
 
