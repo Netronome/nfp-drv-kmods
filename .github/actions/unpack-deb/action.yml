@@ -17,5 +17,5 @@ runs:
       shell: sh
       run: |
         find "${{ inputs.input-path }}" -type f -name "*.deb" -print0 | \
-          xargs -t -r -0 -n 1 -P "$(nproc)" -I "{}" \
+          xargs -t -r -0 -n 1 -I "{}" \
             dpkg -x "{}" "${{ inputs.output-path }}"

@@ -18,5 +18,5 @@ runs:
       run: |
         mkdir -p "${{ inputs.output-path }}"
         find "${{ inputs.input-path }}" -type f -name "*.rpm" -print0 | \
-          xargs -t -r -0 -n 1 -P "$(nproc)" -I "{}" \
+          xargs -t -r -0 -n 1 -I "{}" \
             sh -c 'rpm2cpio "{}" | { cd ${{ inputs.output-path }} ; cpio -dmi; }'
