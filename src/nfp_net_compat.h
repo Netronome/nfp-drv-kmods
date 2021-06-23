@@ -1262,7 +1262,7 @@ compat__tca_pedit_offset(const struct flow_action_entry *act, int idx)
 }
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
+#if VER_NON_RHEL_LT(5, 1) || VER_RHEL_LT(8, 5)
 int compat__nfp_net_flash_device(struct net_device *netdev,
 				 struct ethtool_flash *flash);
 #else

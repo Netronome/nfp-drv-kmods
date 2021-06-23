@@ -444,7 +444,7 @@ static void nfp_sriov_attr_remove(struct device *dev)
 #endif /* Linux kernel version */
 
 int nfp_flash_update_common(struct nfp_pf *pf,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
+#if VER_NON_RHEL_GE(5, 11) || VER_RHEL_GE(8, 5)
 			    const struct firmware *fw,
 #else
 			    const char *path,
@@ -452,7 +452,7 @@ int nfp_flash_update_common(struct nfp_pf *pf,
 			    struct netlink_ext_ack *extack)
 {
 	struct device *dev = &pf->pdev->dev;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 11, 0)
+#if VER_NON_RHEL_LT(5, 11) || VER_RHEL_LT(8, 5)
 	const struct firmware *fw;
 #endif
 	struct nfp_nsp *nsp;
@@ -468,7 +468,7 @@ int nfp_flash_update_common(struct nfp_pf *pf,
 		return err;
 	}
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 11, 0)
+#if VER_NON_RHEL_LT(5, 11) || VER_RHEL_LT(8, 5)
 	err = request_firmware_direct(&fw, path, dev);
 	if (err) {
 		NL_SET_ERR_MSG_MOD(extack,
@@ -487,7 +487,7 @@ int nfp_flash_update_common(struct nfp_pf *pf,
 	err = 0;
 
 exit_release_fw:
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 11, 0)
+#if VER_NON_RHEL_LT(5, 11) || VER_RHEL_LT(8, 5)
 	release_firmware(fw);
 exit_close_nsp:
 #endif

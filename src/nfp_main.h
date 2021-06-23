@@ -204,7 +204,7 @@ nfp_pf_map_rtsym(struct nfp_pf *pf, const char *name, const char *sym_fmt,
 int nfp_mbox_cmd(struct nfp_pf *pf, u32 cmd, void *in_data, u64 in_length,
 		 void *out_data, u64 out_length);
 int nfp_flash_update_common(struct nfp_pf *pf,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
+#if VER_NON_RHEL_GE(5, 11) || VER_RHEL_GE(8, 5)
 			    const struct firmware *fw,
 #else
 			    const char *path,
