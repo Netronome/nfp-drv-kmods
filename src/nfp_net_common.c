@@ -1874,7 +1874,6 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 #endif
 	int idx;
 
-	rcu_read_lock();
 	xdp_prog = READ_ONCE(dp->xdp_prog);
 	true_bufsz = xdp_prog ? PAGE_SIZE : dp->fl_bufsz;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
@@ -2099,7 +2098,6 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 			if (!nfp_net_xdp_complete(tx_ring))
 				pkts_polled = budget;
 	}
-	rcu_read_unlock();
 
 	return pkts_polled;
 }
