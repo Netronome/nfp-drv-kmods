@@ -83,6 +83,8 @@ jobs:
     name: Build CentOS
     runs-on: ubuntu-20.04
     timeout-minutes: 90
+    env:
+      KVER: "*"
     strategy:
       matrix:
         release: [
@@ -101,6 +103,7 @@ jobs:
                 { "name": "8.2.2004", "container": "8.3.2011" },
                 { "name": "8.3.2011", "container": "8.3.2011" },
                 { "name": "8.4.2105", "container": "8.3.2011" },
+                { "name": "8-stream", "container": "8.3.2011" },
         ]
     container:
       image: centos:${{ matrix.release.container }}
@@ -121,7 +124,7 @@ jobs:
           7.*)    OS_DIR1="os"
                   OS_DIR2=""
                   ;;
-          8.*)    OS_DIR1="BaseOS"
+          8*)    OS_DIR1="BaseOS"
                   OS_DIR2="os"
                   ;;
           esac
@@ -138,7 +141,7 @@ jobs:
           cache-name: cache-os-headers
         with:
           path: ${{ env.DOWNLOAD }}/${{ env.OS_PATH }}
-          key: ${{ env.cache-name }}-centos-${{ matrix.release.name }}-v1
+          key: ${{ env.cache-name }}-centos-${{ matrix.release.name }}-v2
 
       - name: Cache Update Kernel Header Packages
         if: startsWith(matrix.release.name, '7')
@@ -147,17 +150,26 @@ jobs:
           cache-name: cache-update-headers
         with:
           path: ${{ env.DOWNLOAD }}/${{ env.UPDATE_PATH }}
-          key: ${{ env.cache-name }}-centos-${{ matrix.release.name }}-v1
+          key: ${{ env.cache-name }}-centos-${{ matrix.release.name }}-v2
 
       - name: Install Dependencies
         run: yum -q -y install elfutils-libelf-devel gcc make wget
+
+      - name: Filter latest CentOS stream kernel
+        if: startsWith(matrix.release.name, '8-stream')
+        run: |
+          KVER=$(curl -s "http://${{ env.OS_PATH }}/?C=M;O=A" | \
+            sed -En 's/.*kernel-devel-(4.18.0-[0-9].*).el8.*rpm.*/\1/p' | \
+            tail -n 1)
+          echo $KVER
+          echo "KVER=${KVER}*" >> $GITHUB_ENV
 
       - name: Download OS Kernel Header Packages
         uses: ./.github/actions/download
         with:
             output-path: ${{ env.DOWNLOAD }}
             url: "http://${{ env.OS_PATH }}"
-            accept: "kernel-devel-*.rpm"
+            accept: "kernel-devel-${{ env.KVER }}.rpm"
 
       - name: Download Update Kernel Header Packages
         if: startsWith(matrix.release.name, '7')
@@ -165,7 +177,7 @@ jobs:
         with:
             output-path: ${{ env.DOWNLOAD }}
             url: "http://${{ env.UPDATE_PATH }}"
-            accept: "kernel-devel-*.rpm"
+            accept: "kernel-devel-${{ env.KVER }}.rpm"
 
       - name: Unpack Kernel Headers
         uses: ./.github/actions/unpack-rpm
