@@ -1152,11 +1152,13 @@ int nfp_fl_ct_del_flow(struct nfp_fl_ct_map_entry *ct_map_ent)
 		 * nft table would already have been freed at that time.
 		 */
 		if (!zt->pre_ct_count) {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 14, 0)
 			rtnl_unlock(); /* avoid deadlock */
 			nf_flow_table_offload_del_cb(zt->nft,
 						     nfp_fl_ct_handle_nft_flow,
 						     zt);
 			rtnl_lock();
+#endif
 			zt->nft = NULL;
 			nfp_fl_ct_clean_nft_entries(zt);
 		}
