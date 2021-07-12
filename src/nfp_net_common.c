@@ -1874,6 +1874,9 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 #endif
 	int idx;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 14, 0)
+	rcu_read_lock();
+#endif
 	xdp_prog = READ_ONCE(dp->xdp_prog);
 	true_bufsz = xdp_prog ? PAGE_SIZE : dp->fl_bufsz;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
@@ -2098,6 +2101,9 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 			if (!nfp_net_xdp_complete(tx_ring))
 				pkts_polled = budget;
 	}
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 14, 0)
+	rcu_read_unlock();
+#endif
 
 	return pkts_polled;
 }
