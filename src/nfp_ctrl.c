@@ -47,9 +47,9 @@ void nfp_ctrl_debug_rx(struct nfp_pf *pf, struct sk_buff *skb)
 	skb = skb_clone(skb, GFP_ATOMIC);
 	if (skb) {
 		skb->dev = netdev;
-		netif_rx(skb);
 		netdev->stats.rx_packets++;
 		netdev->stats.rx_bytes += skb->len;
+		netif_rx(skb);
 	} else {
 		netdev->stats.rx_dropped++;
 	}
