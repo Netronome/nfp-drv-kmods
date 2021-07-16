@@ -359,7 +359,7 @@ $(obj)/nfp_build_info.h: FORCE
 	@echo "/* Automatically generated file */" > $@
 	@echo "#define NFP_SRC_VERSION \"$(NFPVER) (o-o-t)\"" >> $@
 	@echo "#define NFP_BUILD_USER_ID \"$(shell id -u -n)\"" >> $@
-	@echo "#define NFP_BUILD_USER \"$(shell getent passwd `id -u -n` | cut -d ':' -f 5 | cut -d ',' -f 1)\"" >> $@
+	@echo "#define NFP_BUILD_USER \"$(shell getent passwd `id -u -n` | cut -d ':' -f 5 | cut -d ',' -f 1 | tr -cd '[:print:]\n')\"" >> $@
 	@echo "#define NFP_BUILD_HOST \"$(shell hostname)\"" >> $@
 	@echo "#define NFP_BUILD_PATH \"$(obj)\"" >> $@
 	@echo "#define NFP_SRC_PATH \"$(nfp_src_dir)\"" >> $@
