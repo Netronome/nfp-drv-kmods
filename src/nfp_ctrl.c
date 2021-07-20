@@ -35,6 +35,7 @@ static int nfp_ctrl_debug_netdev_close(struct net_device *netdev)
 void nfp_ctrl_debug_rx(struct nfp_pf *pf, struct sk_buff *skb)
 {
 	struct net_device *netdev;
+	unsigned int len;
 
 	if (!nfp_ctrl_debug)
 		return;
@@ -47,9 +48,14 @@ void nfp_ctrl_debug_rx(struct nfp_pf *pf, struct sk_buff *skb)
 	skb = skb_clone(skb, GFP_ATOMIC);
 	if (skb) {
 		skb->dev = netdev;
-		netdev->stats.rx_packets++;
-		netdev->stats.rx_bytes += skb->len;
-		netif_rx(skb);
+
+		len = skb->len;
+		if (netif_rx(skb) == NET_RX_SUCCESS) {
+			netdev->stats.rx_packets++;
+			netdev->stats.rx_bytes += len;
+		} else {
+			netdev->stats.rx_dropped++;
+		}
 	} else {
 		netdev->stats.rx_dropped++;
 	}
