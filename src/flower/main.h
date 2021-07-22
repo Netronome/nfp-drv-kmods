@@ -579,4 +579,23 @@ int nfp_flower_xmit_pre_tun_flow(struct nfp_app *app,
 				 struct nfp_fl_payload *flow);
 int nfp_flower_xmit_pre_tun_del_flow(struct nfp_app *app,
 				     struct nfp_fl_payload *flow);
+struct nfp_fl_payload *
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+nfp_flower_allocate_new(struct nfp_fl_key_ls *key_layer);
+#else
+nfp_flower_allocate_new(struct nfp_fl_key_ls *key_layer, bool egress);
+#endif
+int nfp_flower_calculate_key_layers(struct nfp_app *app,
+				    struct net_device *netdev,
+				    struct nfp_fl_key_ls *ret_key_ls,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+				    struct flow_rule *flow,
+#else
+				    compat__flow_cls_offload *flow,
+#endif
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+				    bool egress,
+#endif
+				    enum nfp_flower_tun_type *tun_type,
+				    struct netlink_ext_ack *extack);
 #endif

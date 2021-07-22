@@ -29,6 +29,29 @@
 	(FLOW_DIS_IS_FRAGMENT | \
 	 FLOW_DIS_FIRST_FRAG)
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#define NFP_FLOWER_WHITELIST_DISSECTOR \
+	(BIT(FLOW_DISSECTOR_KEY_CONTROL) | \
+	 BIT(FLOW_DISSECTOR_KEY_BASIC) | \
+	 BIT(FLOW_DISSECTOR_KEY_IPV4_ADDRS) | \
+	 BIT(FLOW_DISSECTOR_KEY_IPV6_ADDRS) | \
+	 BIT(FLOW_DISSECTOR_KEY_TCP) | \
+	 BIT(FLOW_DISSECTOR_KEY_PORTS) | \
+	 BIT(FLOW_DISSECTOR_KEY_ETH_ADDRS) | \
+	 BIT(FLOW_DISSECTOR_KEY_VLAN) | \
+	 BIT(FLOW_DISSECTOR_KEY_CVLAN) | \
+	 BIT(FLOW_DISSECTOR_KEY_ENC_KEYID) | \
+	 BIT(FLOW_DISSECTOR_KEY_ENC_IPV4_ADDRS) | \
+	 BIT(FLOW_DISSECTOR_KEY_ENC_IPV6_ADDRS) | \
+	 BIT(FLOW_DISSECTOR_KEY_ENC_CONTROL) | \
+	 BIT(FLOW_DISSECTOR_KEY_ENC_PORTS) | \
+	 BIT(FLOW_DISSECTOR_KEY_ENC_OPTS) | \
+	 BIT(FLOW_DISSECTOR_KEY_ENC_IP) | \
+	 BIT(FLOW_DISSECTOR_KEY_MPLS) | \
+	 BIT(FLOW_DISSECTOR_KEY_CT) | \
+	 BIT(FLOW_DISSECTOR_KEY_META) | \
+	 BIT(FLOW_DISSECTOR_KEY_IP))
+#else
 #define NFP_FLOWER_WHITELIST_DISSECTOR \
 	(BIT(FLOW_DISSECTOR_KEY_CONTROL) | \
 	 BIT(FLOW_DISSECTOR_KEY_BASIC) | \
@@ -48,6 +71,7 @@
 	 BIT(FLOW_DISSECTOR_KEY_ENC_IP) | \
 	 BIT(FLOW_DISSECTOR_KEY_MPLS) | \
 	 BIT(FLOW_DISSECTOR_KEY_IP))
+#endif
 
 #define NFP_FLOWER_WHITELIST_TUN_DISSECTOR \
 	(BIT(FLOW_DISSECTOR_KEY_ENC_CONTROL) | \
@@ -260,7 +284,7 @@ nfp_flower_calc_udp_tun_layer(struct flow_dissector_key_ports *enc_ports,
 	return 0;
 }
 
-static int
+int
 nfp_flower_calculate_key_layers(struct nfp_app *app,
 				struct net_device *netdev,
 				struct nfp_fl_key_ls *ret_key_ls,
@@ -775,12 +799,11 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
-static struct nfp_fl_payload *
-nfp_flower_allocate_new(struct nfp_fl_key_ls *key_layer, bool egress)
-#else
-static struct nfp_fl_payload *
+struct nfp_fl_payload *
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
 nfp_flower_allocate_new(struct nfp_fl_key_ls *key_layer)
+#else
+nfp_flower_allocate_new(struct nfp_fl_key_ls *key_layer, bool egress)
 #endif
 {
 	struct nfp_fl_payload *flow_pay;
