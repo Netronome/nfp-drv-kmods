@@ -489,7 +489,11 @@ int nfp_flower_compile_flow_match(struct nfp_app *app,
 				  enum nfp_flower_tun_type tun_type,
 				  struct netlink_ext_ack *extack);
 int nfp_flower_compile_action(struct nfp_app *app,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+			      struct flow_rule *rule,
+#else
 			      compat__flow_cls_offload *flow,
+#endif
 			      struct net_device *netdev,
 			      struct nfp_fl_payload *nfp_flow,
 			      struct netlink_ext_ack *extack);
