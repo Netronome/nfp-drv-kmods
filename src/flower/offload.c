@@ -1802,7 +1802,7 @@ err_free_links:
 	kfree_rcu(merge_flow, rcu);
 }
 
-static void
+void
 nfp_flower_del_linked_merge_flows(struct nfp_app *app,
 				  struct nfp_fl_payload *sub_flow)
 {
