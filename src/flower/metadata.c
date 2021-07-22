@@ -294,8 +294,7 @@ nfp_check_mask_remove(struct nfp_app *app, char *mask_data, u32 mask_len,
 	return true;
 }
 
-int nfp_compile_flow_metadata(struct nfp_app *app,
-			      compat__flow_cls_offload *flow,
+int nfp_compile_flow_metadata(struct nfp_app *app, u32 cookie,
 			      struct nfp_fl_payload *nfp_flow,
 			      struct net_device *netdev,
 			      struct netlink_ext_ack *extack)
@@ -314,7 +313,7 @@ int nfp_compile_flow_metadata(struct nfp_app *app,
 	}
 
 	nfp_flow->meta.host_ctx_id = cpu_to_be32(stats_cxt);
-	nfp_flow->meta.host_cookie = cpu_to_be64(flow->cookie);
+	nfp_flow->meta.host_cookie = cpu_to_be64(cookie);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
 	nfp_flow->ingress_dev = netdev;
 #endif
@@ -363,7 +362,7 @@ int nfp_compile_flow_metadata(struct nfp_app *app,
 	priv->stats[stats_cxt].bytes = 0;
 	priv->stats[stats_cxt].used = jiffies;
 
-	check_entry = nfp_flower_search_fl_table(app, flow->cookie, netdev);
+	check_entry = nfp_flower_search_fl_table(app, cookie, netdev);
 	if (check_entry) {
 		NL_SET_ERR_MSG_MOD(extack, "invalid entry: cannot offload duplicate flow entry");
 		if (nfp_release_stats_entry(app, stats_cxt)) {

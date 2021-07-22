@@ -140,39 +140,41 @@ nfp_flower_xmit_flow(struct nfp_app *app, struct nfp_fl_payload *nfp_flow,
 	return 0;
 }
 
-static bool nfp_flower_check_higher_than_mac(compat__flow_cls_offload *f)
-{
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-	struct flow_rule *rule = compat__flow_cls_offload_flow_rule(f);
-
+static bool nfp_flower_check_higher_than_mac(struct flow_rule *rule)
+{
 	return flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_IPV4_ADDRS) ||
 	       flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_IPV6_ADDRS) ||
 	       flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_PORTS) ||
 	       flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_ICMP);
+}
 #else
+static bool nfp_flower_check_higher_than_mac(compat__flow_cls_offload *f)
+{
 	return dissector_uses_key(f->dissector,
 				  FLOW_DISSECTOR_KEY_IPV4_ADDRS) ||
-		dissector_uses_key(f->dissector,
-				   FLOW_DISSECTOR_KEY_IPV6_ADDRS) ||
-		dissector_uses_key(f->dissector,
-				   FLOW_DISSECTOR_KEY_PORTS) ||
-		dissector_uses_key(f->dissector, FLOW_DISSECTOR_KEY_ICMP);
-#endif
+	       dissector_uses_key(f->dissector,
+				  FLOW_DISSECTOR_KEY_IPV6_ADDRS) ||
+	       dissector_uses_key(f->dissector,
+				  FLOW_DISSECTOR_KEY_PORTS) ||
+	       dissector_uses_key(f->dissector, FLOW_DISSECTOR_KEY_ICMP);
 }
+#endif
 
-static bool nfp_flower_check_higher_than_l3(compat__flow_cls_offload *f)
-{
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-	struct flow_rule *rule = compat__flow_cls_offload_flow_rule(f);
-
+static bool nfp_flower_check_higher_than_l3(struct flow_rule *rule)
+{
 	return flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_PORTS) ||
 	       flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_ICMP);
+}
 #else
+static bool nfp_flower_check_higher_than_l3(compat__flow_cls_offload *f)
+{
 	return dissector_uses_key(f->dissector,
 				  FLOW_DISSECTOR_KEY_PORTS) ||
 	       dissector_uses_key(f->dissector, FLOW_DISSECTOR_KEY_ICMP);
-#endif
 }
+#endif
 
 static int
 nfp_flower_calc_opt_layer(struct flow_dissector_key_enc_opts *enc_opts,
@@ -262,7 +264,11 @@ static int
 nfp_flower_calculate_key_layers(struct nfp_app *app,
 				struct net_device *netdev,
 				struct nfp_fl_key_ls *ret_key_ls,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+				struct flow_rule *rule,
+#else
 				compat__flow_cls_offload *flow,
+#endif
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 				bool egress,
 #endif
@@ -270,7 +276,6 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 				struct netlink_ext_ack *extack)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-	struct flow_rule *rule = compat__flow_cls_offload_flow_rule(flow);
 	struct flow_dissector *dissector = rule->match.dissector;
 	struct flow_match_basic basic = { NULL, NULL};
 #else
@@ -628,7 +633,11 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 			NL_SET_ERR_MSG_MOD(extack, "unsupported offload: match on given EtherType is not supported");
 			return -EOPNOTSUPP;
 		}
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+	} else if (nfp_flower_check_higher_than_mac(rule)) {
+#else
 	} else if (nfp_flower_check_higher_than_mac(flow)) {
+#endif
 		NL_SET_ERR_MSG_MOD(extack, "unsupported offload: cannot match above L2 without specified EtherType");
 		return -EOPNOTSUPP;
 	}
@@ -655,7 +664,11 @@ nfp_flower_calculate_key_layers(struct nfp_app *app,
 	}
 
 	if (!(key_layer & NFP_FLOWER_LAYER_TP) &&
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+	    nfp_flower_check_higher_than_l3(rule)) {
+#else
 	    nfp_flower_check_higher_than_l3(flow)) {
+#endif
 		NL_SET_ERR_MSG_MOD(extack, "unsupported offload: cannot match on L4 information without specified IP protocol type");
 		return -EOPNOTSUPP;
 	}
@@ -1232,9 +1245,7 @@ int nfp_flower_merge_offloaded_flows(struct nfp_app *app,
 				     struct nfp_fl_payload *sub_flow1,
 				     struct nfp_fl_payload *sub_flow2)
 {
-	compat__flow_cls_offload merge_tc_off;
 	struct nfp_flower_priv *priv = app->priv;
-	struct netlink_ext_ack *extack = NULL;
 	struct nfp_fl_payload *merge_flow;
 	struct nfp_fl_key_ls merge_key_ls;
 	struct nfp_merge_info *merge_info;
@@ -1243,9 +1254,6 @@ int nfp_flower_merge_offloaded_flows(struct nfp_app *app,
 
 	ASSERT_RTNL();
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
-	extack = merge_tc_off.common.extack;
-#endif
 	if (sub_flow1 == sub_flow2 ||
 	    nfp_flower_is_merge_flow(sub_flow1) ||
 	    nfp_flower_is_merge_flow(sub_flow2))
@@ -1294,9 +1302,8 @@ int nfp_flower_merge_offloaded_flows(struct nfp_app *app,
 	if (err)
 		goto err_unlink_sub_flow1;
 
-	merge_tc_off.cookie = merge_flow->tc_flower_cookie;
-	err = nfp_compile_flow_metadata(app, &merge_tc_off, merge_flow,
-					merge_flow->ingress_dev, extack);
+	err = nfp_compile_flow_metadata(app, merge_flow->tc_flower_cookie, merge_flow,
+					merge_flow->ingress_dev, NULL);
 	if (err)
 		goto err_unlink_sub_flow2;
 
@@ -1547,6 +1554,9 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 		       compat__flow_cls_offload *flow)
 #endif
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+	struct flow_rule *rule = compat__flow_cls_offload_flow_rule(flow);
+#endif
 	enum nfp_flower_tun_type tun_type = NFP_FL_TUNNEL_NONE;
 	struct nfp_flower_priv *priv = app->priv;
 	struct netlink_ext_ack *extack = NULL;
@@ -1596,8 +1606,11 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
 	err = nfp_flower_calculate_key_layers(app, netdev, key_layer, flow,
 					      egress, &tun_type, extack);
-#else
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
 	err = nfp_flower_calculate_key_layers(app, netdev, key_layer, flow,
+					      &tun_type, extack);
+#else
+	err = nfp_flower_calculate_key_layers(app, netdev, key_layer, rule,
 					      &tun_type, extack);
 #endif
 	if (err)
@@ -1617,8 +1630,13 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 	flow_pay->ingress_dev = egress ? NULL : netdev;
 
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+	err = nfp_flower_compile_flow_match(app, rule, key_layer, netdev,
+					    flow_pay, tun_type, extack);
+#else
 	err = nfp_flower_compile_flow_match(app, flow, key_layer, netdev,
 					    flow_pay, tun_type, extack);
+#endif
 	if (err)
 		goto err_destroy_flow;
 
@@ -1633,10 +1651,10 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 	}
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
-	err = nfp_compile_flow_metadata(app, flow, flow_pay,
+	err = nfp_compile_flow_metadata(app, flow->cookie, flow_pay,
 					flow_pay->ingress_dev, extack);
 #else
-	err = nfp_compile_flow_metadata(app, flow, flow_pay, netdev, extack);
+	err = nfp_compile_flow_metadata(app, flow->cookie, flow_pay, netdev, extack);
 #endif
 	if (err)
 		goto err_destroy_flow;

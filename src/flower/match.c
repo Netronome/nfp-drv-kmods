@@ -858,16 +858,17 @@ nfp_flower_compile_ipv6_gre_tun(struct nfp_flower_ipv6_gre_tun *ext,
 #endif
 
 int nfp_flower_compile_flow_match(struct nfp_app *app,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+				  struct flow_rule *rule,
+#else
 				  compat__flow_cls_offload *flow,
+#endif
 				  struct nfp_fl_key_ls *key_ls,
 				  struct net_device *netdev,
 				  struct nfp_fl_payload *nfp_flow,
 				  enum nfp_flower_tun_type tun_type,
 				  struct netlink_ext_ack *extack)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-	struct flow_rule *rule = compat__flow_cls_offload_flow_rule(flow);
-#endif
 	struct nfp_flower_priv *priv = app->priv;
 	bool qinq_sup;
 	u32 port_id;
