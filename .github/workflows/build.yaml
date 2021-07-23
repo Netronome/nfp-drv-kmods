@@ -158,7 +158,7 @@ jobs:
       - name: Filter latest CentOS stream kernel
         if: startsWith(matrix.release.name, '8-stream')
         run: |
-          KVER=$(curl -s "http://${{ env.OS_PATH }}/?C=M;O=A" | \
+          KVER=$(curl -s "http://${{ env.OS_PATH }}/" | \
             sed -En 's/.*kernel-devel-(4.18.0-[0-9].*).el8.*rpm.*/\1/p' | \
             tail -n 1)
           echo $KVER
