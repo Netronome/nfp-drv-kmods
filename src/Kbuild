@@ -210,6 +210,17 @@ ifeq ($(CONFIG_NFP_EXPORTS),y)
   nfp-objs += nfpcore/nfp_export.o
 endif
 
+# Check for DIM
+dim_path :=$(srctree)/include/linux/dim.h
+ifneq (,$(wildcard $(dim_path)))
+COMPAT_HAVE_DIM := \
+		$(shell grep -q net_dim_get_rx $(dim_path) && echo y)
+endif
+
+ifeq ($(COMPAT_HAVE_DIM),y)
+	ccflags-y +=-DCOMPAT_HAVE_DIM=1
+endif
+
 ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
   ccflags-y += -DCONFIG_NFP_DEBUG
 
