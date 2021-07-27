@@ -16,7 +16,7 @@ runs:
     - name: Build
       shell: sh
       run: |
-        export MAKEFLAGS="${{ env.MAKEFLAGS }} -s -j$(nproc) M=$(pwd)/src"
+        export MAKEFLAGS="${{ env.MAKEFLAGS }} -s -j$(nproc) M=$(pwd)/src CFLAGS_EXTRA+=-Werror"
         find "${{ inputs.search-path }}" -mindepth 1 -maxdepth 1 -type d \
           -name "${{ inputs.search-pattern }}" -print0 | \
           xargs -t -r -0 -n 1 -I "{}" \
