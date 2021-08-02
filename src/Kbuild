@@ -112,15 +112,23 @@ RHEL_RELEASE := \
 		     END {if (found != 1) print 0}' \
 		$(srctree)/include/generated/uapi/linux/version.h 2>/dev/null || echo 0)
 
+format_point_count=$(shell echo $(RHEL_RELEASE) | grep -o '\.' | wc -l)
+ifeq ($(format_point_count),0)
+	RHEL_REL_STANDARDIZE=$(shell echo $(RHEL_RELEASE).0.0)
+else ifeq ($(format_point_count),1)
+	RHEL_REL_STANDARDIZE=$(shell echo $(RHEL_RELEASE).0)
+else ifeq ($(format_point_count),2)
+	RHEL_REL_STANDARDIZE=$(shell echo $(RHEL_RELEASE))
+endif
+ccflags-y += -DRHEL_RELEASE_EXTRACT_X=$(shell echo $(RHEL_REL_STANDARDIZE) | cut -d '.' -f 1)
+ccflags-y += -DRHEL_RELEASE_EXTRACT_Y=$(shell echo $(RHEL_REL_STANDARDIZE) | cut -d '.' -f 2)
+ccflags-y += -DRHEL_RELEASE_EXTRACT_Z=$(shell echo $(RHEL_REL_STANDARDIZE) | cut -d '.' -f 3)
+
 VER_IS_NON_RHEL := $(shell [ $(RHEL_MAJOR) -eq 0 ] && echo y)
 
 RHEL_GE_7_4 := \
 	$(shell [ $(RHEL_MAJOR) -gt 7 -o \
 	\( $(RHEL_MAJOR) -eq 7 -a $(RHEL_MINOR) -ge 4 \) ] && echo y)
-
-RHEL_GE_8_4 := \
-	$(shell [ $(RHEL_MAJOR) -gt 8 -o \
-	\( $(RHEL_MAJOR) -eq 8 -a $(RHEL_MINOR) -ge 4 \) ] && echo y)
 
 KERNEL_GE_4_6 := \
 	$(shell [ $(VERSION) -gt 4 -o \
@@ -246,20 +254,6 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
       nfp-objs += \
 		nfp_shared_buf.o
     endif
-
-	ifeq ($(RHEL_GE_8_4),y)
-		format_point_count=$(shell echo $(RHEL_RELEASE) | grep -o '\.' | wc -l)
-		ifeq ($(format_point_count),0)
-			RHEL_REL_STANDARDIZE=$(shell echo $(RHEL_RELEASE).0.0)
-		else ifeq ($(format_point_count),1)
-			RHEL_REL_STANDARDIZE=$(shell echo $(RHEL_RELEASE).0)
-		else ifeq ($(format_point_count),2)
-			RHEL_REL_STANDARDIZE=$(shell echo $(RHEL_RELEASE))
-		endif
-		ccflags-y += -DRHEL_RELEASE_EXTRACT_X=$(shell echo $(RHEL_REL_STANDARDIZE) | cut -d '.' -f 1)
-		ccflags-y += -DRHEL_RELEASE_EXTRACT_Y=$(shell echo $(RHEL_REL_STANDARDIZE) | cut -d '.' -f 2)
-		ccflags-y += -DRHEL_RELEASE_EXTRACT_Z=$(shell echo $(RHEL_REL_STANDARDIZE) | cut -d '.' -f 3)
-	endif
 
     ifeq ($(KERNEL_GE_4_13),y)
       nfp-objs += \
