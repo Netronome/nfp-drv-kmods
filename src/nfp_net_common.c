@@ -2617,7 +2617,7 @@ nfp_net_rx_ring_alloc(struct nfp_net_dp *dp, struct nfp_net_rx_ring *rx_ring)
 
 	if (dp->netdev) {
 		err = xdp_rxq_info_reg(&rx_ring->xdp_rxq, dp->netdev,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
+#if VER_NON_RHEL_GE(5, 11) || RHEL_RELEASE_GE(8, 326, 0, 0)
 				       rx_ring->idx, rx_ring->r_vec->napi.napi_id);
 #else
 				       rx_ring->idx);
