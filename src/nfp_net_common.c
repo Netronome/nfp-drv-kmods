@@ -3392,6 +3392,13 @@ static int nfp_net_dp_swap_enable(struct nfp_net *nn, struct nfp_net_dp *dp)
 	for (r = 0; r <	nn->max_r_vecs; r++)
 		nfp_net_vector_assign_rings(&nn->dp, &nn->r_vecs[r], r);
 
+#ifdef COMPAT__HAVE_NETIF_SET_REAL_NUM_QUEUES
+	err = netif_set_real_num_queues(nn->dp.netdev,
+					nn->dp.num_stack_tx_rings,
+					nn->dp.num_rx_rings);
+	if (err)
+		return err;
+#else
 	err = netif_set_real_num_rx_queues(nn->dp.netdev, nn->dp.num_rx_rings);
 	if (err)
 		return err;
@@ -3402,7 +3409,7 @@ static int nfp_net_dp_swap_enable(struct nfp_net *nn, struct nfp_net_dp *dp)
 		if (err)
 			return err;
 	}
-
+#endif
 	return nfp_net_set_config_and_enable(nn);
 }
 
