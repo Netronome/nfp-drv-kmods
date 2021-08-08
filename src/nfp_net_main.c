@@ -709,7 +709,12 @@ int nfp_net_pci_probe(struct nfp_pf *pf)
 	if (err)
 		goto err_unmap;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
 	err = devlink_register(devlink, &pf->pdev->dev);
+#else
+	err = devlink_register(devlink);
+#endif
+
 	if (err)
 		goto err_app_clean;
 
