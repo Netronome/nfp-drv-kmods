@@ -1431,7 +1431,7 @@ static int nfp_net_set_coalesce(struct net_device *netdev,
 	struct nfp_net *nn = netdev_priv(netdev);
 	unsigned int factor;
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0))
+#if VER_NON_RHEL_LT(5, 7) || VER_RHEL_LT(8, 4)
 	if (ec->rx_coalesce_usecs_irq ||
 	    ec->rx_max_coalesced_frames_irq ||
 	    ec->tx_coalesce_usecs_irq ||
@@ -1572,7 +1572,7 @@ static int nfp_net_set_channels(struct net_device *netdev,
 }
 
 static const struct ethtool_ops nfp_net_ethtool_ops = {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0))
+#if VER_NON_RHEL_GE(5, 7) || VER_RHEL_GE(8, 4)
 	.supported_coalesce_params = ETHTOOL_COALESCE_USECS |
 #ifndef COMPAT_HAVE_DIM
 				     ETHTOOL_COALESCE_MAX_FRAMES,
