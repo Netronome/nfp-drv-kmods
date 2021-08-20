@@ -1172,7 +1172,13 @@ static void nfp_net_get_regs(struct net_device *netdev,
 }
 
 static int nfp_net_get_coalesce(struct net_device *netdev,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+				struct ethtool_coalesce *ec,
+				struct kernel_ethtool_coalesce *kernel_coal,
+				struct netlink_ext_ack *extack)
+#else
 				struct ethtool_coalesce *ec)
+#endif
 {
 	struct nfp_net *nn = netdev_priv(netdev);
 
@@ -1426,7 +1432,13 @@ exit_close_nsp:
 }
 
 static int nfp_net_set_coalesce(struct net_device *netdev,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+				struct ethtool_coalesce *ec,
+				struct kernel_ethtool_coalesce *kernel_coal,
+				struct netlink_ext_ack *extack)
+#else
 				struct ethtool_coalesce *ec)
+#endif
 {
 	struct nfp_net *nn = netdev_priv(netdev);
 	unsigned int factor;
