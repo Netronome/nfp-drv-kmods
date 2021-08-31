@@ -984,7 +984,7 @@ xdp_attachment_setup(struct xdp_attachment_info *info, struct netdev_bpf *bpf)
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0) && \
-	LINUX_VERSION_CODE < KERNEL_VERSION(5, 12, 0)
+	(VER_NON_RHEL_LT(5, 12) || RHEL_RELEASE_LT(8, 338, 0, 0))
 static __always_inline void
 xdp_init_buff(struct xdp_buff *xdp, u32 frame_sz, struct xdp_rxq_info *rxq)
 {
@@ -995,7 +995,8 @@ xdp_init_buff(struct xdp_buff *xdp, u32 frame_sz, struct xdp_rxq_info *rxq)
 }
 #endif
 
-#if COMPAT__HAVE_XDP && LINUX_VERSION_CODE < KERNEL_VERSION(5, 12, 0)
+#if COMPAT__HAVE_XDP && \
+	(VER_NON_RHEL_LT(5, 12) || RHEL_RELEASE_LT(8, 338, 0, 0))
 static __always_inline void
 xdp_prepare_buff(struct xdp_buff *xdp, unsigned char *hard_start,
 		 int headroom, int data_len, const bool meta_valid)
