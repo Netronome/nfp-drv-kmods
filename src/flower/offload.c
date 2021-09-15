@@ -2260,8 +2260,10 @@ nfp_flower_indr_block_cb_priv_lookup(struct nfp_app *app,
 	struct nfp_flower_indr_block_cb_priv *cb_priv;
 	struct nfp_flower_priv *priv = app->priv;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
 	/* All callback list access should be protected by RTNL. */
 	ASSERT_RTNL();
+#endif
 
 	list_for_each_entry(cb_priv, &priv->indr_block_cb_priv, list)
 		if (cb_priv->netdev == netdev)
