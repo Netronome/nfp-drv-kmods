@@ -21,9 +21,6 @@ jobs:
                 { "name": "18.04", "kernel": "4.15.0" },
         ]
         hwe: [ "", "hwe" ]
-        exclude:
-        - release: { "name": "20.04" }
-          hwe: hwe
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
