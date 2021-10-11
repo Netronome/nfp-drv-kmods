@@ -149,7 +149,7 @@ jobs:
           key: ${{ env.cache-name }}-centos-${{ matrix.release.name }}-v2
 
       - name: Install Dependencies
-        run: yum -q -y install elfutils-libelf-devel gcc make wget
+        run: yum -q -y install elfutils-libelf-devel gcc make wget ca-certificates
 
       - name: Filter latest CentOS stream kernel
         if: startsWith(matrix.release.name, '8-stream')
@@ -365,6 +365,7 @@ jobs:
           EXTRA_DEP+=" perl"
           EXTRA_DEP+=" perl-devel"
           EXTRA_DEP+=" bc"
+          EXTRA_DEP+=" ca-certificates"
           MAJOR="${RELEASE%.*}"
           DIR="linux-$RELEASE"
           echo "CACHE_ID=$RELEASE" >> $GITHUB_ENV
