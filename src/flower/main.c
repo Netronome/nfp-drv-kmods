@@ -847,12 +847,6 @@ static int nfp_flower_init(struct nfp_app *app)
 	if (err)
 		goto err_cleanup;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
-	err = flow_indr_dev_register(compat__nfp_flower_indr_setup_tc_cb, app);
-	if (err)
-		goto err_cleanup;
-#endif
-
 	if (app_priv->flower_ext_feats & NFP_FL_FEATS_VF_RLIM)
 		nfp_flower_qos_init(app);
 
@@ -960,8 +954,23 @@ static int nfp_flower_start(struct nfp_app *app)
 		if (err)
 			return err;
 	}
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
+	err = flow_indr_dev_register(compat__nfp_flower_indr_setup_tc_cb, app);
+	if (err)
+		return err;
+#endif
+	err = nfp_tunnel_config_start(app);
+	if (err)
+		goto err_tunnel_config;
 
-	return nfp_tunnel_config_start(app);
+	return 0;
+
+err_tunnel_config:
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
+	flow_indr_dev_unregister(compat__nfp_flower_indr_setup_tc_cb, app,
+				 nfp_flower_setup_indr_tc_release);
+#endif
+	return err;
 }
 
 static void nfp_flower_stop(struct nfp_app *app)
