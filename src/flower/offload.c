@@ -2398,10 +2398,9 @@ int nfp_flower_indr_setup_tc_cb(struct net_device *netdev, struct Qdisc *sch, vo
 				enum tc_setup_type type, void *type_data,
 				void *data, void (*cleanup)(struct flow_block_cb *block_cb))
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
 	if (!nfp_fl_is_netdev_to_offload(netdev))
 		return -EOPNOTSUPP;
-#endif
+
 	switch (type) {
 	case TC_SETUP_BLOCK:
 		return nfp_flower_setup_indr_tc_block(netdev, sch, cb_priv,
