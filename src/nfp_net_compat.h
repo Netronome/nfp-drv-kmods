@@ -1519,4 +1519,10 @@ static inline void eth_hw_addr_set(struct net_device *dev, const u8 *addr)
 }
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
+typedef struct gnet_stats_basic_packed compat__gnet_stats_basic_sync;
+#else
+typedef struct gnet_stats_basic_sync compat__gnet_stats_basic_sync;
+#endif
+
 #endif /* _NFP_NET_COMPAT_H_ */
