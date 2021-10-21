@@ -49,11 +49,11 @@
 #endif
 
 /* Redefine LINUX_VERSION_CODE for net and *-next kernels */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0)
-#include <linux/bpf.h>
-#ifdef BPF_TRAMP_F_IP_ARG
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+#include <linux/brcmphy.h>
+#ifdef MII_BCM54XX_EXP_EXP08_FORCE_DAC_WAKE
 #undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(5, 15, 0)
+#define LINUX_VERSION_CODE KERNEL_VERSION(5, 16, 0)
 #endif
 #endif
 
