@@ -182,15 +182,32 @@ static int
 nfp_bpf_check_mtu(struct nfp_app *app, struct net_device *netdev, int new_mtu)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+	struct nfp_bpf_vnic *bv;
+	struct bpf_prog *prog;
+#else
 	unsigned int max_mtu;
+#endif
 
 	if (~nn->dp.ctrl & NFP_NET_CFG_CTRL_BPF)
 		return 0;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+	if (nn->xdp_hw.prog) {
+		prog = nn->xdp_hw.prog;
+	} else {
+		bv = nn->app_priv;
+		prog = bv->tc_prog;
+	}
+
+	if (nfp_bpf_offload_check_mtu(nn, prog, new_mtu)) {
+		nn_info(nn, "BPF offload active, potential packet access beyond hardware packet boundary");
+#else
 	max_mtu = nn_readb(nn, NFP_NET_CFG_BPF_INL_MTU) * 64 - 32;
 	if (new_mtu > max_mtu) {
 		nn_info(nn, "BPF offload active, MTU over %u not supported\n",
 			max_mtu);
+#endif
 		return -EBUSY;
 	}
 	return 0;

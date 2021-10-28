@@ -516,22 +516,40 @@ int nfp_bpf_event_output(struct nfp_app_bpf *bpf, const void *data,
 	return 0;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+bool nfp_bpf_offload_check_mtu(struct nfp_net *nn, struct bpf_prog *prog,
+			       unsigned int mtu)
+{
+	unsigned int fw_mtu, pkt_off;
+
+	fw_mtu = nn_readb(nn, NFP_NET_CFG_BPF_INL_MTU) * 64 - 32;
+	pkt_off = min(prog->aux->max_pkt_offset, mtu);
+
+	return fw_mtu < pkt_off;
+}
+#endif
+
 static int
 nfp_net_bpf_load(struct nfp_net *nn, struct bpf_prog *prog,
 		 struct netlink_ext_ack *extack)
 {
 	struct nfp_prog *nfp_prog = prog->aux->offload->dev_priv;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+	unsigned int max_stack, max_prog_len;
+#else
 	unsigned int fw_mtu, pkt_off, max_stack, max_prog_len;
+#endif
 	dma_addr_t dma_addr;
 	void *img;
 	int err;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+	if (nfp_bpf_offload_check_mtu(nn, prog, nn->dp.netdev->mtu)) {
+#else
 	fw_mtu = nn_readb(nn, NFP_NET_CFG_BPF_INL_MTU) * 64 - 32;
 	pkt_off = nn->dp.netdev->mtu;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
-	pkt_off = min(prog->aux->max_pkt_offset, pkt_off);
-#endif
 	if (fw_mtu < pkt_off) {
+#endif
 		NL_SET_ERR_MSG_MOD(extack, "BPF offload not supported with potential packet access beyond HW packet split boundary");
 		return -EOPNOTSUPP;
 	}
