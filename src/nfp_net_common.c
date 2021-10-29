@@ -2139,7 +2139,7 @@ static int nfp_net_poll(struct napi_struct *napi, int budget)
 			nfp_net_irq_unmask(r_vec->nfp_net, r_vec->irq_entry);
 
 #ifdef COMPAT_HAVE_DIM
-	if (r_vec->nfp_net->rx_coalesce_adapt_on) {
+	if (r_vec->nfp_net->rx_coalesce_adapt_on && r_vec->rx_ring) {
 		struct dim_sample dim_sample = {};
 		unsigned int start;
 		u64 pkts, bytes;
@@ -2154,7 +2154,7 @@ static int nfp_net_poll(struct napi_struct *napi, int budget)
 		net_dim(&r_vec->rx_dim, dim_sample);
 	}
 
-	if (r_vec->nfp_net->tx_coalesce_adapt_on) {
+	if (r_vec->nfp_net->tx_coalesce_adapt_on && r_vec->tx_ring) {
 		struct dim_sample dim_sample = {};
 		unsigned int start;
 		u64 pkts, bytes;
