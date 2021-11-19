@@ -1531,4 +1531,12 @@ typedef struct gnet_stats_basic_packed compat__gnet_stats_basic_sync;
 typedef struct gnet_stats_basic_sync compat__gnet_stats_basic_sync;
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
+static inline void netif_set_gso_max_segs(struct net_device *dev,
+					  unsigned int segs)
+{
+	dev->gso_max_segs = segs;
+}
+#endif
+
 #endif /* _NFP_NET_COMPAT_H_ */
