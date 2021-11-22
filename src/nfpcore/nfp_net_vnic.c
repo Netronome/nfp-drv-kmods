@@ -11,6 +11,8 @@
  * PCIe interface to the NFP's ARM core.
  */
 
+#include "../nfp_net_compat.h"
+
 #include <linux/module.h>
 #include <linux/netdevice.h>
 #include <linux/etherdevice.h>
@@ -557,7 +559,7 @@ mac_out:
 	}
 
 	/* Set the devices MAC address */
-	ether_addr_copy(netdev->dev_addr, mac_addr);
+	eth_hw_addr_set(netdev, mac_addr);
 }
 
 static void nfp_net_vnic_netdev_setup(struct net_device *netdev)
