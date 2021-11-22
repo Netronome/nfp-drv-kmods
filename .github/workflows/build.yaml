@@ -112,7 +112,7 @@ jobs:
           RELEASE_NAME: ${{ matrix.release.name }}
         run: |
           case $RELEASE_NAME in
-          7.[0-8].*|8.[0-3].*) MIRROR="vault.centos.org" ;;
+          7.[0-8].*|8.[0-4].*) MIRROR="vault.centos.org" ;;
           *)                   MIRROR="mirror.centos.org/centos" ;;
           esac
 
