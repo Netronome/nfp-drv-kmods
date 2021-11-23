@@ -99,6 +99,7 @@ jobs:
                 { "name": "8.2.2004", "container": "8.3.2011" },
                 { "name": "8.3.2011", "container": "8.3.2011" },
                 { "name": "8.4.2105", "container": "8.3.2011" },
+                { "name": "8.5.2111", "container": "8.3.2011" },
                 { "name": "8-stream", "container": "8.3.2011" },
         ]
     container:
