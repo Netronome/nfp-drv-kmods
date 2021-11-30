@@ -2009,7 +2009,11 @@ static int nfp_net_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 							    xdp_prog, act);
 				continue;
 			default:
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
 				bpf_warn_invalid_xdp_action(act);
+#else
+				bpf_warn_invalid_xdp_action(dp->netdev, xdp_prog, act);
+#endif
 				fallthrough;
 			case XDP_ABORTED:
 				trace_xdp_exception(dp->netdev, xdp_prog, act);
