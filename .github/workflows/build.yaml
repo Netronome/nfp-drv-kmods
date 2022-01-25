@@ -439,3 +439,97 @@ jobs:
         uses: ./.github/actions/build
         with:
             search-path: "${{ env.UNPACKED }}/usr/src/kernels"
+
+  build-bclinux:
+    name: Build BCLinux
+    runs-on: ubuntu-20.04
+    timeout-minutes: 90
+    env:
+      KVER: "*"
+    strategy:
+      matrix:
+        release: [
+                { "name": "el8", "container": "8.3.2011" },
+                { "name": "el8.1", "container": "8.3.2011" },
+                { "name": "el8.2", "container": "8.3.2011" },
+        ]
+    container:
+      image: centos:${{ matrix.release.container }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Set Download Environment
+        env:
+          RELEASE_NAME: ${{ matrix.release.name }}
+        run: |
+          OS_DIR1="BaseOS"
+          OS_DIR2="os"
+          MIRROR="mirrors.bclinux.org/bclinux"
+          OS_PATH="$MIRROR/$RELEASE_NAME/$OS_DIR1/x86_64/$OS_DIR2/Packages"
+          UPDATE_PATH="$MIRROR/$RELEASE_NAME/updates/x86_64/$OS_DIR2/Packages"
+
+          echo "OS_PATH=$OS_PATH" >> $GITHUB_ENV
+          echo "UPDATE_PATH=$UPDATE_PATH" >> $GITHUB_ENV
+
+      - name: Cache OS Kernel Header Packages
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-os-headers
+        with:
+          path: ${{ env.DOWNLOAD }}/${{ env.OS_PATH }}
+          key: ${{ env.cache-name }}-bclinux-${{ matrix.release.name }}-v2
+
+      - name: Install Dependencies
+        run: yum -q -y install elfutils-libelf-devel gcc make wget ca-certificates
+
+      - name: Filter latest BCLinux stream kernel
+        run: |
+          for i in $(curl -s "http://${{ env.OS_PATH }}/" | \
+          grep -o -E "kernel-devel-4.19.0-([0-9]|.){1,12}.el8([0-9]|_){0,9}.bclinux.x86_64.rpm")
+          do
+            var=${i%.el8*}
+            var=${var#*4.19.0-}
+            array[${#array[@]}]=$var
+          done
+          for((i=0;i<${#array[@]}-1;i++))
+          do
+            ver1=${array[$i]}
+            ver2=${array[$((i+1))]}
+            if [ ${ver1%%.*} -gt ${ver2%%.*} ];then
+              array[$((i+1))]=${array[$i]}
+            else
+              ver1=${ver1#*.}
+              ver2=${ver2#*.}
+              if [ ${ver1%%.*} -gt ${ver2%%.*} ];then
+                array[$((i+1))]=${array[$i]}
+              else
+                ver1=${ver1#*.}
+                ver2=${ver2#*.}
+                if [ ${ver1%%.*} -gt ${ver2%%.*} ];then
+                  array[$((i+1))]=${array[$i]}
+                fi
+              fi
+            fi
+          done
+          KVER="4.19.0-"${array[((${#array[@]}-1))]}
+          echo $KVER
+          echo "KVER=${KVER}*" >> $GITHUB_ENV
+
+      - name: Download BCLinux OS Kernel Header Packages
+        uses: ./.github/actions/download
+        with:
+            output-path: ${{ env.DOWNLOAD }}
+            url: "http://${{ env.OS_PATH }}"
+            accept: "kernel-devel-${{ env.KVER }}.rpm"
+
+      - name: Unpack Kernel Headers
+        uses: ./.github/actions/unpack-rpm
+        with:
+            input-path: ${{ env.DOWNLOAD }}
+            output-path: ${{ env.UNPACKED }}
+
+      - name: Build
+        uses: ./.github/actions/build
+        with:
+            search-path: "${{ env.UNPACKED }}/usr/src/kernels"
