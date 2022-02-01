@@ -84,26 +84,26 @@ jobs:
     strategy:
       matrix:
         release: [
-                { "name": "7.0.1406", "container": "7.9.2009" },
-                { "name": "7.1.1503", "container": "7.9.2009" },
-                { "name": "7.2.1511", "container": "7.9.2009" },
-                { "name": "7.3.1611", "container": "7.9.2009" },
-                { "name": "7.4.1708", "container": "7.9.2009" },
-                { "name": "7.5.1804", "container": "7.9.2009" },
-                { "name": "7.6.1810", "container": "7.9.2009" },
-                { "name": "7.7.1908", "container": "7.9.2009" },
-                { "name": "7.8.2003", "container": "7.9.2009" },
-                { "name": "7.9.2009", "container": "7.9.2009" },
-                { "name": "8.0.1905", "container": "8.3.2011" },
-                { "name": "8.1.1911", "container": "8.3.2011" },
-                { "name": "8.2.2004", "container": "8.3.2011" },
-                { "name": "8.3.2011", "container": "8.3.2011" },
-                { "name": "8.4.2105", "container": "8.3.2011" },
-                { "name": "8.5.2111", "container": "8.3.2011" },
-                { "name": "8-stream", "container": "8.3.2011" },
+                { "name": "7.0.1406", "container": "centos:7.9.2009" },
+                { "name": "7.1.1503", "container": "centos:7.9.2009" },
+                { "name": "7.2.1511", "container": "centos:7.9.2009" },
+                { "name": "7.3.1611", "container": "centos:7.9.2009" },
+                { "name": "7.4.1708", "container": "centos:7.9.2009" },
+                { "name": "7.5.1804", "container": "centos:7.9.2009" },
+                { "name": "7.6.1810", "container": "centos:7.9.2009" },
+                { "name": "7.7.1908", "container": "centos:7.9.2009" },
+                { "name": "7.8.2003", "container": "centos:7.9.2009" },
+                { "name": "7.9.2009", "container": "centos:7.9.2009" },
+                { "name": "8.0.1905", "container": "rockylinux:8.5" },
+                { "name": "8.1.1911", "container": "rockylinux:8.5" },
+                { "name": "8.2.2004", "container": "rockylinux:8.5" },
+                { "name": "8.3.2011", "container": "rockylinux:8.5" },
+                { "name": "8.4.2105", "container": "rockylinux:8.5" },
+                { "name": "8.5.2111", "container": "rockylinux:8.5" },
+                { "name": "8-stream", "container": "rockylinux:8.5" },
         ]
     container:
-      image: centos:${{ matrix.release.container }}
+      image: ${{ matrix.release.container }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
@@ -113,7 +113,7 @@ jobs:
           RELEASE_NAME: ${{ matrix.release.name }}
         run: |
           case $RELEASE_NAME in
-          7.[0-8].*|8.[0-4].*) MIRROR="vault.centos.org" ;;
+          7.[0-8].*|8.[0-5].*) MIRROR="vault.centos.org" ;;
           *)                   MIRROR="mirror.centos.org/centos" ;;
           esac
 
@@ -150,7 +150,7 @@ jobs:
           key: ${{ env.cache-name }}-centos-${{ matrix.release.name }}-v2
 
       - name: Install Dependencies
-        run: yum -q -y install elfutils-libelf-devel gcc make wget ca-certificates
+        run: yum -q -y install cpio elfutils-libelf-devel findutils gcc make wget ca-certificates
 
       - name: Filter latest CentOS stream kernel
         if: startsWith(matrix.release.name, '8-stream')
@@ -449,12 +449,12 @@ jobs:
     strategy:
       matrix:
         release: [
-                { "name": "el8", "container": "8.3.2011" },
-                { "name": "el8.1", "container": "8.3.2011" },
-                { "name": "el8.2", "container": "8.3.2011" },
+                { "name": "el8" },
+                { "name": "el8.1" },
+                { "name": "el8.2" },
         ]
     container:
-      image: centos:${{ matrix.release.container }}
+      image: rockylinux:8.5
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
@@ -481,7 +481,7 @@ jobs:
           key: ${{ env.cache-name }}-bclinux-${{ matrix.release.name }}-v2
 
       - name: Install Dependencies
-        run: yum -q -y install elfutils-libelf-devel gcc make wget ca-certificates
+        run: yum -q -y install cpio elfutils-libelf-devel findutils gcc make wget ca-certificates
 
       - name: Filter latest BCLinux stream kernel
         run: |
