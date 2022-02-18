@@ -235,7 +235,7 @@ int nfp_devlink_params_register(struct nfp_pf *pf)
 	if (err <= 0)
 		return err;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
 	err = devlink_params_register(devlink, nfp_devlink_params,
 				      ARRAY_SIZE(nfp_devlink_params));
 	if (err)

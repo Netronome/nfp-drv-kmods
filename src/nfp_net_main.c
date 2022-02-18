@@ -711,6 +711,8 @@ int nfp_net_pci_probe(struct nfp_pf *pf)
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
 	devlink_register(devlink, &pf->pdev->dev);
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
+	devlink_register(devlink);
 #endif
 
 	err = nfp_shared_buf_register(pf);
@@ -742,7 +744,7 @@ int nfp_net_pci_probe(struct nfp_pf *pf)
 		goto err_stop_app;
 
 	mutex_unlock(&pf->lock);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
 	devlink_register(devlink);
 #endif
 
@@ -762,7 +764,7 @@ err_shared_buf_unreg:
 	nfp_shared_buf_unregister(pf);
 err_devlink_unreg:
 	cancel_work_sync(&pf->port_refresh_work);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
 	devlink_unregister(devlink);
 #endif
 	nfp_net_pf_app_clean(pf);
@@ -775,7 +777,7 @@ void nfp_net_pci_remove(struct nfp_pf *pf)
 {
 	struct nfp_net *nn, *next;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
 	devlink_unregister(priv_to_devlink(pf));
 #endif
 	mutex_lock(&pf->lock);
@@ -794,7 +796,7 @@ void nfp_net_pci_remove(struct nfp_pf *pf)
 
 	nfp_devlink_params_unregister(pf);
 	nfp_shared_buf_unregister(pf);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
 	devlink_unregister(priv_to_devlink(pf));
 #endif
 
