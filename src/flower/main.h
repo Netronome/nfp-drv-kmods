@@ -13,7 +13,13 @@
 #include <linux/rhashtable.h>
 #include <linux/time64.h>
 #include <linux/types.h>
+#ifdef COMPAT__HAVE_FLOW_OFFLOAD
+#include <net/flow_offload.h>
+#endif
 #include <net/pkt_cls.h>
+#ifdef COMPAT__HAVE_FLOW_OFFLOAD
+#include <net/pkt_sched.h>
+#endif
 #include <net/tcp.h>
 #include <linux/workqueue.h>
 #include <linux/idr.h>
@@ -49,6 +55,7 @@ struct nfp_app;
 #define NFP_FL_FEATS_IPV6_TUN		BIT(7)
 #define NFP_FL_FEATS_VLAN_QINQ		BIT(8)
 #define NFP_FL_FEATS_QOS_PPS		BIT(9)
+#define NFP_FL_FEATS_QOS_METER		BIT(10)
 #define NFP_FL_FEATS_HOST_ACK		BIT(31)
 
 #define NFP_FL_ENABLE_FLOW_MERGE	BIT(0)
@@ -607,6 +614,10 @@ nfp_flower_xmit_flow(struct nfp_app *app, struct nfp_fl_payload *nfp_flow,
 void
 nfp_flower_update_merge_stats(struct nfp_app *app,
 			      struct nfp_fl_payload *sub_flow);
+#if VER_KERN_GE(5, 17) && !COMPAT_BCLINUX
+int nfp_setup_tc_act_offload(struct nfp_app *app,
+		struct flow_offload_action *fl_act);
+#endif
 int nfp_flower_offload_one_police(struct nfp_app *app, bool ingress,
 				  bool pps, u32 id, u32 rate, u32 burst);
 #endif

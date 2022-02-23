@@ -249,6 +249,17 @@ ifeq ($(COMPAT__HAVE_NETIF_SET_REAL_NUM_QUEUES),y)
         ccflags-y +=-DCOMPAT__HAVE_NETIF_SET_REAL_NUM_QUEUES=1
 endif
 
+# Check for flow_offload
+flow_offload_path :=$(srctree)/include/net/flow_offload.h
+ifneq (,$(wildcard $(flow_offload_path)))
+COMPAT__HAVE_FLOW_OFFLOAD := \
+		$(shell grep -q _NET_FLOW_OFFLOAD_H $(flow_offload_path) && echo y)
+endif
+
+ifeq ($(COMPAT__HAVE_FLOW_OFFLOAD),y)
+	ccflags-y +=-DCOMPAT__HAVE_FLOW_OFFLOAD=1
+endif
+
 # Check for BC Linux
 utsrelease_h_path :=$(srctree)/include/generated/utsrelease.h
 ifneq (,$(wildcard $(utsrelease_h_path)))
