@@ -4133,7 +4133,7 @@ const struct net_device_ops nfp_net_netdev_ops = {
 #endif
 };
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 4)
 static int nfp_udp_tunnel_sync(struct net_device *netdev, unsigned int table)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
@@ -4422,7 +4422,7 @@ static void nfp_net_netdev_init(struct nfp_net *nn)
 	if (nn->cap & NFP_NET_CFG_CTRL_VXLAN) {
 		if (nn->cap & NFP_NET_CFG_CTRL_LSO)
 			netdev->hw_features |= NETIF_F_GSO_UDP_TUNNEL;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 4)
 		netdev->udp_tunnel_nic_info = &nfp_udp_tunnels;
 #endif
 		nn->dp.ctrl |= NFP_NET_CFG_CTRL_VXLAN;
