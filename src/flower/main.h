@@ -199,6 +199,8 @@ struct nfp_fl_internal_ports {
  * @qos_stats_work:	Workqueue for qos stats processing
  * @qos_rate_limiters:	Current active qos rate limiters
  * @qos_stats_lock:	Lock on qos stats updates
+ * @meter_stats_lock:   Lock on meter stats updates
+ * @meter_table:	Hash table used to store the meter table
  * @pre_tun_rule_cnt:	Number of pre-tunnel rules offloaded
  * @merge_table:	Hash table to store merged flows
  * @ct_zone_table:	Hash table used to store the different zones
@@ -236,6 +238,8 @@ struct nfp_flower_priv {
 	struct delayed_work qos_stats_work;
 	unsigned int qos_rate_limiters;
 	spinlock_t qos_stats_lock; /* Protect the qos stats */
+	struct mutex meter_stats_lock; /* Protect the meter stats */
+	struct rhashtable meter_table;
 	int pre_tun_rule_cnt;
 	struct rhashtable merge_table;
 #if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 3)
@@ -385,6 +389,31 @@ struct nfp_fl_stats_frame {
 	__be32 pkt_count;
 	__be64 byte_count;
 	__be64 stats_cookie;
+};
+
+struct nfp_meter_stats_entry {
+	u64 pkts;
+	u64 bytes;
+	u64 drops;
+};
+
+struct nfp_meter_entry {
+	struct rhash_head ht_node;
+	u32 meter_id;
+	bool bps;
+	u32 rate;
+	u32 burst;
+	u64 used;
+	struct nfp_meter_stats {
+		u64 update;
+		struct nfp_meter_stats_entry curr;
+		struct nfp_meter_stats_entry prev;
+	} stats;
+};
+
+enum nfp_meter_op {
+	NFP_METER_ADD,
+	NFP_METER_DEL,
 };
 
 static inline bool
@@ -618,6 +647,13 @@ nfp_flower_update_merge_stats(struct nfp_app *app,
 int nfp_setup_tc_act_offload(struct nfp_app *app,
 		struct flow_offload_action *fl_act);
 #endif
+int nfp_init_meter_table(struct nfp_app *app);
 int nfp_flower_offload_one_police(struct nfp_app *app, bool ingress,
 				  bool pps, u32 id, u32 rate, u32 burst);
+#if VER_KERN_GE(5, 17) && !COMPAT_BCLINUX
+int nfp_flower_setup_meter_entry(struct nfp_app *app,
+				 const struct flow_action_entry *action,
+				 enum nfp_meter_op op,
+				 u32 meter_id);
+#endif
 #endif
