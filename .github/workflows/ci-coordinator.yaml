@@ -1,0 +1,20 @@
+name: Coordinate NFP-DRV-KMODS Workflows
+
+# ========== TRIGGER ==========
+on:
+  push:
+    branches:
+      - main        # Or other default branch name
+      - '*-test*'   # Temporary test build
+      - '*test-*'   # Temporary test build
+      - '*-build*'  # Temporary build, no testing
+      - '*build-*'  # Temporary build, no testing
+      - 'release-*' # Release build
+  workflow_dispatch:
+
+jobs:
+  package_dkms:
+    uses: ./.github/workflows/package-dkms.yaml
+    secrets:
+      AZ_SAS_TOK: ${{ secrets.AZ_SAS_TOK }}
+      GHUB_TOKEN: ${{ secrets.GHUB_TOKEN }}
