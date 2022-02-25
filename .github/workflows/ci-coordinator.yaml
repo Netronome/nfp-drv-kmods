@@ -18,3 +18,10 @@ jobs:
     secrets:
       AZ_SAS_TOK: ${{ secrets.AZ_SAS_TOK }}
       GHUB_TOKEN: ${{ secrets.GHUB_TOKEN }}
+
+  install_dkms_packages:
+    needs: package_dkms
+    uses: ./.github/workflows/ci-test-interop.yaml
+    secrets:
+      AZ_SAS_TOK: ${{ secrets.AZ_SAS_TOK }}
+      GHUB_TOKEN: ${{ secrets.GHUB_TOKEN }}
