@@ -1552,4 +1552,10 @@ static inline void netif_set_gso_max_segs(struct net_device *dev,
 }
 #endif
 
+#if VER_NON_RHEL_LT(4, 19) || VER_RHEL_LT(8, 1)
+#define ida_alloc_max(ida, max, gfp)	\
+		ida_simple_get(ida, 0, (max)+1, gfp)
+#define ida_free(ida, id)	ida_simple_remove(ida, id)
+#endif
+
 #endif /* _NFP_NET_COMPAT_H_ */
