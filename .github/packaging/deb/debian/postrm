@@ -1,0 +1,25 @@
+#!/bin/sh
+
+NAME=MODULE_NAME
+VERSION=MODULE_VERSION
+
+set -e
+
+case "$1" in
+    remove|upgrade|deconfigure|purge)
+	blacklist_file="/etc/modprobe.d/blacklist-agilio-nfp-driver.conf"
+        rm -rf $blacklist_file
+    ;;
+
+    failed-upgrade)
+    ;;
+
+    *)
+        echo "prerm called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

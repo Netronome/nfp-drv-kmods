@@ -1,0 +1,5 @@
+MODULE_NAME-dkms (MODULE_VERSION) stable; urgency=low
+
+  * Release of DKMS agilio-nfp-driver package
+
+ -- Corigine <smartnic-support@corigine.com>  DATE_STAMP

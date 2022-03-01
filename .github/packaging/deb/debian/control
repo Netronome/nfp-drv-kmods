@@ -1,0 +1,12 @@
+Source: MODULE_NAME-dkms
+Section: misc
+Priority: optional
+Maintainer: Corigine <smartnic-support@corigine.com>
+Build-Depends: debhelper (>= 7), dkms
+Standards-Version: 3.8.1
+
+Package: MODULE_NAME-dkms
+Architecture: all
+Depends: dkms (>= 1.95), ${misc:Depends}
+Description: MODULE_NAME driver in DKMS format.
+Conflicts: ns-agilio-core-nic, nfp-bsp-dkms
