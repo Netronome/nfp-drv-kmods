@@ -49,11 +49,11 @@
 #endif
 
 /* Redefine LINUX_VERSION_CODE for net and *-next kernels */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
-#include <linux/btf_ids.h>
-#ifdef BTF_TRACING_TYPE_xxx
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)
+#include <linux/if_bridge.h>
+#ifdef BR_PORT_LOCKED
 #undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(5, 17, 0)
+#define LINUX_VERSION_CODE KERNEL_VERSION(5, 18, 0)
 #endif
 #endif
 
