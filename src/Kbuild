@@ -295,6 +295,9 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 
     ifneq (,$(filter y,$(KERNEL_GE_5_10) $(RHEL_GE_8_5)))
       ccflags-y += -DCOMPAT__HAVE_XDP_SOCK_DRV=1
+
+      nfp-objs += \
+	       nfp_net_xsk.o
     endif
 
     ifeq ($(KERNEL_GE_5_4),y)
