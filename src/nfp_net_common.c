@@ -3429,6 +3429,17 @@ struct nfp_net_dp *nfp_net_clone_dp(struct nfp_net *nn)
 
 	*new = nn->dp;
 
+#ifdef COMPAT__HAVE_XDP_SOCK_DRV
+	new->xsk_pools = kmemdup(new->xsk_pools,
+				 array_size(nn->max_r_vecs,
+					    sizeof(new->xsk_pools)),
+				 GFP_KERNEL);
+	if (!new->xsk_pools) {
+		kfree(new);
+		return NULL;
+	}
+#endif
+
 	/* Clear things which need to be recomputed */
 	new->fl_bufsz = 0;
 	new->tx_rings = NULL;
@@ -3437,6 +3448,14 @@ struct nfp_net_dp *nfp_net_clone_dp(struct nfp_net *nn)
 	new->num_stack_tx_rings = 0;
 
 	return new;
+}
+
+static void nfp_net_free_dp(struct nfp_net_dp *dp)
+{
+#ifdef COMPAT__HAVE_XDP_SOCK_DRV
+	kfree(dp->xsk_pools);
+#endif
+	kfree(dp);
 }
 
 static int
@@ -3522,7 +3541,7 @@ int nfp_net_ring_reconfig(struct nfp_net *nn, struct nfp_net_dp *dp,
 
 	nfp_net_open_stack(nn);
 exit_free_dp:
-	kfree(dp);
+	nfp_net_free_dp(dp);
 
 	return err;
 
@@ -3531,7 +3550,7 @@ err_free_rx:
 err_cleanup_vecs:
 	for (r = dp->num_r_vecs - 1; r >= nn->dp.num_r_vecs; r--)
 		nfp_net_cleanup_vector(nn, &nn->r_vecs[r]);
-	kfree(dp);
+	nfp_net_free_dp(dp);
 	return err;
 }
 

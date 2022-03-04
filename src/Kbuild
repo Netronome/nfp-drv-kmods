@@ -139,6 +139,10 @@ RHEL_GE_8_3 := \
         $(shell [ $(RHEL_MAJOR) -gt 8 -o \
         \( $(RHEL_MAJOR) -eq 8 -a $(RHEL_MINOR) -ge 3 \) ] && echo y)
 
+RHEL_GE_8_5 := \
+        $(shell [ $(RHEL_MAJOR) -gt 8 -o \
+        \( $(RHEL_MAJOR) -eq 8 -a $(RHEL_MINOR) -ge 5 \) ] && echo y)
+
 KERNEL_GE_4_6 := \
 	$(shell [ $(VERSION) -gt 4 -o \
 	\( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 6 \) ] && echo y)
@@ -178,6 +182,10 @@ KERNEL_GE_5_4 := \
 KERNEL_GE_5_9 := \
         $(shell [ $(VERSION) -gt 5 -o \
         \( $(VERSION) -eq 5 -a $(PATCHLEVEL) -ge 9 \) ] && echo y)
+
+KERNEL_GE_5_10 := \
+        $(shell [ $(VERSION) -gt 5 -o \
+        \( $(VERSION) -eq 5 -a $(PATCHLEVEL) -ge 10 \) ] && echo y)
 
 ifeq ($(KERNEL_GE_4_9),y)
   nfp-objs += nfp_hwmon.o
@@ -283,6 +291,10 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
     ifneq (,$(filter y,$(KERNEL_GE_4_6) $(RHEL_GE_7_4)))
       nfp-objs += \
 	       nfp_devlink.o
+    endif
+
+    ifneq (,$(filter y,$(KERNEL_GE_5_10) $(RHEL_GE_8_5)))
+      ccflags-y += -DCOMPAT__HAVE_XDP_SOCK_DRV=1
     endif
 
     ifeq ($(KERNEL_GE_5_4),y)
