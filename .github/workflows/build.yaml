@@ -132,8 +132,8 @@ jobs:
                   ;;
           esac
 
-          OS_PATH="$MIRROR/$RELEASE_NAME/$OS_DIR1/x86_64/$OS_DIR2/Packages"
-          UPDATE_PATH="$MIRROR/$RELEASE_NAME/updates/x86_64/$OS_DIR2/Packages"
+          OS_PATH="$MIRROR/$RELEASE_NAME/$OS_DIR1/x86_64/$OS_DIR2/Packages/"
+          UPDATE_PATH="$MIRROR/$RELEASE_NAME/updates/x86_64/$OS_DIR2/Packages/"
 
           echo "OS_PATH=$OS_PATH" >> $GITHUB_ENV
           echo "UPDATE_PATH=$UPDATE_PATH" >> $GITHUB_ENV
