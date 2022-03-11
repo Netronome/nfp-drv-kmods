@@ -1131,7 +1131,7 @@ static const struct pci_device_id compat_nfp_device_ids[] = {
 #ifdef CONFIG_NFP_NET_VF
 	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_ID_NETRONOME_NFP6000_VF,
 	  PCI_VENDOR_ID_NETRONOME, PCI_ANY_ID,
-	  PCI_ANY_ID, 0, NFP_DEV_NFP6000,
+	  PCI_ANY_ID, 0, NFP_DEV_NFP6000_VF,
 	},
 #endif
 	{ 0, } /* Required last entry. */
