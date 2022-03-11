@@ -75,6 +75,10 @@ static const char nfp_driver_name[] = "nfp";
 const char nfp_driver_version[] = NFP_SRC_VERSION;
 
 static const struct pci_device_id nfp_pci_device_ids[] = {
+	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_ID_NETRONOME_NFP3800,
+	  PCI_VENDOR_ID_NETRONOME, PCI_ANY_ID,
+	  PCI_ANY_ID, 0, NFP_DEV_NFP3800,
+	},
 	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_ID_NETRONOME_NFP4000,
 	  PCI_VENDOR_ID_NETRONOME, PCI_ANY_ID,
 	  PCI_ANY_ID, 0, NFP_DEV_NFP6000,
@@ -861,7 +865,8 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 	int err, irq;
 
 	if (pdev->vendor == PCI_VENDOR_ID_NETRONOME &&
-	    pdev->device == PCI_DEVICE_ID_NETRONOME_NFP6000_VF)
+	    (pdev->device == PCI_DEVICE_ID_NETRONOME_NFP3800_VF ||
+	     pdev->device == PCI_DEVICE_ID_NETRONOME_NFP6000_VF))
 		dev_warn(&pdev->dev, "Binding NFP VF device to the NFP PF driver, the VF driver is called 'nfp_netvf'\n");
 
 	dev_info = &nfp_dev_info[pci_id->driver_data];
@@ -1116,6 +1121,10 @@ static struct pci_driver nfp_pci_driver = {
 
 #if !COMPAT__CAN_HAVE_MULTIPLE_MOD_TABLES
 static const struct pci_device_id compat_nfp_device_ids[] = {
+	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_ID_NETRONOME_NFP3800,
+	  PCI_VENDOR_ID_NETRONOME, PCI_ANY_ID,
+	  PCI_ANY_ID, 0, NFP_DEV_NFP3800,
+	},
 	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_ID_NETRONOME_NFP4000,
 	  PCI_VENDOR_ID_NETRONOME, PCI_ANY_ID,
 	  PCI_ANY_ID, 0, NFP_DEV_NFP6000,
@@ -1129,6 +1138,10 @@ static const struct pci_device_id compat_nfp_device_ids[] = {
 	  PCI_ANY_ID, 0, NFP_DEV_NFP6000,
 	},
 #ifdef CONFIG_NFP_NET_VF
+	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_ID_NETRONOME_NFP3800_VF,
+	  PCI_VENDOR_ID_NETRONOME, PCI_ANY_ID,
+	  PCI_ANY_ID, 0, NFP_DEV_NFP3800_VF,
+	},
 	{ PCI_VENDOR_ID_NETRONOME, PCI_DEVICE_ID_NETRONOME_NFP6000_VF,
 	  PCI_VENDOR_ID_NETRONOME, PCI_ANY_ID,
 	  PCI_ANY_ID, 0, NFP_DEV_NFP6000_VF,
@@ -1142,7 +1155,8 @@ static int compat_nfp_probe(struct pci_dev *pdev,
 			    const struct pci_device_id *pci_id)
 {
 #ifdef CONFIG_NFP_NET_VF
-	if (pdev->device == PCI_DEVICE_ID_NETRONOME_NFP6000_VF)
+	if (pdev->device == PCI_DEVICE_ID_NETRONOME_NFP3800_VF ||
+	    pdev->device == PCI_DEVICE_ID_NETRONOME_NFP6000_VF)
 		return nfp_netvf_pci_driver.probe(pdev, pci_id);
 #endif
 	return nfp_pci_driver.probe(pdev, pci_id);
@@ -1151,7 +1165,8 @@ static int compat_nfp_probe(struct pci_dev *pdev,
 static void compat_nfp_remove(struct pci_dev *pdev)
 {
 #ifdef CONFIG_NFP_NET_VF
-	if (pdev->device == PCI_DEVICE_ID_NETRONOME_NFP6000_VF) {
+	if (pdev->device == PCI_DEVICE_ID_NETRONOME_NFP3800_VF ||
+	    pdev->device == PCI_DEVICE_ID_NETRONOME_NFP6000_VF) {
 		nfp_netvf_pci_driver.remove(pdev);
 		return;
 	}
@@ -1162,7 +1177,8 @@ static void compat_nfp_remove(struct pci_dev *pdev)
 static void compat_nfp_shutdown(struct pci_dev *pdev)
 {
 #ifdef CONFIG_NFP_NET_VF
-	if (pdev->device == PCI_DEVICE_ID_NETRONOME_NFP6000_VF) {
+	if (pdev->device == PCI_DEVICE_ID_NETRONOME_NFP3800_VF ||
+	    pdev->device == PCI_DEVICE_ID_NETRONOME_NFP6000_VF) {
 		nfp_netvf_pci_driver.shutdown(pdev);
 		return;
 	}
