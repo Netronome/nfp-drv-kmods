@@ -53,6 +53,7 @@ struct nfp_dumpspec {
 /**
  * struct nfp_pf - NFP PF-specific device structure
  * @pdev:		Backpointer to PCI device
+ * @dev_info:		NFP ASIC params
  * @cpp:		Pointer to the CPP handle
  * @app:		Pointer to the APP handle
  * @nfp_dev_cpp:	Pointer to the NFP Device handle
@@ -98,6 +99,7 @@ struct nfp_dumpspec {
  */
 struct nfp_pf {
 	struct pci_dev *pdev;
+	const struct nfp_dev_info *dev_info;
 
 	struct nfp_cpp *cpp;
 

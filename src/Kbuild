@@ -54,6 +54,7 @@ nfp-objs := \
 	    nfpcore/nfp_nsp.o \
 	    nfpcore/nfp_cppcore.o \
 	    nfpcore/nfp_cpplib.o \
+	    nfpcore/nfp_dev.o \
 	    nfpcore/nfp_em_manager.o \
 	    nfpcore/nfp_hwinfo.o \
 	    nfpcore/nfp_mip.o \
