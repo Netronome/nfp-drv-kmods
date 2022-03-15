@@ -94,6 +94,7 @@ int nfp_port_set_features(struct net_device *netdev, netdev_features_t features)
 	return 0;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 struct nfp_port *
 nfp_port_from_id(struct nfp_pf *pf, enum nfp_port_type type, unsigned int id)
 {
@@ -111,6 +112,7 @@ nfp_port_from_id(struct nfp_pf *pf, enum nfp_port_type type, unsigned int id)
 
 	return NULL;
 }
+#endif
 
 struct nfp_eth_table_port *__nfp_port_get_eth_port(struct nfp_port *port)
 {
