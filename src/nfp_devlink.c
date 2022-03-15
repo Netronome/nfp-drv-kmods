@@ -81,7 +81,9 @@ nfp_devlink_port_split(struct devlink *devlink, unsigned int port_index,
 	if (count < 2)
 		return -EINVAL;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 	devl_lock(devlink);
+#endif
 
 	rtnl_lock();
 	ret = nfp_devlink_fill_eth_port_from_id(pf, port_index, &eth_port);
@@ -101,7 +103,9 @@ nfp_devlink_port_split(struct devlink *devlink, unsigned int port_index,
 
 	ret = nfp_devlink_set_lanes(pf, eth_port.index, lanes);
 out:
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 	devl_unlock(devlink);
+#endif
 
 	return ret;
 }
@@ -119,7 +123,9 @@ nfp_devlink_port_unsplit(struct devlink *devlink, unsigned int port_index,
 	unsigned int lanes;
 	int ret;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 	devl_lock(devlink);
+#endif
 
 	rtnl_lock();
 	ret = nfp_devlink_fill_eth_port_from_id(pf, port_index, &eth_port);
@@ -139,7 +145,9 @@ nfp_devlink_port_unsplit(struct devlink *devlink, unsigned int port_index,
 
 	ret = nfp_devlink_set_lanes(pf, eth_port.index, lanes);
 out:
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 	devl_unlock(devlink);
+#endif
 
 	return ret;
 }
