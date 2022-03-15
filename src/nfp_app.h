@@ -6,6 +6,7 @@
 
 #include "nfp_net_compat.h"
 
+#include <linux/lockdep.h>
 #if COMPAT__HAS_DEVLINK
 #include <net/devlink.h>
 #endif
@@ -14,6 +15,7 @@
 #include <trace/events/devlink.h>
 #endif
 
+#include "nfp_main.h"
 #include "nfp_net_repr.h"
 
 #define NFP_APP_CTRL_MTU_MAX	U32_MAX
@@ -179,6 +181,13 @@ struct nfp_app {
 
 	void *priv;
 };
+
+static inline void assert_nfp_app_locked(struct nfp_app *app)
+{
+	lockdep_assert_held(&app->pf->lock);
+}
+
+#define nfp_app_is_locked(app)	lockdep_is_held(&(app)->pf->lock)
 
 void nfp_check_rhashtable_empty(void *ptr, void *arg);
 bool __nfp_ctrl_tx(struct nfp_net *nn, struct sk_buff *skb);
