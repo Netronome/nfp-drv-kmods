@@ -1558,4 +1558,14 @@ static inline void netif_set_gso_max_segs(struct net_device *dev,
 #define ida_free(ida, id)	ida_simple_remove(ida, id)
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
+void devl_assert_locked(struct devlink *devlink);
+bool devl_lock_is_held(struct devlink *devlink);
+#define devl_lock(d)	\
+	mutex_lock(&((struct nfp_pf *)devlink_priv(d))->lock)
+#define devl_unlock(d)	\
+	mutex_unlock(&((struct nfp_pf *)devlink_priv(d))->lock)
+#define devl_port_register	devlink_port_register
+#define devl_port_unregister	devlink_port_unregister
+#endif
 #endif /* _NFP_NET_COMPAT_H_ */

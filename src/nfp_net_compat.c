@@ -4,6 +4,7 @@
 #include "nfp_net_compat.h"
 
 #include <linux/ethtool.h>
+#include <linux/lockdep.h>
 #if COMPAT__HAVE_SWITCHDEV_ATTRS
 #include <net/switchdev.h>
 #endif
@@ -213,4 +214,23 @@ void flow_rule_match_cvlan(const struct flow_rule *rule,
 	out->key = skb_flow_dissector_target(d, FLOW_DISSECTOR_KEY_CVLAN, match->key);
 	out->mask = skb_flow_dissector_target(d, FLOW_DISSECTOR_KEY_CVLAN, match->mask);
 }
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
+void devl_assert_locked(struct devlink *devlink)
+{
+	struct nfp_pf *pf = devlink_priv(devlink);
+
+	lockdep_assert_held(&pf->lock);
+}
+
+#ifdef CONFIG_LOCKDEP
+/* For use in conjunction with LOCKDEP only e.g. rcu_dereference_protected() */
+bool devl_lock_is_held(struct devlink *devlink)
+{
+	struct nfp_pf *pf = devlink_priv(devlink);
+
+	return lockdep_is_held(&pf->lock);
+}
+#endif
 #endif

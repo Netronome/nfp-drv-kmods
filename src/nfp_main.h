@@ -93,7 +93,8 @@ struct nfp_dumpspec {
  * @port_refresh_work:	Work entry for taking netdevs out
  * @shared_bufs:	Array of shared buffer structures if FW has any SBs
  * @num_shared_bufs:	Number of elements in @shared_bufs
- * @lock:		Protects all fields which may change after probe
+ * @lock:		Protects all fields which may change after probe,
+ *			which is replaced by devlink lock after 5.18(inclusive)
  */
 struct nfp_pf {
 	struct pci_dev *pdev;
@@ -155,7 +156,9 @@ struct nfp_pf {
 	struct nfp_shared_buf *shared_bufs;
 	unsigned int num_shared_bufs;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 	struct mutex lock;
+#endif
 };
 
 extern int nfp_dev_cpp;
