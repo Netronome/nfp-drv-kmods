@@ -220,9 +220,13 @@ static int nfp_devlink_eswitch_mode_set(struct devlink *devlink, u16 mode,
 	struct nfp_pf *pf = devlink_priv(devlink);
 	int ret;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 	devl_lock(devlink);
+#endif
 	ret = nfp_app_eswitch_mode_set(pf->app, mode);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 	devl_unlock(devlink);
+#endif
 
 	return ret;
 }
