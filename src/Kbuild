@@ -265,6 +265,8 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
   nfp-objs += \
 		nfd3/dp.o \
 		nfd3/rings.o \
+		nfdk/dp.o \
+		nfdk/rings.o \
 		nfp_app.o \
 		ccm_mbox.o \
 		nfp_net_ctrl.o \
