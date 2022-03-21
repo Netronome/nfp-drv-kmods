@@ -263,11 +263,14 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
   ccflags-y += -DCONFIG_NFP_DEBUG
 
   nfp-objs += \
+		nfd3/dp.o \
+		nfd3/rings.o \
 		nfp_app.o \
 		ccm_mbox.o \
 		nfp_net_ctrl.o \
 		nfp_net_common.o \
 		nfp_net_compat.o \
+		nfp_net_dp.o \
 		nfp_net_ethtool.o \
 		nfp_net_debugfs.o \
 		nfp_net_sriov.o \
@@ -298,6 +301,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
       ccflags-y += -DCOMPAT__HAVE_XDP_SOCK_DRV=1
 
       nfp-objs += \
+	       nfd3/xsk.o \
 	       nfp_net_xsk.o
     endif
 

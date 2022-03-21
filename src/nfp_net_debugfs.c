@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
-/* Copyright (C) 2015-2018 Netronome Systems, Inc. */
+/* Copyright (C) 2015-2019 Netronome Systems, Inc. */
 
 #include "nfp_net_compat.h"
 
@@ -8,6 +8,7 @@
 #include <linux/rtnetlink.h>
 
 #include "nfp_net.h"
+#include "nfp_net_dp.h"
 
 static struct dentry *nfp_dir;
 
@@ -83,10 +84,8 @@ static int nfp_tx_q_show(struct seq_file *file, void *data)
 {
 	struct nfp_net_r_vector *r_vec = file->private;
 	struct nfp_net_tx_ring *tx_ring;
-	struct nfp_net_tx_desc *txd;
-	int d_rd_p, d_wr_p, txd_cnt;
 	struct nfp_net *nn;
-	int i;
+	int d_rd_p, d_wr_p;
 
 	rtnl_lock();
 
@@ -100,8 +99,6 @@ static int nfp_tx_q_show(struct seq_file *file, void *data)
 	if (!nfp_net_running(nn))
 		goto out;
 
-	txd_cnt = tx_ring->cnt;
-
 	d_rd_p = nfp_qcp_rd_ptr_read(tx_ring->qcp_q);
 	d_wr_p = nfp_qcp_wr_ptr_read(tx_ring->qcp_q);
 
@@ -111,45 +108,8 @@ static int nfp_tx_q_show(struct seq_file *file, void *data)
 		   tx_ring->cnt, &tx_ring->dma, tx_ring->txds,
 		   tx_ring->rd_p, tx_ring->wr_p, d_rd_p, d_wr_p);
 
-	for (i = 0; i < txd_cnt; i++) {
-#if COMPAT__HAVE_XDP
-		struct xdp_buff *xdp;
-#endif
-		struct sk_buff *skb;
-
-		txd = &tx_ring->txds[i];
-		seq_printf(file, "%04d: 0x%08x 0x%08x 0x%08x 0x%08x", i,
-			   txd->vals[0], txd->vals[1],
-			   txd->vals[2], txd->vals[3]);
-
-		if (!tx_ring->is_xdp) {
-			skb = READ_ONCE(tx_ring->txbufs[i].skb);
-			if (skb)
-				seq_printf(file, " skb->head=%p skb->data=%p",
-					   skb->head, skb->data);
-#if COMPAT__HAVE_XDP
-		} else {
-			xdp = READ_ONCE(tx_ring->txbufs[i].xdp);
-			if (xdp)
-				seq_printf(file, " xdp->data=%p", xdp->data);
-#endif
-		}
-
-		if (tx_ring->txbufs[i].dma_addr)
-			seq_printf(file, " dma_addr=%pad",
-				   &tx_ring->txbufs[i].dma_addr);
-
-		if (i == tx_ring->rd_p % txd_cnt)
-			seq_puts(file, " H_RD");
-		if (i == tx_ring->wr_p % txd_cnt)
-			seq_puts(file, " H_WR");
-		if (i == d_rd_p % txd_cnt)
-			seq_puts(file, " D_RD");
-		if (i == d_wr_p % txd_cnt)
-			seq_puts(file, " D_WR");
-
-		seq_putc(file, '\n');
-	}
+	nfp_net_debugfs_print_tx_descs(file, r_vec, tx_ring,
+				       d_rd_p, d_wr_p);
 out:
 	rtnl_unlock();
 	return 0;
