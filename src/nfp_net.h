@@ -110,6 +110,7 @@
 /* Forward declarations */
 struct nfp_cpp;
 struct nfp_dev_info;
+struct nfp_dp_ops;
 struct nfp_eth_table_port;
 struct nfp_net;
 struct nfp_net_r_vector;
@@ -453,6 +454,7 @@ struct nfp_stat_pair {
  * @rx_rings:		Array of pre-allocated RX ring structures
  * @ctrl_bar:		Pointer to mapped control BAR
  *
+ * @ops:		Callbacks and parameters for this vNIC's NFD version
  * @txd_cnt:		Size of the TX ring in number of descriptors
  * @rxd_cnt:		Size of the RX ring in number of descriptors
  * @num_r_vecs:		Number of used ring vectors
@@ -486,6 +488,8 @@ struct nfp_net_dp {
 	u8 __iomem *ctrl_bar;
 
 	/* Cold data follows */
+
+	const struct nfp_dp_ops *ops;
 
 	unsigned int txd_cnt;
 	unsigned int rxd_cnt;
