@@ -2153,7 +2153,7 @@ static int nfp_net_set_mac_address(struct net_device *netdev, void *addr)
 	return 0;
 }
 
-const struct net_device_ops nfp_net_netdev_ops = {
+const struct net_device_ops nfp_nfd3_netdev_ops = {
 	.ndo_init		= nfp_app_ndo_init,
 	.ndo_uninit		= nfp_app_ndo_uninit,
 	.ndo_open		= nfp_net_netdev_open,
@@ -2230,7 +2230,7 @@ const struct net_device_ops nfp_net_netdev_ops = {
 #endif
 #endif
 #if VER_RHEL_GE(7, 3) && VER_RHEL_LT(8, 0)
-	.ndo_size		= sizeof(nfp_net_netdev_ops),
+	.ndo_size		= sizeof(nfp_nfd3_netdev_ops),
 	.extended		= {
 		.ndo_set_vf_trust	= nfp_app_set_vf_trust,
 #if VER_RHEL_GE(7, 4)
@@ -2287,7 +2287,7 @@ void nfp_net_info(struct nfp_net *nn)
 		nn->dp.num_tx_rings, nn->max_tx_rings,
 		nn->dp.num_rx_rings, nn->max_rx_rings);
 	nn_info(nn, "VER: %d.%d.%d.%d, Maximum supported MTU: %d\n",
-		nn->fw_ver.resv, nn->fw_ver.class,
+		nn->fw_ver.extend, nn->fw_ver.class,
 		nn->fw_ver.major, nn->fw_ver.minor,
 		nn->max_mtu);
 	nn_info(nn, "CAP: %#x %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
@@ -2361,7 +2361,16 @@ nfp_net_alloc(struct pci_dev *pdev, const struct nfp_dev_info *dev_info,
 	nn->dp.ctrl_bar = ctrl_bar;
 	nn->dev_info = dev_info;
 	nn->pdev = pdev;
-	nn->dp.ops = &nfp_nfd3_ops;
+	nfp_net_get_fw_version(&nn->fw_ver, ctrl_bar);
+
+	switch (FIELD_GET(NFP_NET_CFG_VERSION_DP_MASK, nn->fw_ver.extend)) {
+	case NFP_NET_CFG_VERSION_DP_NFD3:
+		nn->dp.ops = &nfp_nfd3_ops;
+		break;
+	default:
+		err = -EINVAL;
+		goto err_free_nn;
+	}
 
 	nn->max_tx_rings = max_tx_rings;
 	nn->max_rx_rings = max_rx_rings;
@@ -2592,7 +2601,12 @@ static void nfp_net_netdev_init(struct nfp_net *nn)
 	nn->dp.ctrl &= ~NFP_NET_CFG_CTRL_LSO_ANY;
 
 	/* Finalise the netdev setup */
-	netdev->netdev_ops = &nfp_net_netdev_ops;
+	switch (nn->dp.ops->version) {
+	case NFP_NFD_VER_NFD3:
+		netdev->netdev_ops = &nfp_nfd3_netdev_ops;
+		break;
+	}
+
 	netdev->watchdog_timeo = msecs_to_jiffies(5 * 1000);
 
 #if VER_NON_RHEL_LT(5, 1) || VER_RHEL_LT(8, 2)
