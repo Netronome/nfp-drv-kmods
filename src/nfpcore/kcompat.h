@@ -128,6 +128,9 @@
 #ifndef U32_MAX
 #define U32_MAX			((u32)~0U)
 #endif
+#ifndef U64_MAX
+#define U64_MAX			((u64)~0U)
+#endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 6, 0))
 #include <linux/sizes.h>
