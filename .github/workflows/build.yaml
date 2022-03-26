@@ -293,7 +293,7 @@ jobs:
         run: |
           TREE="${{ matrix.release.name }}"
           COMMIT_ID="$(wget -q -O - https://$GITWEB/netdev/$TREE/p/master | sed -En 's/[^ ]* //; T; s/(.{12}).*/\1/; p; q')"
-          DIR="$TREE-$COMMIT_ID"
+          DIR="$TREE-master"
           echo "REMOTE=$GITWEB/pub/scm/linux/kernel/git/netdev/$TREE.git/snapshot/$DIR.tar.gz" >> $GITHUB_ENV
           echo "CACHE_ID=$COMMIT_ID" >> $GITHUB_ENV
           echo "KERNEL_DIR=$UNPACKED/$DIR" >> $GITHUB_ENV
