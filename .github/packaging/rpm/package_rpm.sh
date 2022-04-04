@@ -77,7 +77,7 @@ output_manifest () {
 build_nfp_drv_kmod_dkms () {
     mkdir -p ${BUILDDIR}/${PKG_NAME}
     cp -r ${SRCDIR}/src ${BUILDDIR}/${PKG_NAME}/src
-    echo ${PKG_VERSION} > ${BUILDDIR}/${PKG_NAME}/.revision
+    echo ${PKG_VERSION} > ${BUILDDIR}/${PKG_NAME}/src/.revision
     cp_from_template ${SRCDIR}/.github/packaging/dkms.conf ${BUILDDIR}/${PKG_NAME}/dkms.conf
     cp -r ${SRCDIR}/Makefile ${BUILDDIR}/${PKG_NAME}/Makefile
     ln -sf ${BUILDDIR}/${PKG_NAME} /usr/src/${PKG_NAME}-${PKG_VERSION}
