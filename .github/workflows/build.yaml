@@ -30,8 +30,8 @@ jobs:
           echo "PATH=/usr/lib/ccache:$PATH" >> $GITHUB_ENV
           echo "CCACHE_HARDLINK=true" >> $GITHUB_ENV
 
-      - name: Set HWE Environment
-        if: matrix.hwe == 'hwe'
+      - name: Set HWE Environment (Ubuntu 18.04)
+        if: matrix.hwe == 'hwe' && matrix.release.name == '18.04'
         env:
           NAME: ${{ matrix.release.name }}
         run: |
@@ -39,6 +39,17 @@ jobs:
           echo "MATCH=$MATCH" >> $GITHUB_ENV
           echo "FLAVOUR_MATCH=*-${FLAVOUR}_${MATCH}" >> $GITHUB_ENV
           echo "PKG_DIR=linux-hwe" >> $GITHUB_ENV
+          echo "EXTRA_DEP=libelf-dev" >> $GITHUB_ENV
+
+      - name: Set HWE Environment (Ubuntu 20.04)
+        if: matrix.hwe == 'hwe' && matrix.release.name == '20.04'
+        env:
+          NAME: ${{ matrix.release.name }}
+        run: |
+          MATCH="*~${NAME#*-}.[0-9]"
+          echo "MATCH=$MATCH" >> $GITHUB_ENV
+          echo "FLAVOUR_MATCH=*-${FLAVOUR}_${MATCH}" >> $GITHUB_ENV
+          echo "PKG_DIR=linux-hwe-5.15" >> $GITHUB_ENV
           echo "EXTRA_DEP=libelf-dev" >> $GITHUB_ENV
 
       - name: Set Non-HWE Environment
@@ -49,6 +60,7 @@ jobs:
           echo "MATCH=$MATCH" >> $GITHUB_ENV
           echo "FLAVOUR_MATCH=${MATCH}-${FLAVOUR}_*" >> $GITHUB_ENV
           echo "PKG_DIR=linux" >> $GITHUB_ENV
+          echo "EXTRA_DEP=libelf-dev" >> $GITHUB_ENV
 
       - name: Install dependencies
         run: sudo apt-get -q=2 install ccache $EXTRA_DEP
@@ -58,7 +70,7 @@ jobs:
         with:
             output-path: ${{ env.DOWNLOAD }}
             url: "${{ env.MIRROR }}/pool/main/l/${{ env.PKG_DIR }}"
-            accept: "linux-headers-${{ env.MATCH }}_all.deb,linux-headers-${{ env.FLAVOUR_MATCH }}_amd64.deb"
+            accept: "linux-headers-${{ env.MATCH }}_all.deb,linux-hwe*-headers${{ env.MATCH }}_all.deb,linux-headers-${{ env.FLAVOUR_MATCH }}_amd64.deb"
 
       - name: Unpack Kernel Headers
         uses: ./.github/actions/unpack-deb
