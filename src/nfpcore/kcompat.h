@@ -964,4 +964,11 @@ static inline u64 pci_get_dsn(struct pci_dev *dev)
 #endif
 #endif
 
+/* Kconfig will add this variable for RHEL 7.5+, however, we intentionally
+ * disable support for this feature for RHEL versions < 8.0.
+ */
+#if VER_RHEL_GE(7, 5) && VER_RHEL_LT(8, 0)
+#undef CONFIG_NFP_APP_FLOWER
+#endif
+
 #endif /* __KERNEL__NFP_COMPAT_H__ */
