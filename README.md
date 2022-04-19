@@ -1,16 +1,16 @@
 # Netronome Flow Processor (NFP) Kernel Drivers
 
 These drivers support Netronome's line of Flow Processor devices,
-including the NFP4000, NFP5000, and NFP6000 models, which are also
+including the NFP3800, NFP4000, NFP5000, and NFP6000 models, which are also
 incorporated in the company's family of Agilio SmartNICs.
 
 The repository builds the `nfp.ko` module which can be used to expose
 networking devices (netdevs) and/or user space access to the device
 via a character device.
 
-The VF driver for NFP4000, NFP5000, and NFP6000 is available in upstream
-Linux kernel since `4.5` release.  The PF driver was added in Linux `4.11`.
-This repository contains the same driver as upstream with necessary
+The VF driver for NFP3800, NFP4000, NFP5000, and NFP6000 is available in
+upstream Linux kernel since `4.5` release.  The PF driver was added in Linux
+`4.11`. This repository contains the same driver as upstream with necessary
 compatibility code to make the latest version of the code build for
 older kernels. We currently support kernels back to the `3.8` version,
 support for older versions can be added if necessary.
@@ -32,6 +32,11 @@ driver code, please contact either your local Netronome contact or
 email us on: oss-drivers@netronome.com
 
 # Building and Installing
+
+Requirements: As with most out-of-tree kernel modules make sure you have the
+matching kernel headers for kernel <KVER> installed on your system. Usually
+something like `linux-headers-<KVER>-generic` for Ubuntu based systems, or
+`kernel-devel-<KVER>` for RHEL based systems.
 
 Building and installing for the currently running kernel:
 
@@ -60,6 +65,8 @@ kernel sources.  To override the detected location, set `KSRC`:
 | make coccicheck | Runs Coccinelle/coccicheck (reqires `coccinelle`) |
 | make sparse     | Runs `sparse`, a tool for static code analysis    |
 | make nfp_net    | Build the driver limited to netdev operation      |
+
+Note: Ensure libraries (coccicheck, sparse) are installed.
 
 # Acquiring Firmware
 
@@ -93,7 +100,7 @@ Available storage space in flash depends on the card being used.
 ## Dealing with multiple projects
 
 NFP hardware is fully programmable therefore there can be different
-firmware images targeting different applications.  
+firmware images targeting different applications.
 
 When using application firmware from host, we recommend placing
 actual firmware files in application-named subdirectories in
@@ -102,18 +109,89 @@ actual firmware files in application-named subdirectories in
 $ tree /lib/firmware/netronome/
 /lib/firmware/netronome/
 ├── bpf
+│   ├── nic_AMDA0058-0011_2x40.nffw
+│   ├── nic_AMDA0058-0012_2x40.nffw
+│   ├── nic_AMDA0078-0011_1x100.nffw
 │   ├── nic_AMDA0081-0001_1x40.nffw
-│   └── nic_AMDA0081-0001_4x10.nffw
+│   ├── nic_AMDA0081-0001_4x10.nffw
+│   ├── nic_AMDA0096-0001_2x10.nffw
+│   ├── nic_AMDA0097-0001_2x40.nffw
+│   ├── nic_AMDA0097-0001_4x10_1x40.nffw
+│   ├── nic_AMDA0097-0001_8x10.nffw
+│   ├── nic_AMDA0099-0001_1x10_1x25.nffw
+│   ├── nic_AMDA0099-0001_2x10.nffw
+│   └── nic_AMDA0099-0001_2x25.nffw
 ├── flower
-│   ├── nic_AMDA0081-0001_1x40.nffw
-│   └── nic_AMDA0081-0001_4x10.nffw
+│   ├── nic_AMDA0058-0011_1x100.nffw -> nic_AMDA0058.nffw
+│   ├── nic_AMDA0058-0011_2x40.nffw -> nic_AMDA0058.nffw
+│   ├── nic_AMDA0058-0011_4x10_1x40.nffw -> nic_AMDA0058.nffw
+│   ├── nic_AMDA0058-0011_8x10.nffw -> nic_AMDA0058.nffw
+│   ├── nic_AMDA0058-0012_1x100.nffw -> nic_AMDA0058.nffw
+│   ├── nic_AMDA0058-0012_2x40.nffw -> nic_AMDA0058.nffw
+│   ├── nic_AMDA0058-0012_4x10_1x40.nffw -> nic_AMDA0058.nffw
+│   ├── nic_AMDA0058-0012_8x10.nffw -> nic_AMDA0058.nffw
+│   ├── nic_AMDA0058.nffw
+│   ├── nic_AMDA0078-0011_1x100.nffw -> nic_AMDA0058.nffw
+│   ├── nic_AMDA0078-0011_2x40.nffw -> nic_AMDA0058.nffw
+│   ├── nic_AMDA0078-0011_4x10_1x40.nffw -> nic_AMDA0058.nffw
+│   ├── nic_AMDA0078-0011_8x10.nffw -> nic_AMDA0058.nffw
+│   ├── nic_AMDA0078-0012_1x100.nffw -> nic_AMDA0058.nffw
+│   ├── nic_AMDA0078-0012_2x40.nffw -> nic_AMDA0058.nffw
+│   ├── nic_AMDA0078-0012_4x10_1x40.nffw -> nic_AMDA0058.nffw
+│   ├── nic_AMDA0078-0012_8x10.nffw -> nic_AMDA0058.nffw
+│   ├── nic_AMDA0081-0001_1x40.nffw -> nic_AMDA0081.nffw
+│   ├── nic_AMDA0081-0001_4x10.nffw -> nic_AMDA0081.nffw
+│   ├── nic_AMDA0081.nffw -> nic_AMDA0097.nffw
+│   ├── nic_AMDA0096-0001_2x10.nffw -> nic_AMDA0096.nffw
+│   ├── nic_AMDA0096.nffw
+│   ├── nic_AMDA0097-0001_2x40.nffw -> nic_AMDA0097.nffw
+│   ├── nic_AMDA0097-0001_4x10_1x40.nffw -> nic_AMDA0097.nffw
+│   ├── nic_AMDA0097-0001_8x10.nffw -> nic_AMDA0097.nffw
+│   ├── nic_AMDA0097.nffw
+│   ├── nic_AMDA0099-0001_1x10_1x25.nffw -> nic_AMDA0099.nffw
+│   ├── nic_AMDA0099-0001_2x10.nffw -> nic_AMDA0099.nffw
+│   ├── nic_AMDA0099-0001_2x25.nffw -> nic_AMDA0099.nffw
+│   └── nic_AMDA0099.nffw
 ├── nic
+│   ├── nic_AMDA0058-0011_2x40.nffw
+│   ├── nic_AMDA0058-0012_2x40.nffw
+│   ├── nic_AMDA0078-0011_1x100.nffw
 │   ├── nic_AMDA0081-0001_1x40.nffw
-│   └── nic_AMDA0081-0001_4x10.nffw
-├── nic_AMDA0081-0001_1x40.nffw -> bpf/nic_AMDA0081-0001_1x40.nffw
-└── nic_AMDA0081-0001_4x10.nffw -> bpf/nic_AMDA0081-0001_4x10.nffw
+│   ├── nic_AMDA0081-0001_4x10.nffw
+│   ├── nic_AMDA0096-0001_2x10.nffw
+│   ├── nic_AMDA0097-0001_2x40.nffw
+│   ├── nic_AMDA0097-0001_4x10_1x40.nffw
+│   ├── nic_AMDA0097-0001_8x10.nffw
+│   ├── nic_AMDA0099-0001_1x10_1x25.nffw
+│   ├── nic_AMDA0099-0001_2x10.nffw
+│   └── nic_AMDA0099-0001_2x25.nffw
+├── nic-sriov
+│   ├── nic_AMDA0058-0011_2x40.nffw
+│   ├── nic_AMDA0058-0012_2x40.nffw
+│   ├── nic_AMDA0078-0011_1x100.nffw
+│   ├── nic_AMDA0081-0001_1x40.nffw
+│   ├── nic_AMDA0081-0001_4x10.nffw
+│   ├── nic_AMDA0096-0001_2x10.nffw
+│   ├── nic_AMDA0097-0001_2x40.nffw
+│   ├── nic_AMDA0097-0001_4x10_1x40.nffw
+│   ├── nic_AMDA0097-0001_8x10.nffw
+│   ├── nic_AMDA0099-0001_1x10_1x25.nffw
+│   ├── nic_AMDA0099-0001_2x10.nffw
+│   └── nic_AMDA0099-0001_2x25.nffw
+├── nic_AMDA0058-0011_2x40.nffw -> nic/nic_AMDA0058-0011_2x40.nffw
+├── nic_AMDA0058-0012_2x40.nffw -> nic/nic_AMDA0058-0012_2x40.nffw
+├── nic_AMDA0078-0011_1x100.nffw -> nic/nic_AMDA0078-0011_1x100.nffw
+├── nic_AMDA0081-0001_1x40.nffw -> nic/nic_AMDA0081-0001_1x40.nffw
+├── nic_AMDA0081-0001_4x10.nffw -> nic/nic_AMDA0081-0001_4x10.nffw
+├── nic_AMDA0096-0001_2x10.nffw -> nic/nic_AMDA0096-0001_2x10.nffw
+├── nic_AMDA0097-0001_2x40.nffw -> nic/nic_AMDA0097-0001_2x40.nffw
+├── nic_AMDA0097-0001_4x10_1x40.nffw -> nic/nic_AMDA0097-0001_4x10_1x40.nffw
+├── nic_AMDA0097-0001_8x10.nffw -> nic/nic_AMDA0097-0001_8x10.nffw
+├── nic_AMDA0099-0001_1x10_1x25.nffw -> nic/nic_AMDA0099-0001_1x10_1x25.nffw
+├── nic_AMDA0099-0001_2x10.nffw -> nic/nic_AMDA0099-0001_2x10.nffw
+└── nic_AMDA0099-0001_2x25.nffw -> nic/nic_AMDA0099-0001_2x25.nffw
 
-3 directories, 8 files
+4 directories, 78 files
 ```
 You may need to use hard instead of symbolic links on distributions
 which use old `mkinitrd` command instead of `dracut` (e.g. Ubuntu).
@@ -132,6 +210,7 @@ If you want to load specific firmware image for a specific card, you
 can use either the PCI bus address or serial number.  Driver will print
 which files it's looking for when it recognizes a NFP device:
 ```
+$ dmesg | grep nfp
 nfp: Looking for firmware file in order of priority:
 nfp:  netronome/serial-00-12-34-aa-bb-cc-10-ff.nffw: not found
 nfp:  netronome/pci-0000:02:00.0.nffw: not found
@@ -238,7 +317,7 @@ Match TCP type, encapsulate in VXLAN and output:
 ```
 tc filter add dev <ifcname> parent ffff: protocol ip flower ip_proto tcp \
 action tunnel_key set id 123 src_ip 10.0.0.1 dst_ip 10.0.0.2 dst_port 4789 \
-action mirred egress redirect dev vxlan0
+action mirred egress redirect dev <vxlan_vtep>
 ```
 
 Helpful tips:
