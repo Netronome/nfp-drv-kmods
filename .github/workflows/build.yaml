@@ -115,9 +115,9 @@ jobs:
                 { "name": "8.5.2111", "container": "rockylinux:8.5" },
                 { "name": "8-stream", "container": "rockylinux:8.5" },
                 # BCLinux
-                { "name": "el8",   "container": "rockylinux:8.5" },
-                { "name": "el8.1", "container": "rockylinux:8.5" },
-                { "name": "el8.2", "container": "rockylinux:8.5" },
+                #{ "name": "el8",   "container": "rockylinux:8.5" },
+                #{ "name": "el8.1", "container": "rockylinux:8.5" },
+                #{ "name": "el8.2", "container": "rockylinux:8.5" },
         ]
     container:
       image: ${{ matrix.release.container }}
