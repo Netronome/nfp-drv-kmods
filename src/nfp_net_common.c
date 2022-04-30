@@ -2654,8 +2654,16 @@ static void nfp_net_netdev_init(struct nfp_net *nn)
 	if (nn->cap & NFP_NET_CFG_CTRL_RSS_ANY)
 		netdev->hw_features |= NETIF_F_RXHASH;
 	if (nn->cap & NFP_NET_CFG_CTRL_VXLAN) {
-		if (nn->cap & NFP_NET_CFG_CTRL_LSO)
+		if (nn->cap & NFP_NET_CFG_CTRL_LSO){
+#if VER_NON_RHEL_GE(4, 7) || VER_RHEL_GE(7, 4)
+			netdev->hw_features |= NETIF_F_GSO_UDP_TUNNEL |
+					       NETIF_F_GSO_UDP_TUNNEL_CSUM |
+					       NETIF_F_GSO_PARTIAL;
+			netdev->gso_partial_features = NETIF_F_GSO_UDP_TUNNEL_CSUM;
+#else
 			netdev->hw_features |= NETIF_F_GSO_UDP_TUNNEL;
+#endif
+	}
 #if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 4)
 		netdev->udp_tunnel_nic_info = &nfp_udp_tunnels;
 #endif
