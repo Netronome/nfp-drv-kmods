@@ -14,10 +14,12 @@ runs:
   using: "composite"
   steps:
     - name: Build
-      shell: sh
+      shell: bash
       run: |
+        set -o pipefail
         export MAKEFLAGS="${{ env.MAKEFLAGS }} -s -j$(nproc) M=$(pwd)/src CFLAGS_EXTRA+=-Werror"
         find "${{ inputs.search-path }}" -mindepth 1 -maxdepth 1 -type d \
           -name "${{ inputs.search-pattern }}" -print0 | \
           xargs -t -r -0 -n 1 -I "{}" \
-            sh -c 'make -C "{}" clean && make -C "{}"'
+            sh -c 'make -C "{}" clean && make -C "{}" 2>&1' | \
+          sed --unbuffered 's/.*WARNING/::error::\0/I; T; q2'
