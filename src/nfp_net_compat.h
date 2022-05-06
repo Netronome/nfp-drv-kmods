@@ -1568,4 +1568,9 @@ bool devl_lock_is_held(struct devlink *devlink);
 #define devl_port_register	devlink_port_register
 #define devl_port_unregister	devlink_port_unregister
 #endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
+void netif_inherit_tso_max(struct net_device *to,
+			   const struct net_device *from);
+#endif
 #endif /* _NFP_NET_COMPAT_H_ */

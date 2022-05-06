@@ -234,3 +234,11 @@ bool devl_lock_is_held(struct devlink *devlink)
 }
 #endif
 #endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
+void netif_inherit_tso_max(struct net_device *to, const struct net_device *from)
+{
+	netif_set_gso_max_size(to, from->gso_max_size);
+	netif_set_gso_max_segs(to, from->gso_max_segs);
+}
+#endif
