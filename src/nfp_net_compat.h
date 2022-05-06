@@ -1570,6 +1570,7 @@ bool devl_lock_is_held(struct devlink *devlink);
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
+#define netif_set_tso_max_segs netif_set_gso_max_segs
 void netif_inherit_tso_max(struct net_device *to,
 			   const struct net_device *from);
 #endif
