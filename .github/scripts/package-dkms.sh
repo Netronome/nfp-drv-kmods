@@ -69,11 +69,8 @@ echo "    Package version:  $PACKAGE_VERSION"
 echo "    Package revision: $PACKAGE_REVISION"
 
 if [ -n "$GENERATE_DEB" ]; then
-    # Check if Revision is greater than Zero
-    if [[ $PACKAGE_REVISION != "0" ]]; then
-        PACKAGE_VERSION=$PACKAGE_VERSION-$PACKAGE_REVISION
-    fi
-    .github/packaging/deb/package_deb.sh $NFP_DRV_REPO $PACKAGE_NAME $PACKAGE_VERSION
+    PACKAGE_FULL_VERSION=$PACKAGE_VERSION-$PACKAGE_REVISION
+    .github/packaging/deb/package_deb.sh $NFP_DRV_REPO $PACKAGE_NAME $PACKAGE_FULL_VERSION
 fi
 
 if [ -n "$GENERATE_RPM" ]; then
