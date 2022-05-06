@@ -65,6 +65,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Add nfp-drv-kmods-private to git safe directory list
+        run: git config --global --add safe.directory `pwd`
+
       - name: Clone ci-libs (for other GH actions)
         uses: actions/checkout@v2
         with:
