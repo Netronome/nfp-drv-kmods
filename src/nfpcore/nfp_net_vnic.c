@@ -776,7 +776,9 @@ static struct platform_driver nfp_net_vnic_driver = {
  */
 int nfp_net_vnic_init(void)
 {
-	pr_info("%s: NFP vNIC driver, Copyright (C) 2010-2015 Netronome Systems\n",
+	pr_info("%s: NFP vNIC driver, Copyright (C) 2010-2020 Netronome Systems\n",
+		NFP_NET_VNIC_TYPE);
+	pr_info("%s: NFP vNIC driver, Copyright (C) 2021-2022 Corigine Inc.\n",
 		NFP_NET_VNIC_TYPE);
 
 	return platform_driver_register(&nfp_net_vnic_driver);

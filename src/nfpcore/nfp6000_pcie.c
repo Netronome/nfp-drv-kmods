@@ -1547,7 +1547,7 @@ nfp_cpp_from_nfp6000_pcie(struct pci_dev *pdev,
 	int err;
 
 	/*  Finished with card initialization. */
-	dev_info(&pdev->dev, "Netronome Flow Processor %s PCIe Card Probe\n",
+	dev_info(&pdev->dev, "Network Flow Processor %s PCIe Card Probe\n",
 		 dev_info->chip_names);
 	pcie_print_link_status(pdev);
 

@@ -989,7 +989,7 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 	if (nfp_pf_netdev) {
 		err = nfp_net_pci_probe(pf);
 		if (nfp_fallback && err == 1) {
-			dev_info(&pdev->dev, "Netronome NFP Fallback driver\n");
+			dev_info(&pdev->dev, "NFP Fallback driver\n");
 		} else if (err) {
 			err = err < 0 ? err : -EINVAL;
 			goto err_dev_cpp_unreg;
@@ -1242,7 +1242,9 @@ static int __init nfp_main_init(void)
 {
 	int err;
 
-	pr_info("%s: NFP PCIe Driver, Copyright (C) 2014-2017 Netronome Systems\n",
+	pr_info("%s: NFP PCIe Driver, Copyright (C) 2014-2020 Netronome Systems\n",
+		nfp_driver_name);
+	pr_info("%s: NFP PCIe Driver, Copyright (C) 2021-2022 Corigine Inc.\n",
 		nfp_driver_name);
 	pr_info(NFP_BUILD_DESCRIPTION(nfp));
 
@@ -1322,8 +1324,8 @@ MODULE_FIRMWARE("netronome/nic_AMDA0099-0001_2x10.nffw");
 MODULE_FIRMWARE("netronome/nic_AMDA0099-0001_2x25.nffw");
 MODULE_FIRMWARE("netronome/nic_AMDA0099-0001_1x10_1x25.nffw");
 
-MODULE_AUTHOR("Netronome Systems <oss-drivers@netronome.com>");
+MODULE_AUTHOR("Corigine, Inc. <oss-drivers@corigine.com>");
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("The Netronome Flow Processor (NFP) driver.");
+MODULE_DESCRIPTION("The Network Flow Processor (NFP) driver.");
 MODULE_VERSION("5.19.0");
 MODULE_INFO_NFP();

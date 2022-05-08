@@ -1846,13 +1846,13 @@ int nfp_cppcore_init(void)
 #ifndef PCI_DEVICE_ID_NETRONOME_NFP4000
 	if (!ignore_quirks) {
 		pr_err("Error: this kernel does not have quirk_nfp6000\n");
-		pr_err("Please contact support@netronome.com for more information\n");
+		pr_err("Please contact smartnic-support@corigine.com for more information\n");
 		return -EINVAL;
 	}
 	pr_warn("Warning: this kernel does not have quirk_nfp6000\n");
-	pr_warn("Please contact support@netronome.com for more information\n");
+	pr_warn("Please contact smartnic-support@corigine.com for more information\n");
 #endif
-	pr_info("Netronome NFP CPP API\n");
+	pr_info("NFP CPP API\n");
 
 	mutex_init(&nfp_cpp_id_lock);
 	INIT_LIST_HEAD(&nfp_cpp_list);

@@ -403,7 +403,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 	endif
       else
         $(warning NFP: RHEL kernel detected, disabling apps: flower)
-        $(warning Please contact Netronome Support if the flower app is required.)
+        $(warning Please contact Corigine Support if the flower app is required.)
       endif
     endif
   endif
