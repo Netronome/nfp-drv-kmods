@@ -1843,7 +1843,7 @@ void *nfp_cpp_explicit_priv(struct nfp_cpp_explicit *cpp_explicit)
  */
 int nfp_cppcore_init(void)
 {
-#ifndef PCI_DEVICE_ID_NFP4000
+#ifndef PCI_DEVICE_ID_NETRONOME_NFP4000
 	if (!ignore_quirks) {
 		pr_err("Error: this kernel does not have quirk_nfp6000\n");
 		pr_err("Please contact smartnic-support@corigine.com for more information\n");
