@@ -182,6 +182,44 @@ int nfp_app_set_vf_spoofchk(struct net_device *netdev, int vf, bool enable)
 				    "spoofchk");
 }
 
+int nfp_app_set_vf_rate(struct net_device *netdev, int vf,
+			int min_tx_rate, int max_tx_rate)
+{
+	struct nfp_app *app = nfp_app_from_netdev(netdev);
+	u32 vf_offset, ratevalue;
+	int err;
+
+	err = nfp_net_sriov_check(app, vf, NFP_NET_VF_CFG_MB_CAP_RATE, "rate");
+	if (err)
+		return err;
+
+	if (max_tx_rate >= NFP_NET_VF_RATE_MAX ||
+	    min_tx_rate >= NFP_NET_VF_RATE_MAX) {
+		nfp_warn(app->cpp, "tx-rate exceeds %d.\n",
+			 NFP_NET_VF_RATE_MAX);
+		return -EINVAL;
+	}
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)
+	if (max_tx_rate && max_tx_rate < min_tx_rate) {
+		nfp_warn(app->cpp, "min-tx-rate exceeds max_tx_rate.\n");
+		return -EINVAL;
+	}
+#endif
+
+	vf_offset = NFP_NET_VF_CFG_MB_SZ + vf * NFP_NET_VF_CFG_SZ;
+	ratevalue = FIELD_PREP(NFP_NET_VF_CFG_MAX_RATE,
+			       max_tx_rate ? max_tx_rate :
+			       NFP_NET_VF_RATE_MAX) |
+		    FIELD_PREP(NFP_NET_VF_CFG_MIN_RATE, min_tx_rate);
+
+	writel(ratevalue,
+	       app->pf->vfcfg_tbl2 + vf_offset + NFP_NET_VF_CFG_RATE);
+
+	return nfp_net_sriov_update(app, vf, NFP_NET_VF_CFG_MB_UPD_RATE,
+				    "rate");
+}
+
 int nfp_app_set_vf_trust(struct net_device *netdev, int vf, bool enable)
 {
 	struct nfp_app *app = nfp_app_from_netdev(netdev);
@@ -244,7 +282,11 @@ int nfp_app_get_vf_config(struct net_device *netdev, int vf,
 			  struct ifla_vf_info *ivi)
 {
 	struct nfp_app *app = nfp_app_from_netdev(netdev);
-	unsigned int vf_offset;
+#if VER_NON_RHEL_GE(3, 16) || VER_RHEL_GE(7, 4)
+	u32 vf_offset, rate;
+#else
+	u32 vf_offset;
+#endif
 	u32 vlan_tag;
 	u32 mac_hi;
 	u16 mac_lo;
@@ -283,5 +325,20 @@ int nfp_app_get_vf_config(struct net_device *netdev, int vf,
 	ivi->linkstate = FIELD_GET(NFP_NET_VF_CFG_CTRL_LINK_STATE, flags);
 #endif
 
+#if VER_NON_RHEL_GE(3, 16) || VER_RHEL_GE(7, 4)
+	err = nfp_net_sriov_check(app, vf, NFP_NET_VF_CFG_MB_CAP_RATE, "rate");
+	if (!err) {
+		rate = readl(app->pf->vfcfg_tbl2 + vf_offset +
+			     NFP_NET_VF_CFG_RATE);
+
+		ivi->max_tx_rate = FIELD_GET(NFP_NET_VF_CFG_MAX_RATE, rate);
+		ivi->min_tx_rate = FIELD_GET(NFP_NET_VF_CFG_MIN_RATE, rate);
+
+		if (ivi->max_tx_rate == NFP_NET_VF_RATE_MAX)
+			ivi->max_tx_rate = 0;
+		if (ivi->min_tx_rate == NFP_NET_VF_RATE_MAX)
+			ivi->min_tx_rate = 0;
+	}
+#endif
 	return 0;
 }
