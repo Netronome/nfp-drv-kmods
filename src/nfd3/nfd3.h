@@ -113,5 +113,12 @@ static inline int nfp_nfd3_xsk_poll(struct napi_struct *napi, int budget)
 	return 0;
 }
 #endif
+#ifndef CONFIG_NFP_NET_IPSEC
+static inline void nfp_nfd3_ipsec_tx(struct nfp_nfd3_tx_desc *txd, struct sk_buff *skb)
+{
+}
+#else
+void nfp_nfd3_ipsec_tx(struct nfp_nfd3_tx_desc *txd, struct sk_buff *skb);
+#endif
 
 #endif

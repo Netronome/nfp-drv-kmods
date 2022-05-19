@@ -39,6 +39,10 @@ ifneq ($(CONFIG_NFP),n)
 endif
 endif
 
+ifeq ($(CONFIG_XFRM_OFFLOAD),y)
+  CONFIG_NFP_NET_IPSEC ?= y
+endif
+
 ccflags-y += $(call cc-option, -Wenum-compare,)
 ccflags-y += $(call cc-option, -Wmaybe-uninitialized,)
 ccflags-y += -I$(src)
@@ -280,6 +284,13 @@ ifeq ($(COMPAT_OELINUX),y)
         ccflags-y +=-DCOMPAT_OELINUX=1
 endif
 
+# Check for xarray
+xarray_path :=$(srctree)/include/linux/xarray.h
+ifneq (,$(wildcard $(xarray_path)))
+COMPAT_HAVE_XARRAY := \
+		$(shell grep -q xa_init_flags $(xarray_path) && echo y)
+endif
+
 ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
   ccflags-y += -DCONFIG_NFP_DEBUG
 
@@ -422,6 +433,14 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
     ccflags-y += -DCONFIG_NFP_NET_VF=1
 
     nfp-objs += nfp_netvf_main.o
+  endif
+
+  ifeq ($(CONFIG_NFP_NET_IPSEC),y)
+    ifeq ($(COMPAT_HAVE_XARRAY),y)
+      nfp-objs += crypto/ipsec.o
+      nfp-objs += nfd3/ipsec.o
+      ccflags-y += -DCONFIG_NFP_NET_IPSEC
+    endif
   endif
 endif # CONFIG_NFP_NET_*
 

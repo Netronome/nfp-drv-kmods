@@ -275,6 +275,10 @@ struct nfp_meta_parsed {
 		u8 tpid;
 		u16 tci;
 	} vlan;
+
+#ifdef CONFIG_NFP_NET_IPSEC
+	u32 ipsec_saidx;
+#endif
 };
 
 struct nfp_net_rx_hash {
@@ -600,6 +604,7 @@ struct nfp_net_dp {
  * @qcp_cfg:            Pointer to QCP queue used for configuration notification
  * @tx_bar:             Pointer to mapped TX queues
  * @rx_bar:             Pointer to mapped FL/RX queues
+ * @xa_ipsec:           IPsec xarray SA data
  * @tlv_caps:		Parsed TLV capabilities
  * @ktls_tx_conn_cnt:	Number of offloaded kTLS TX connections
  * @ktls_rx_conn_cnt:	Number of offloaded kTLS RX connections
@@ -695,6 +700,10 @@ struct nfp_net {
 
 	u8 __iomem *tx_bar;
 	u8 __iomem *rx_bar;
+
+#ifdef CONFIG_NFP_NET_IPSEC
+	struct xarray xa_ipsec;
+#endif
 
 	struct nfp_net_tlv_caps tlv_caps;
 
