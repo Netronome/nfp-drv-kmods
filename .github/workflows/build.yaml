@@ -376,7 +376,7 @@ jobs:
     timeout-minutes: 20
     env:
       CDN: "cdn.kernel.org/pub/linux/kernel"
-      KERNEL_TARGET: "rpm-pkg"
+      KERNEL_TARGET: ""
     strategy:
       matrix:
         release: [
@@ -424,71 +424,43 @@ jobs:
           EXTRA_DEP+=" ca-certificates"
           MAJOR="${RELEASE%.*}"
           DIR="linux-$RELEASE"
-          echo "CACHE_ID=$RELEASE" >> $GITHUB_ENV
           echo "EXTRA_DEP=$EXTRA_DEP" >> $GITHUB_ENV
           echo "KERNEL_DIR=$UNPACKED/$DIR" >> $GITHUB_ENV
           echo "REMOTE=$CDN/v$MAJOR.x/$DIR.tar.xz" >> $GITHUB_ENV
           echo "TAR_FLAGS=-J" >> $GITHUB_ENV
-
-      - name: Cache Kernel Header Package
-        uses: actions/cache@v2
-        id: header-cache
-        env:
-          cache-name: cache-headers-upstream
-        with:
-          path: ${{ env.UNPACKED }}/kernel-*.rpm
-          key: ${{ env.cache-name }}-${{ env.CACHE_ID }}-on-centos-${{ env.matrix.release.container }}-v1
 
       - name: Install Dependencies
         if: env.EXTRA_DEP != ''
         run: yum -qy install ${{ env.EXTRA_DEP }}
 
       - name: Download Kernel Source
-        if: steps.header-cache.outputs.cache-hit != 'true'
         uses: ./.github/actions/download
         with:
           output-path: "$DOWNLOAD"
           url: "https://$REMOTE"
 
       - name: Unpack Kernel Source
-        if: steps.header-cache.outputs.cache-hit != 'true'
         run: |
           mkdir -p "$UNPACKED"
           tar -C "$UNPACKED" "$TAR_FLAGS" -xf "$DOWNLOAD/$REMOTE"
 
       - name: Patch Kernel Source
-        if: steps.header-cache.outputs.cache-hit != 'true' && matrix.release.name == '3.8'
+        if: matrix.release.name == '3.8'
         run: |
           sed -i 's/if (!defined(@val))/if (!(@val))/' \
             "$KERNEL_DIR/kernel/timeconst.pl"
 
       - name: Configure Kernel
-        if: steps.header-cache.outputs.cache-hit != 'true'
         run: |
           cp -p .github/data/local_defconfig "$KERNEL_DIR/arch/x86/configs/"
           make -s -C "$KERNEL_DIR" local_defconfig
 
       - name: Build Kernel Packages
-        if: steps.header-cache.outputs.cache-hit != 'true'
         run: |
-          make -s -C "$KERNEL_DIR" "$KERNEL_TARGET"
-
-      - name: Move Kernel Packages
-        if: steps.header-cache.outputs.cache-hit != 'true'
-        run: |
-          mv /github/home/rpmbuild/RPMS/x86_64/* "$UNPACKED"/
-
-      - name: List Kernel Header Packages
-        run: |
-          ls "$UNPACKED"/kernel-*.rpm
-
-      - name: Unpack Kernel Headers
-        uses: ./.github/actions/unpack-rpm
-        with:
-            input-path: ${{ env.UNPACKED }}
-            output-path: ${{ env.UNPACKED }}
+          make -s -j $(nproc) -C "$KERNEL_DIR"
 
       - name: Build
         uses: ./.github/actions/build
         with:
-            search-path: "${{ env.UNPACKED }}/usr/src/kernels"
+          search-path: "$KERNEL_DIR/../"
+          search-pattern: "*${{ matrix.release.name }}*"
