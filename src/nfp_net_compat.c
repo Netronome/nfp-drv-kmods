@@ -219,9 +219,11 @@ void flow_rule_match_cvlan(const struct flow_rule *rule,
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 void devl_assert_locked(struct devlink *devlink)
 {
+#if LINUX_VERSION_CODE > KERNEL_VERSION(3, 8, 0) || defined(CONFIG_LOCKDEP)
 	struct nfp_pf *pf = devlink_priv(devlink);
 
 	lockdep_assert_held(&pf->lock);
+#endif
 }
 
 #ifdef CONFIG_LOCKDEP
