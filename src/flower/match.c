@@ -1020,6 +1020,23 @@ int nfp_flower_compile_flow_match(struct nfp_app *app,
 		msk += sizeof(struct nfp_flower_ipv6);
 	}
 
+	if (NFP_FLOWER_LAYER2_QINQ & key_ls->key_layer_two) {
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
+		nfp_flower_compile_vlan((struct nfp_flower_vlan *)ext,
+					(struct nfp_flower_vlan *)msk,
+					rule);
+#else
+		/* Populate Exact MAC Data. */
+		nfp_flower_compile_vlan((struct nfp_flower_vlan *)ext,
+					flow, false);
+		/* Populate Mask MAC Data. */
+		nfp_flower_compile_vlan((struct nfp_flower_vlan *)msk,
+					flow, true);
+#endif
+		ext += sizeof(struct nfp_flower_vlan);
+		msk += sizeof(struct nfp_flower_vlan);
+	}
+
 #if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
 	if (key_ls->key_layer_two & NFP_FLOWER_LAYER2_GRE) {
 		if (key_ls->key_layer_two & NFP_FLOWER_LAYER2_TUN_IPV6) {
@@ -1056,23 +1073,6 @@ int nfp_flower_compile_flow_match(struct nfp_app *app,
 		}
 	}
 #endif
-
-	if (NFP_FLOWER_LAYER2_QINQ & key_ls->key_layer_two) {
-#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
-		nfp_flower_compile_vlan((struct nfp_flower_vlan *)ext,
-					(struct nfp_flower_vlan *)msk,
-					rule);
-#else
-		/* Populate Exact MAC Data. */
-		nfp_flower_compile_vlan((struct nfp_flower_vlan *)ext,
-					flow, false);
-		/* Populate Mask MAC Data. */
-		nfp_flower_compile_vlan((struct nfp_flower_vlan *)msk,
-					flow, true);
-#endif
-		ext += sizeof(struct nfp_flower_vlan);
-		msk += sizeof(struct nfp_flower_vlan);
-	}
 
 	if (key_ls->key_layer & NFP_FLOWER_LAYER_VXLAN ||
 	    key_ls->key_layer_two & NFP_FLOWER_LAYER2_GENEVE) {
