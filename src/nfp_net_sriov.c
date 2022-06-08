@@ -19,7 +19,7 @@
 #include "nfp_net_sriov.h"
 
 static int
-nfp_net_sriov_check(struct nfp_app *app, int vf, u16 cap, const char *msg)
+nfp_net_sriov_check(struct nfp_app *app, int vf, u16 cap, const char *msg, bool warn)
 {
 	u16 cap_vf;
 
@@ -28,12 +28,14 @@ nfp_net_sriov_check(struct nfp_app *app, int vf, u16 cap, const char *msg)
 
 	cap_vf = readw(app->pf->vfcfg_tbl2 + NFP_NET_VF_CFG_MB_CAP);
 	if ((cap_vf & cap) != cap) {
-		nfp_warn(app->pf->cpp, "ndo_set_vf_%s not supported\n", msg);
+		if (warn)
+			nfp_warn(app->pf->cpp, "ndo_set_vf_%s not supported\n", msg);
 		return -EOPNOTSUPP;
 	}
 
 	if (vf < 0 || vf >= app->pf->num_vfs) {
-		nfp_warn(app->pf->cpp, "invalid VF id %d\n", vf);
+		if (warn)
+			nfp_warn(app->pf->cpp, "invalid VF id %d\n", vf);
 		return -EINVAL;
 	}
 
@@ -69,7 +71,7 @@ int nfp_app_set_vf_mac(struct net_device *netdev, int vf, u8 *mac)
 	unsigned int vf_offset;
 	int err;
 
-	err = nfp_net_sriov_check(app, vf, NFP_NET_VF_CFG_MB_CAP_MAC, "mac");
+	err = nfp_net_sriov_check(app, vf, NFP_NET_VF_CFG_MB_CAP_MAC, "mac", true);
 	if (err)
 		return err;
 
@@ -111,7 +113,7 @@ int nfp_app_set_vf_vlan(struct net_device *netdev, int vf, u16 vlan, u8 qos,
 	u32 vlan_tag;
 	int err;
 
-	err = nfp_net_sriov_check(app, vf, NFP_NET_VF_CFG_MB_CAP_VLAN, "vlan");
+	err = nfp_net_sriov_check(app, vf, NFP_NET_VF_CFG_MB_CAP_VLAN, "vlan", true);
 	if (err)
 		return err;
 
@@ -128,7 +130,7 @@ int nfp_app_set_vf_vlan(struct net_device *netdev, int vf, u16 vlan, u8 qos,
 
 #if VER_NON_RHEL_GE(4, 9) || VER_RHEL_GE(7, 4)
 	/* Check if fw supports or not */
-	err = nfp_net_sriov_check(app, vf, NFP_NET_VF_CFG_MB_CAP_VLAN_PROTO, "vlan_proto");
+	err = nfp_net_sriov_check(app, vf, NFP_NET_VF_CFG_MB_CAP_VLAN_PROTO, "vlan_proto", true);
 	if (err)
 		is_proto_sup = false;
 
@@ -166,7 +168,7 @@ int nfp_app_set_vf_spoofchk(struct net_device *netdev, int vf, bool enable)
 	int err;
 
 	err = nfp_net_sriov_check(app, vf, NFP_NET_VF_CFG_MB_CAP_SPOOF,
-				  "spoofchk");
+				  "spoofchk", true);
 	if (err)
 		return err;
 
@@ -189,7 +191,7 @@ int nfp_app_set_vf_rate(struct net_device *netdev, int vf,
 	u32 vf_offset, ratevalue;
 	int err;
 
-	err = nfp_net_sriov_check(app, vf, NFP_NET_VF_CFG_MB_CAP_RATE, "rate");
+	err = nfp_net_sriov_check(app, vf, NFP_NET_VF_CFG_MB_CAP_RATE, "rate", true);
 	if (err)
 		return err;
 
@@ -228,7 +230,7 @@ int nfp_app_set_vf_trust(struct net_device *netdev, int vf, bool enable)
 	int err;
 
 	err = nfp_net_sriov_check(app, vf, NFP_NET_VF_CFG_MB_CAP_TRUST,
-				  "trust");
+				  "trust", true);
 	if (err)
 		return err;
 
@@ -253,7 +255,7 @@ int nfp_app_set_vf_link_state(struct net_device *netdev, int vf,
 	int err;
 
 	err = nfp_net_sriov_check(app, vf, NFP_NET_VF_CFG_MB_CAP_LINK_STATE,
-				  "link_state");
+				  "link_state", true);
 	if (err)
 		return err;
 
@@ -293,7 +295,7 @@ int nfp_app_get_vf_config(struct net_device *netdev, int vf,
 	u8 flags;
 	int err;
 
-	err = nfp_net_sriov_check(app, vf, 0, "");
+	err = nfp_net_sriov_check(app, vf, 0, "", true);
 	if (err)
 		return err;
 
@@ -314,7 +316,7 @@ int nfp_app_get_vf_config(struct net_device *netdev, int vf,
 	ivi->vlan = FIELD_GET(NFP_NET_VF_CFG_VLAN_VID, vlan_tag);
 	ivi->qos = FIELD_GET(NFP_NET_VF_CFG_VLAN_QOS, vlan_tag);
 #if VER_NON_RHEL_GE(4, 9) || VER_RHEL_GE(7, 4)
-	if (!nfp_net_sriov_check(app, vf, NFP_NET_VF_CFG_MB_CAP_VLAN_PROTO, "vlan_proto"))
+	if (!nfp_net_sriov_check(app, vf, NFP_NET_VF_CFG_MB_CAP_VLAN_PROTO, "vlan_proto", false))
 		ivi->vlan_proto = htons(FIELD_GET(NFP_NET_VF_CFG_VLAN_PROT, vlan_tag));
 #endif
 	ivi->spoofchk = FIELD_GET(NFP_NET_VF_CFG_CTRL_SPOOF, flags);
@@ -326,7 +328,7 @@ int nfp_app_get_vf_config(struct net_device *netdev, int vf,
 #endif
 
 #if VER_NON_RHEL_GE(3, 16) || VER_RHEL_GE(7, 4)
-	err = nfp_net_sriov_check(app, vf, NFP_NET_VF_CFG_MB_CAP_RATE, "rate");
+	err = nfp_net_sriov_check(app, vf, NFP_NET_VF_CFG_MB_CAP_RATE, "rate", false);
 	if (!err) {
 		rate = readl(app->pf->vfcfg_tbl2 + vf_offset +
 			     NFP_NET_VF_CFG_RATE);
