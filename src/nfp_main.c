@@ -904,7 +904,7 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 		goto err_pci_disable;
 	}
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
+#if VER_NON_RHEL_LT(5, 15) || RHEL_RELEASE_LT(8, 394, 0, 0)
 	devlink = devlink_alloc(&nfp_devlink_ops, sizeof(*pf));
 #else
 	devlink = devlink_alloc(&nfp_devlink_ops, sizeof(*pf), &pdev->dev);

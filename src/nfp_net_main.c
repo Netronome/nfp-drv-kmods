@@ -717,9 +717,9 @@ int nfp_net_pci_probe(struct nfp_pf *pf)
 	if (err)
 		goto err_unmap;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
+#if VER_NON_RHEL_LT(5, 15) || RHEL_RELEASE_LT(8, 394, 0, 0)
 	devlink_register(devlink, &pf->pdev->dev);
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
+#elif VER_NON_RHEL_LT(5, 16)
 	devlink_register(devlink);
 #endif
 
@@ -752,7 +752,7 @@ int nfp_net_pci_probe(struct nfp_pf *pf)
 		goto err_stop_app;
 
 	devl_unlock(devlink);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
+#if VER_NON_RHEL_GE(5,16) || RHEL_RELEASE_GE(8, 394, 0, 0)
 	devlink_register(devlink);
 #endif
 
