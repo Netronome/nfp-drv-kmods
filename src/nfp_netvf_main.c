@@ -113,7 +113,9 @@ static int nfp_netvf_pci_probe(struct pci_dev *pdev,
 
 	pci_set_master(pdev);
 
-	err = dma_set_mask_and_coherent(&pdev->dev, dev_info->dma_mask);
+	err = dma_set_mask_and_coherent(&pdev->dev,
+					force_40b_dma ?
+					DMA_BIT_MASK(40) : dev_info->dma_mask);
 	if (err)
 		goto err_pci_regions;
 

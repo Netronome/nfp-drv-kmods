@@ -71,6 +71,10 @@ static int nfp_mon_event = -1;
 module_param(nfp_mon_event, bint, 0444);
 MODULE_PARM_DESC(nfp_mon_event, "(non-netdev mode) Event monitor support (default = !nfp_pf_netdev)");
 
+bool force_40b_dma;
+module_param(force_40b_dma, bool, 0444);
+MODULE_PARM_DESC(force_40b_dma, "Force using 40b dma mask, which allows new HW to use NFD3 firmware (default = false)");
+
 static const char nfp_driver_name[] = "nfp";
 const char nfp_driver_version[] = NFP_SRC_VERSION;
 
@@ -894,7 +898,9 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 
 	pci_set_master(pdev);
 
-	err = dma_set_mask_and_coherent(&pdev->dev, dev_info->dma_mask);
+	err = dma_set_mask_and_coherent(&pdev->dev,
+					force_40b_dma ?
+					DMA_BIT_MASK(40) : dev_info->dma_mask);
 	if (err)
 		goto err_pci_disable;
 

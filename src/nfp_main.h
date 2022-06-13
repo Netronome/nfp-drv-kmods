@@ -165,6 +165,7 @@ struct nfp_pf {
 
 extern int nfp_dev_cpp;
 extern bool nfp_net_vnic;
+extern bool force_40b_dma;
 
 extern struct pci_driver nfp_netvf_pci_driver;
 
