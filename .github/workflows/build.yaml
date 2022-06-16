@@ -88,7 +88,7 @@ jobs:
         run: ccache -s
 
   build-centos:
-    name: Build CentOS and BC Linux
+    name: Build CentOS, BC Linux, OpenEuler
     runs-on: ubuntu-20.04
     timeout-minutes: 90
     env:
@@ -114,6 +114,8 @@ jobs:
                 { "name": "8.4.2105", "container": "rockylinux:8.5" },
                 { "name": "8.5.2111", "container": "rockylinux:8.5" },
                 { "name": "8-stream", "container": "rockylinux:8.5" },
+                # openEuler
+                { "name": "openEuler-22.03-LTS",   "container": "openeuler/openeuler:22.03-lts" },
                 # BCLinux
                 #{ "name": "el8",   "container": "rockylinux:8.5" },
                 #{ "name": "el8.1", "container": "rockylinux:8.5" },
@@ -131,6 +133,7 @@ jobs:
         run: |
           case $RELEASE_NAME in
           el8*)                MIRROR="mirrors.bclinux.org/bclinux" ;;
+          openEuler*)          MIRROR="repo.openeuler.org" ;;
           7.[0-8].*|8.[0-5].*) MIRROR="vault.centos.org" ;;
           *)                   MIRROR="mirror.centos.org/centos" ;;
           esac
@@ -142,6 +145,8 @@ jobs:
           8*|el8*)OS_DIR1="BaseOS"
                   OS_DIR2="os"
                   ;;
+          openEuler*) OS_DIR1="OS"
+                      OS_DIR2=""
           esac
 
           OS_PATH="$MIRROR/$RELEASE_NAME/$OS_DIR1/x86_64/$OS_DIR2/Packages/"
@@ -210,6 +215,15 @@ jobs:
             fi
           done
           KVER="4.19.0-"${array[((${#array[@]}-1))]}
+          echo $KVER
+          echo "KVER=${KVER}*" >> $GITHUB_ENV
+
+      - name: Filter latest openEuler kernel
+        if: startsWith(matrix.release.name, 'openEuler')
+        run: |
+          KVER=$(curl -s "http://${{ env.OS_PATH }}/" | \
+            sed -En 's/.*kernel-devel-(5.10.0-[0-9].*).oe2203.*rpm.*/\1/p' | \
+            tail -n 1)
           echo $KVER
           echo "KVER=${KVER}*" >> $GITHUB_ENV
 
