@@ -1621,6 +1621,38 @@ static void nfp_port_get_pauseparam(struct net_device *netdev,
 	pause->tx_pause = 1;
 }
 
+static int nfp_net_set_phys_id(struct net_device *netdev,
+			       enum ethtool_phys_id_state state)
+{
+	struct nfp_eth_table_port *eth_port;
+	struct nfp_port *port;
+	int err;
+
+	port = nfp_port_from_netdev(netdev);
+	eth_port = __nfp_port_get_eth_port(port);
+	if (!eth_port)
+		return -EOPNOTSUPP;
+
+	switch (state) {
+	case ETHTOOL_ID_ACTIVE:
+		/* Control LED to blink */
+		err = nfp_eth_set_idmode(port->app->cpp, eth_port->index, 1);
+		break;
+
+	case ETHTOOL_ID_INACTIVE:
+		/* Control LED to normal mode */
+		err = nfp_eth_set_idmode(port->app->cpp, eth_port->index, 0);
+		break;
+
+	case ETHTOOL_ID_ON:
+	case ETHTOOL_ID_OFF:
+	default:
+		return -EOPNOTSUPP;
+	}
+
+	return err;
+}
+
 static const struct ethtool_ops nfp_net_ethtool_ops = {
 #if VER_NON_RHEL_GE(5, 7) || VER_RHEL_GE(8, 4)
 	.supported_coalesce_params = ETHTOOL_COALESCE_USECS |
@@ -1675,6 +1707,7 @@ static const struct ethtool_ops nfp_net_ethtool_ops = {
 	.set_fecparam		= nfp_port_set_fecparam,
 #endif
 	.get_pauseparam		= nfp_port_get_pauseparam,
+	.set_phys_id		= nfp_net_set_phys_id,
 };
 
 const struct ethtool_ops nfp_port_ethtool_ops = {
@@ -1701,6 +1734,7 @@ const struct ethtool_ops nfp_port_ethtool_ops = {
 	.set_fecparam		= nfp_port_set_fecparam,
 #endif
 	.get_pauseparam		= nfp_port_get_pauseparam,
+	.set_phys_id		= nfp_net_set_phys_id,
 };
 
 void nfp_net_set_ethtool_ops(struct net_device *netdev)
