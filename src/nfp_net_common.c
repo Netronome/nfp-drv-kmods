@@ -40,6 +40,7 @@
 #include <linux/ethtool.h>
 #include <linux/log2.h>
 #include <linux/if_vlan.h>
+#include <linux/if_bridge.h>
 #include <linux/random.h>
 #include <linux/vmalloc.h>
 #include <linux/ktime.h>
@@ -2153,6 +2154,76 @@ static int nfp_net_set_mac_address(struct net_device *netdev, void *addr)
 	return 0;
 }
 
+#if VER_NON_RHEL_GE(4, 2) || VER_RHEL_GE(7, 4)
+static int nfp_net_bridge_getlink(struct sk_buff *skb, u32 pid, u32 seq,
+				  struct net_device *dev, u32 filter_mask,
+				  int nlflags)
+{
+	struct nfp_net *nn = netdev_priv(dev);
+	u16 mode;
+
+	if (!(nn->cap & NFP_NET_CFG_CTRL_VEPA))
+		return -EOPNOTSUPP;
+
+	mode = (nn->dp.ctrl & NFP_NET_CFG_CTRL_VEPA) ?
+	       BRIDGE_MODE_VEPA : BRIDGE_MODE_VEB;
+
+	return ndo_dflt_bridge_getlink(skb, pid, seq, dev, mode, 0, 0,
+				       nlflags, filter_mask, NULL);
+}
+
+#if VER_NON_RHEL_GE(5, 0) || VER_RHEL_GE(8, 1)
+static int nfp_net_bridge_setlink(struct net_device *dev, struct nlmsghdr *nlh,
+				  u16 flags, struct netlink_ext_ack *extack)
+#else
+static int nfp_net_bridge_setlink(struct net_device *dev, struct nlmsghdr *nlh,
+				  u16 flags)
+#endif
+{
+	struct nfp_net *nn = netdev_priv(dev);
+	struct nlattr *attr, *br_spec;
+	int rem, err;
+	u32 new_ctrl;
+	u16 mode;
+
+	if (!(nn->cap & NFP_NET_CFG_CTRL_VEPA))
+		return -EOPNOTSUPP;
+
+	br_spec = nlmsg_find_attr(nlh, sizeof(struct ifinfomsg), IFLA_AF_SPEC);
+	if (!br_spec)
+		return -EINVAL;
+
+	nla_for_each_nested(attr, br_spec, rem) {
+		if (nla_type(attr) != IFLA_BRIDGE_MODE)
+			continue;
+
+		if (nla_len(attr) < sizeof(mode))
+			return -EINVAL;
+
+		new_ctrl = nn->dp.ctrl;
+		mode = nla_get_u16(attr);
+		if (mode == BRIDGE_MODE_VEPA)
+			new_ctrl |= NFP_NET_CFG_CTRL_VEPA;
+		else if (mode == BRIDGE_MODE_VEB)
+			new_ctrl &= ~NFP_NET_CFG_CTRL_VEPA;
+		else
+			return -EOPNOTSUPP;
+
+		if (new_ctrl == nn->dp.ctrl)
+			return 0;
+
+		nn_writel(nn, NFP_NET_CFG_CTRL, new_ctrl);
+		err = nfp_net_reconfig(nn, NFP_NET_CFG_UPDATE_GEN);
+		if (!err)
+			nn->dp.ctrl = new_ctrl;
+
+		return err;
+	}
+
+	return -EINVAL;
+}
+#endif
+
 const struct net_device_ops nfp_nfd3_netdev_ops = {
 	.ndo_init		= nfp_app_ndo_init,
 	.ndo_uninit		= nfp_app_ndo_uninit,
@@ -2244,6 +2315,10 @@ const struct net_device_ops nfp_nfd3_netdev_ops = {
 #endif
 	},
 #endif
+#if VER_NON_RHEL_GE(4, 2) || VER_RHEL_GE(7, 4)
+	.ndo_bridge_getlink     = nfp_net_bridge_getlink,
+	.ndo_bridge_setlink     = nfp_net_bridge_setlink,
+#endif
 };
 
 const struct net_device_ops nfp_nfdk_netdev_ops = {
@@ -2334,6 +2409,10 @@ const struct net_device_ops nfp_nfdk_netdev_ops = {
 #endif
 	},
 #endif
+#if VER_NON_RHEL_GE(4, 2) || VER_RHEL_GE(7, 4)
+	.ndo_bridge_getlink     = nfp_net_bridge_getlink,
+	.ndo_bridge_setlink     = nfp_net_bridge_setlink,
+#endif
 };
 
 #if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 4)
@@ -2383,7 +2462,7 @@ void nfp_net_info(struct nfp_net *nn)
 		nn->fw_ver.extend, nn->fw_ver.class,
 		nn->fw_ver.major, nn->fw_ver.minor,
 		nn->max_mtu);
-	nn_info(nn, "CAP: %#x %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
+	nn_info(nn, "CAP: %#x %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
 		nn->cap,
 		nn->cap & NFP_NET_CFG_CTRL_PROMISC  ? "PROMISC "  : "",
 		nn->cap & NFP_NET_CFG_CTRL_L2BC     ? "L2BCFILT " : "",
@@ -2402,6 +2481,7 @@ void nfp_net_info(struct nfp_net *nn)
 		nn->cap & NFP_NET_CFG_CTRL_MSIXAUTO ? "AUTOMASK " : "",
 		nn->cap & NFP_NET_CFG_CTRL_IRQMOD   ? "IRQMOD "   : "",
 		nn->cap & NFP_NET_CFG_CTRL_TXRWB    ? "TXRWB "    : "",
+		nn->cap & NFP_NET_CFG_CTRL_VEPA     ? "VEPA "     : "",
 		nn->cap & NFP_NET_CFG_CTRL_VXLAN    ? "VXLAN "    : "",
 		nn->cap & NFP_NET_CFG_CTRL_NVGRE    ? "NVGRE "	  : "",
 		nn->cap & NFP_NET_CFG_CTRL_CSUM_COMPLETE ?
