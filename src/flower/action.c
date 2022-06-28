@@ -165,7 +165,7 @@ nfp_fl_pre_lag(struct nfp_app *app, const struct tc_action *act,
 	}
 
 	/* Pre_lag action must be first on action list.
-	 * If other actions already exist they need pushed forward.
+	 * If other actions already exist they need to be pushed forward.
 	 */
 	if (act_len)
 		memmove(nfp_flow->action_data + act_size,
