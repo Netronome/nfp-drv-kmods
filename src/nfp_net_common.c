@@ -2262,6 +2262,9 @@ const struct net_device_ops nfp_nfdk_netdev_ops = {
 #if VER_IS_NON_RHEL || VER_RHEL_LT(7, 4) || VER_RHEL_GE(8, 0)
 	.ndo_set_vf_vlan        = nfp_app_set_vf_vlan,
 #endif
+#if VER_NON_RHEL_GE(3, 16) || VER_RHEL_GE(7, 4)
+	.ndo_set_vf_rate	= nfp_app_set_vf_rate,
+#endif
 	.ndo_set_vf_spoofchk    = nfp_app_set_vf_spoofchk,
 #if VER_NON_RHEL_GE(4, 4) || VER_RHEL_GE(8, 0)
 	.ndo_set_vf_trust	= nfp_app_set_vf_trust,
