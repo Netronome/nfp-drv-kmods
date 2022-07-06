@@ -1356,8 +1356,8 @@ static void nfp_net_get_regs(struct net_device *netdev,
 }
 
 static int nfp_net_get_coalesce(struct net_device *netdev,
-#if VER_NON_RHEL_GE(5, 15) || RHEL_RELEASE_GE(8, 358, 0, 0) || \
-	COMPAT_OELINUX
+#if VER_NON_RHEL_GE(5, 15) || (RHEL_RELEASE_GE(8, 358, 0, 0) \
+	    && RHEL_RELEASE_LT(9, 70, 0, 0)) || COMPAT_OELINUX
 				struct ethtool_coalesce *ec,
 				struct kernel_ethtool_coalesce *kernel_coal,
 				struct netlink_ext_ack *extack)
@@ -1617,8 +1617,8 @@ exit_close_nsp:
 }
 
 static int nfp_net_set_coalesce(struct net_device *netdev,
-#if VER_NON_RHEL_GE(5, 15) || RHEL_RELEASE_GE(8, 358, 0, 0) || \
-	COMPAT_OELINUX
+#if VER_NON_RHEL_GE(5, 15) || (RHEL_RELEASE_GE(8, 358, 0, 0) \
+	    && RHEL_RELEASE_LT(9, 70, 0, 0)) || COMPAT_OELINUX
 				struct ethtool_coalesce *ec,
 				struct kernel_ethtool_coalesce *kernel_coal,
 				struct netlink_ext_ack *extack)

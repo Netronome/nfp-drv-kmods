@@ -1544,7 +1544,7 @@ typedef struct gnet_stats_basic_packed compat__gnet_stats_basic_sync;
 typedef struct gnet_stats_basic_sync compat__gnet_stats_basic_sync;
 #endif
 
-#if VER_NON_RHEL_LT(5, 17) || RHEL_RELEASE_LT(8, 394, 0, 0)
+#if VER_NON_RHEL_LT(5, 17) || RHEL_RELEASE_LT(8, 394, 0, 0) || RHEL_RELEASE_GE(9, 70, 0, 0)
 static inline void netif_set_gso_max_segs(struct net_device *dev,
 					  unsigned int segs)
 {

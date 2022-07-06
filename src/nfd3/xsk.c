@@ -246,7 +246,7 @@ nfp_nfd3_xsk_rx(struct nfp_net_rx_ring *rx_ring, int budget,
 			}
 			break;
 		default:
-#if VER_NON_RHEL_LT(5, 17) || RHEL_RELEASE_LT(8, 394, 0, 0)
+#if VER_NON_RHEL_LT(5, 17) || RHEL_RELEASE_LT(8, 394, 0, 0) || RHEL_RELEASE_GE(9, 70, 0, 0)
 			bpf_warn_invalid_xdp_action(act);
 #else
 			bpf_warn_invalid_xdp_action(dp->netdev, xdp_prog, act);
