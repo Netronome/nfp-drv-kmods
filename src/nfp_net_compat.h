@@ -58,7 +58,7 @@
 #endif
 
 #if (defined(COMPAT__HAVE_METADATA_IP_TUNNEL) ||	\
-     LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0))
+     VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1))
 #include <net/tc_act/tc_mirred.h>
 #include <net/tc_act/tc_gact.h>
 #include <net/tc_act/tc_vlan.h>
