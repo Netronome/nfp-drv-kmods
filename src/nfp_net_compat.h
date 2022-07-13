@@ -1387,7 +1387,7 @@ compat__bpf_map_inc(struct bpf_map *map, bool uref)
 }
 #endif
 
-#if defined(CONFIG_INET) && defined(CONFIG_IPV6) && \
+#if IS_ENABLED(CONFIG_INET) && IS_ENABLED(CONFIG_IPV6) && \
 	(VER_NON_RHEL_GE(3, 12) || VER_RHEL_GE(7, 0))
 static inline struct dst_entry *
 compat__ipv6_dst_lookup_flow(struct net *net, struct sock *sk,

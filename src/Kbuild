@@ -33,7 +33,7 @@ ifneq ($(CONFIG_NFP),n)
     CONFIG_NFP_NET_PF = n
     CONFIG_NFP_NET_VF = n
   endif
-  ifneq ($(CONFIG_FW_LOADER),y)
+  ifeq (,$(filter y m,$(CONFIG_FW_LOADER)))
     $(warning NFP: The firmware loader (CONFIG_FW_LOADER) should be enabled)
   endif
 endif
