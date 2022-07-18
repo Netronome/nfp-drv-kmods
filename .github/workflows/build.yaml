@@ -114,6 +114,7 @@ jobs:
                 { "name": "8.4.2105", "container": "rockylinux:8.5" },
                 { "name": "8.5.2111", "container": "rockylinux:8.5" },
                 { "name": "8-stream", "container": "rockylinux:8.5" },
+                { "name": "9.0", "container": "rockylinux:9.0" },
                 # openEuler
                 { "name": "openEuler-22.03-LTS",   "container": "openeuler/openeuler:22.03-lts" },
                 # BCLinux
@@ -135,6 +136,7 @@ jobs:
           el8*)                MIRROR="mirrors.bclinux.org/bclinux" ;;
           openEuler*)          MIRROR="repo.openeuler.org" ;;
           7.[0-8].*|8.[0-5].*) MIRROR="vault.centos.org" ;;
+          9.*)                 MIRROR="dl.rockylinux.org/pub/rocky" ;;
           *)                   MIRROR="mirror.centos.org/centos" ;;
           esac
 
@@ -145,11 +147,19 @@ jobs:
           8*|el8*)OS_DIR1="BaseOS"
                   OS_DIR2="os"
                   ;;
+          9*)     OS_DIR1="AppStream"
+                  OS_DIR2="os"
+                  ;;
           openEuler*) OS_DIR1="OS"
                       OS_DIR2=""
           esac
 
-          OS_PATH="$MIRROR/$RELEASE_NAME/$OS_DIR1/x86_64/$OS_DIR2/Packages/"
+          case $RELEASE_NAME in
+          9.*)    OS_PATH="$MIRROR/$RELEASE_NAME/$OS_DIR1/x86_64/$OS_DIR2/Packages/k/"
+                  ;;
+          *)      OS_PATH="$MIRROR/$RELEASE_NAME/$OS_DIR1/x86_64/$OS_DIR2/Packages/"
+          esac
+
           UPDATE_PATH="$MIRROR/$RELEASE_NAME/updates/x86_64/$OS_DIR2/Packages/"
 
           echo "OS_PATH=$OS_PATH" >> $GITHUB_ENV
@@ -175,11 +185,20 @@ jobs:
       - name: Install Dependencies
         run: yum -q -y install cpio elfutils-libelf-devel findutils gcc make wget ca-certificates
 
-      - name: Filter latest CentOS stream kernel
+      - name: Filter CentOS stream 8 kernel
         if: startsWith(matrix.release.name, '8-stream')
         run: |
           KVER=$(curl -s "http://${{ env.OS_PATH }}/" | \
             sed -En 's/.*kernel-devel-(4.18.0-[0-9].*).el8.*rpm.*/\1/p' | \
+            tail -n 1)
+          echo $KVER
+          echo "KVER=${KVER}*" >> $GITHUB_ENV
+
+      - name: Filter RHEL 9 kernel
+        if: startsWith(matrix.release.name, '9.')
+        run: |
+          KVER=$(curl -s "http://${{ env.OS_PATH }}/" | \
+            sed -En 's/.*kernel-devel-(5.14.0-[0-9].*).el9*.*rpm.*/\1/p' | \
             tail -n 1)
           echo $KVER
           echo "KVER=${KVER}*" >> $GITHUB_ENV
