@@ -1,6 +1,15 @@
 name: Build
 
-on: [push]
+# ========== TRIGGER ==========
+
+on:
+  push:
+    branches:
+      - main          # default branch name
+      - '*-build*'    # Temporary build, no testing
+      - '*build-*'    # Temporary build, no testing
+      - 'release-*'   # Release build
+      - '*.check'
 
 env:
   DOWNLOAD: ".download"
