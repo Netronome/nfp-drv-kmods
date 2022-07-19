@@ -1538,13 +1538,14 @@ static inline void eth_hw_addr_set(struct net_device *dev, const u8 *addr)
 }
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
+#if VER_NON_RHEL_LT(5, 16) || RHEL_RELEASE_LT(9, 119, 0, 0)
 typedef struct gnet_stats_basic_packed compat__gnet_stats_basic_sync;
 #else
 typedef struct gnet_stats_basic_sync compat__gnet_stats_basic_sync;
 #endif
 
-#if VER_NON_RHEL_LT(5, 17) || RHEL_RELEASE_LT(8, 394, 0, 0) || RHEL_RELEASE_GE(9, 70, 0, 0)
+#if VER_NON_RHEL_LT(5, 17) || RHEL_RELEASE_LT(8, 394, 0, 0) \
+		|| (RHEL_RELEASE_GE(9, 70, 0, 0) && RHEL_RELEASE_LT(9, 119, 0, 0))
 static inline void netif_set_gso_max_segs(struct net_device *dev,
 					  unsigned int segs)
 {
