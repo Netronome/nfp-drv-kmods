@@ -22,12 +22,15 @@ jobs:
       fail-fast: false
       matrix:
         distro:
+          - ubuntu:22.04
           - ubuntu:20.04
           - ubuntu:18.04
           - centos:8
           - centos:7
           - rockylinux:8.5
+          - rockylinux:9.0
           - almalinux:8.5
+          - almalinux:9.0
 
     container:
       image: ${{ matrix.distro }}
