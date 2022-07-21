@@ -394,7 +394,9 @@ err_bad_set:
 }
 
 static void nfp_net_get_ringparam(struct net_device *netdev,
-#if (VER_NON_RHEL_LT(5, 17) || RHEL_RELEASE_LT(9, 119, 0, 0)) && !COMPAT_OELINUX
+#if (VER_NON_RHEL_LT(5, 17) || (RHEL_RELEASE_LT(8, 408, 0, 0) || \
+		(RHEL_RELEASE_GE(9, 0, 0, 0) && RHEL_RELEASE_LT(9, 119, 0, 0)))) \
+		&& !COMPAT_OELINUX
 				  struct ethtool_ringparam *ring)
 #else
 				  struct ethtool_ringparam *ring,
@@ -426,7 +428,9 @@ static int nfp_net_set_ring_size(struct nfp_net *nn, u32 rxd_cnt, u32 txd_cnt)
 }
 
 static int nfp_net_set_ringparam(struct net_device *netdev,
-#if (VER_NON_RHEL_LT(5, 17) || RHEL_RELEASE_LT(9, 119, 0, 0)) && !COMPAT_OELINUX
+#if (VER_NON_RHEL_LT(5, 17) || (RHEL_RELEASE_LT(8, 408, 0, 0) || \
+		(RHEL_RELEASE_GE(9, 0, 0, 0) && RHEL_RELEASE_LT(9, 119, 0, 0)))) \
+		&& !COMPAT_OELINUX
 				 struct ethtool_ringparam *ring)
 #else
 				 struct ethtool_ringparam *ring,
