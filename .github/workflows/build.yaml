@@ -124,6 +124,7 @@ jobs:
                 { "name": "8.5.2111", "container": "rockylinux:8.5" },
                 { "name": "8-stream", "container": "rockylinux:8.5" },
                 { "name": "9.0", "container": "rockylinux:9.0" },
+                { "name": "9-stream", "container": "rockylinux:9.0" },
                 # openEuler
                 { "name": "openEuler-22.03-LTS",   "container": "openeuler/openeuler:22.03-lts" },
                 # BCLinux
@@ -146,6 +147,7 @@ jobs:
           openEuler*)          MIRROR="repo.openeuler.org" ;;
           7.[0-8].*|8.[0-5].*) MIRROR="vault.centos.org" ;;
           9.*)                 MIRROR="dl.rockylinux.org/pub/rocky" ;;
+          9-*)                 MIRROR="mirror.stream.centos.org" ;;
           *)                   MIRROR="mirror.centos.org/centos" ;;
           esac
 
@@ -170,7 +172,6 @@ jobs:
           esac
 
           UPDATE_PATH="$MIRROR/$RELEASE_NAME/updates/x86_64/$OS_DIR2/Packages/"
-
           echo "OS_PATH=$OS_PATH" >> $GITHUB_ENV
           echo "UPDATE_PATH=$UPDATE_PATH" >> $GITHUB_ENV
 
@@ -203,11 +204,11 @@ jobs:
           echo $KVER
           echo "KVER=${KVER}*" >> $GITHUB_ENV
 
-      - name: Filter RHEL 9 kernel
-        if: startsWith(matrix.release.name, '9.')
+      - name: Filter CentOS stream 9 and RHEL 9 kernels
+        if: startsWith(matrix.release.name, '9')
         run: |
           KVER=$(curl -s "http://${{ env.OS_PATH }}/" | \
-            sed -En 's/.*kernel-devel-(5.14.0-[0-9].*).el9*.*rpm.*/\1/p' | \
+            sed -En 's/.*kernel-devel-(5.14.0-[0-9].*).el9*rpm.*/\1/p' | \
             tail -n 1)
           echo $KVER
           echo "KVER=${KVER}*" >> $GITHUB_ENV
