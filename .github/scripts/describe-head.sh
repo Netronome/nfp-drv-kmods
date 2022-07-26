@@ -66,7 +66,7 @@ if [[ "${BRANCH}" == "release-"* ]]; then
 elif [[ "${BRANCH}" != "${DEFAULT}" ]]; then
     # Likely a wip- branch, look for a ticket ID in the form 'OVS-000'
     TICKET_ID="$(echo ${BRANCH} | grep -Eo '[A-Za-z]+[^[:alnum:]]?[0-9]+' | \
-                 sed 's/[^[:alnum:]]//g')"
+                 sed 's/[^[:alnum:]]//g' | head -1)"
 fi
 
 # Generate PACKAGE NAME
