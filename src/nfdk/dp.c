@@ -182,13 +182,18 @@ nfp_nfdk_prep_tx_meta(struct nfp_net_dp *dp, struct nfp_app *app,
 {
 #ifdef COMPAT__HAVE_METADATA_IP_TUNNEL
 	struct metadata_dst *md_dst = skb_metadata_dst(skb);
+#else
+	void *md_dst = NULL;
+#endif
 	unsigned char *data;
 	bool vlan_insert;
 	u32 meta_id = 0;
 	int md_bytes;
 
+#ifdef COMPAT__HAVE_METADATA_IP_TUNNEL
 	if (unlikely(md_dst && md_dst->type != METADATA_HW_PORT_MUX))
 		md_dst = NULL;
+#endif
 
 	vlan_insert = skb_vlan_tag_present(skb) && (dp->ctrl & NFP_NET_CFG_CTRL_TXVLAN_V2);
 
@@ -203,18 +208,26 @@ nfp_nfdk_prep_tx_meta(struct nfp_net_dp *dp, struct nfp_app *app,
 		return -ENOMEM;
 
 	data = skb_push(skb, md_bytes) + md_bytes;
+#ifdef COMPAT__HAVE_METADATA_IP_TUNNEL
 	if (md_dst) {
 		data -= NFP_NET_META_PORTID_SIZE;
 		put_unaligned_be32(md_dst->u.port_info.port_id, data);
 		meta_id = NFP_NET_META_PORTID;
 	}
+#endif
 	if (vlan_insert) {
+		__be16 vlan_proto;
 		data -= NFP_NET_META_VLAN_SIZE;
 		/* data type of skb->vlan_proto is __be16
 		 * so it fills metadata without calling put_unaligned_be16
 		 */
-		memcpy(data, &skb->vlan_proto, sizeof(skb->vlan_proto));
-		put_unaligned_be16(skb_vlan_tag_get(skb), data + sizeof(skb->vlan_proto));
+#if LINUX_VERSION_CODE > KERNEL_VERSION(3, 9, 0)
+		vlan_proto = skb->vlan_proto;
+#else
+		vlan_proto = htons(ETH_P_8021Q);
+#endif
+		memcpy(data, &vlan_proto, sizeof(vlan_proto));
+		put_unaligned_be16(skb_vlan_tag_get(skb), data + sizeof(vlan_proto));
 		meta_id <<= NFP_NET_META_FIELD_SIZE;
 		meta_id |= NFP_NET_META_VLAN;
 	}
@@ -226,10 +239,6 @@ nfp_nfdk_prep_tx_meta(struct nfp_net_dp *dp, struct nfp_app *app,
 	put_unaligned_be32(meta_id, data);
 
 	return NFDK_DESC_TX_CHAIN_META;
-
-#else
-	return 0;
-#endif
 }
 
 /**
