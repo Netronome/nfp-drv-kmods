@@ -9,7 +9,7 @@
 
 %define blacklist_file /etc/modprobe.d/blacklist-agilio-nfp-driver.conf
 
-Summary:    %{module_name} %{version} dkms package
+Summary:    %{module_name} %{version}-%{release} dkms package
 Name:       %{module_name}-dkms
 Version:    %{version}
 Release:    %{release}
@@ -31,8 +31,8 @@ Conflicts: nfp-bsp-dkms, ns-agilio-core-nic
 
 %prep
 if [ "%mktarball_line" != "none" ]; then
-        /usr/sbin/dkms mktarball -m %module_name -v %version %mktarball_line --archive `basename %{module_name}-%{version}.dkms.tar.gz`
-        cp -af %{_dkmsdir}/%{module_name}/%{version}/tarball/`basename %{module_name}-%{version}.dkms.tar.gz` %{module_name}-%{version}.dkms.tar.gz
+        /usr/sbin/dkms mktarball -m %module_name -v %{version}-%{release} %mktarball_line --archive `basename %{module_name}-%{version}-%{release}.dkms.tar.gz`
+        cp -af %{_dkmsdir}/%{module_name}/%{version}-%{release}/tarball/`basename %{module_name}-%{version}-%{release}.dkms.tar.gz` %{module_name}-%{version}-%{release}.dkms.tar.gz
 fi
 
 %install
@@ -42,15 +42,15 @@ fi
 mkdir -p $RPM_BUILD_ROOT/%{_srcdir}
 mkdir -p $RPM_BUILD_ROOT/%{_datarootdir}/%{module_name}
 
-if [ -d %{_sourcedir}/%{module_name}-%{version} ]; then
-        cp -Lpr %{_sourcedir}/%{module_name}-%{version} $RPM_BUILD_ROOT/%{_srcdir}
+if [ -d %{_sourcedir}/%{module_name}-%{version}-%{release} ]; then
+        cp -Lpr %{_sourcedir}/%{module_name}-%{version}-%{release} $RPM_BUILD_ROOT/%{_srcdir}
 fi
 
-if [ -f %{module_name}-%{version}.dkms.tar.gz ]; then
-        install -m 644 %{module_name}-%{version}.dkms.tar.gz $RPM_BUILD_ROOT/%{_datarootdir}/%{module_name}
+if [ -f %{module_name}-%{version}-%{release}.dkms.tar.gz ]; then
+        install -m 644 %{module_name}-%{version}-%{release}.dkms.tar.gz $RPM_BUILD_ROOT/%{_datarootdir}/%{module_name}
 fi
 
-install -m 755 %{_sourcedir}/%{module_name}-%{version}/common.postinst $RPM_BUILD_ROOT/%{_datarootdir}/%{module_name}/postinst
+install -m 755 %{_sourcedir}/%{module_name}-%{version}-%{release}/common.postinst $RPM_BUILD_ROOT/%{_datarootdir}/%{module_name}/postinst
 # Add blacklist of nfp_netvf modules
 echo "# Prevents nfp_netvf from automatically loading on older kernels" > %{blacklist_file}
 echo "blacklist nfp_netvf" >> %{blacklist_file}
@@ -63,7 +63,7 @@ fi
 %post
 for POSTINST in %{_datarootdir}/%{module_name}/postinst; do
         if [ -f $POSTINST ]; then
-                $POSTINST %{module_name} %{version} %{_datarootdir}/%{module_name}
+                $POSTINST %{module_name} %{version}-%{release} %{_datarootdir}/%{module_name}
                 exit $?
         fi
         echo "WARNING: $POSTINST does not exist."
@@ -76,8 +76,8 @@ exit 1
 
 %preun
 echo -e
-echo -e "Uninstall of %{module_name} module (version %{version}) beginning:"
-dkms remove -m %{module_name} -v %{version} --all --rpm_safe_upgrade
+echo -e "Uninstall of %{module_name} module (version %{version}-%{release}) beginning:"
+dkms remove -m %{module_name} -v %{version}-%{release} --all --rpm_safe_upgrade
 rm -f %{blacklist_file}
 exit 0
 

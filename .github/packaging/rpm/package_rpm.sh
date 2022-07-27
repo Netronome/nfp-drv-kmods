@@ -33,12 +33,14 @@ OUTDIR="${SRCDIR}/rpm"
 PKG_NAME=$2
 PKG_VERSION=$3
 PKG_REVISION=$4
+FULL_PKG_VERSION=${PKG_VERSION}-${PKG_REVISION}
 
 set -xe
 
 cp_from_template () {
     cp $1 $2
     sed -i "s/__PKG_VERSION__/${PKG_VERSION}/g" $2
+    sed -i "s/__PKG_REVISION__/${PKG_REVISION}/g" $2
     sed -i "s/__PKG_NAME__/${PKG_NAME}/g" $2
 }
 
@@ -54,46 +56,46 @@ prepare () {
 
 output_manifest () {
     tmpdir=$(pwd)
-    echo "MANIFEST:${PKG_NAME}-${PKG_VERSION}" > ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${PKG_VERSION}".manifest"
+    echo "MANIFEST:${PKG_NAME}-${FULL_PKG_VERSION}" > ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${FULL_PKG_VERSION}".manifest"
     cd ${SRCDIR}
     tag=$(git rev-parse HEAD)
     branch=$(git rev-parse --abbrev-ref HEAD)
     url=$(git config --get remote.origin.url)
     cd ${tmpdir}
-    echo "DATE:$(date -u +%Y.%m.%d.%H%M)" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${PKG_VERSION}".manifest"
-    echo "BRANCH:${branch}" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${PKG_VERSION}".manifest"
-    echo "TAG:${tag}" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${PKG_VERSION}".manifest"
-    echo "URL:${url}" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${PKG_VERSION}".manifest"
-    echo "" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${PKG_VERSION}".manifest"
-    echo "HOST INFO:" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${PKG_VERSION}".manifest"
+    echo "DATE:$(date -u +%Y.%m.%d.%H%M)" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${FULL_PKG_VERSION}".manifest"
+    echo "BRANCH:${branch}" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${FULL_PKG_VERSION}".manifest"
+    echo "TAG:${tag}" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${FULL_PKG_VERSION}".manifest"
+    echo "URL:${url}" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${FULL_PKG_VERSION}".manifest"
+    echo "" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${FULL_PKG_VERSION}".manifest"
+    echo "HOST INFO:" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${FULL_PKG_VERSION}".manifest"
     host_name=$(hostname)
     kernel_version=$(uname -r)
     os_info=$(cat /etc/os-release  | head -n 2 | sed 's/NAME/OS_NAME/g' | sed 's/VERSION/OS_VERSION/g')
-    echo "HOSTNAME:${host_name}" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${PKG_VERSION}".manifest"
-    echo "KERNEL_VERSION:${kernel_version}" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${PKG_VERSION}".manifest"
-    echo "${os_info}" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${PKG_VERSION}".manifest"
+    echo "HOSTNAME:${host_name}" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${FULL_PKG_VERSION}".manifest"
+    echo "KERNEL_VERSION:${kernel_version}" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${FULL_PKG_VERSION}".manifest"
+    echo "${os_info}" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${FULL_PKG_VERSION}".manifest"
 }
 
 build_nfp_drv_kmod_dkms () {
     mkdir -p ${BUILDDIR}/${PKG_NAME}
     cp -r ${SRCDIR}/src ${BUILDDIR}/${PKG_NAME}/src
-    echo ${PKG_VERSION} > ${BUILDDIR}/${PKG_NAME}/src/.revision
+    echo ${FULL_PKG_VERSION} > ${BUILDDIR}/${PKG_NAME}/src/.revision
     cp_from_template ${SRCDIR}/.github/packaging/dkms.conf ${BUILDDIR}/${PKG_NAME}/dkms.conf
     cp -r ${SRCDIR}/Makefile ${BUILDDIR}/${PKG_NAME}/Makefile
-    ln -sf ${BUILDDIR}/${PKG_NAME} /usr/src/${PKG_NAME}-${PKG_VERSION}
+    ln -sf ${BUILDDIR}/${PKG_NAME} /usr/src/${PKG_NAME}-${FULL_PKG_VERSION}
 
     mkdir -p ${BUILDDIR}/rpmbuild/{BUILD,RPMS,SRPMS,SPECS,SOURCES}
     cp_from_template ${BASEDIR}/nfp-drv-kmods-dkms.spec.in ${BUILDDIR}/rpmbuild/SPECS/${PKG_NAME}-dkms.spec
-    mkdir -p ${BUILDDIR}/rpmbuild/SOURCES/${PKG_NAME}-${PKG_VERSION}
+    mkdir -p ${BUILDDIR}/rpmbuild/SOURCES/${PKG_NAME}-${FULL_PKG_VERSION}
     cp ${SRCDIR}/.github/packaging/common.postinst ${BUILDDIR}/rpmbuild/SOURCES
 
-    dkms add ${PKG_NAME}/${PKG_VERSION} --rpm_safe_upgrade
+    dkms add ${PKG_NAME}/${FULL_PKG_VERSION} --rpm_safe_upgrade
 
     cp ${BUILDDIR}/rpmbuild/SOURCES/common.postinst \
-    ${BUILDDIR}/rpmbuild/SOURCES/${PKG_NAME}-${PKG_VERSION}/common.postinst
+    ${BUILDDIR}/rpmbuild/SOURCES/${PKG_NAME}-${FULL_PKG_VERSION}/common.postinst
 
-    cp -Lpr /var/lib/dkms/${PKG_NAME}/${PKG_VERSION}/source \
-    ${BUILDDIR}/rpmbuild/SOURCES/${PKG_NAME}-${PKG_VERSION}
+    cp -Lpr /var/lib/dkms/${PKG_NAME}/${FULL_PKG_VERSION}/source \
+    ${BUILDDIR}/rpmbuild/SOURCES/${PKG_NAME}-${FULL_PKG_VERSION}
 
     source_working_dir=$(pwd)
     cd ${BUILDDIR}/rpmbuild
@@ -111,10 +113,10 @@ build_nfp_drv_kmod_dkms () {
 
 cleanup () {
     echo "CLEANUP"
-    echo "${PKG_NAME}/${PKG_VERSION}"
-    dkms remove ${PKG_NAME}/${PKG_VERSION} --all
+    echo "${PKG_NAME}/${FULL_PKG_VERSION}"
+    dkms remove ${PKG_NAME}/${FULL_PKG_VERSION} --all
 
-    rm -rf /usr/src/${PKG_NAME:?"PKG_NAME not defined"}-${PKG_VERSION:?"PKG_VERSION not defined"}
+    rm -rf /usr/src/${PKG_NAME:?"PKG_NAME not defined"}-${FULL_PKG_VERSION:?"FULL_PKG_VERSION not defined"}
     rm -rf ${BUILDDIR:?"BUILDDIR not defined"}
 }
 
