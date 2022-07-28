@@ -61,6 +61,19 @@ if [ "$RPM_BUILD_ROOT" != "/" ]; then
 fi
 
 %post
+if ! [ -d "/lib/modules/$(uname -r)/build" ]; then
+        # Check package manager: dnf or yum
+        if [ -e /usr/bin/dnf ]; then
+                PKG_MAN="dnf"
+        else
+                PKG_MAN="yum"
+        fi
+        # Show WARNING message if kernel-devel is not installed for current kernel version
+        echo -e "\nWARNING: You do not have the 'kernel-devel' package installed"
+        echo -e "for your current kernel version. NFP module will not be built."
+        echo -e "The 'kernel-devel' package can be installed using:"
+        echo -e "    ${PKG_MAN} install kernel-devel-\$(uname -r)"
+fi
 for POSTINST in %{_datarootdir}/%{module_name}/postinst; do
         if [ -f $POSTINST ]; then
                 $POSTINST %{module_name} %{version}-%{release} %{_datarootdir}/%{module_name}
