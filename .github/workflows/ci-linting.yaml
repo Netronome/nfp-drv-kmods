@@ -1,0 +1,42 @@
+# Run linting actions to check for trailing whitespace and
+# commit message issues.
+name: Linter/commit check
+
+on:
+  push:
+
+jobs:
+  linters:
+    runs-on: [self-hosted, ci-linter-vm]
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: ${{ github.head_ref }}
+        fetch-depth: 0
+
+    - name: Checkout ci-libs
+      uses: actions/checkout@v3
+      with:
+        repository: Corigine/ci-libs
+        token: ${{ secrets.GHUB_TOKEN }}
+        path: ci-libs
+      if: always()
+
+    - name: Get the changed files and hash lists
+      uses: ./ci-libs/github_actions/linting/get_diffs
+      # Outputs:
+      #   current_branch
+      #   other_branches
+      #   files_list
+      #   hash_list
+      id: get_diffs
+      if: always()
+
+    - name: Lint codebase
+      uses: ./ci-libs/github_actions/linting/code_check
+      with:
+        current_branch: ${{ steps.get_diffs.outputs.current_branch }}
+        files_list: ${{ steps.get_diffs.outputs.files_list }}
+        python_version: '2'
+        fail_flag: false
+      if: always()
