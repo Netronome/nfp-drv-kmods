@@ -568,7 +568,7 @@ static inline int skb_inner_transport_offset(const struct sk_buff *skb)
 }
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0)
+#if VER_NON_RHEL_LT(4, 6) || VER_RHEL_LT(7, 5)
 struct compat__ethtool_link_ksettings {
 	struct ethtool_cmd base;
 };

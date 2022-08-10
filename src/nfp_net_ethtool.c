@@ -249,7 +249,7 @@ static void
 nfp_net_set_fec_link_mode(struct nfp_eth_table_port *eth_port,
 			  struct ethtool_link_ksettings *c)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
+#if VER_NON_RHEL_GE(4, 14) || VER_RHEL_GE(7, 5)
 	unsigned int modes;
 
 	ethtool_link_ksettings_add_link_mode(c, supported, FEC_NONE);
@@ -991,7 +991,7 @@ static int nfp_port_get_sset_count(struct net_device *netdev, int sset)
 	}
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
+#if VER_NON_RHEL_GE(4, 14) || VER_RHEL_GE(7, 5)
 static int nfp_port_fec_ethtool_to_nsp(u32 fec)
 {
 	switch (fec) {
@@ -1869,14 +1869,14 @@ static const struct ethtool_ops nfp_net_ethtool_ops = {
 	.set_coalesce           = nfp_net_set_coalesce,
 	.get_channels		= nfp_net_get_channels,
 	.set_channels		= nfp_net_set_channels,
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0)
+#if VER_NON_RHEL_LT(4, 6) || VER_RHEL_LT(7, 5)
 	.get_settings		= (void *)nfp_net_get_link_ksettings,
 	.set_settings		= (void *)nfp_net_set_link_ksettings,
 #else
 	.get_link_ksettings	= nfp_net_get_link_ksettings,
 	.set_link_ksettings	= nfp_net_set_link_ksettings,
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
+#if VER_NON_RHEL_GE(4, 14) || VER_RHEL_GE(7, 5)
 	.get_fecparam		= nfp_port_get_fecparam,
 	.set_fecparam		= nfp_port_set_fecparam,
 #endif
@@ -1897,14 +1897,14 @@ const struct ethtool_ops nfp_port_ethtool_ops = {
 	.get_dump_data		= nfp_app_get_dump_data,
 	.get_module_info	= nfp_port_get_module_info,
 	.get_module_eeprom	= nfp_port_get_module_eeprom,
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0)
+#if VER_NON_RHEL_LT(4, 6) || VER_RHEL_LT(7, 5)
 	.get_settings		= (void *)nfp_net_get_link_ksettings,
 	.set_settings		= (void *)nfp_net_set_link_ksettings,
 #else
 	.get_link_ksettings	= nfp_net_get_link_ksettings,
 	.set_link_ksettings	= nfp_net_set_link_ksettings,
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
+#if VER_NON_RHEL_GE(4, 14) || VER_RHEL_GE(7, 5)
 	.get_fecparam		= nfp_port_get_fecparam,
 	.set_fecparam		= nfp_port_set_fecparam,
 #endif
