@@ -27,7 +27,6 @@ jobs:
       matrix:
         release: [
                 { "name": "20.04", "kernel": "5.4.0" },
-                { "name": "18.04", "kernel": "4.15.0" },
         ]
         hwe: [ "", "hwe" ]
     steps:
@@ -38,17 +37,6 @@ jobs:
         run: |
           echo "PATH=/usr/lib/ccache:$PATH" >> $GITHUB_ENV
           echo "CCACHE_HARDLINK=true" >> $GITHUB_ENV
-
-      - name: Set HWE Environment (Ubuntu 18.04)
-        if: matrix.hwe == 'hwe' && matrix.release.name == '18.04'
-        env:
-          NAME: ${{ matrix.release.name }}
-        run: |
-          MATCH="*~${NAME#*-}.[0-9]"
-          echo "MATCH=$MATCH" >> $GITHUB_ENV
-          echo "FLAVOUR_MATCH=*-${FLAVOUR}_${MATCH}" >> $GITHUB_ENV
-          echo "PKG_DIR=linux-hwe" >> $GITHUB_ENV
-          echo "EXTRA_DEP=libelf-dev" >> $GITHUB_ENV
 
       - name: Set HWE Environment (Ubuntu 20.04)
         if: matrix.hwe == 'hwe' && matrix.release.name == '20.04'
@@ -313,19 +301,6 @@ jobs:
           { name: "5.5",       runs-on: "20.04", },
           { name: "5.4",       runs-on: "20.04", },
           { name: "5.3",       runs-on: "20.04", },
-          { name: "5.2",       runs-on: "18.04", },
-          { name: "5.1",       runs-on: "18.04", },
-          { name: "5.0",       runs-on: "18.04", },
-          { name: "4.20",      runs-on: "18.04", },
-          { name: "4.19",      runs-on: "18.04", },
-          { name: "4.18",      runs-on: "18.04", },
-          { name: "4.17",      runs-on: "18.04", },
-          { name: "4.16",      runs-on: "18.04", },
-          { name: "4.15",      runs-on: "18.04", },
-          { name: "4.14",      runs-on: "18.04", },
-          { name: "4.13",      runs-on: "18.04", },
-          { name: "4.12",      runs-on: "18.04", },
-          { name: "4.11",      runs-on: "18.04", },
         ]
     steps:
       - name: Check out repository
@@ -335,9 +310,6 @@ jobs:
         if: startsWith(matrix.release.name, 'net') != true
         run: |
           RELEASE="${{ matrix.release.name }}"
-          case $RELEASE in
-          4.1[5-9]) EXTRA_DEP+=" libelf-dev" ;;
-          esac
           MAJOR="${RELEASE%.*}"
           DIR="linux-$RELEASE"
           echo "CACHE_ID=$RELEASE" >> $GITHUB_ENV
@@ -425,32 +397,45 @@ jobs:
     strategy:
       matrix:
         release: [
-          { name: "4.10",      container: "7.5.1804", },
-          { name: "4.9",       container: "7.5.1804", },
-          { name: "4.8",       container: "7.5.1804", },
-          { name: "4.7",       container: "7.5.1804", },
-          { name: "4.6",       container: "7.5.1804", },
-          { name: "4.5",       container: "7.5.1804", },
-          { name: "4.4",       container: "7.5.1804", },
-          { name: "4.3",       container: "7.5.1804", },
-          { name: "4.2",       container: "7.5.1804", },
-          { name: "4.1",       container: "7.5.1804", },
-          { name: "4.0",       container: "7.5.1804", },
-          { name: "3.19",      container: "7.5.1804", },
-          { name: "3.18",      container: "7.5.1804", },
-          { name: "3.17",      container: "7.5.1804", },
-          { name: "3.16",      container: "7.5.1804", },
-          { name: "3.15",      container: "7.5.1804", },
-          { name: "3.14",      container: "7.5.1804", },
-          { name: "3.13",      container: "7.5.1804", },
-          { name: "3.12",      container: "7.5.1804", },
-          { name: "3.11",      container: "7.5.1804", },
-          { name: "3.10",      container: "7.5.1804", },
-          { name: "3.9",       container: "7.5.1804", },
-          { name: "3.8",       container: "7.5.1804", },
+          { name: "5.2",       container: "rockylinux:8.5", },
+          { name: "5.1",       container: "rockylinux:8.5", },
+          { name: "5.0",       container: "rockylinux:8.5", },
+          { name: "4.20",      container: "rockylinux:8.5", },
+          { name: "4.19",      container: "centos:7.5.1804", },
+          { name: "4.18",      container: "centos:7.5.1804", },
+          { name: "4.17",      container: "centos:7.5.1804", },
+          { name: "4.16",      container: "centos:7.5.1804", },
+          { name: "4.15",      container: "centos:7.5.1804", },
+          { name: "4.14",      container: "centos:7.5.1804", },
+          { name: "4.13",      container: "centos:7.5.1804", },
+          { name: "4.12",      container: "centos:7.5.1804", },
+          { name: "4.11",      container: "centos:7.5.1804", },
+          { name: "4.10",      container: "centos:7.5.1804", },
+          { name: "4.9",       container: "centos:7.5.1804", },
+          { name: "4.8",       container: "centos:7.5.1804", },
+          { name: "4.7",       container: "centos:7.5.1804", },
+          { name: "4.6",       container: "centos:7.5.1804", },
+          { name: "4.5",       container: "centos:7.5.1804", },
+          { name: "4.4",       container: "centos:7.5.1804", },
+          { name: "4.3",       container: "centos:7.5.1804", },
+          { name: "4.2",       container: "centos:7.5.1804", },
+          { name: "4.1",       container: "centos:7.5.1804", },
+          { name: "4.0",       container: "centos:7.5.1804", },
+          { name: "3.19",      container: "centos:7.5.1804", },
+          { name: "3.18",      container: "centos:7.5.1804", },
+          { name: "3.17",      container: "centos:7.5.1804", },
+          { name: "3.16",      container: "centos:7.5.1804", },
+          { name: "3.15",      container: "centos:7.5.1804", },
+          { name: "3.14",      container: "centos:7.5.1804", },
+          { name: "3.13",      container: "centos:7.5.1804", },
+          { name: "3.12",      container: "centos:7.5.1804", },
+          { name: "3.11",      container: "centos:7.5.1804", },
+          { name: "3.10",      container: "centos:7.5.1804", },
+          { name: "3.9",       container: "centos:7.5.1804", },
+          { name: "3.8",       container: "centos:7.5.1804", },
         ]
     container:
-      image: centos:${{ matrix.release.container }}
+      image: ${{ matrix.release.container }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
@@ -467,6 +452,9 @@ jobs:
           EXTRA_DEP+=" perl-devel"
           EXTRA_DEP+=" bc"
           EXTRA_DEP+=" ca-certificates"
+          EXTRA_DEP+=" bison"
+          EXTRA_DEP+=" flex"
+          EXTRA_DEP+=" openssl-devel"
           MAJOR="${RELEASE%.*}"
           DIR="linux-$RELEASE"
           echo "EXTRA_DEP=$EXTRA_DEP" >> $GITHUB_ENV
