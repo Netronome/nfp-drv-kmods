@@ -33,11 +33,6 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v2
 
-      - name: Set Ccache Environment
-        run: |
-          echo "PATH=/usr/lib/ccache:$PATH" >> $GITHUB_ENV
-          echo "CCACHE_HARDLINK=true" >> $GITHUB_ENV
-
       - name: Set HWE Environment (Ubuntu 20.04)
         if: matrix.hwe == 'hwe' && matrix.release.name == '20.04'
         env:
@@ -60,7 +55,8 @@ jobs:
           echo "EXTRA_DEP=libelf-dev" >> $GITHUB_ENV
 
       - name: Install dependencies
-        run: sudo apt-get -q=2 install ccache $EXTRA_DEP
+        if: env.EXTRA_DEP != ''
+        run: sudo apt-get -q=2 install $EXTRA_DEP
 
       - name: Download Kernel Headers
         uses: ./.github/actions/download
@@ -80,9 +76,6 @@ jobs:
         with:
             search-path: "${{ env.UNPACKED }}/usr/src"
             search-pattern: "*-${{ env.FLAVOUR }}"
-
-      - name: Ccache statistics
-        run: ccache -s
 
   build-centos:
     name: Build CentOS, BC Linux, OpenEuler
