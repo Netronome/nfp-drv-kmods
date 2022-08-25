@@ -42,7 +42,6 @@ jobs:
           echo "MATCH=$MATCH" >> $GITHUB_ENV
           echo "FLAVOUR_MATCH=*-${FLAVOUR}_${MATCH}" >> $GITHUB_ENV
           echo "PKG_DIR=linux-hwe-5.15" >> $GITHUB_ENV
-          echo "EXTRA_DEP=libelf-dev" >> $GITHUB_ENV
 
       - name: Set Non-HWE Environment
         if: matrix.hwe == ''
@@ -52,11 +51,9 @@ jobs:
           echo "MATCH=$MATCH" >> $GITHUB_ENV
           echo "FLAVOUR_MATCH=${MATCH}-${FLAVOUR}_*" >> $GITHUB_ENV
           echo "PKG_DIR=linux" >> $GITHUB_ENV
-          echo "EXTRA_DEP=libelf-dev" >> $GITHUB_ENV
 
       - name: Install dependencies
-        if: env.EXTRA_DEP != ''
-        run: sudo apt-get -q=2 install $EXTRA_DEP
+        run: sudo apt-get -q=2 install libelf-dev
 
       - name: Download Kernel Headers
         uses: ./.github/actions/download
