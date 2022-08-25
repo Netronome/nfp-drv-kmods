@@ -6,6 +6,10 @@ inputs:
   accept:
     description: "Download files matching pattern"
     required: true
+  reject:
+    description: "Do not download files matching pattern"
+    required: true
+    default: "."
   output-path:
     description: "Path download files into"
     required: true
@@ -22,4 +26,5 @@ runs:
         mkdir -p "${{ inputs.output-path }}"
         cd "${{ inputs.output-path }}"
         wget --no-verbose -e robots=off -c -r -l 1 \
-            -A "${{ inputs.accept }}" "${{ inputs.url }}"
+            -A "${{ inputs.accept }}" -R "${{ inputs.reject }}" \
+            "${{ inputs.url }}"
