@@ -282,20 +282,11 @@ static int
 nfp_net_get_link_ksettings(struct net_device *netdev,
 			   struct ethtool_link_ksettings *cmd)
 {
-	static const u32 ls_to_ethtool[] = {
-		[NFP_NET_CFG_STS_LINK_RATE_UNSUPPORTED]	= 0,
-		[NFP_NET_CFG_STS_LINK_RATE_UNKNOWN]	= SPEED_UNKNOWN,
-		[NFP_NET_CFG_STS_LINK_RATE_1G]		= SPEED_1000,
-		[NFP_NET_CFG_STS_LINK_RATE_10G]		= SPEED_10000,
-		[NFP_NET_CFG_STS_LINK_RATE_25G]		= SPEED_25000,
-		[NFP_NET_CFG_STS_LINK_RATE_40G]		= SPEED_40000,
-		[NFP_NET_CFG_STS_LINK_RATE_50G]		= SPEED_50000,
-		[NFP_NET_CFG_STS_LINK_RATE_100G]	= SPEED_100000,
-	};
 	struct nfp_eth_table_port *eth_port;
 	struct nfp_port *port;
 	struct nfp_net *nn;
-	u32 sts, ls;
+	unsigned int speed;
+	u16 sts;
 
 	/* Init to unknowns */
 	ethtool_link_ksettings_add_link_mode(cmd, supported, FIBRE);
@@ -328,18 +319,15 @@ nfp_net_get_link_ksettings(struct net_device *netdev,
 		return -EOPNOTSUPP;
 	nn = netdev_priv(netdev);
 
-	sts = nn_readl(nn, NFP_NET_CFG_STS);
-
-	ls = FIELD_GET(NFP_NET_CFG_STS_LINK_RATE, sts);
-	if (ls == NFP_NET_CFG_STS_LINK_RATE_UNSUPPORTED)
+	sts = nn_readw(nn, NFP_NET_CFG_STS);
+	speed = nfp_net_lr2speed(FIELD_GET(NFP_NET_CFG_STS_LINK_RATE, sts));
+	if (!speed)
 		return -EOPNOTSUPP;
 
-	if (ls == NFP_NET_CFG_STS_LINK_RATE_UNKNOWN ||
-	    ls >= ARRAY_SIZE(ls_to_ethtool))
-		return 0;
-
-	compat__ethtool_cmd_speed_set(cmd, ls_to_ethtool[ls]);
-	cmd->base.duplex = DUPLEX_FULL;
+	if (speed != SPEED_UNKNOWN) {
+		compat__ethtool_cmd_speed_set(cmd, speed);
+		cmd->base.duplex = DUPLEX_FULL;
+	}
 
 	return 0;
 }
