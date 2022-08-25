@@ -26,32 +26,32 @@ jobs:
     strategy:
       matrix:
         release: [
-                { "name": "22.04", "kernel": "5.15.0" },
-                { "name": "20.04", "kernel": "5.4.0" },
+                { "name": "22.04", "kernel": "5.15" },
+                { "name": "20.04", "kernel": "5.4" },
+                { "name": "20.04", "kernel": "5.15", "hwe": "hwe" },
+                { "name": "20.04", "kernel": "5.13", "hwe": "hwe" },
+                { "name": "20.04", "kernel": "5.11", "hwe": "hwe" },
+                { "name": "20.04", "kernel": "5.8", "hwe": "hwe" },
         ]
-        hwe: [ "", "hwe" ]
-        # the hwe version of 22.04 haven't been released
-        exclude:
-        - release: { "name": "22.04" }
-          hwe: hwe
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
 
       - name: Set HWE Environment (Ubuntu 20.04)
-        if: matrix.hwe == 'hwe' && matrix.release.name == '20.04'
+        if: matrix.release.hwe != ''
         env:
           NAME: ${{ matrix.release.name }}
+          KERNEL_VERSION: ${{ matrix.release.kernel }}
         run: |
           MATCH="*~${NAME#*-}.[0-9]"
           echo "MATCH=$MATCH" >> $GITHUB_ENV
           echo "FLAVOUR_MATCH=*-${FLAVOUR}_${MATCH}" >> $GITHUB_ENV
-          echo "PKG_DIR=linux-hwe-5.15" >> $GITHUB_ENV
+          echo "PKG_DIR=linux-hwe-${KERNEL_VERSION}" >> $GITHUB_ENV
 
       - name: Set Non-HWE Environment
-        if: matrix.hwe == ''
+        if: matrix.release.hwe == ''
         env:
-          MATCH: ${{ matrix.release.kernel }}-*
+          MATCH: ${{ matrix.release.kernel }}.0-*
           REJECT: "*+[0-9][0-9].[0-9][0-9].[0-9]*"
         run: |
           echo "MATCH=$MATCH" >> $GITHUB_ENV
