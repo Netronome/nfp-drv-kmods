@@ -94,7 +94,7 @@ build_nfp_drv_kmod_dkms () {
     cp ${BUILDDIR}/rpmbuild/SOURCES/common.postinst \
     ${BUILDDIR}/rpmbuild/SOURCES/${PKG_NAME}-${FULL_PKG_VERSION}/common.postinst
 
-    cp -Lpr /var/lib/dkms/${PKG_NAME}/${FULL_PKG_VERSION}/source \
+    cp -Lpr /var/lib/dkms/${PKG_NAME}/${FULL_PKG_VERSION}/source/* \
     ${BUILDDIR}/rpmbuild/SOURCES/${PKG_NAME}-${FULL_PKG_VERSION}
 
     source_working_dir=$(pwd)
@@ -103,7 +103,7 @@ build_nfp_drv_kmod_dkms () {
         --define "version ${PKG_VERSION}" \
         --define "release ${PKG_REVISION}" \
         --define "module_name ${PKG_NAME}" \
-        --define "mktarball_line --source-only" \
+        --define "mktarball_line none" \
         --define "__find_provides  /usr/lib/dkms/find-provides" \
         --define "_use_internal_dependency_generator 0" \
         -ba ${BUILDDIR}/rpmbuild/SPECS/${PKG_NAME}-dkms.spec
