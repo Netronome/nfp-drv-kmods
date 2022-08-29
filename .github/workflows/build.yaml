@@ -26,9 +26,14 @@ jobs:
     strategy:
       matrix:
         release: [
+                { "name": "22.04", "kernel": "5.15.0" },
                 { "name": "20.04", "kernel": "5.4.0" },
         ]
         hwe: [ "", "hwe" ]
+        # the hwe version of 22.04 haven't been released
+        exclude:
+        - release: { "name": "22.04" }
+          hwe: hwe
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
@@ -47,8 +52,10 @@ jobs:
         if: matrix.hwe == ''
         env:
           MATCH: ${{ matrix.release.kernel }}-*
+          REJECT: "*+[0-9][0-9].[0-9][0-9].[0-9]*"
         run: |
           echo "MATCH=$MATCH" >> $GITHUB_ENV
+          echo "REJECT=$REJECT" >> $GITHUB_ENV
           echo "FLAVOUR_MATCH=${MATCH}-${FLAVOUR}_*" >> $GITHUB_ENV
           echo "PKG_DIR=linux" >> $GITHUB_ENV
 
@@ -61,6 +68,7 @@ jobs:
             output-path: ${{ env.DOWNLOAD }}
             url: "${{ env.MIRROR }}/pool/main/l/${{ env.PKG_DIR }}"
             accept: "linux-headers-${{ env.MATCH }}_all.deb,linux-hwe*-headers${{ env.MATCH }}_all.deb,linux-headers-${{ env.FLAVOUR_MATCH }}_amd64.deb"
+            reject: "${{ env.REJECT }}"
 
       - name: Unpack Kernel Headers
         uses: ./.github/actions/unpack-deb
