@@ -1575,4 +1575,9 @@ bool devl_lock_is_held(struct devlink *devlink);
 void netif_inherit_tso_max(struct net_device *to,
 			   const struct net_device *from);
 #endif
+
+/* The strscpy() occurs after kernel 4.3, but it's used after 4.16 to avoid the warn_unused_result. */
+#if VER_KERN_LT(4, 16)
+#define strscpy strlcpy
+#endif
 #endif /* _NFP_NET_COMPAT_H_ */
