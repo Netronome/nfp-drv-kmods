@@ -176,7 +176,7 @@ jobs:
           pattern: "${{ steps.describe.outputs.pkg_version }}"
 
       - name: Download DKMS Package from Azure storage
-        uses: ./ci-libs/github_actions/azure/azcopy_download
+        uses: ./ci-libs/github_actions/azure/azcopy_download_sync
         with:
           connection-string: ${{ secrets.AZ_SAS_TOK }}
           src: "${{ steps.describe.outputs.azure_dest }}/${{ steps.artifact.outputs.latest }}"

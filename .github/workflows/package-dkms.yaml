@@ -160,7 +160,7 @@ jobs:
 
       # --- UPLOAD DKMS PACKAGE TO AZURE ---
       - name: Upload to DKMS Package to Azure storage
-        uses: ./ci-libs/github_actions/azure/azcopy_upload
+        uses: ./ci-libs/github_actions/azure/azcopy_upload_sync
         with:
           connection-string: ${{ secrets.AZ_SAS_TOK }}
           src: '${{ steps.build_dest.outputs.dkms_bin_path }}'
