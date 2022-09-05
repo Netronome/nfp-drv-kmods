@@ -49,11 +49,11 @@
 #endif
 
 /* Redefine LINUX_VERSION_CODE for net and *-next kernels */
-#if LINUX_VERSION_CODE == KERNEL_VERSION(5, 18, 0)
-#include <linux/skbuff.h>
-#ifdef SKB_DR
+#if LINUX_VERSION_CODE == KERNEL_VERSION(6, 0, 0)
+#include <linux/btf.h>
+#ifdef KF_SLEEPABLE
 #undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(5, 19, 0)
+#define LINUX_VERSION_CODE KERNEL_VERSION(6, 1, 0)
 #endif
 #endif
 
