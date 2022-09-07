@@ -129,7 +129,7 @@ static int nfp_policer_validate(const struct flow_action *action,
 	}
 
 	if (act->police.notexceed.act_id != FLOW_ACTION_PIPE &&
-#if VER_KERN_GE(5, 19)
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(5, 18, 10))
 	    act->police.notexceed.act_id != FLOW_ACTION_CONTINUE &&
 #endif
 	    act->police.notexceed.act_id != FLOW_ACTION_ACCEPT) {
