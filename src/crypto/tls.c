@@ -475,6 +475,7 @@ int nfp_net_tls_rx_resync_req(struct net_device *netdev,
 {
 	struct nfp_net *nn = netdev_priv(netdev);
 	struct nfp_net_tls_offload_ctx *ntls;
+	struct net *net = dev_net(netdev);
 	struct ipv6hdr *ipv6h;
 	struct tcphdr *th;
 	struct iphdr *iph;
@@ -495,13 +496,21 @@ int nfp_net_tls_rx_resync_req(struct net_device *netdev,
 
 	switch (ipv6h->version) {
 	case 4:
-		sk = inet_lookup_established(dev_net(netdev), &tcp_hashinfo,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0)
+		sk = inet_lookup_established(net, &tcp_hashinfo,
+#else
+		sk = inet_lookup_established(net, net->ipv4.tcp_death_row.hashinfo,
+#endif
 					     iph->saddr, th->source, iph->daddr,
 					     th->dest, netdev->ifindex);
 		break;
 #if IS_ENABLED(CONFIG_IPV6)
 	case 6:
-		sk = __inet6_lookup_established(dev_net(netdev), &tcp_hashinfo,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0)
+		sk = __inet6_lookup_established(net, &tcp_hashinfo,
+#else
+		sk = __inet6_lookup_established(net, net->ipv4.tcp_death_row.hashinfo,
+#endif
 						&ipv6h->saddr, th->source,
 						&ipv6h->daddr, ntohs(th->dest),
 						netdev->ifindex, 0);
