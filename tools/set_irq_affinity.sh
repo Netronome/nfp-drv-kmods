@@ -22,6 +22,14 @@ fi
 [ "a$DEV" == a ] && usage
 
 NODE=$(cat /sys/bus/pci/devices/$DEV/numa_node)
+
+# A bug fix in v5.10 correctly sets the NUMA node to unknown (-1) on systems
+# with no NUMA configuration. Correct for this by assuming node 0 to keep
+# same behavior on kernels with and without the bug fix.
+if [[ "$NODE" == "-1" ]]; then
+    NODE=0
+fi
+
 CPUL=$(cat /sys/bus/node/devices/node${NODE}/cpulist | tr ',' ' ')
 
 N_NODES=$(ls /sys/bus/node/devices/ | wc -l)
