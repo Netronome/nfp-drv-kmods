@@ -4,10 +4,11 @@ name: Coordinate NFP-DRV-KMODS Workflows
 on:
   push:
     branches:
-      - 'public-main' # Or other default branch name
-      - 'test-*'      # Temporary test build
-      - 'build-*'     # Temporary build, no testing
-      - 'release-*'   # Release build
+      - 'public-main'   # Or other default branch name
+      - 'test-*'        # Temporary test build
+      - 'build-*'       # Temporary build, no testing
+      - 'prerelease-*'  # Prerelease build
+      - 'release-*'     # Release build
   workflow_dispatch:
 
 jobs:

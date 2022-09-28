@@ -154,6 +154,9 @@ jobs:
             "refs/heads/release-"*)
               AZURE_PATH="binaries/nfp-drv-dkms/releases${DST_SUFFIX}"
               ;;
+            "refs/heads/prerelease-"*)
+              AZURE_PATH="binaries/nfp-drv-dkms/prereleases${DST_SUFFIX}"
+              ;;
             "refs/heads/${DEFAULT_BRANCH}")
               AZURE_PATH="binaries/nfp-drv-dkms/interim${DST_SUFFIX}/${PACKAGE_NAME}"
               ;;

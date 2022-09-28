@@ -5,10 +5,11 @@ name: Build
 on:
   push:
     branches:
-      - main          # default branch name
-      - '*-build*'    # Temporary build, no testing
-      - '*build-*'    # Temporary build, no testing
-      - 'release-*'   # Release build
+      - main            # default branch name
+      - '*-build*'      # Temporary build, no testing
+      - '*build-*'      # Temporary build, no testing
+      - 'prerelease-*'  # Prerelease build
+      - 'release-*'     # Release build
       - '*.check'
 
 env:

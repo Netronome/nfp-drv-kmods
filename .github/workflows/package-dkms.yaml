@@ -142,6 +142,9 @@ jobs:
             "refs/heads/release-"*)
               AZURE_PATH="binaries/nfp-drv-dkms/releases${DST_SUFFIX}"
               ;;
+            "refs/heads/prerelease-"*)
+              AZURE_PATH="binaries/nfp-drv-dkms/prereleases${DST_SUFFIX}"
+              ;;
             "refs/heads/${DEFAULT_BRANCH}")
               AZURE_PATH="binaries/nfp-drv-dkms/interim${DST_SUFFIX}/${BIN_PKG_NAME}"
               ;;
@@ -150,7 +153,7 @@ jobs:
               ;;
           esac
 
-          AZURE_DEST=$(echo "${AZURE_PATH}/${BIN_TYPE}/${DKMS_PKG_NAME}")
+          AZURE_DEST=$(echo "${AZURE_PATH}/${BIN_TYPE}")
           echo "::set-output name=dkms_bin_path::$(echo "${BIN_TYPE}/${BIN_PKG_NAME}/${DKMS_PKG_NAME}")"
           echo "::set-output name=azure_dest::${AZURE_DEST}"
         env:

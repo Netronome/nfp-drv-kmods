@@ -63,6 +63,19 @@ if [[ "${BRANCH}" == "release-"* ]]; then
              "where 'rev' is the revision of that release" 1>&2
         exit 1
     fi
+elif [[ "$BRANCH" == "prerelease-"* ]]; then
+    # If designated as a prerelease-branch
+    VERSION="$(echo $BRANCH | grep -oE '[0-9]{2}.[0-9]{2}.[0-9]{1,2}-rc[0-9]{1}+')"
+    VER_MAJ="${VERSION%-*}"
+    RELEASE="${VERSION##*-}"
+
+    if [ -z "$VERSION" ]; then
+        echo "::error::" \
+             "A prerelease branch must be formatted as 'prerelease-YY.MM.rev-rcX'" \
+             "where 'rev' is the revision of that prerelease and 'X' is the version" \
+             "of the prerelease cycle." 1>&2
+        exit 1
+    fi
 elif [[ "${BRANCH}" != "${DEFAULT}" ]]; then
     # Likely a wip- branch, look for a ticket ID in the form 'OVS-000'
     TICKET_ID="$(echo ${BRANCH} | grep -Eo '[A-Za-z]+[^[:alnum:]]?[0-9]+' | \
@@ -77,7 +90,7 @@ if [ "$1" = "--pkg_name" ] ; then
 
 # Generate PACKAGE RELEASE VERSION (only applies to release branches)
 elif [ "$1" = "--pkg_rev" ] ; then
-    if [[ "${BRANCH}" == "release-"* ]]; then
+    if [[ "${BRANCH}" == "release-"* || "${BRANCH}" == "prerelease-"* ]]; then
         # Monthly/Quarterly release
         echo "${RELEASE}${CHANGES}"
     else
@@ -93,7 +106,7 @@ elif [ "$1" = "--help" ]; then
 # Determine MAJOR PACKAGE VERSION ("--pkg_ver")
 else
     COMMITS_PADDED="$(printf '%0.5d\n' ${COMMIT_CNT})"
-    if [[ "${BRANCH}" == "release-"* ]]; then
+    if [[ "${BRANCH}" == "release-"* || "${BRANCH}" == "prerelease-"* ]]; then
         # Monthly/Quarterly release, eg
         # 22.01
         echo "${VER_MAJ}"
