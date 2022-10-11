@@ -97,7 +97,7 @@ jobs:
 
       # --- CLONE REPOSITORIES ---
       - name: Checkout nfp driver kmods repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -105,7 +105,7 @@ jobs:
         run: git config --global --add safe.directory `pwd`
 
       - name: Clone ci-libs (for other GH actions)
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: Corigine/ci-libs
           token: ${{ secrets.GHUB_TOKEN }}

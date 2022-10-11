@@ -36,7 +36,7 @@ jobs:
         ]
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set HWE Environment (Ubuntu 20.04)
         if: matrix.release.hwe != ''
@@ -123,7 +123,7 @@ jobs:
       image: ${{ matrix.release.container }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set Download Environment
         env:
@@ -163,7 +163,7 @@ jobs:
           echo "UPDATE_PATH=$UPDATE_PATH" >> $GITHUB_ENV
 
       - name: Cache OS Kernel Header Packages
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         env:
           cache-name: cache-os-headers
         with:
@@ -172,7 +172,7 @@ jobs:
 
       - name: Cache Update Kernel Header Packages
         if: startsWith(matrix.release.name, '7')
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         env:
           cache-name: cache-update-headers
         with:
@@ -303,7 +303,7 @@ jobs:
         ]
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set Environment (Release)
         if: startsWith(matrix.release.name, 'net') != true
@@ -329,7 +329,7 @@ jobs:
           echo "TAR_FLAGS=-z" >> $GITHUB_ENV
 
       - name: Cache Kernel Header Package
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: header-cache
         env:
           cache-name: cache-headers-upstream
@@ -414,7 +414,7 @@ jobs:
       image: ubuntu:18.04
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set Environment (Release)
         run: |
@@ -429,7 +429,7 @@ jobs:
           echo "TAR_FLAGS=-J" >> $GITHUB_ENV
 
       - name: Cache Kernel Header Package
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: header-cache
         env:
           cache-name: cache-headers-upstream
@@ -519,7 +519,7 @@ jobs:
       image: centos:7.5.1804
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set Environment (Release)
         run: |
