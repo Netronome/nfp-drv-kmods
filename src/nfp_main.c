@@ -903,16 +903,26 @@ static u64 nfp_net_pf_get_app_cap(struct nfp_pf *pf)
 	return val;
 }
 
-static int nfp_pf_cfg_hwinfo(struct nfp_pf *pf, bool sp_indiff)
+static void nfp_pf_cfg_hwinfo(struct nfp_pf *pf)
 {
 	struct nfp_nsp *nsp;
 	char hwinfo[32];
+	bool sp_indiff;
 	int err;
 
 	nsp = nfp_nsp_open(pf->cpp);
 	if (IS_ERR(nsp))
-		return PTR_ERR(nsp);
+		return;
 
+	if (!nfp_nsp_has_hwinfo_set(nsp))
+		goto end;
+
+	sp_indiff = (nfp_net_pf_get_app_id(pf) == NFP_APP_FLOWER_NIC) ||
+		    (nfp_net_pf_get_app_cap(pf) & NFP_NET_APP_CAP_SP_INDIFF);
+
+	/* No need to clean `sp_indiff` in driver, management firmware
+	 * will do it when application firmware is unloaded.
+	 */
 	snprintf(hwinfo, sizeof(hwinfo), "sp_indiff=%d", sp_indiff);
 	err = nfp_nsp_hwinfo_set(nsp, hwinfo, sizeof(hwinfo));
 	/* Not a fatal error, no need to return error to stop driver from loading */
@@ -926,21 +936,8 @@ static int nfp_pf_cfg_hwinfo(struct nfp_pf *pf, bool sp_indiff)
 		pf->eth_tbl = __nfp_eth_read_ports(pf->cpp, nsp);
 	}
 
+end:
 	nfp_nsp_close(nsp);
-	return 0;
-}
-
-static int nfp_pf_nsp_cfg(struct nfp_pf *pf)
-{
-	bool sp_indiff = (nfp_net_pf_get_app_id(pf) == NFP_APP_FLOWER_NIC) ||
-			 (nfp_net_pf_get_app_cap(pf) & NFP_NET_APP_CAP_SP_INDIFF);
-
-	return nfp_pf_cfg_hwinfo(pf, sp_indiff);
-}
-
-static void nfp_pf_nsp_clean(struct nfp_pf *pf)
-{
-	nfp_pf_cfg_hwinfo(pf, false);
 }
 
 static int nfp_pci_probe(struct pci_dev *pdev,
@@ -1076,9 +1073,7 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 			dev_err(&pdev->dev, "Failed to enable user space access. Ignoring.\n");
 	}
 
-	err = nfp_pf_nsp_cfg(pf);
-	if (err)
-		goto err_dev_cpp_unreg;
+	nfp_pf_cfg_hwinfo(pf);
 
 	if (nfp_pf_netdev) {
 		err = nfp_net_pci_probe(pf);
@@ -1086,7 +1081,7 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 			dev_info(&pdev->dev, "NFP Fallback driver\n");
 		} else if (err) {
 			err = err < 0 ? err : -EINVAL;
-			goto err_nsp_clean;
+			goto err_dev_cpp_unreg;
 		}
 	} else {
 		nfp_register_vnic(pf);
@@ -1105,8 +1100,6 @@ err_net_remove:
 		nfp_platform_device_unregister(pf->nfp_net_vnic);
 	if (nfp_pf_netdev)
 		nfp_net_pci_remove(pf);
-err_nsp_clean:
-	nfp_pf_nsp_clean(pf);
 err_dev_cpp_unreg:
 	if (pf->nfp_dev_cpp)
 		nfp_platform_device_unregister(pf->nfp_dev_cpp);
@@ -1167,7 +1160,6 @@ static void __nfp_pci_shutdown(struct pci_dev *pdev, bool unload_fw)
 	if (pf->nfp_net_vnic)
 		nfp_platform_device_unregister(pf->nfp_net_vnic);
 
-	nfp_pf_nsp_clean(pf);
 	vfree(pf->dumpspec);
 	kfree(pf->rtbl);
 	nfp_mip_close(pf->mip);
