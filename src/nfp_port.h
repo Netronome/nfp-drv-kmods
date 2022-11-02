@@ -147,8 +147,10 @@ int nfp_net_refresh_port_table_sync(struct nfp_pf *pf);
 
 int nfp_devlink_port_register(struct nfp_app *app, struct nfp_port *port);
 void nfp_devlink_port_unregister(struct nfp_port *port);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
 void nfp_devlink_port_type_eth_set(struct nfp_port *port);
 void nfp_devlink_port_type_clear(struct nfp_port *port);
+#endif
 
 /* Mac stats (0x0000 - 0x0200)
  * all counters are 64bit.

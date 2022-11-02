@@ -447,6 +447,10 @@ int nfp_devlink_port_register(struct nfp_app *app, struct nfp_port *port)
 	const u8 *serial;
 	int ret;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
+	SET_NETDEV_DEVLINK_PORT(port->netdev, &port->dl_port);
+#endif
+
 	rtnl_lock();
 	ret = nfp_devlink_fill_eth_port(port, &eth_port);
 	rtnl_unlock();
@@ -476,6 +480,7 @@ void nfp_devlink_port_unregister(struct nfp_port *port)
 	devl_port_unregister(&port->dl_port);
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
 void nfp_devlink_port_type_eth_set(struct nfp_port *port)
 {
 	devlink_port_type_eth_set(&port->dl_port, port->netdev);
@@ -485,6 +490,7 @@ void nfp_devlink_port_type_clear(struct nfp_port *port)
 {
 	devlink_port_type_clear(&port->dl_port);
 }
+#endif
 
 struct devlink *nfp_devlink_get_devlink(struct net_device *netdev)
 {
