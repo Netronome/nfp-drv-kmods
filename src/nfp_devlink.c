@@ -454,7 +454,7 @@ int nfp_devlink_port_register(struct nfp_app *app, struct nfp_port *port)
 		return ret;
 
 	attrs.split = eth_port.is_split;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 4)
 	attrs.splittable = !attrs.split;
 	attrs.lanes = eth_port.port_lanes;
 #endif
