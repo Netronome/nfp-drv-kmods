@@ -137,13 +137,13 @@ jobs:
           PACKAGE_NAME=$(.github/scripts/describe-head.sh --pkg_name)
           PACKAGE_VERSION=$(.github/scripts/describe-head.sh --pkg_ver)
 
-          echo "::set-output name=pkg_name::${PACKAGE_NAME}"
-          echo "::set-output name=pkg_version::${PACKAGE_VERSION}"
-          echo "::set-output name=binary_type::${BINARY_TYPE}"
+          echo "pkg_name=${PACKAGE_NAME}" >> $GITHUB_OUTPUT
+          echo "pkg_version=${PACKAGE_VERSION}" >> $GITHUB_OUTPUT
+          echo "binary_type=${BINARY_TYPE}" >> $GITHUB_OUTPUT
 
           # DEFAULT_BRANCH defaults to public-main, but can be used to denote
           # other long-running branches for separate interim releases
-          echo "::set-output name=default_branch::$DEFAULT_BRANCH"
+          echo "default_branch=${DEFAULT_BRANCH}" >> $GITHUB_OUTPUT
 
           # If the default branch is not 'public-main', append the branch name,
           # without 'wip-', to the upload destination
@@ -165,7 +165,7 @@ jobs:
               ;;
           esac
 
-          echo "::set-output name=azure_dest::$(echo "${AZURE_PATH}/${BINARY_TYPE}")"
+          echo "azure_dest=$(echo "${AZURE_PATH}/${BINARY_TYPE}")" >> $GITHUB_OUTPUT
         env:
           DISTRO: ${{ matrix.distro }}
           DEFAULT_BRANCH: public-main
