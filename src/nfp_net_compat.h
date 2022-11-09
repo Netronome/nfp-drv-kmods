@@ -49,11 +49,11 @@
 #endif
 
 /* Redefine LINUX_VERSION_CODE for net and *-next kernels */
-#if LINUX_VERSION_CODE == KERNEL_VERSION(6, 0, 0)
-#include <linux/btf.h>
-#ifdef KF_SLEEPABLE
+#if LINUX_VERSION_CODE == KERNEL_VERSION(6, 1, 0)
+#include <linux/netdevice.h>
+#ifdef SET_NETDEV_DEVLINK_PORT
 #undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(6, 1, 0)
+#define LINUX_VERSION_CODE KERNEL_VERSION(6, 2, 0)
 #endif
 #endif
 
