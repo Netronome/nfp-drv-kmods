@@ -773,8 +773,11 @@ static unsigned int nfp_net_calc_fl_bufsz_xsk(struct nfp_net_dp *dp)
  */
 static void nfp_net_vecs_init(struct nfp_net *nn)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
+	int numa_node = dev_to_node(&nn->pdev->dev);
+#endif
 	struct nfp_net_r_vector *r_vec;
-	int r;
+	unsigned int r;
 
 	nn->lsc_handler = nfp_net_irq_lsc;
 	nn->exn_handler = nfp_net_irq_exn;
@@ -805,7 +808,11 @@ static void nfp_net_vecs_init(struct nfp_net *nn)
 			tasklet_disable(&r_vec->tasklet);
 		}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
+		cpumask_set_cpu(cpumask_local_spread(r, numa_node), &r_vec->affinity_mask);
+#else
 		cpumask_set_cpu(r, &r_vec->affinity_mask);
+#endif
 	}
 }
 
