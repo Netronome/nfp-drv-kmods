@@ -36,7 +36,6 @@
 #endif
 #include <linux/pci.h>
 #include <linux/pci_regs.h>
-#include <linux/msi.h>
 #include <linux/ethtool.h>
 #include <linux/log2.h>
 #include <linux/if_vlan.h>

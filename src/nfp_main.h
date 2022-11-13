@@ -14,7 +14,6 @@
 #include <linux/ethtool.h>
 #include <linux/list.h>
 #include <linux/types.h>
-#include <linux/msi.h>
 #include <linux/mutex.h>
 #include <linux/pci.h>
 #include <linux/workqueue.h>
