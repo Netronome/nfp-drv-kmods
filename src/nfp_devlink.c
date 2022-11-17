@@ -459,7 +459,7 @@ int nfp_devlink_port_register(struct nfp_app *app, struct nfp_port *port)
 
 	attrs.split = eth_port.is_split;
 #if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 4)
-	attrs.splittable = !attrs.split;
+	attrs.splittable = eth_port.port_lanes > 1 && !attrs.split;
 	attrs.lanes = eth_port.port_lanes;
 #endif
 	attrs.flavour = DEVLINK_PORT_FLAVOUR_PHYSICAL;
