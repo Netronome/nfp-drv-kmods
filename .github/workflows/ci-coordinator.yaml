@@ -24,3 +24,62 @@ jobs:
     secrets:
       AZ_SAS_TOK: ${{ secrets.AZ_SAS_TOK }}
       GHUB_TOKEN: ${{ secrets.GHUB_TOKEN }}
+
+  status-check:
+    needs:
+      - package_dkms
+      - install_dkms_packages
+    runs-on:
+      - self-hosted
+      - ci-linter-vm
+    if: >-
+      always() &&
+      (((github.head_ref || github.ref_name) == 'public-main')
+      || startsWith(github.head_ref || github.ref_name, 'release-')
+      || startsWith(github.head_ref || github.ref_name, 'prerelease-'))
+    steps:
+      - name: Clean old artifacts
+        run: sudo find -delete
+
+      - name: Checkout provisioning repo
+        uses: actions/checkout@v3
+        with:
+          repository: Corigine/ci-libs
+          token: ${{ secrets.GHUB_TOKEN }}
+          path: ci-libs
+
+      - name: Get all job statuses
+        id: all_statuses
+        shell: python3 {0}
+        run: |
+          import os
+          import json
+          import sys
+
+          statusMatrix = {}
+
+          if "${{ needs.package_dkms.result }}" == "failure" \
+            or "${{ needs.install_dkms_packages.result }}" == "failure":
+              statusMatrix['status'] = "FAILED"
+          else:
+              statusMatrix['status'] = "SUCCESSFUL"
+
+          statusMatrix['branch'] = "${{ github.head_ref || github.ref_name }}"
+          statusMatrix['package_dkms'] = "${{ needs.package_dkms.result }}"
+          statusMatrix['install_dkms_packages'] = "${{ needs.install_dkms_packages.result }}"
+          statusMatrix['url'] = ("${{ github.event.repository.html_url }}/"
+                                 "actions/runs/${{ github.run_id }}")
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+            f.write('status<<EOF\n')
+            f.write(json.dumps(statusMatrix, indent=4))
+            f.write('\n')
+            f.write('EOF\n')
+
+      - name: Check the status of the release
+        uses: ./ci-libs/github_actions/utilities/send_to_zabbix
+        with:
+          zabbix_server: ${{ secrets.ZABBIX_SERVER }}
+          host: ${HOSTNAME}
+          item_key: "driver_release_status"
+          data: ${{ steps.all_statuses.outputs.status }}
