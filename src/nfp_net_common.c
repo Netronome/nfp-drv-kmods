@@ -814,7 +814,7 @@ nfp_net_napi_add(struct nfp_net_dp *dp, struct nfp_net_r_vector *r_vec, int idx)
 {
 	if (dp->netdev)
 		netif_napi_add(dp->netdev, &r_vec->napi,
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0)
+#if VER_NON_RHEL_LT(6, 1) || RHEL_RELEASE_LT(9, 196, 0, 0)
 			       nfp_net_has_xsk_pool_slow(dp, idx) ?
 			       dp->ops->xsk_poll : dp->ops->poll,
 			       NAPI_POLL_WEIGHT);
