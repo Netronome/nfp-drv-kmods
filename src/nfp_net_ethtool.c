@@ -302,6 +302,87 @@ nfp_net_set_fec_link_mode(struct nfp_eth_table_port *eth_port,
 #endif
 }
 
+#if VER_NON_RHEL_GE(4, 6) || VER_RHEL_GE(7, 5)
+static const u16 nfp_eth_media_table[NFP_MEDIA_LINK_MODES_NUMBER] = {
+	[NFP_MEDIA_1000BASE_CX]		= ETHTOOL_LINK_MODE_1000baseKX_Full_BIT,
+	[NFP_MEDIA_1000BASE_KX]		= ETHTOOL_LINK_MODE_1000baseKX_Full_BIT,
+	[NFP_MEDIA_10GBASE_KX4]		= ETHTOOL_LINK_MODE_10000baseKX4_Full_BIT,
+	[NFP_MEDIA_10GBASE_KR]		= ETHTOOL_LINK_MODE_10000baseKR_Full_BIT,
+	[NFP_MEDIA_10GBASE_CX4]		= ETHTOOL_LINK_MODE_10000baseKX4_Full_BIT,
+#if VER_NON_RHEL_GE(4, 9) || VER_RHEL_GE(7, 5)
+	[NFP_MEDIA_10GBASE_CR]		= ETHTOOL_LINK_MODE_10000baseCR_Full_BIT,
+	[NFP_MEDIA_10GBASE_SR]		= ETHTOOL_LINK_MODE_10000baseSR_Full_BIT,
+	[NFP_MEDIA_10GBASE_ER]		= ETHTOOL_LINK_MODE_10000baseER_Full_BIT,
+#endif
+#if VER_NON_RHEL_GE(4, 7) || VER_RHEL_GE(7, 5)
+	[NFP_MEDIA_25GBASE_KR]		= ETHTOOL_LINK_MODE_25000baseKR_Full_BIT,
+	[NFP_MEDIA_25GBASE_KR_S]	= ETHTOOL_LINK_MODE_25000baseKR_Full_BIT,
+	[NFP_MEDIA_25GBASE_CR]		= ETHTOOL_LINK_MODE_25000baseCR_Full_BIT,
+	[NFP_MEDIA_25GBASE_CR_S]	= ETHTOOL_LINK_MODE_25000baseCR_Full_BIT,
+	[NFP_MEDIA_25GBASE_SR]		= ETHTOOL_LINK_MODE_25000baseSR_Full_BIT,
+#endif
+	[NFP_MEDIA_40GBASE_CR4]		= ETHTOOL_LINK_MODE_40000baseCR4_Full_BIT,
+	[NFP_MEDIA_40GBASE_KR4]		= ETHTOOL_LINK_MODE_40000baseKR4_Full_BIT,
+	[NFP_MEDIA_40GBASE_SR4]		= ETHTOOL_LINK_MODE_40000baseSR4_Full_BIT,
+	[NFP_MEDIA_40GBASE_LR4]		= ETHTOOL_LINK_MODE_40000baseLR4_Full_BIT,
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
+	[NFP_MEDIA_50GBASE_KR]		= ETHTOOL_LINK_MODE_50000baseKR_Full_BIT,
+	[NFP_MEDIA_50GBASE_SR]		= ETHTOOL_LINK_MODE_50000baseSR_Full_BIT,
+	[NFP_MEDIA_50GBASE_CR]		= ETHTOOL_LINK_MODE_50000baseCR_Full_BIT,
+	[NFP_MEDIA_50GBASE_LR]		= ETHTOOL_LINK_MODE_50000baseLR_ER_FR_Full_BIT,
+	[NFP_MEDIA_50GBASE_ER]		= ETHTOOL_LINK_MODE_50000baseLR_ER_FR_Full_BIT,
+	[NFP_MEDIA_50GBASE_FR]		= ETHTOOL_LINK_MODE_50000baseLR_ER_FR_Full_BIT,
+#endif
+#if VER_NON_RHEL_GE(4, 7) || VER_RHEL_GE(7, 5)
+	[NFP_MEDIA_100GBASE_KR4]	= ETHTOOL_LINK_MODE_100000baseKR4_Full_BIT,
+	[NFP_MEDIA_100GBASE_SR4]	= ETHTOOL_LINK_MODE_100000baseSR4_Full_BIT,
+	[NFP_MEDIA_100GBASE_CR4]	= ETHTOOL_LINK_MODE_100000baseCR4_Full_BIT,
+	[NFP_MEDIA_100GBASE_KP4]	= ETHTOOL_LINK_MODE_100000baseKR4_Full_BIT,
+	[NFP_MEDIA_100GBASE_CR10]	= ETHTOOL_LINK_MODE_100000baseCR4_Full_BIT,
+#endif
+};
+
+static void nfp_add_media_link_mode(struct nfp_port *port,
+				    struct nfp_eth_table_port *eth_port,
+				    struct ethtool_link_ksettings *cmd)
+{
+	u64 supported_modes[2], advertised_modes[2];
+	struct nfp_eth_media_buf ethm = {
+		.eth_index = eth_port->eth_index,
+	};
+	struct nfp_cpp *cpp = port->app->cpp;
+	u32 i;
+
+	if (nfp_eth_read_media(cpp, &ethm))
+		return;
+
+	for (i = 0; i < 2; i++) {
+		supported_modes[i] = le64_to_cpu(ethm.supported_modes[i]);
+		advertised_modes[i] = le64_to_cpu(ethm.advertised_modes[i]);
+	}
+
+	for (i = 0; i < NFP_MEDIA_LINK_MODES_NUMBER; i++) {
+		if (i < 64) {
+			if (supported_modes[0] & BIT_ULL(i) && nfp_eth_media_table[i])
+				__set_bit(nfp_eth_media_table[i],
+					  cmd->link_modes.supported);
+
+			if (advertised_modes[0] & BIT_ULL(i) && nfp_eth_media_table[i])
+				__set_bit(nfp_eth_media_table[i],
+					  cmd->link_modes.advertising);
+		} else {
+			if (supported_modes[1] & BIT_ULL(i - 64) && nfp_eth_media_table[i])
+				__set_bit(nfp_eth_media_table[i],
+					  cmd->link_modes.supported);
+
+			if (advertised_modes[1] & BIT_ULL(i - 64) && nfp_eth_media_table[i])
+				__set_bit(nfp_eth_media_table[i],
+					  cmd->link_modes.advertising);
+		}
+	}
+}
+#endif
+
 /**
  * nfp_net_get_link_ksettings - Get Link Speed settings
  * @netdev:	network interface device structure
@@ -320,6 +401,10 @@ nfp_net_get_link_ksettings(struct net_device *netdev,
 	u16 sts;
 
 	/* Init to unknowns */
+#if VER_NON_RHEL_GE(4, 6) || VER_RHEL_GE(7, 5)
+	ethtool_link_ksettings_zero_link_mode(cmd, supported);
+	ethtool_link_ksettings_zero_link_mode(cmd, advertising);
+#endif
 	ethtool_link_ksettings_add_link_mode(cmd, supported, FIBRE);
 	cmd->base.port = PORT_OTHER;
 	compat__ethtool_cmd_speed_set(cmd, SPEED_UNKNOWN);
@@ -330,6 +415,9 @@ nfp_net_get_link_ksettings(struct net_device *netdev,
 	if (eth_port) {
 		ethtool_link_ksettings_add_link_mode(cmd, supported, Pause);
 		ethtool_link_ksettings_add_link_mode(cmd, advertising, Pause);
+#if VER_NON_RHEL_GE(4, 6) || VER_RHEL_GE(7, 5)
+		nfp_add_media_link_mode(port, eth_port, cmd);
+#endif
 		if (eth_port->supp_aneg) {
 			ethtool_link_ksettings_add_link_mode(cmd, supported, Autoneg);
 			if (eth_port->aneg == NFP_ANEG_AUTO) {
