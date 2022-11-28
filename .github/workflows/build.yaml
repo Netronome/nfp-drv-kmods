@@ -113,7 +113,8 @@ jobs:
                 { "name": "9.0", "container": "rockylinux:9.0" },
                 { "name": "9-stream", "container": "rockylinux:9.0" },
                 # openEuler
-                { "name": "openEuler-22.03-LTS",   "container": "openeuler/openeuler:22.03-lts" },
+                { "name": "openEuler-20.03-LTS", "container": "openeuler/openeuler:20.03-lts-sp3" },
+                { "name": "openEuler-22.03-LTS", "container": "openeuler/openeuler:22.03-lts" },
                 # BCLinux
                 #{ "name": "el8",   "container": "rockylinux:8.5" },
                 #{ "name": "el8.1", "container": "rockylinux:8.5" },
@@ -237,9 +238,15 @@ jobs:
       - name: Filter latest openEuler kernel
         if: startsWith(matrix.release.name, 'openEuler')
         run: |
-          KVER=$(curl -s "http://${{ env.OS_PATH }}/" | \
-            sed -En 's/.*kernel-devel-(5.10.0-[0-9].*).oe2203.*rpm.*/\1/p' | \
-            tail -n 1)
+          if [ ${{ contains(matrix.release.name, '20') }} ]; then
+            KVER=$(curl -s "http://${{ env.OS_PATH }}/" | \
+              sed -En 's/.*kernel-devel-(4.19.90-[0-9].*).oe1.*rpm.*/\1/p' | \
+              tail -n 1)
+          elif [ ${{ contains(matrix.release.name, '22') }} ]; then
+            KVER=$(curl -s "http://${{ env.OS_PATH }}/" | \
+              sed -En 's/.*kernel-devel-(5.10.0-[0-9].*).oe2203.*rpm.*/\1/p' | \
+              tail -n 1)
+          fi
           echo $KVER
           echo "KVER=${KVER}*" >> $GITHUB_ENV
 
