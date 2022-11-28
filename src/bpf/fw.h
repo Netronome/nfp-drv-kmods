@@ -13,7 +13,7 @@
  */
 #define NFP_BPF_SCALAR_VALUE		1
 #define NFP_BPF_MAP_VALUE		4
-#if COMPAT_OELINUX
+#if VER_OEL_GE(5, 10)
 #define NFP_BPF_STACK			5
 #define NFP_BPF_PACKET_DATA		7
 #else
