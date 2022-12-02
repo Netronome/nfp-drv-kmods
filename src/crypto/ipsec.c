@@ -2,6 +2,8 @@
 /* Copyright (C) 2018 Netronome Systems, Inc */
 /* Copyright (C) 2021 Corigine, Inc */
 
+#include "../nfp_net_compat.h"
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
@@ -301,6 +303,13 @@ static int nfp_net_xfrm_add_state(struct xfrm_state *x)
 		nn_err(nn, "Unsupported XFRM_REPLAY_MODE_ESN for xfrm offload\n");
 		return -EINVAL;
 	}
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
+	if (x->xso.type != XFRM_DEV_OFFLOAD_CRYPTO) {
+		nn_err(nn, "Unsupported xfrm offload tyoe\n");
+		return -EINVAL;
+	}
+#endif
 
 	cfg->spi = ntohl(x->id.spi);
 
