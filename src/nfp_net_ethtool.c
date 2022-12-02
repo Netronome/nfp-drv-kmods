@@ -2068,7 +2068,7 @@ static int
 nfp_net_get_eeprom(struct net_device *netdev,
 		   struct ethtool_eeprom *eeprom, u8 *bytes)
 {
-	struct nfp_net *nn = netdev_priv(netdev);
+	struct nfp_app *app = nfp_app_from_netdev(netdev);
 	u8 buf[NFP_EEPROM_LEN] = {};
 
 	if (eeprom->len == 0)
@@ -2077,7 +2077,7 @@ nfp_net_get_eeprom(struct net_device *netdev,
 	if (nfp_net_get_port_mac_by_hwinfo(netdev, buf))
 		return -EOPNOTSUPP;
 
-	eeprom->magic = nn->pdev->vendor | (nn->pdev->device << 16);
+	eeprom->magic = app->pdev->vendor | (app->pdev->device << 16);
 	memcpy(bytes, buf + eeprom->offset, eeprom->len);
 
 	return 0;
@@ -2087,13 +2087,13 @@ static int
 nfp_net_set_eeprom(struct net_device *netdev,
 		   struct ethtool_eeprom *eeprom, u8 *bytes)
 {
-	struct nfp_net *nn = netdev_priv(netdev);
+	struct nfp_app *app = nfp_app_from_netdev(netdev);
 	u8 buf[NFP_EEPROM_LEN] = {};
 
 	if (eeprom->len == 0)
 		return -EINVAL;
 
-	if (eeprom->magic != (nn->pdev->vendor | nn->pdev->device << 16))
+	if (eeprom->magic != (app->pdev->vendor | app->pdev->device << 16))
 		return -EINVAL;
 
 	if (nfp_net_get_port_mac_by_hwinfo(netdev, buf))
@@ -2180,6 +2180,9 @@ const struct ethtool_ops nfp_port_ethtool_ops = {
 	.set_dump		= nfp_app_set_dump,
 	.get_dump_flag		= nfp_app_get_dump_flag,
 	.get_dump_data		= nfp_app_get_dump_data,
+	.get_eeprom_len		= nfp_net_get_eeprom_len,
+	.get_eeprom		= nfp_net_get_eeprom,
+	.set_eeprom		= nfp_net_set_eeprom,
 	.get_module_info	= nfp_port_get_module_info,
 	.get_module_eeprom	= nfp_port_get_module_eeprom,
 #if VER_NON_RHEL_LT(4, 6) || VER_RHEL_LT(7, 5)
