@@ -134,7 +134,8 @@ jobs:
           el8*)                MIRROR="mirrors.bclinux.org/bclinux" ;;
           openEuler*)          MIRROR="repo.openeuler.org" ;;
           7.[0-8].*|8.[0-5].*) MIRROR="vault.centos.org" ;;
-          9.*)                 MIRROR="dl.rockylinux.org/pub/rocky" ;;
+          9.0)                 MIRROR="dl.rockylinux.org/vault/rocky" ;;
+          9.[1-9])             MIRROR="dl.rockylinux.org/pub/rocky" ;;
           9-*)                 MIRROR="mirror.stream.centos.org" ;;
           *)                   MIRROR="mirror.centos.org/centos" ;;
           esac
