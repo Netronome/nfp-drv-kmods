@@ -1507,10 +1507,12 @@ static void nfp_net_set_rx_mode(struct net_device *netdev)
 	else
 		new_ctrl &= ~NFP_NET_CFG_CTRL_L2MC;
 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(3, 15, 0)
 	if (netdev->flags & IFF_ALLMULTI)
 		new_ctrl_w1 &= ~NFP_NET_CFG_CTRL_MCAST_FILTER;
 	else
 		new_ctrl_w1 |= nn->cap_w1 & NFP_NET_CFG_CTRL_MCAST_FILTER;
+#endif
 
 	if (netdev->flags & IFF_PROMISC) {
 		if (nn->cap & NFP_NET_CFG_CTRL_PROMISC)
@@ -3091,8 +3093,10 @@ int nfp_net_init(struct nfp_net *nn)
 	if (nn->cap & NFP_NET_CFG_CTRL_TXRWB)
 		nn->dp.ctrl |= NFP_NET_CFG_CTRL_TXRWB;
 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(3, 15, 0)
 	if (nn->cap_w1 & NFP_NET_CFG_CTRL_MCAST_FILTER)
 		nn->dp.ctrl_w1 |= NFP_NET_CFG_CTRL_MCAST_FILTER;
+#endif
 
 	/* Stash the re-configuration queue away.  First odd queue in TX Bar */
 	nn->qcp_cfg = nn->tx_bar + NFP_QCP_QUEUE_ADDR_SZ;
