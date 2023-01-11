@@ -288,7 +288,7 @@ endif
 xarray_path :=$(srctree)/include/linux/xarray.h
 ifneq (,$(wildcard $(xarray_path)))
 COMPAT_HAVE_XARRAY := \
-		$(shell grep -q xa_init_flags $(xarray_path) && echo y)
+		$(shell grep -q XA_LIMIT $(xarray_path) && echo y)
 endif
 
 ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
