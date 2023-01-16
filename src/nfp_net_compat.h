@@ -1586,4 +1586,9 @@ void netif_inherit_tso_max(struct net_device *to,
 #if VER_KERN_LT(4, 16)
 #define strscpy strlcpy
 #endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+#define u64_stats_fetch_begin_irq u64_stats_fetch_begin
+#define u64_stats_fetch_retry_irq u64_stats_fetch_retry
+#endif
 #endif /* _NFP_NET_COMPAT_H_ */
