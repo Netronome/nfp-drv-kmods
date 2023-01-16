@@ -49,11 +49,11 @@
 #endif
 
 /* Redefine LINUX_VERSION_CODE for net and *-next kernels */
-#if LINUX_VERSION_CODE == KERNEL_VERSION(6, 1, 0)
-#include <linux/netdevice.h>
-#ifdef SET_NETDEV_DEVLINK_PORT
+#if LINUX_VERSION_CODE == KERNEL_VERSION(6, 2, 0)
+#include <linux/phy.h>
+#ifdef PHY_F_NO_IRQ
 #undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(6, 2, 0)
+#define LINUX_VERSION_CODE KERNEL_VERSION(6, 3, 0)
 #endif
 #endif
 
