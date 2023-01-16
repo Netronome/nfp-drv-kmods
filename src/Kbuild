@@ -77,6 +77,8 @@ nfp-objs := \
 	    nfp_plat.o \
 	    nfp_main.o
 
+nfp-$(CONFIG_DCB) += nic/dcb.o
+
 # Select DebugFS if forced from command line or kconfig
 ifeq ($(CONFIG_NFP_DEBUG),y)
 ccflags-y += -DCONFIG_NFP_DEBUG
