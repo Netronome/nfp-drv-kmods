@@ -1576,7 +1576,9 @@ bool devl_lock_is_held(struct devlink *devlink);
 #define devl_port_unregister	devlink_port_unregister
 #endif
 
-#if VER_NON_RHEL_LT(5, 19) || RHEL_RELEASE_LT(9, 191, 0, 0)
+#if VER_NON_RHEL_LT(5, 19) || \
+		(RHEL_RELEASE_GE(9, 0, 0, 0) && RHEL_RELEASE_LT(9, 191, 0, 0)) || \
+		RHEL_RELEASE_LT(8, 448, 0, 0)
 #define netif_set_tso_max_segs netif_set_gso_max_segs
 void netif_inherit_tso_max(struct net_device *to,
 			   const struct net_device *from);

@@ -29,7 +29,9 @@ nfp_devlink_fill_eth_port(struct nfp_port *port,
 }
 
 static int
-#if VER_NON_RHEL_LT(5, 18) || RHEL_RELEASE_LT(9, 163, 0, 0)
+#if VER_NON_RHEL_LT(5, 18) || \
+		(RHEL_RELEASE_GE(9, 0, 0, 0) && RHEL_RELEASE_LT(9, 163, 0, 0)) || \
+		RHEL_RELEASE_LT(8, 448, 0, 0)
 nfp_devlink_fill_eth_port_from_id(struct nfp_pf *pf, unsigned int port_index,
 #else
 nfp_devlink_fill_eth_port_from_id(struct nfp_pf *pf,
@@ -39,7 +41,9 @@ nfp_devlink_fill_eth_port_from_id(struct nfp_pf *pf,
 {
 	struct nfp_port *port;
 
-#if VER_NON_RHEL_LT(5, 18) || RHEL_RELEASE_LT(9, 163, 0, 0)
+#if VER_NON_RHEL_LT(5, 18) || \
+		(RHEL_RELEASE_GE(9, 0, 0, 0) && RHEL_RELEASE_LT(9, 163, 0, 0)) || \
+		RHEL_RELEASE_LT(8, 448, 0, 0)
 	port = nfp_port_from_id(pf, NFP_PORT_PHYS_PORT, port_index);
 #else
 	port = container_of(dl_port, struct nfp_port, dl_port);
@@ -77,7 +81,9 @@ static int
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
 nfp_devlink_port_split(struct devlink *devlink, unsigned int port_index,
 		       unsigned int count)
-#elif VER_NON_RHEL_LT(5, 18) || RHEL_RELEASE_LT(9, 163, 0, 0)
+#elif VER_NON_RHEL_LT(5, 18) || \
+		(RHEL_RELEASE_GE(9, 0, 0, 0) && RHEL_RELEASE_LT(9, 163, 0, 0)) || \
+		RHEL_RELEASE_LT(8, 448, 0, 0)
 nfp_devlink_port_split(struct devlink *devlink, unsigned int port_index,
 		       unsigned int count, struct netlink_ext_ack *extack)
 #else
@@ -98,7 +104,9 @@ nfp_devlink_port_split(struct devlink *devlink, struct devlink_port *port,
 #endif
 
 	rtnl_lock();
-#if VER_NON_RHEL_LT(5, 18) || RHEL_RELEASE_LT(9, 163, 0, 0)
+#if VER_NON_RHEL_LT(5, 18) || \
+		(RHEL_RELEASE_GE(9, 0, 0, 0) && RHEL_RELEASE_LT(9, 163, 0, 0)) || \
+		RHEL_RELEASE_LT(8, 448, 0, 0)
 	ret = nfp_devlink_fill_eth_port_from_id(pf, port_index, &eth_port);
 #else
 	ret = nfp_devlink_fill_eth_port_from_id(pf, port, &eth_port);
@@ -129,7 +137,9 @@ out:
 static int
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
 nfp_devlink_port_unsplit(struct devlink *devlink, unsigned int port_index)
-#elif VER_NON_RHEL_LT(5, 18) || RHEL_RELEASE_LT(9, 163, 0, 0)
+#elif VER_NON_RHEL_LT(5, 18) || \
+		(RHEL_RELEASE_GE(9, 0, 0, 0) && RHEL_RELEASE_LT(9, 163, 0, 0)) || \
+		RHEL_RELEASE_LT(8, 448, 0, 0)
 nfp_devlink_port_unsplit(struct devlink *devlink, unsigned int port_index,
 			 struct netlink_ext_ack *extack)
 #else
@@ -147,7 +157,9 @@ nfp_devlink_port_unsplit(struct devlink *devlink, struct devlink_port *port,
 #endif
 
 	rtnl_lock();
-#if VER_NON_RHEL_LT(5, 18) || RHEL_RELEASE_LT(9, 163, 0, 0)
+#if VER_NON_RHEL_LT(5, 18) || \
+		(RHEL_RELEASE_GE(9, 0, 0, 0) && RHEL_RELEASE_LT(9, 163, 0, 0)) || \
+		RHEL_RELEASE_LT(8, 448, 0, 0)
 	ret = nfp_devlink_fill_eth_port_from_id(pf, port_index, &eth_port);
 #else
 	ret = nfp_devlink_fill_eth_port_from_id(pf, port, &eth_port);
