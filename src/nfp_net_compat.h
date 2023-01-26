@@ -1576,6 +1576,11 @@ bool devl_lock_is_held(struct devlink *devlink);
 #define devl_port_unregister	devlink_port_unregister
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
+#define devl_params_register	devlink_params_register
+#define devl_params_unregister	devlink_params_unregister
+#endif
+
 #if VER_NON_RHEL_LT(5, 19) || \
 		(RHEL_RELEASE_GE(9, 0, 0, 0) && RHEL_RELEASE_LT(9, 191, 0, 0)) || \
 		RHEL_RELEASE_LT(8, 448, 0, 0)

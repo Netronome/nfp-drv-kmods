@@ -244,8 +244,8 @@ int nfp_devlink_params_register(struct nfp_pf *pf)
 	devlink_params_publish(devlink);
 	return 0;
 #else
-	return devlink_params_register(devlink, nfp_devlink_params,
-				       ARRAY_SIZE(nfp_devlink_params));
+	return devl_params_register(devlink, nfp_devlink_params,
+				    ARRAY_SIZE(nfp_devlink_params));
 #endif
 }
 
@@ -257,6 +257,6 @@ void nfp_devlink_params_unregister(struct nfp_pf *pf)
 	if (err <= 0)
 		return;
 
-	devlink_params_unregister(priv_to_devlink(pf), nfp_devlink_params,
-				  ARRAY_SIZE(nfp_devlink_params));
+	devl_params_unregister(priv_to_devlink(pf), nfp_devlink_params,
+			       ARRAY_SIZE(nfp_devlink_params));
 }

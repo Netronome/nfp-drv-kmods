@@ -787,11 +787,16 @@ int nfp_net_pci_probe(struct nfp_pf *pf)
 	if (err)
 		goto err_devlink_unreg;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+	devl_lock(devlink);
+#endif
 	err = nfp_devlink_params_register(pf);
 	if (err)
 		goto err_shared_buf_unreg;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
 	devl_lock(devlink);
+#endif
 	pf->ddir = nfp_net_debugfs_device_add(pf->pdev);
 
 	/* Allocate the vnics and do basic init */
@@ -826,9 +831,14 @@ err_free_vnics:
 	nfp_net_pf_free_vnics(pf);
 err_clean_ddir:
 	nfp_net_debugfs_dir_clean(&pf->ddir);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
 	devl_unlock(devlink);
+#endif
 	nfp_devlink_params_unregister(pf);
 err_shared_buf_unreg:
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+	devl_unlock(devlink);
+#endif
 	nfp_shared_buf_unregister(pf);
 err_devlink_unreg:
 	cancel_work_sync(&pf->port_refresh_work);
@@ -861,9 +871,16 @@ void nfp_net_pci_remove(struct nfp_pf *pf)
 	/* stop app first, to avoid double free of ctrl vNIC's ddir */
 	nfp_net_debugfs_dir_clean(&pf->ddir);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+	nfp_devlink_params_unregister(pf);
+#endif
+
 	devl_unlock(devlink);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
 	nfp_devlink_params_unregister(pf);
+#endif
+
 	nfp_shared_buf_unregister(pf);
 #if VER_NON_RHEL_LT(5, 16) || RHEL_RELEASE_LT(8, 394 , 0, 0)
 	devlink_unregister(priv_to_devlink(pf));
