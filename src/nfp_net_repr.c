@@ -288,7 +288,7 @@ const struct net_device_ops nfp_repr_netdev_ops = {
 	.ndo_get_port_parent_id	= nfp_port_get_port_parent_id,
 #if VER_NON_RHEL_LT(5, 2) || VER_RHEL_LT(8, 2)
 	.ndo_get_devlink	= nfp_devlink_get_devlink,
-#elif VER_NON_RHEL_LT(6, 1)
+#elif VER_NON_RHEL_LT(6, 2)
 	.ndo_get_devlink_port	= nfp_devlink_get_devlink_port,
 #endif
 #endif
