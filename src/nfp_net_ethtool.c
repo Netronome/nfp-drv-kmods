@@ -302,44 +302,187 @@ nfp_net_set_fec_link_mode(struct nfp_eth_table_port *eth_port,
 #endif
 }
 
+static const struct nfp_eth_media_link_mode {
+	u16 ethtool_link_mode;
+	u16 speed;
+} nfp_eth_media_table[NFP_MEDIA_LINK_MODES_NUMBER] = {
+	[NFP_MEDIA_1000BASE_CX] = {
 #if VER_NON_RHEL_GE(4, 6) || VER_RHEL_GE(7, 5)
-static const u16 nfp_eth_media_table[NFP_MEDIA_LINK_MODES_NUMBER] = {
-	[NFP_MEDIA_1000BASE_CX]		= ETHTOOL_LINK_MODE_1000baseKX_Full_BIT,
-	[NFP_MEDIA_1000BASE_KX]		= ETHTOOL_LINK_MODE_1000baseKX_Full_BIT,
-	[NFP_MEDIA_10GBASE_KX4]		= ETHTOOL_LINK_MODE_10000baseKX4_Full_BIT,
-	[NFP_MEDIA_10GBASE_KR]		= ETHTOOL_LINK_MODE_10000baseKR_Full_BIT,
-	[NFP_MEDIA_10GBASE_CX4]		= ETHTOOL_LINK_MODE_10000baseKX4_Full_BIT,
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_1000baseKX_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_1G,
+	},
+	[NFP_MEDIA_1000BASE_KX] = {
+#if VER_NON_RHEL_GE(4, 6) || VER_RHEL_GE(7, 5)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_1000baseKX_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_1G,
+	},
+	[NFP_MEDIA_10GBASE_KX4] = {
+#if VER_NON_RHEL_GE(4, 6) || VER_RHEL_GE(7, 5)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_10000baseKX4_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_10G,
+	},
+	[NFP_MEDIA_10GBASE_KR] = {
+#if VER_NON_RHEL_GE(4, 6) || VER_RHEL_GE(7, 5)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_10000baseKR_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_10G,
+	},
+	[NFP_MEDIA_10GBASE_CX4] = {
+#if VER_NON_RHEL_GE(4, 6) || VER_RHEL_GE(7, 5)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_10000baseKX4_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_10G,
+	},
+	[NFP_MEDIA_10GBASE_CR] = {
 #if VER_NON_RHEL_GE(4, 9) || VER_RHEL_GE(7, 5)
-	[NFP_MEDIA_10GBASE_CR]		= ETHTOOL_LINK_MODE_10000baseCR_Full_BIT,
-	[NFP_MEDIA_10GBASE_SR]		= ETHTOOL_LINK_MODE_10000baseSR_Full_BIT,
-	[NFP_MEDIA_10GBASE_ER]		= ETHTOOL_LINK_MODE_10000baseER_Full_BIT,
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_10000baseCR_Full_BIT,
 #endif
+		.speed			= NFP_SPEED_10G,
+	},
+	[NFP_MEDIA_10GBASE_SR] = {
+#if VER_NON_RHEL_GE(4, 9) || VER_RHEL_GE(7, 5)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_10000baseSR_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_10G,
+	},
+	[NFP_MEDIA_10GBASE_ER] = {
+#if VER_NON_RHEL_GE(4, 9) || VER_RHEL_GE(7, 5)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_10000baseER_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_10G,
+	},
+	[NFP_MEDIA_25GBASE_KR] = {
 #if VER_NON_RHEL_GE(4, 7) || VER_RHEL_GE(7, 5)
-	[NFP_MEDIA_25GBASE_KR]		= ETHTOOL_LINK_MODE_25000baseKR_Full_BIT,
-	[NFP_MEDIA_25GBASE_KR_S]	= ETHTOOL_LINK_MODE_25000baseKR_Full_BIT,
-	[NFP_MEDIA_25GBASE_CR]		= ETHTOOL_LINK_MODE_25000baseCR_Full_BIT,
-	[NFP_MEDIA_25GBASE_CR_S]	= ETHTOOL_LINK_MODE_25000baseCR_Full_BIT,
-	[NFP_MEDIA_25GBASE_SR]		= ETHTOOL_LINK_MODE_25000baseSR_Full_BIT,
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_25000baseKR_Full_BIT,
 #endif
-	[NFP_MEDIA_40GBASE_CR4]		= ETHTOOL_LINK_MODE_40000baseCR4_Full_BIT,
-	[NFP_MEDIA_40GBASE_KR4]		= ETHTOOL_LINK_MODE_40000baseKR4_Full_BIT,
-	[NFP_MEDIA_40GBASE_SR4]		= ETHTOOL_LINK_MODE_40000baseSR4_Full_BIT,
-	[NFP_MEDIA_40GBASE_LR4]		= ETHTOOL_LINK_MODE_40000baseLR4_Full_BIT,
+		.speed			= NFP_SPEED_25G,
+	},
+	[NFP_MEDIA_25GBASE_KR_S] = {
+#if VER_NON_RHEL_GE(4, 7) || VER_RHEL_GE(7, 5)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_25000baseKR_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_25G,
+	},
+	[NFP_MEDIA_25GBASE_CR] = {
+#if VER_NON_RHEL_GE(4, 7) || VER_RHEL_GE(7, 5)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_25000baseCR_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_25G,
+	},
+	[NFP_MEDIA_25GBASE_CR_S] = {
+#if VER_NON_RHEL_GE(4, 7) || VER_RHEL_GE(7, 5)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_25000baseCR_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_25G,
+	},
+	[NFP_MEDIA_25GBASE_SR] = {
+#if VER_NON_RHEL_GE(4, 7) || VER_RHEL_GE(7, 5)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_25000baseSR_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_25G,
+	},
+	[NFP_MEDIA_40GBASE_CR4] = {
+#if VER_NON_RHEL_GE(4, 6) || VER_RHEL_GE(7, 5)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_40000baseCR4_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_40G,
+	},
+	[NFP_MEDIA_40GBASE_KR4] = {
+#if VER_NON_RHEL_GE(4, 6) || VER_RHEL_GE(7, 5)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_40000baseKR4_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_40G,
+	},
+	[NFP_MEDIA_40GBASE_SR4] = {
+#if VER_NON_RHEL_GE(4, 6) || VER_RHEL_GE(7, 5)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_40000baseSR4_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_40G,
+	},
+	[NFP_MEDIA_40GBASE_LR4] = {
+#if VER_NON_RHEL_GE(4, 6) || VER_RHEL_GE(7, 5)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_40000baseLR4_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_40G,
+	},
+	[NFP_MEDIA_50GBASE_KR] = {
 #if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
-	[NFP_MEDIA_50GBASE_KR]		= ETHTOOL_LINK_MODE_50000baseKR_Full_BIT,
-	[NFP_MEDIA_50GBASE_SR]		= ETHTOOL_LINK_MODE_50000baseSR_Full_BIT,
-	[NFP_MEDIA_50GBASE_CR]		= ETHTOOL_LINK_MODE_50000baseCR_Full_BIT,
-	[NFP_MEDIA_50GBASE_LR]		= ETHTOOL_LINK_MODE_50000baseLR_ER_FR_Full_BIT,
-	[NFP_MEDIA_50GBASE_ER]		= ETHTOOL_LINK_MODE_50000baseLR_ER_FR_Full_BIT,
-	[NFP_MEDIA_50GBASE_FR]		= ETHTOOL_LINK_MODE_50000baseLR_ER_FR_Full_BIT,
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_50000baseKR_Full_BIT,
 #endif
+		.speed			= NFP_SPEED_50G,
+	},
+	[NFP_MEDIA_50GBASE_SR] = {
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_50000baseSR_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_50G,
+	},
+	[NFP_MEDIA_50GBASE_CR] = {
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_50000baseCR_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_50G,
+	},
+	[NFP_MEDIA_50GBASE_LR] = {
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_50000baseLR_ER_FR_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_50G,
+	},
+	[NFP_MEDIA_50GBASE_ER] = {
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_50000baseLR_ER_FR_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_50G,
+	},
+	[NFP_MEDIA_50GBASE_FR] = {
+#if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_50000baseLR_ER_FR_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_50G,
+	},
+	[NFP_MEDIA_100GBASE_KR4] = {
 #if VER_NON_RHEL_GE(4, 7) || VER_RHEL_GE(7, 5)
-	[NFP_MEDIA_100GBASE_KR4]	= ETHTOOL_LINK_MODE_100000baseKR4_Full_BIT,
-	[NFP_MEDIA_100GBASE_SR4]	= ETHTOOL_LINK_MODE_100000baseSR4_Full_BIT,
-	[NFP_MEDIA_100GBASE_CR4]	= ETHTOOL_LINK_MODE_100000baseCR4_Full_BIT,
-	[NFP_MEDIA_100GBASE_KP4]	= ETHTOOL_LINK_MODE_100000baseKR4_Full_BIT,
-	[NFP_MEDIA_100GBASE_CR10]	= ETHTOOL_LINK_MODE_100000baseCR4_Full_BIT,
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_100000baseKR4_Full_BIT,
 #endif
+		.speed			= NFP_SPEED_100G,
+	},
+	[NFP_MEDIA_100GBASE_SR4] = {
+#if VER_NON_RHEL_GE(4, 7) || VER_RHEL_GE(7, 5)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_100000baseSR4_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_100G,
+	},
+	[NFP_MEDIA_100GBASE_CR4] = {
+#if VER_NON_RHEL_GE(4, 7) || VER_RHEL_GE(7, 5)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_100000baseCR4_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_100G,
+	},
+	[NFP_MEDIA_100GBASE_KP4] = {
+#if VER_NON_RHEL_GE(4, 7) || VER_RHEL_GE(7, 5)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_100000baseKR4_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_100G,
+	},
+	[NFP_MEDIA_100GBASE_CR10] = {
+#if VER_NON_RHEL_GE(4, 7) || VER_RHEL_GE(7, 5)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_100000baseCR4_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_100G,
+	},
+};
+
+static const unsigned int nfp_eth_speed_map[NFP_SUP_SPEED_NUMBER] = {
+	[NFP_SPEED_1G]		= SPEED_1000,
+	[NFP_SPEED_10G]		= SPEED_10000,
+	[NFP_SPEED_25G]		= SPEED_25000,
+	[NFP_SPEED_40G]		= SPEED_40000,
+	[NFP_SPEED_50G]		= SPEED_50000,
+	[NFP_SPEED_100G]	= SPEED_100000,
 };
 
 static void nfp_add_media_link_mode(struct nfp_port *port,
@@ -353,8 +496,12 @@ static void nfp_add_media_link_mode(struct nfp_port *port,
 	struct nfp_cpp *cpp = port->app->cpp;
 	u32 i;
 
-	if (nfp_eth_read_media(cpp, &ethm))
+	if (nfp_eth_read_media(cpp, &ethm)) {
+		bitmap_fill(port->speed_bitmap, NFP_SUP_SPEED_NUMBER);
 		return;
+	}
+
+	bitmap_zero(port->speed_bitmap, NFP_SUP_SPEED_NUMBER);
 
 	for (i = 0; i < 2; i++) {
 		supported_modes[i] = le64_to_cpu(ethm.supported_modes[i]);
@@ -363,25 +510,42 @@ static void nfp_add_media_link_mode(struct nfp_port *port,
 
 	for (i = 0; i < NFP_MEDIA_LINK_MODES_NUMBER; i++) {
 		if (i < 64) {
-			if (supported_modes[0] & BIT_ULL(i) && nfp_eth_media_table[i])
-				__set_bit(nfp_eth_media_table[i],
-					  cmd->link_modes.supported);
+			if (supported_modes[0] & BIT_ULL(i)) {
+				__set_bit(nfp_eth_media_table[i].speed,
+					  port->speed_bitmap);
+#if VER_NON_RHEL_GE(4, 6) || VER_RHEL_GE(7, 5)
+				if (nfp_eth_media_table[i].ethtool_link_mode)
+					__set_bit(nfp_eth_media_table[i].ethtool_link_mode,
+						  cmd->link_modes.supported);
+#endif
+			}
 
-			if (advertised_modes[0] & BIT_ULL(i) && nfp_eth_media_table[i])
-				__set_bit(nfp_eth_media_table[i],
+#if VER_NON_RHEL_GE(4, 6) || VER_RHEL_GE(7, 5)
+			if (advertised_modes[0] & BIT_ULL(i) &&
+			    nfp_eth_media_table[i].ethtool_link_mode)
+				__set_bit(nfp_eth_media_table[i].ethtool_link_mode,
 					  cmd->link_modes.advertising);
+#endif
 		} else {
-			if (supported_modes[1] & BIT_ULL(i - 64) && nfp_eth_media_table[i])
-				__set_bit(nfp_eth_media_table[i],
-					  cmd->link_modes.supported);
+			if (supported_modes[1] & BIT_ULL(i - 64)) {
+				__set_bit(nfp_eth_media_table[i].speed,
+					  port->speed_bitmap);
+#if VER_NON_RHEL_GE(4, 6) || VER_RHEL_GE(7, 5)
+				if (nfp_eth_media_table[i].ethtool_link_mode)
+					__set_bit(nfp_eth_media_table[i].ethtool_link_mode,
+						  cmd->link_modes.supported);
+#endif
+			}
 
-			if (advertised_modes[1] & BIT_ULL(i - 64) && nfp_eth_media_table[i])
-				__set_bit(nfp_eth_media_table[i],
+#if VER_NON_RHEL_GE(4, 6) || VER_RHEL_GE(7, 5)
+			if (advertised_modes[1] & BIT_ULL(i - 64) &&
+			    nfp_eth_media_table[i].ethtool_link_mode)
+				__set_bit(nfp_eth_media_table[i].ethtool_link_mode,
 					  cmd->link_modes.advertising);
+#endif
 		}
 	}
 }
-#endif
 
 /**
  * nfp_net_get_link_ksettings - Get Link Speed settings
@@ -415,9 +579,7 @@ nfp_net_get_link_ksettings(struct net_device *netdev,
 	if (eth_port) {
 		ethtool_link_ksettings_add_link_mode(cmd, supported, Pause);
 		ethtool_link_ksettings_add_link_mode(cmd, advertising, Pause);
-#if VER_NON_RHEL_GE(4, 6) || VER_RHEL_GE(7, 5)
 		nfp_add_media_link_mode(port, eth_port, cmd);
-#endif
 		if (eth_port->supp_aneg) {
 			ethtool_link_ksettings_add_link_mode(cmd, supported, Autoneg);
 			if (eth_port->aneg == NFP_ANEG_AUTO) {
@@ -493,6 +655,23 @@ nfp_net_set_link_ksettings(struct net_device *netdev,
 	if (compat__ethtool_cmd_speed_get(cmd) != SPEED_UNKNOWN) {
 		u32 speed = compat__ethtool_cmd_speed_get(cmd) /
 			eth_port->lanes;
+		bool is_supported = false;
+		u32 i;
+
+		for (i = 0; i < NFP_SUP_SPEED_NUMBER; i++) {
+			if (cmd->base.speed == nfp_eth_speed_map[i] &&
+			    test_bit(i, port->speed_bitmap)) {
+				is_supported = true;
+				break;
+			}
+		}
+
+		if (!is_supported) {
+			netdev_err(netdev, "Speed %u is not supported.\n",
+				   cmd->base.speed);
+			err = -EINVAL;
+			goto err_bad_set;
+		}
 
 		if (req_aneg) {
 			netdev_err(netdev, "Speed changing is not allowed when working on autoneg mode.\n");
