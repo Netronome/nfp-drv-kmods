@@ -30,6 +30,7 @@ jobs:
       volumes:
         - /mnt/cloud:/mnt/cloud
         - /mnt/local:/mnt/local
+      options: "--entrypoint /bin/bash"
 
     steps:
       # --- INSTALL PRE-REQUISITES ---
@@ -38,7 +39,11 @@ jobs:
 
       - name: APT | Update cache
         if: matrix.distro == 'ubuntu:20.04'
-        run: apt-get update
+        run:  |
+          apt-get update -y
+          apt-get install -y software-properties-common
+          add-apt-repository -y ppa:git-core/ppa
+          apt-get update -y
 
       - name: APT | Install pre-requisite packages
         if: matrix.distro == 'ubuntu:20.04'
