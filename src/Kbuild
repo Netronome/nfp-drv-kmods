@@ -441,6 +441,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
     ifeq ($(COMPAT_HAVE_XARRAY),y)
       nfp-objs += crypto/ipsec.o
       nfp-objs += nfd3/ipsec.o
+	  nfp-objs += nfdk/ipsec.o
       ccflags-y += -DCONFIG_NFP_NET_IPSEC
     endif
   endif
