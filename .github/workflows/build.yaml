@@ -84,7 +84,7 @@ jobs:
             search-pattern: "*-${{ env.FLAVOUR }}"
 
   build-centos:
-    name: Build CentOS, BC Linux, OpenEuler
+    name: Build CentOS, BC Linux, OpenEuler, Kylin
     runs-on: ubuntu-20.04
     timeout-minutes: 90
     env:
@@ -119,6 +119,10 @@ jobs:
                 #{ "name": "el8",   "container": "rockylinux:8.5" },
                 #{ "name": "el8.1", "container": "rockylinux:8.5" },
                 #{ "name": "el8.2", "container": "rockylinux:8.5" },
+                # Kylin V10
+                { "name": "V10SP1", "container": "rockylinux:8.5" },
+                { "name": "V10SP2", "container": "rockylinux:8.5" },
+                { "name": "V10SP3", "container": "rockylinux:8.5" },
         ]
     container:
       image: ${{ matrix.release.container }}
@@ -137,6 +141,7 @@ jobs:
           9.0)                 MIRROR="dl.rockylinux.org/vault/rocky" ;;
           9.[1-9])             MIRROR="dl.rockylinux.org/pub/rocky" ;;
           9-*)                 MIRROR="mirror.stream.centos.org" ;;
+          V10*)                MIRROR="update.cs2c.com.cn/NS/V10" ;;
           *)                   MIRROR="mirror.centos.org/centos" ;;
           esac
 
@@ -152,6 +157,9 @@ jobs:
                   ;;
           openEuler*) OS_DIR1="OS"
                       OS_DIR2=""
+                  ;;
+          V10*)   OS_DIR1="os/adv/lic/base"
+                  OS_DIR2=""
           esac
 
           case $RELEASE_NAME in
