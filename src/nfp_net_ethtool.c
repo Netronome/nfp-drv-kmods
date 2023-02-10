@@ -330,6 +330,12 @@ static const struct nfp_eth_media_link_mode {
 #endif
 		.speed			= NFP_SPEED_10G,
 	},
+	[NFP_MEDIA_10GBASE_LR] = {
+#if VER_NON_RHEL_GE(4, 9) || VER_RHEL_GE(7, 5)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_10000baseLR_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_10G,
+	},
 	[NFP_MEDIA_10GBASE_CX4] = {
 #if VER_NON_RHEL_GE(4, 6) || VER_RHEL_GE(7, 5)
 		.ethtool_link_mode	= ETHTOOL_LINK_MODE_10000baseKX4_Full_BIT,
@@ -379,6 +385,18 @@ static const struct nfp_eth_media_link_mode {
 		.speed			= NFP_SPEED_25G,
 	},
 	[NFP_MEDIA_25GBASE_SR] = {
+#if VER_NON_RHEL_GE(4, 7) || VER_RHEL_GE(7, 5)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_25000baseSR_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_25G,
+	},
+	[NFP_MEDIA_25GBASE_LR] = {
+#if VER_NON_RHEL_GE(4, 7) || VER_RHEL_GE(7, 5)
+		.ethtool_link_mode	= ETHTOOL_LINK_MODE_25000baseSR_Full_BIT,
+#endif
+		.speed			= NFP_SPEED_25G,
+	},
+	[NFP_MEDIA_25GBASE_ER] = {
 #if VER_NON_RHEL_GE(4, 7) || VER_RHEL_GE(7, 5)
 		.ethtool_link_mode	= ETHTOOL_LINK_MODE_25000baseSR_Full_BIT,
 #endif
