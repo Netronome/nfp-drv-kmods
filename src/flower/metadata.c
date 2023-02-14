@@ -458,7 +458,7 @@ static int nfp_fl_obj_cmpfn(struct rhashtable_compare_arg *arg,
 	const struct nfp_fl_flow_table_cmp_arg *cmp_arg = arg->key;
 	const struct nfp_fl_payload *flow_entry = obj;
 
-#if VER_NON_RHEL_GE(5, 0)
+#if VER_NON_RHEL_LT(5, 0)
 	if (!cmp_arg->netdev || flow_entry->ingress_dev == cmp_arg->netdev)
 #else
 	if (flow_entry->ingress_dev == cmp_arg->netdev)
