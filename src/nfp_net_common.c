@@ -53,6 +53,7 @@
 #ifdef COMPAT__HAVE_XDP_SOCK_DRV
 #include <net/xdp_sock_drv.h>
 #endif
+#include <net/xfrm.h>
 
 #include "nfpcore/nfp_dev.h"
 #include "nfpcore/nfp_nsp.h"
@@ -2036,6 +2037,11 @@ nfp_net_features_check(struct sk_buff *skb, struct net_device *dev,
 		if (unlikely(hdrlen > NFP_NET_LSO_MAX_HDR_SZ - 8))
 			features &= ~NETIF_F_GSO_MASK;
 	}
+
+#ifdef CONFIG_NFP_NET_IPSEC
+	if (xfrm_offload(skb))
+		return features;
+#endif
 
 	/* VXLAN/GRE check */
 	switch (vlan_get_protocol(skb)) {
