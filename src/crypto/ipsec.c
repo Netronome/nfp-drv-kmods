@@ -596,7 +596,7 @@ int nfp_net_ipsec_rx(struct nfp_meta_parsed *meta, struct sk_buff *skb)
 	struct net_device *netdev = skb->dev;
 	struct xfrm_offload *xo;
 	struct xfrm_state *x;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+#if VER_NON_KYL_GE(5, 0) || VER_KYL_GE(10, 3)
 	struct sec_path *sp;
 #endif
 	struct nfp_net *nn;
@@ -614,7 +614,7 @@ int nfp_net_ipsec_rx(struct nfp_meta_parsed *meta, struct sk_buff *skb)
 	if (!x)
 		return -EINVAL;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+#if VER_NON_KYL_GE(5, 0) || VER_KYL_GE(10, 3)
 	sp = secpath_set(skb);
 	if (unlikely(!sp))
 		return -ENOMEM;

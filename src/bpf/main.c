@@ -500,9 +500,9 @@ static int nfp_bpf_init(struct nfp_app *app)
 		app->ctrl_mtu = nfp_bpf_ctrl_cmsg_mtu(bpf);
 	}
 
-#if VER_NON_RHEL_LT(5, 0) || VER_RHEL_LT(8, 1)
+#if VER_NON_RHEL_OR_KYL_LT(5, 0) || VER_RHEL_LT(8, 1) || VER_KYL_LT(10, 3)
 	bpf->bpf_dev = bpf_offload_dev_create();
-#elif VER_NON_RHEL_LT(5, 1) || VER_RHEL_EQ(8, 1)
+#elif VER_NON_RHEL_OR_KYL_LT(5, 1) || VER_RHEL_EQ(8, 1) || VER_KYL_GE(10, 3)
 	bpf->bpf_dev = bpf_offload_dev_create(&nfp_bpf_dev_ops);
 #else
 	bpf->bpf_dev = bpf_offload_dev_create(&nfp_bpf_dev_ops, bpf);

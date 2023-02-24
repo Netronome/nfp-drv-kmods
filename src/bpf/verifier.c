@@ -669,7 +669,7 @@ int nfp_verify_insn(struct bpf_verifier_env *env, int insn_idx,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 20, 0)
+#if VER_NON_KYL_GE(4, 20) || VER_KYL_GE(10, 3)
 static int
 nfp_assign_subprog_idx_and_regs(struct bpf_verifier_env *env,
 				struct nfp_prog *nfp_prog)
@@ -808,7 +808,7 @@ int nfp_bpf_finalize(struct bpf_verifier_env *env)
 }
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_KYL_GE(5, 1) || VER_KYL_GE(10, 3)
 int nfp_bpf_opt_replace_insn(struct bpf_verifier_env *env, u32 off,
 			     struct bpf_insn *insn)
 {

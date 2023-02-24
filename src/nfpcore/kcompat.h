@@ -19,8 +19,14 @@
 #ifndef RHEL_RELEASE_VERSION
 #define RHEL_RELEASE_VERSION(a, b) (((a) << 8) + (b))
 #endif
+#ifndef KYLIN_RELEASE_VERSION
+#define KYLIN_RELEASE_VERSION(a, b) (((a) << 8) + (b))
+#endif
 #ifndef RHEL_RELEASE_CODE
 #define RHEL_RELEASE_CODE 0
+#endif
+#ifndef KYLIN_RELEASE_CODE
+#define KYLIN_RELEASE_CODE 0
 #endif
 #ifndef RHEL_MAJOR
 #define RHEL_MAJOR 0
@@ -30,6 +36,9 @@
 #endif
 #ifndef COMPAT_OELINUX
 #define COMPAT_OELINUX 0
+#endif
+#ifndef COMPAT_KYLINUX
+#define COMPAT_KYLINUX 0
 #endif
 
 #ifdef COMPAT__UTS_UBUNTU_RELEASE_ABI_BAD
@@ -67,6 +76,22 @@
 #define VER_RHEL_EQ(x, y)	(VER_RHEL_GE(x, y) && VER_RHEL_LT(x, y + 1))
 #define RHEL_MAJOR_EQ(r)	(RHEL_RELEASE_CODE && (RHEL_MAJOR == r))
 #define VER_IS_NON_RHEL	!RHEL_RELEASE_CODE
+
+/* "KYLIN_RELEASE_CODE" is defined after kernel-4.19.90-25.11.v2101.ky10(Kylin
+ * V10SP2). The kernel before kernel-4.19.90-25.11.v2101.ky10 will still use
+ * "VER_KERN_XX" to do the version isolation.
+ */
+#define VER_KYL_LT(x, y)						\
+	(KYLIN_RELEASE_CODE && KYLIN_RELEASE_CODE < KYLIN_RELEASE_VERSION(x, y))
+#define VER_KYL_GE(x, y)						\
+	(KYLIN_RELEASE_CODE && KYLIN_RELEASE_CODE >= KYLIN_RELEASE_VERSION(x, y))
+#define VER_KYL_EQ(x, y)	(VER_KYL_GE(x, y) && VER_KYL_LT(x, y + 1))
+#define VER_NON_KYL_LT(x, y)	(!KYLIN_RELEASE_CODE && VER_KERN_LT(x, y))
+#define VER_NON_KYL_GE(x, y)	(!KYLIN_RELEASE_CODE && VER_KERN_GE(x, y))
+#define VER_NON_RHEL_OR_KYL_LT(x, y)					\
+	(!RHEL_RELEASE_CODE && !KYLIN_RELEASE_CODE && VER_KERN_LT(x, y))
+#define VER_NON_RHEL_OR_KYL_GE(x, y)					\
+	(!RHEL_RELEASE_CODE && !KYLIN_RELEASE_CODE && VER_KERN_GE(x, y))
 
 #define VER_NON_BCL_GE(x, y)	(!COMPAT_BCLINUX && VER_RHEL_GE(x, y))
 #define VER_NON_BCL_LT(x, y)	(!COMPAT_BCLINUX && VER_RHEL_LT(x, y))
@@ -917,7 +942,7 @@ struct xdp_attachment_info {
 typedef siginfo_t kernel_siginfo_t;
 #endif
 
-#if VER_NON_RHEL_LT(5, 7) || VER_RHEL_LT(8, 3)
+#if VER_NON_RHEL_OR_KYL_LT(5, 7) || VER_RHEL_LT(8, 3) || VER_KYL_LT(10, 3)
 /**
  * pci_get_dsn - Read and return the 8-byte Device Serial Number
  * @dev: PCI device to query
@@ -974,10 +999,11 @@ static inline u64 pci_get_dsn(struct pci_dev *dev)
 #endif
 #endif
 
-/* Kconfig will add this variable for RHEL 7.5+, however, we intentionally
- * disable support for this feature for RHEL versions < 8.0.
+/* Kconfig will add this variable for RHEL 7.5+ and KYLIN,
+ * however, we intentionally disable support for this feature
+ * for RHEL versions < 8.0 and KYLIN.
  */
-#if VER_RHEL_GE(7, 5) && VER_RHEL_LT(8, 0)
+#if (VER_RHEL_GE(7, 5) && VER_RHEL_LT(8, 0)) || COMPAT_KYLINUX
 #undef CONFIG_NFP_APP_FLOWER
 #endif
 

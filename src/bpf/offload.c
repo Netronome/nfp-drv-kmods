@@ -450,7 +450,7 @@ nfp_bpf_map_free(struct nfp_app_bpf *bpf, struct bpf_offloaded_map *offmap)
 int nfp_ndo_bpf(struct nfp_app *app, struct nfp_net *nn, struct netdev_bpf *bpf)
 {
 	switch (bpf->command) {
-#if VER_NON_RHEL_LT(5, 0) || VER_RHEL_LT(8, 2)
+#if VER_NON_RHEL_OR_KYL_LT(5, 0) || VER_RHEL_LT(8, 2) || VER_KYL_LT(10, 3)
 	case BPF_OFFLOAD_VERIFIER_PREP:
 		bpf->verifier.ops = &nfp_bpf_dev_ops;
 		return nfp_bpf_verifier_prep(bpf->verifier.prog);
@@ -657,14 +657,14 @@ int nfp_net_bpf_offload(struct nfp_net *nn, struct bpf_prog *prog,
 
 const struct bpf_prog_offload_ops nfp_bpf_dev_ops = {
 	.insn_hook	= nfp_verify_insn,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 20, 0)
+#if VER_NON_KYL_GE(4, 20) || VER_KYL_GE(10, 3)
 	.finalize	= nfp_bpf_finalize,
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if VER_NON_KYL_GE(5, 1) || VER_KYL_GE(10, 3)
 	.replace_insn	= nfp_bpf_opt_replace_insn,
 	.remove_insns	= nfp_bpf_opt_remove_insns,
 #endif
-#if VER_NON_RHEL_GE(5, 0) || VER_RHEL_GE(8, 2)
+#if VER_NON_RHEL_OR_KYL_GE(5, 0) || VER_RHEL_GE(8, 2) || VER_KYL_GE(10, 3)
 	.prepare	= nfp_bpf_verifier_prep,
 	.translate	= nfp_bpf_translate,
 	.destroy	= nfp_bpf_destroy,

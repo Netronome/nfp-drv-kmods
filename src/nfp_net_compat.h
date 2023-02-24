@@ -48,6 +48,10 @@
 #include <net/flow_offload.h>
 #endif
 
+#if VER_KYL_GE(10, 3)
+#include <net/ipv6_stubs.h>
+#endif
+
 /* Redefine LINUX_VERSION_CODE for net and *-next kernels */
 #if LINUX_VERSION_CODE == KERNEL_VERSION(6, 2, 0)
 #include <linux/phy.h>
@@ -58,7 +62,8 @@
 #endif
 
 #if (defined(COMPAT__HAVE_METADATA_IP_TUNNEL) ||	\
-     VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1))
+     VER_NON_RHEL_OR_KYL_GE(5, 1) || VER_RHEL_GE(8, 1) ||	\
+     VER_KYL_GE(10, 3))
 #include <net/tc_act/tc_mirred.h>
 #include <net/tc_act/tc_gact.h>
 #include <net/tc_act/tc_vlan.h>
@@ -1031,7 +1036,8 @@ static inline struct sk_buff *__skb_peek(const struct sk_buff_head *list)
 }
 #endif
 
-#if VER_NON_RHEL_LT(4, 20) || VER_RHEL_LT(7, 7) || VER_RHEL_EQ(8, 0)
+#if VER_NON_RHEL_OR_KYL_LT(4, 20) || \
+    VER_RHEL_LT(7, 7) || VER_RHEL_EQ(8, 0) || VER_KYL_LT(10, 3)
 static inline bool netif_is_vxlan(const struct net_device *dev)
 {
 	return dev->rtnl_link_ops &&
@@ -1051,7 +1057,7 @@ __netdev_tx_sent_queue(struct netdev_queue *nd_q, u32 len, bool xmit_more)
 #undef CONFIG_NFP_APP_ABM_NIC
 #endif
 
-#if VER_NON_RHEL_LT(5, 0) || VER_RHEL_LT(8, 1)
+#if VER_NON_RHEL_OR_KYL_LT(5, 0) || VER_RHEL_LT(8, 1) || VER_KYL_LT(10, 3)
 static inline bool netif_is_geneve(const struct net_device *dev)
 {
        return dev->rtnl_link_ops &&
@@ -1087,6 +1093,7 @@ static inline struct nfp_net *compat__bpf_prog_get_nn(struct bpf_prog *prog)
 }
 #endif
 
+#if !COMPAT_KYLINUX
 #if VER_NON_RHEL_LT(5, 1) || VER_RHEL_LT(8, 1)
 #ifdef COMPAT__HAVE_METADATA_IP_TUNNEL
 enum flow_action_id {
@@ -1277,6 +1284,7 @@ compat__tca_pedit_offset(const struct flow_action_entry *act, int idx)
 	return act->mangle.offset;
 }
 #endif /* !(VER_NON_RHEL_LT(5, 1) || VER_RHEL_LT(8, 1)) */
+#endif /* !COMPAT_KYLINUX */
 
 #if VER_NON_RHEL_LT(5, 1) || VER_RHEL_LT(8, 5)
 int compat__nfp_net_flash_device(struct net_device *netdev,
@@ -1384,7 +1392,7 @@ compat__tls_offload_tx_resync_request(struct sock *sk, u32 got_seq, u32 exp_seq)
 static inline struct bpf_map *
 compat__bpf_map_inc(struct bpf_map *map, bool uref)
 {
-#if VER_NON_RHEL_LT(5, 5) || VER_RHEL_LT(8, 3)
+#if VER_NON_RHEL_OR_KYL_LT(5, 5) || VER_RHEL_LT(8, 3) || VER_KYL_LT(10, 3)
 	return bpf_map_inc(map, uref);
 #else
 	bpf_map_inc(map);

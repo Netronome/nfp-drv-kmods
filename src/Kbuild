@@ -286,6 +286,19 @@ ifeq ($(COMPAT_OELINUX),y)
         ccflags-y +=-DCOMPAT_OELINUX=1
 endif
 
+# Check for KYLIN Linux
+utsrelease_h_path :=$(srctree)/include/generated/utsrelease.h
+ifneq (,$(wildcard $(utsrelease_h_path)))
+  COMPAT_KYLINUX := \
+        $(shell grep -q ky $(utsrelease_h_path) && echo y)
+endif
+ifeq ($(COMPAT_KYLINUX),y)
+        ccflags-y +=-DCOMPAT_KYLINUX=1
+endif
+
+VER_IS_NON_RHEL_OR_KYL := \
+	$(shell [ $(RHEL_MAJOR) -eq 0 ] && [ -z $(COMPAT_KYLINUX) ] && echo y)
+
 # Check for xarray
 xarray_path :=$(srctree)/include/linux/xarray.h
 ifneq (,$(wildcard $(xarray_path)))
@@ -385,7 +398,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 		    echo y)
 
     ifeq ($(COMPAT__HAVE_METADATA_IP_TUNNEL), y)
-      ifneq (,$(filter y,$(VER_IS_NON_RHEL) $(RHEL_GE_8_0)))
+      ifneq (,$(filter y,$(VER_IS_NON_RHEL_OR_KYL) $(RHEL_GE_8_0)))
 	ccflags-y += -DCOMPAT__HAVE_METADATA_IP_TUNNEL=1
 	nfp-objs += \
 		nfp_net_repr.o
@@ -425,7 +438,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 		abm/qdisc.o
 	endif
       else
-        $(warning NFP: RHEL kernel detected, disabling apps: flower)
+        $(warning NFP: RHEL kernel or KYLIN kernel detected, disabling apps: flower)
         $(warning Please contact Corigine Support if the flower app is required.)
       endif
     endif
