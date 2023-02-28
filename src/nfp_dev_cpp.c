@@ -1102,8 +1102,13 @@ static int nfp_dev_cpp_mmap(struct file *filp, struct vm_area_struct *vma)
  #define VM_DONTDUMP 0
 #endif
 	/* 'area' is now an area we've previously allocated */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+	vm_flags_set(vma, VM_RESERVED | VM_IO | VM_PFNMAP |
+			  VM_DONTEXPAND | VM_DONTDUMP | VM_SHARED);
+#else
 	vma->vm_flags |= VM_RESERVED | VM_IO | VM_PFNMAP
 		       | VM_DONTEXPAND | VM_DONTDUMP | VM_SHARED;
+#endif
 	vma->vm_ops = &nfp_cpp_mmap_ops;
 	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 	vma->vm_private_data = cvma;
