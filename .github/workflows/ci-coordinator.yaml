@@ -42,7 +42,7 @@ jobs:
         run: sudo find -delete
 
       - name: Checkout provisioning repo
-        uses: actions/checkout@v3
+        uses: Corigine/ci-libs/github_actions/utilities/checkout_corigine@main
         with:
           repository: Corigine/ci-libs
           token: ${{ secrets.GHUB_TOKEN }}

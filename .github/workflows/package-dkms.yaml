@@ -34,9 +34,6 @@ jobs:
 
     steps:
       # --- INSTALL PRE-REQUISITES ---
-      - name: Clean up the working directory
-        run: rm -rf *
-
       - name: APT | Update cache
         if: matrix.distro == 'ubuntu:20.04'
         run:  |
@@ -50,7 +47,7 @@ jobs:
         run: >-
           apt-get -o Dpkg::Options::="--force-confdef"
           -o Dpkg::Options::="--force-confold" -y install
-          git wget sudo gcc make automake dkms build-essential fakeroot devscripts debhelper
+          git wget sudo gcc make automake dkms build-essential fakeroot devscripts debhelper findutils
         env:
           DEBIAN_FRONTEND: noninteractive
 
@@ -62,7 +59,10 @@ jobs:
         if: matrix.distro == 'rockylinux:8.5'
         run: >-
           dnf install -y --enablerepo=powertools
-          git wget sudo gcc make automake dkms rpm-build
+          git wget sudo gcc make automake dkms rpm-build findutils
+
+      - name: Clean up the working directory
+        run: find -delete
 
       # --- CLONE REPOSITORIES ---
       - name: Checkout nfp driver kmods repo
@@ -77,7 +77,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: Corigine/ci-libs
-          token: ${{ secrets.GHUB_TOKEN }}
           path: ci-libs
 
       - name: Install azcopy binary

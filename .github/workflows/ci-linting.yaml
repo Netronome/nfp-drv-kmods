@@ -9,13 +9,14 @@ jobs:
   linters:
     runs-on: [self-hosted, ci-linter-vm]
     steps:
-    - uses: actions/checkout@v3
+    - uses: Corigine/ci-libs/github_actions/utilities/checkout_corigine@main
       with:
         ref: ${{ github.head_ref }}
         fetch-depth: 0
+        token: ${{ secrets.GHUB_TOKEN }}
 
     - name: Checkout ci-libs
-      uses: actions/checkout@v3
+      uses: Corigine/ci-libs/github_actions/utilities/checkout_corigine@main
       with:
         repository: Corigine/ci-libs
         token: ${{ secrets.GHUB_TOKEN }}
