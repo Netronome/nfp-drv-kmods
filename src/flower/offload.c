@@ -1632,7 +1632,7 @@ nfp_flower_add_offload(struct nfp_app *app, struct net_device *netdev,
 
 #if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 3)
 	if (is_pre_ct_flow(flow))
-		return nfp_fl_ct_handle_pre_ct(priv, netdev, flow, extack);
+		return nfp_fl_ct_handle_pre_ct(priv, netdev, flow, extack, NULL);
 
 	if (is_post_ct_flow(flow))
 		return nfp_fl_ct_handle_post_ct(priv, netdev, flow, extack);
