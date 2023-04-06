@@ -292,7 +292,7 @@ jobs:
     env:
       CDN: "cdn.kernel.org/pub/linux/kernel"
       GITWEB: "git.kernel.org"
-      KERNEL_TARGET: "deb-pkg"
+      KERNEL_TARGET: "bindeb-pkg"
     strategy:
       matrix:
         release: [
@@ -358,7 +358,8 @@ jobs:
       - name: Set Environment (Not Cached)
         if: steps.header-cache.outputs.cache-hit != 'true'
         run: |
-          EXTRA_DEP+=" "libelf-dev
+          EXTRA_DEP+=" libelf-dev"
+          EXTRA_DEP+=" debhelper"
           echo "EXTRA_DEP=$EXTRA_DEP" >> $GITHUB_ENV
 
       - name: Install Dependencies
