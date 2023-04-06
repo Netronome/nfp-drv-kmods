@@ -821,7 +821,9 @@ nfp_net_napi_add(struct nfp_net_dp *dp, struct nfp_net_r_vector *r_vec, int idx)
 {
 	if (dp->netdev)
 		netif_napi_add(dp->netdev, &r_vec->napi,
-#if VER_NON_RHEL_LT(6, 1) || RHEL_RELEASE_LT(9, 196, 0, 0)
+#if VER_NON_RHEL_LT(6, 1) || \
+	(RHEL_RELEASE_GE(9, 0, 0, 0) && RHEL_RELEASE_LT(9, 196, 0, 0)) || \
+	RHEL_RELEASE_LT(8, 481, 0, 0)
 			       nfp_net_has_xsk_pool_slow(dp, idx) ?
 			       dp->ops->xsk_poll : dp->ops->poll,
 			       NAPI_POLL_WEIGHT);
