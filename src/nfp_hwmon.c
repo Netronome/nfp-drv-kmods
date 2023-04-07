@@ -115,7 +115,11 @@ static const struct hwmon_channel_info nfp_power = {
 	.config = nfp_power_config,
 };
 
-static const struct hwmon_channel_info *nfp_hwmon_info[] = {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+static const struct hwmon_channel_info * const nfp_hwmon_info[] = {
+#else
+static const struct hwmon_channel_info * nfp_hwmon_info[] = {
+#endif
 	&nfp_chip,
 	&nfp_temp,
 	&nfp_power,
