@@ -77,6 +77,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: Corigine/ci-libs
+          token: ${{ secrets.GHUB_TOKEN }}
           path: ci-libs
 
       - name: Install azcopy binary
