@@ -53,11 +53,11 @@
 #endif
 
 /* Redefine LINUX_VERSION_CODE for net and *-next kernels */
-#if LINUX_VERSION_CODE == KERNEL_VERSION(6, 2, 0)
-#include <linux/phy.h>
-#ifdef PHY_F_NO_IRQ
+#if LINUX_VERSION_CODE == KERNEL_VERSION(6, 3, 0)
+#include <linux/tcp.h>
+#ifdef tcp_sk_rw
 #undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(6, 3, 0)
+#define LINUX_VERSION_CODE KERNEL_VERSION(6, 4, 0)
 #endif
 #endif
 

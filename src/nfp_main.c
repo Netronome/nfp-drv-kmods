@@ -1440,5 +1440,5 @@ MODULE_FIRMWARE("netronome/nic_AMDA0099-0001_1x10_1x25.nffw");
 MODULE_AUTHOR("Corigine, Inc. <oss-drivers@corigine.com>");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("The Network Flow Processor (NFP) driver.");
-MODULE_VERSION("6.3.0");
+MODULE_VERSION("6.4.0");
 MODULE_INFO_NFP();
