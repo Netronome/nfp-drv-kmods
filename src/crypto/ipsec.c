@@ -277,7 +277,11 @@ static int nfp_net_xfrm_add_state(struct xfrm_state *x,
 				  struct netlink_ext_ack *extack)
 #endif
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+	struct net_device *netdev = x->xso.real_dev;
+#else
 	struct net_device *netdev = x->xso.dev;
+#endif
 	struct nfp_ipsec_cfg_mssg msg = {};
 	int i, key_len, trunc_len, err = 0;
 	struct nfp_ipsec_cfg_add_sa *cfg;
@@ -527,7 +531,11 @@ static void nfp_net_xfrm_del_state(struct xfrm_state *x)
 		.cmd = NFP_IPSEC_CFG_MSSG_INV_SA,
 		.sa_idx = x->xso.offload_handle - 1,
 	};
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+	struct net_device *netdev = x->xso.real_dev;
+#else
 	struct net_device *netdev = x->xso.dev;
+#endif
 	struct nfp_net *nn;
 	int err;
 
