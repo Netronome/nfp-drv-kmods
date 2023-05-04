@@ -1,98 +1,117 @@
 #!/bin/bash -e
 # SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
-# Copyright (C) 2017 Netronome Systems, Inc.
+# Copyright (C) 2023 Corigine, Inc.
 
 usage() {
-    echo "Usage: $0 NETDEV"
+    echo "Usage: $0 NETDEV CPU_CORES"
     echo "          Optional env vars: IRQ_NAME_FMT"
+    echo "CPU_CORES argument optional - defaults to all local NUMA cores."
+    echo "CPU_CORES format '8-23' or '8,10,12', or a combination thereof."
+    echo "CPU_CORES recommended to only include NUMA cores local to the NIC."
+    echo "CPU_CORES recommended to exclude cores used for user space applications such as iperf."
     exit 1
 }
 
-[ $# -ne 1 ] && usage
+# Verify that at least one argument is specified
+[ $# -lt 1 ] && usage
 
+# Set IRQ queue fd format
 [ "a$IRQ_NAME_FMT" == a ] && IRQ_NAME_FMT=$1-rxtx
 
+# Find netdev specified
 DEV=$1
 if ! [ -e /sys/bus/pci/devices/$DEV ]; then
     DEV=$(ethtool -i $1 | grep bus | awk '{print $2}')
-    N_TX=$(ls /sys/class/net/$1/queues/ | grep tx | wc -l)
-    N_CPUS=$(ls /sys/bus/cpu/devices/ | wc -l)
 fi
 
+# If netdev not found, probably incorrectly specified
 [ "a$DEV" == a ] && usage
 
-NODE=$(cat /sys/bus/pci/devices/$DEV/numa_node)
+# Find local NUMA cores
+if ls /sys/devices/system/node/*/cpulist >/dev/null 2>&1; then
+    # Get the NUMA node of the network device
+    node=$(cat /sys/bus/pci/devices/$DEV/numa_node)
 
-# A bug fix in v5.10 correctly sets the NUMA node to unknown (-1) on systems
-# with no NUMA configuration. Correct for this by assuming node 0 to keep
-# same behavior on kernels with and without the bug fix.
-if [[ "$NODE" == "-1" ]]; then
-    NODE=0
+    # If the NUMA node is not available, use node 0 as default
+    if [ "$node" = "-1" ]; then
+        node=0
+    fi
+
+    # Get the cpulist of the NUMA node of the network device
+    numa_cpulist=$(cat /sys/devices/system/node/node$node/cpulist)
+
+    # Exclude HT/SMT cores (not always reliable due to numbering).
+    physical_cpulist=$(echo $numa_cpulist | sed 's/[^0-9,-]//g' | awk -F '-' '{for(i=$1;i<=$2;i++) printf "%d,", i}' | sed 's/,$//')
+
+    echo Local NUMA cores: $physical_cpulist
 fi
 
-CPUL=$(cat /sys/bus/node/devices/node${NODE}/cpulist | tr ',' ' ')
+# Parse cores from CPU_CORES argument
+CPU_ARG=$2
+if [[ -z $CPU_ARG ]]; then
+    # No cores specified - use NUMA cores.
+    CPUS=$physical_cpulist
+    echo No cores specified for IRQ binding. Using NUMA cores.
+elif [[ $CPU_ARG =~ ^([0-9]+)(,([0-9]+))*(\-([0-9]+))?(,([0-9]+)(\-[0-9]+)?)*$ ]]; then
+    # CPU_CORES specified: 0-4 OR 0,1,2,3,4 OR 0,1,2-4 OR 0,1,2-4,6-8
+    if [[ $CPU_ARG =~ ^([0-9]+)-([0-9]+)$ ]]; then
+        start=${BASH_REMATCH[1]}
+        end=${BASH_REMATCH[2]}
+        step=1
+        CPUS=()
+        for ((i=$start; i<=$end; i+=$step)); do
+            CPUS+=($i)
+        done
+    else
+        # Comma-separated list
+        IFS=',' read -ra CPUS <<< "$CPU_ARG"
+    fi
+else
+    echo "Invalid format for CPU cores argument: $CPU_ARG"
+    exit 1
+fi
 
-N_NODES=$(ls /sys/bus/node/devices/ | wc -l)
+echo Device $DEV with IRQ affinity CPUs ${CPUS[@]}
 
-for c in $CPUL; do
-    # Convert "n-m" into "n n+1 n+2 ... m"
-    [[ "$c" =~ '-' ]] && c=$(seq $(echo $c | tr '-' ' '))
-
-    CPUS=(${CPUS[@]} $c)
-done
-
-echo Device $DEV is on node $NODE with cpus ${CPUS[@]}
-
+# Disable IRQ balancing
 IRQBAL=$(ps aux | grep irqbalance | wc -l)
-
 [ $IRQBAL -ne 1 ] && echo Killing irqbalance && killall irqbalance
 
+# Identify netdev IRQ queues
 IRQS=$(ls /sys/bus/pci/devices/$DEV/msi_irqs/)
-
-
 IRQS=($IRQS)
 
-node_mask=$((~(~0 << N_NODES)))
-node_shf=$((N_NODES - 1))
-cpu_shf=$((N_TX << node_shf))
+# Assign SMP affinity mask & XPS state to each IRQ
+for ((i=0; i<${#IRQS[@]}; i++)); do
+    irq=${IRQS[i]}
 
-p_mask=0
-id=0
-for i in $(seq 0 $((${#IRQS[@]} - 1)))
-do
-    ! [ -e /proc/irq/${IRQS[i]} ] && continue
-
-    name=$(basename /proc/irq/${IRQS[i]}/$IRQ_NAME_FMT*)
-    ls /proc/irq/${IRQS[i]}/$IRQ_NAME_FMT* >>/dev/null 2>/dev/null || continue
-
-    cpu=${CPUS[id % ${#CPUS[@]}]}
-
-    m=0
-    m_mask=node_mask
-    if [ $N_TX -gt $((id + ${#CPUS[@]})) ]; then
-	# Only take one CPU if there will be more rings on this CPU
-	m_mask=1
+    # Check if IRQ exists
+    if ! [ -e /proc/irq/$irq ]; then
+        continue
     fi
-    # Calc the masks we should cover
-    for j in `seq 0 $cpu_shf $((N_CPUS - 1))`; do
-	m=$((m << cpu_shf | (m_mask << ((cpu >> node_shf) << node_shf))))
-	m=$((m & ~p_mask))
-    done
-    xps_mask=$(printf "%x" $((m % (1 << N_CPUS))))
-    # Insert comma between low and hi 32 bits, if xps_mask is long enough
-    xps_mask=`echo $xps_mask | sed 's/\(.\)\(.\{8\}$\)/\1,\2/'`
-    p_mask=$((p_mask | m))
+    name=$(basename /proc/irq/$irq/$IRQ_NAME_FMT*)
+    if ! ls /proc/irq/$irq/$IRQ_NAME_FMT* >>/dev/null 2>/dev/null; then
+        continue
+    fi
 
-    echo $cpu > /proc/irq/${IRQS[i]}/smp_affinity_list
-    irq_state="irq: $(cat /proc/irq/${IRQS[i]}/smp_affinity)"
+    # Set cpu_list variable to a comma-separated list of CPU IDs
+    cpu_list=$(echo "${CPUS[*]}" | tr ' ' ',')
 
+    # Set SMP affinity list file for the current IRQ
+    echo $cpu_list >/proc/irq/$irq/smp_affinity_list
+    irq_state="irq: $(cat /proc/irq/$irq/smp_affinity)"
+
+    # Set XPS control for IRQ
     xps_state='xps: ---'
-    xps_file=/sys/class/net/$1/queues/tx-$id/xps_cpus
-    if [ -e $xps_file ]; then
-	echo $xps_mask > $xps_file
-	xps_state="xps: $(cat $xps_file)"
-    fi
+    for ((j=0; j<${#CPUS[@]}; j++)); do
+        xps_file=/sys/class/net/$1/queues/tx-$((i*${#CPUS[@]}+j))/xps_cpus
+        if [ -e "$xps_file" ]; then
+            xps_mask=$(printf "%x" $((1 << ${CPUS[j]})))
+            xps_mask=$(echo $xps_mask | sed 's/\(.\)\(.\{8\}$\)/\1,\2/')
+            echo $xps_mask > "$xps_file"
+            xps_state="${xps_state}, $((j+1)): $(cat $xps_file)"
+        fi
+    done
 
-    echo -e "IRQ ${IRQS[i]} to CPU $cpu     ($irq_state $xps_state)"
-    ((++id))
+    echo -e "IRQ $irq to CPUs $cpu_list     ($irq_state $xps_state)"
 done
