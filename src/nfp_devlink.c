@@ -340,7 +340,7 @@ nfp_devlink_info_get(struct devlink *devlink, struct devlink_info_req *req,
 	char *buf = NULL;
 	int err;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
+#if (VER_NON_RHEL_LT(6, 2)) || (RHEL_RELEASE_LT(9, 305, 0, 0))
 	err = devlink_info_driver_name_put(req, "nfp");
 	if (err)
 		return err;
@@ -461,7 +461,7 @@ int nfp_devlink_port_register(struct nfp_app *app, struct nfp_port *port)
 	const u8 *serial;
 	int ret;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
+#if (VER_NON_RHEL_GE(6, 2)) || (RHEL_RELEASE_GE(9, 305, 0, 0))
 	SET_NETDEV_DEVLINK_PORT(port->netdev, &port->dl_port);
 #endif
 
@@ -494,7 +494,7 @@ void nfp_devlink_port_unregister(struct nfp_port *port)
 	devl_port_unregister(&port->dl_port);
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
+#if (VER_NON_RHEL_LT(6, 2)) || (RHEL_RELEASE_LT(9, 305, 0, 0))
 void nfp_devlink_port_type_eth_set(struct nfp_port *port)
 {
 	devlink_port_type_eth_set(&port->dl_port, port->netdev);

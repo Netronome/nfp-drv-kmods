@@ -156,7 +156,7 @@ nfp_net_pf_init_vnic(struct nfp_pf *pf, struct nfp_net *nn, unsigned int id)
 
 	nfp_net_debugfs_vnic_add(nn, pf->ddir);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
+#if (VER_NON_RHEL_LT(6, 2)) || (RHEL_RELEASE_LT(9, 305, 0, 0))
 	if (nn->port)
 		nfp_devlink_port_type_eth_set(nn->port);
 #endif
@@ -166,7 +166,7 @@ nfp_net_pf_init_vnic(struct nfp_pf *pf, struct nfp_net *nn, unsigned int id)
 	if (nfp_net_is_data_vnic(nn)) {
 		err = nfp_app_vnic_init(pf->app, nn);
 		if (err)
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
+#if (VER_NON_RHEL_LT(6, 2)) || (RHEL_RELEASE_LT(9, 305, 0, 0))
 			goto err_devlink_port_type_clean;
 #else
 			goto err_debugfs_vnic_clean;
@@ -175,7 +175,7 @@ nfp_net_pf_init_vnic(struct nfp_pf *pf, struct nfp_net *nn, unsigned int id)
 
 	return 0;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
+#if (VER_NON_RHEL_LT(6, 2)) || (RHEL_RELEASE_LT(9, 305, 0, 0))
 err_devlink_port_type_clean:
 	if (nn->port)
 		nfp_devlink_port_type_clear(nn->port);
@@ -230,7 +230,7 @@ static void nfp_net_pf_clean_vnic(struct nfp_pf *pf, struct nfp_net *nn)
 {
 	if (nfp_net_is_data_vnic(nn))
 		nfp_app_vnic_clean(pf->app, nn);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
+#if (VER_NON_RHEL_LT(6, 2)) || (RHEL_RELEASE_LT(9, 305, 0, 0))
 	if (nn->port)
 		nfp_devlink_port_type_clear(nn->port);
 #endif

@@ -2456,7 +2456,8 @@ const struct net_device_ops nfp_nfd3_netdev_ops = {
 	.ndo_get_port_parent_id	= nfp_port_get_port_parent_id,
 #endif
 #ifdef CONFIG_NFP_NET_PF
-#if VER_NON_RHEL_GE(5, 2) && VER_NON_RHEL_LT(6, 2) || VER_RHEL_GE(8, 2)
+#if (VER_NON_RHEL_GE(5, 2) && VER_NON_RHEL_LT(6, 2)) || \
+		(VER_RHEL_GE(8, 2) && RHEL_RELEASE_LT(9, 305, 0, 0))
 	.ndo_get_devlink_port	= nfp_devlink_get_devlink_port,
 #elif VER_NON_RHEL_GE(5, 1) && VER_NON_RHEL_LT(5, 2)
 	.ndo_get_devlink	= nfp_devlink_get_devlink,
@@ -2548,7 +2549,8 @@ const struct net_device_ops nfp_nfdk_netdev_ops = {
 	.ndo_get_port_parent_id	= nfp_port_get_port_parent_id,
 #endif
 #ifdef CONFIG_NFP_NET_PF
-#if VER_NON_RHEL_GE(5, 2) && VER_NON_RHEL_LT(6, 2) || VER_RHEL_GE(8, 2)
+#if (VER_NON_RHEL_GE(5, 2) && VER_NON_RHEL_LT(6, 2)) || \
+		(VER_RHEL_GE(8, 2) && RHEL_RELEASE_LT(9, 305, 0, 0))
 	.ndo_get_devlink_port	= nfp_devlink_get_devlink_port,
 #elif VER_NON_RHEL_GE(5, 1) && VER_NON_RHEL_LT(5, 2)
 	.ndo_get_devlink	= nfp_devlink_get_devlink,
