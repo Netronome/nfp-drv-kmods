@@ -41,6 +41,8 @@ if [ "$RPM_BUILD_ROOT" != "/" ]; then
 fi
 mkdir -p $RPM_BUILD_ROOT/%{_srcdir}
 mkdir -p $RPM_BUILD_ROOT/%{_datarootdir}/%{module_name}
+mkdir -p $RPM_BUILD_ROOT//opt/netronome/drv
+mkdir -p $RPM_BUILD_ROOT//etc/profile.d
 
 if [ -d %{_sourcedir}/%{module_name}-%{version}-%{release} ]; then
         cp -Lpr %{_sourcedir}/%{module_name}-%{version}-%{release} $RPM_BUILD_ROOT/%{_srcdir}
@@ -51,6 +53,8 @@ if [ -f %{module_name}-%{version}-%{release}.dkms.tar.gz ]; then
 fi
 
 install -m 755 %{_sourcedir}/%{module_name}-%{version}-%{release}/common.postinst $RPM_BUILD_ROOT/%{_datarootdir}/%{module_name}/postinst
+install -m 755 %{_sourcedir}/%{module_name}-%{version}-%{release}/tools/set_irq_affinity.sh $RPM_BUILD_ROOT//opt/netronome/drv/nfp_set_irq_affinity
+cp -Lpr %{_sourcedir}/%{module_name}-%{version}-%{release}/tools/profile.sh $RPM_BUILD_ROOT//etc/profile.d/nfp_drv_kmods_dkms_profile.sh
 # Add blacklist of nfp_netvf modules
 echo "# Prevents nfp_netvf from automatically loading on older kernels" > %{blacklist_file}
 echo "blacklist nfp_netvf" >> %{blacklist_file}
@@ -98,6 +102,8 @@ exit 0
 %defattr(-,root,root)
 %{_srcdir}
 %{_datarootdir}/%{module_name}/
+/opt/netronome/drv/
+/etc/profile.d/nfp_drv_kmods_dkms_profile.sh
 
 %changelog
 * %(date "+%a %b %d %Y") %packager %{version}-%{release}

@@ -73,12 +73,24 @@ else
 	$(warning OpenSSL not installed. Kernel module will not be signed.)
 endif
 endif
+ifeq ("$(wildcard tools)", "tools")
+	install -d "/opt/netronome/drv"
+
+	# set_irq_affinity, install set_irq_affinity tool
+	install -m 755 tools/set_irq_affinity.sh /opt/netronome/drv/nfp_set_irq_affinity
+
+	# profile, install script to add /opt/netronome/drv to the PATH
+	install -d "/etc/profile.d"
+	install -m 755 tools/profile.sh /etc/profile.d/nfp_drv_kmods_dkms_profile.sh
+endif
 	$(MAKE) $(COMMON_ARGS) modules_install
 
 uninstall:
 	rm -f $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/extra/nfp.ko
 	rm -f $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/extra/nfp_net.ko
 	rm -f $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/extra/nfp_netvf.ko
+	rm -rf /opt/netronome/drv
+	rm -f /etc/profile.d/nfp_drv_kmods_dkms_profile.sh
 	depmod $(DEPMOD_PATH) $(KVER)
 
 .PHONY: build nfp_net noisy coccicheck sparse clean install uninstall

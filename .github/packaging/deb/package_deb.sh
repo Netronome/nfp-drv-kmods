@@ -96,6 +96,10 @@ build_nfp_drv_kmod_dkms () {
     cp ${SRCDIR}/.github/packaging/deb/Makefile ${BUILDDIR}/${PKG_NAME}-dkms-${PKG_VERSION}/Makefile
     cp ${SRCDIR}/.github/packaging/common.postinst \
     ${BUILDDIR}/${PKG_NAME}-dkms-${PKG_VERSION}/common.postinst
+    mkdir -p ${BUILDDIR}/${PKG_NAME}-dkms-${PKG_VERSION}/tools
+    for tl in set_irq_affinity.sh profile.sh; do
+        cp -Lpr ${SRCDIR}/tools/${tl} ${BUILDDIR}/${PKG_NAME}-dkms-${PKG_VERSION}/tools/${tl}
+    done
     mkdir -p ${BUILDDIR}/${PKG_NAME}-dkms-${PKG_VERSION}/debian
     cp -r ${SRCDIR}/.github/packaging/deb/debian/* ${BUILDDIR}/${PKG_NAME}-dkms-${PKG_VERSION}/debian/.
 

@@ -10,6 +10,8 @@ case "$1" in
       if [  "`dkms status -m $NAME`" ]; then
          dkms remove -m $NAME -v $VERSION --all
       fi
+      rm -rf /opt/netronome/drv
+      rm -f /etc/profile.d/nfp_drv_kmods_dkms_profile.sh
     ;;
 
     failed-upgrade)
