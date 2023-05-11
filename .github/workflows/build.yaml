@@ -136,7 +136,7 @@ jobs:
         run: |
           case $RELEASE_NAME in
           el8*)                MIRROR="mirrors.bclinux.org/bclinux" ;;
-          openEuler*)          MIRROR="repo.openeuler.org" ;;
+          openEuler*)          MIRROR="mirrors.dotsrc.org/openeuler" ;;
           7.[0-8].*|8.[0-5].*) MIRROR="vault.centos.org" ;;
           9.0)                 MIRROR="dl.rockylinux.org/vault/rocky" ;;
           9.[1-9])             MIRROR="dl.rockylinux.org/pub/rocky" ;;
@@ -188,6 +188,10 @@ jobs:
         with:
           path: ${{ env.DOWNLOAD }}/${{ env.UPDATE_PATH }}
           key: ${{ env.cache-name }}-${{ matrix.release.name }}-v1
+
+      - name: Update OpenEuler mirror
+        if: startsWith(matrix.release.name, 'openEuler')
+        run: sed -i 's|repo.openeuler.org|mirrors.dotsrc.org/openeuler|g' /etc/yum.repos.d/openEuler.repo
 
       - name: Install Dependencies
         run: yum -q -y install cpio elfutils-libelf-devel findutils gcc make wget ca-certificates
