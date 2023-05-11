@@ -18,7 +18,7 @@ env:
 
 jobs:
   build-ubuntu:
-    name: Build Ubuntu
+    name: 'Build Ubuntu: ${{matrix.release.name}}-${{matrix.release.kernel}}'
     runs-on: ubuntu-${{ matrix.release.name }}
     timeout-minutes: 90
     env:
@@ -84,7 +84,7 @@ jobs:
             search-pattern: "*-${{ env.FLAVOUR }}"
 
   build-centos:
-    name: Build CentOS, BC Linux, OpenEuler, Kylin
+    name: 'Build-CentOS: ${{matrix.release.name}}'
     runs-on: ubuntu-20.04
     timeout-minutes: 90
     env:
@@ -290,7 +290,7 @@ jobs:
             search-path: "${{ env.UNPACKED }}/usr/src/kernels"
 
   build-upstream-ubuntu:
-    name: Build Upstream (Ubuntu)
+    name: 'Build-Upstream: ${{matrix.release.name}}'
     runs-on: ubuntu-${{ matrix.release.runs-on }}
     timeout-minutes: 20
     env:
@@ -410,7 +410,7 @@ jobs:
             search-path: "${{ env.UNPACKED }}/usr/src"
 
   build-upstream-ubuntu-container:
-    name: Build Upstream (Ubuntu container)
+    name: 'Build-Upstream-Old: ${{matrix.release}}'
     runs-on: ubuntu-20.04
     timeout-minutes: 20
     env:
@@ -506,7 +506,7 @@ jobs:
             search-path: "${{ env.UNPACKED }}/usr/src"
 
   build-upstream-centos-container:
-    name: Build Upstream (CentOS container)
+    name: 'Build-Really-Old: ${{matrix.release}}'
     runs-on: ubuntu-20.04
     timeout-minutes: 20
     env:
