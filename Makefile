@@ -79,6 +79,9 @@ ifeq ("$(wildcard tools)", "tools")
 	# set_irq_affinity, install set_irq_affinity tool
 	install -m 755 tools/set_irq_affinity.sh /opt/netronome/drv/nfp_set_irq_affinity
 
+	# nfp_troubleshoot, install nfp_troubleshoot_gather script
+	install -m 755 tools/nfp_troubleshoot_gather.py /opt/netronome/drv/nfp_troubleshoot_gather
+
 	# profile, install script to add /opt/netronome/drv to the PATH
 	install -d "/etc/profile.d"
 	install -m 755 tools/profile.sh /etc/profile.d/nfp_drv_kmods_dkms_profile.sh

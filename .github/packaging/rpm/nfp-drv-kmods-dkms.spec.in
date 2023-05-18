@@ -54,6 +54,7 @@ fi
 
 install -m 755 %{_sourcedir}/%{module_name}-%{version}-%{release}/common.postinst $RPM_BUILD_ROOT/%{_datarootdir}/%{module_name}/postinst
 install -m 755 %{_sourcedir}/%{module_name}-%{version}-%{release}/tools/set_irq_affinity.sh $RPM_BUILD_ROOT//opt/netronome/drv/nfp_set_irq_affinity
+install -m 755 %{_sourcedir}/%{module_name}-%{version}-%{release}/tools/nfp_troubleshoot_gather.py $RPM_BUILD_ROOT//opt/netronome/drv/nfp_troubleshoot_gather
 cp -Lpr %{_sourcedir}/%{module_name}-%{version}-%{release}/tools/profile.sh $RPM_BUILD_ROOT//etc/profile.d/nfp_drv_kmods_dkms_profile.sh
 # Add blacklist of nfp_netvf modules
 echo "# Prevents nfp_netvf from automatically loading on older kernels" > %{blacklist_file}

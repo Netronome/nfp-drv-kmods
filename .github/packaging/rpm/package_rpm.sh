@@ -97,7 +97,7 @@ build_nfp_drv_kmod_dkms () {
     cp -Lpr /var/lib/dkms/${PKG_NAME}/${FULL_PKG_VERSION}/source/* \
     ${BUILDDIR}/rpmbuild/SOURCES/${PKG_NAME}-${FULL_PKG_VERSION}
     mkdir ${BUILDDIR}/rpmbuild/SOURCES/${PKG_NAME}-${FULL_PKG_VERSION}/tools
-    for tl in set_irq_affinity.sh profile.sh; do
+    for tl in set_irq_affinity.sh profile.sh nfp_troubleshoot_gather.py; do
         cp -Lpr ${SRCDIR}/tools/${tl} ${BUILDDIR}/rpmbuild/SOURCES/${PKG_NAME}-${FULL_PKG_VERSION}/tools/
     done
 
