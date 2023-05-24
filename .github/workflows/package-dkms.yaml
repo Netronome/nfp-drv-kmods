@@ -1,4 +1,6 @@
 name: Package DKMS
+run-name: >-
+  Package-DKMS: ${{ github.head_ref || github.ref_name }}
 
 # ========== TRIGGER ==========
 on:
