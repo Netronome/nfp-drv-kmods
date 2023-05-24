@@ -66,21 +66,27 @@ jobs:
       - name: Clean up the working directory
         run: find -delete
 
-      # --- CLONE REPOSITORIES ---
-      - name: Checkout nfp driver kmods repo
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
       - name: Add nfp-drv-kmods-private to git safe directory list
         run: git config --global --add safe.directory `pwd`
 
-      - name: Clone ci-libs (for other GH actions)
-        uses: actions/checkout@v3
+      # The commands in docker is run as root, with UUID of 0. The
+      # ownwership of the working directory is under a different UUID, since
+      # it is mounted from the host. This causes "dubious ownership" issues
+      # with git, and for some reason the usual global .gitconfig setting does
+      # not take effect. To fix this just change the ownership of the
+      # directory. This is cleaned up again at the end of the run, so the
+      # permissions is not expected to cause any problems on the github-runner
+      # side
+      - name: Update the ownership of the working directory
+        run: |
+          chown -R 0:0 $(pwd)
+
+      # --- CLONE REPOSITORIES ---
+      - name: Checkout nfp driver kmods repo
+        uses: Corigine/ci-libs/github_actions/utilities/checkout_corigine@main
         with:
-          repository: Corigine/ci-libs
           token: ${{ secrets.GHUB_TOKEN }}
-          path: ci-libs
+          fetch-depth: 0
 
       - name: Install azcopy binary
         run: |
@@ -170,8 +176,12 @@ jobs:
 
       # --- UPLOAD DKMS PACKAGE TO AZURE ---
       - name: Upload to DKMS Package to Azure storage
-        uses: ./ci-libs/github_actions/azure/azcopy_upload_sync
+        uses: Corigine/ci-libs/github_actions/azure/azcopy_upload_sync@main
         with:
           connection-string: ${{ secrets.AZ_SAS_TOK }}
           src: '${{ steps.build_dest.outputs.dkms_bin_path }}'
           dst: '${{steps.build_dest.outputs.azure_dest}}'
+
+      - name: Clean up afterwards
+        if: always()
+        run: find -delete
