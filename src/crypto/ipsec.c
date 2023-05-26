@@ -268,7 +268,7 @@ static void set_sha2_512hmac(struct nfp_ipsec_cfg_add_sa *cfg, int *trunc_len)
 	}
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
+#if VER_NON_RHEL_LT(6, 3) || RHEL_RELEASE_LT(9, 316, 0, 0)
 #undef NL_SET_ERR_MSG_MOD
 #define NL_SET_ERR_MSG_MOD(e, m)	nn_err(nn, "%s\n", m)
 static int nfp_net_xfrm_add_state(struct xfrm_state *x)
@@ -495,7 +495,7 @@ static int nfp_net_xfrm_add_state(struct xfrm_state *x,
 	cfg->ctrl_word.encap_dsbl = 1;
 
 	/* SA direction */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0)
+#if VER_NON_RHEL_GE(5, 19) || RHEL_RELEASE_GE(9, 316, 0, 0)
 	cfg->ctrl_word.dir = x->xso.dir;
 #else
 	cfg->ctrl_word.dir = (x->xso.flags & XFRM_OFFLOAD_INBOUND) ? 0 : 1;
