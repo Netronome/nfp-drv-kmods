@@ -24,9 +24,11 @@ jobs:
     env:
       MIRROR: "https://mirrors.edge.kernel.org/ubuntu"
       FLAVOUR: generic
+      MAKEFLAGS: ""
     strategy:
       matrix:
         release: [
+                { "name": "22.04", "kernel": "5.19", "hwe": "hwe" },
                 { "name": "22.04", "kernel": "5.15" },
                 { "name": "20.04", "kernel": "5.4" },
                 { "name": "20.04", "kernel": "5.15", "hwe": "hwe" },
@@ -38,7 +40,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v3
 
-      - name: Set HWE Environment (Ubuntu 20.04)
+      - name: Set HWE Environment (Ubuntu 20.04/22.04)
         if: matrix.release.hwe != ''
         env:
           NAME: ${{ matrix.release.name }}
@@ -60,8 +62,16 @@ jobs:
           echo "FLAVOUR_MATCH=${MATCH}-${FLAVOUR}_*" >> $GITHUB_ENV
           echo "PKG_DIR=linux" >> $GITHUB_ENV
 
-      - name: Install dependencies
+      - name: Install dependencies 20.04
+        if: matrix.release.name == '20.04'
         run: sudo apt-get -q=2 install libelf-dev
+
+      - name: Install dependencies 22.04
+        if: matrix.release.name == '22.04'
+        run: |
+          sudo apt-get -q=2 install libelf-dev gcc-12
+          MAKEFLAGS="${{ env.MAKEFLAGS }} CC=gcc-12"
+          echo "MAKEFLAGS=$MAKEFLAGS" >> $GITHUB_ENV
 
       - name: Download Kernel Headers
         uses: ./.github/actions/download
@@ -77,7 +87,7 @@ jobs:
             input-path: ${{ env.DOWNLOAD }}
             output-path: ${{ env.UNPACKED }}
 
-      - name: Build
+      - name: Build Ubuntu
         uses: ./.github/actions/build
         with:
             search-path: "${{ env.UNPACKED }}/usr/src"
@@ -109,8 +119,13 @@ jobs:
                 { "name": "8.3.2011", "container": "rockylinux:8.5" },
                 { "name": "8.4.2105", "container": "rockylinux:8.5" },
                 { "name": "8.5.2111", "container": "rockylinux:8.5" },
+                { "name": "8.6", "container": "rockylinux:8.5" },
+                { "name": "8.7", "container": "rockylinux:8.5" },
+                { "name": "8.8", "container": "rockylinux:8.5" },
                 { "name": "8-stream", "container": "rockylinux:8.5" },
                 { "name": "9.0", "container": "rockylinux:9.0" },
+                { "name": "9.1", "container": "rockylinux:9.0" },
+                { "name": "9.2", "container": "rockylinux:9.0" },
                 { "name": "9-stream", "container": "rockylinux:9.0" },
                 # openEuler
                 { "name": "openEuler-20.03-LTS", "container": "openeuler/openeuler:20.03-lts-sp3" },
@@ -138,6 +153,8 @@ jobs:
           el8*)                MIRROR="mirrors.bclinux.org/bclinux" ;;
           openEuler*)          MIRROR="mirrors.dotsrc.org/openeuler" ;;
           7.[0-8].*|8.[0-5].*) MIRROR="vault.centos.org" ;;
+          8.[6-7])             MIRROR="dl.rockylinux.org/vault/rocky" ;;
+          8.8)                 MIRROR="dl.rockylinux.org/pub/rocky" ;;
           9.0)                 MIRROR="dl.rockylinux.org/vault/rocky" ;;
           9.[1-9])             MIRROR="dl.rockylinux.org/pub/rocky" ;;
           9-*)                 MIRROR="mirror.stream.centos.org" ;;
@@ -164,6 +181,8 @@ jobs:
 
           case $RELEASE_NAME in
           9.*)    OS_PATH="$MIRROR/$RELEASE_NAME/$OS_DIR1/x86_64/$OS_DIR2/Packages/k/"
+                  ;;
+          8.[6-9])    OS_PATH="$MIRROR/$RELEASE_NAME/$OS_DIR1/x86_64/$OS_DIR2/Packages/k/"
                   ;;
           *)      OS_PATH="$MIRROR/$RELEASE_NAME/$OS_DIR1/x86_64/$OS_DIR2/Packages/"
           esac
@@ -302,6 +321,8 @@ jobs:
         release: [
           { name: "net-next",  runs-on: "20.04", },
           { name: "net",       runs-on: "20.04", },
+          { name: "6.3",       runs-on: "20.04", },
+          { name: "6.2",       runs-on: "20.04", },
           { name: "6.1",       runs-on: "20.04", },
           { name: "6.0",       runs-on: "20.04", },
           { name: "5.19",      runs-on: "20.04", },
