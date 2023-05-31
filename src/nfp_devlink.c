@@ -452,6 +452,11 @@ const struct devlink_ops nfp_devlink_ops = {
 #endif
 };
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0)
+static const struct devlink_port_ops nfp_devlink_port_ops = {
+};
+#endif
+
 int nfp_devlink_port_register(struct nfp_app *app, struct nfp_port *port)
 {
 	struct compat__devlink_port_attrs attrs = {};
@@ -486,7 +491,12 @@ int nfp_devlink_port_register(struct nfp_app *app, struct nfp_port *port)
 
 	devlink = priv_to_devlink(app->pf);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0)
+	return devl_port_register_with_ops(devlink, &port->dl_port,
+					   port->eth_id, &nfp_devlink_port_ops);
+#else
 	return devl_port_register(devlink, &port->dl_port, port->eth_id);
+#endif
 }
 
 void nfp_devlink_port_unregister(struct nfp_port *port)
