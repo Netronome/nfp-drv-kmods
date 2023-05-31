@@ -436,8 +436,10 @@ nfp_devlink_flash_update(struct devlink *devlink,
 #endif
 
 const struct devlink_ops nfp_devlink_ops = {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 5, 0)
 	.port_split		= nfp_devlink_port_split,
 	.port_unsplit		= nfp_devlink_port_unsplit,
+#endif
 #if COMPAT__HAS_DEVLINK_SB
 	.sb_pool_get		= nfp_devlink_sb_pool_get,
 	.sb_pool_set		= nfp_devlink_sb_pool_set,
@@ -454,6 +456,8 @@ const struct devlink_ops nfp_devlink_ops = {
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 0)
 static const struct devlink_port_ops nfp_devlink_port_ops = {
+	.port_split		= nfp_devlink_port_split,
+	.port_unsplit		= nfp_devlink_port_unsplit,
 };
 #endif
 
