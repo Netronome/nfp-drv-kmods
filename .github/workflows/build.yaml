@@ -155,8 +155,8 @@ jobs:
           7.[0-8].*|8.[0-5].*) MIRROR="vault.centos.org" ;;
           8.[6-7])             MIRROR="dl.rockylinux.org/vault/rocky" ;;
           8.8)                 MIRROR="dl.rockylinux.org/pub/rocky" ;;
-          9.0)                 MIRROR="dl.rockylinux.org/vault/rocky" ;;
-          9.[1-9])             MIRROR="dl.rockylinux.org/pub/rocky" ;;
+          9.[0-1])             MIRROR="dl.rockylinux.org/vault/rocky" ;;
+          9.[2-9])             MIRROR="dl.rockylinux.org/pub/rocky" ;;
           9-*)                 MIRROR="mirror.stream.centos.org" ;;
           V10*)                MIRROR="update.cs2c.com.cn/NS/V10" ;;
           *)                   MIRROR="mirror.centos.org/centos" ;;
