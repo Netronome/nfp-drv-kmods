@@ -110,6 +110,7 @@ build_nfp_drv_kmod_dkms () {
         --define "mktarball_line none" \
         --define "__find_provides  /usr/lib/dkms/find-provides" \
         --define "_use_internal_dependency_generator 0" \
+        --define "__python3 /usr/bin/python3" \
         -ba ${BUILDDIR}/rpmbuild/SPECS/${PKG_NAME}-dkms.spec
     cd ${source_working_dir}
     cp ${BUILDDIR}/rpmbuild/RPMS/noarch/*.rpm ${OUTDIR}/${PKG_NAME}/
