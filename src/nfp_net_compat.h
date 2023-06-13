@@ -1606,4 +1606,11 @@ void netif_inherit_tso_max(struct net_device *to,
 #define u64_stats_fetch_begin_irq u64_stats_fetch_begin
 #define u64_stats_fetch_retry_irq u64_stats_fetch_retry
 #endif
+
+#if defined(COMPAT__HAVE_TLS_OFFLOAD) && (LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 0))
+static inline bool tls_is_skb_tx_device_offloaded(struct sk_buff *skb)
+{
+	return skb->sk && tls_is_sk_tx_device_offloaded(skb->sk);
+}
+#endif
 #endif /* _NFP_NET_COMPAT_H_ */
