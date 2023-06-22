@@ -138,6 +138,8 @@ jobs:
       - name: Prepare environment for upload
         id: build_dest
         run: |
+          DATE="$(date -u +%Y.%m.%d)"
+
           temp_dir=$(pwd)
           cd ${BIN_TYPE}/${BIN_PKG_NAME}
           DKMS_PKG_NAME=$(ls ${BIN_PKG_NAME}-dkms*.${BIN_TYPE})
@@ -153,16 +155,21 @@ jobs:
           fi
           case $GITHUB_REF in
             "refs/heads/release-"*)
-              AZURE_PATH="binaries/nfp-drv-dkms/releases${DST_SUFFIX}"
+              TARGET_FOLDER=${GITHUB_REF#*-}
+              TARGET_FOLDER=${TARGET_FOLDER:0:5}
+              AZURE_PATH="binaries/nfp-drv-dkms/releases${DST_SUFFIX}/${TARGET_FOLDER}"
               ;;
             "refs/heads/prerelease-"*)
-              AZURE_PATH="binaries/nfp-drv-dkms/prereleases${DST_SUFFIX}"
+              TARGET_FOLDER=${GITHUB_REF#*-}
+              TARGET_FOLDER=${TARGET_FOLDER:0:5}
+              AZURE_PATH="binaries/nfp-drv-dkms/prereleases${DST_SUFFIX}/${TARGET_FOLDER}"
               ;;
             "refs/heads/${DEFAULT_BRANCH}")
               AZURE_PATH="binaries/nfp-drv-dkms/interim${DST_SUFFIX}/${BIN_PKG_NAME}"
               ;;
             *)
               AZURE_PATH="tmp/nfp_drv_dkms_builds${DST_SUFFIX}"
+              AZURE_PATH="$AZURE_PATH/${{ github.actor }}/${DATE}"
               ;;
           esac
 
