@@ -358,7 +358,7 @@ static inline int skb_xmit_more(struct sk_buff *skb)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 18, 0)
 	return false;
-#elif VER_NON_RHEL_LT(5, 2) || VER_RHEL_LT(8, 2)
+#elif VER_NON_RHEL_OR_KYL_LT(5, 2) || VER_RHEL_LT(8, 2) || VER_KYL_LT(10, 3)
 	return skb->xmit_more;
 #else
 	return netdev_xmit_more();
