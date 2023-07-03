@@ -1602,7 +1602,7 @@ void netif_inherit_tso_max(struct net_device *to,
 #define strscpy strlcpy
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+#if VER_NON_RHEL_GE(6, 3) || RHEL_RELEASE_GE(9, 330, 0, 0)
 #define u64_stats_fetch_begin_irq u64_stats_fetch_begin
 #define u64_stats_fetch_retry_irq u64_stats_fetch_retry
 #endif
