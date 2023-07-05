@@ -68,6 +68,10 @@
 #include "crypto/crypto.h"
 #include "crypto/fw.h"
 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(3, 15, 0)
+static int nfp_net_mc_unsync(struct net_device *netdev, const unsigned char *addr);
+#endif
+
 /**
  * nfp_net_get_fw_version() - Read and parse the FW version
  * @fw_ver:	Output fw_version structure to read to
@@ -1156,6 +1160,11 @@ static int nfp_net_netdev_close(struct net_device *netdev)
 
 	/* Step 2: Tell NFP
 	 */
+#if LINUX_VERSION_CODE > KERNEL_VERSION(3, 15, 0)
+	if (nn->cap_w1 & NFP_NET_CFG_CTRL_MCAST_FILTER)
+		__dev_mc_unsync(netdev, nfp_net_mc_unsync);
+#endif
+
 	nfp_net_clear_config_and_disable(nn);
 	nfp_port_configure(netdev, false);
 
