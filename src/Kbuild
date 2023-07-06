@@ -133,68 +133,59 @@ ccflags-y += -DRHEL_RELEASE_EXTRACT_Z=$(shell echo $(RHEL_REL_STANDARDIZE) | cut
 
 VER_IS_NON_RHEL := $(shell [ $(RHEL_MAJOR) -eq 0 ] && echo y)
 
-RHEL_GE_7_4 := \
-	$(shell [ $(RHEL_MAJOR) -gt 7 -o \
-	\( $(RHEL_MAJOR) -eq 7 -a $(RHEL_MINOR) -ge 4 \) ] && echo y)
+# Check if it's RHEL kernel and not earlier than given version
+#
+# @param $1: major version
+# @param $2: minor version
+define rhel_ge
+$(shell [ $(RHEL_MAJOR) -gt $1 -o \
+\( $(RHEL_MAJOR) -eq $1 -a $(RHEL_MINOR) -ge $2 \) ] && echo y)
+endef
 
-RHEL_GE_8_0 := $(shell [ $(RHEL_MAJOR) -ge 8 ] && echo y)
-RHEL_GE_8_2 := \
-	$(shell [ $(RHEL_MAJOR) -gt 8 -o \
-	\( $(RHEL_MAJOR) -eq 8 -a $(RHEL_MINOR) -ge 2 \) ] && echo y)
+# Check if the kernel version is not earlier than given version
+#
+# @param $1: major version
+# @param $2: minor version
+define kern_ge
+$(shell [ $(VERSION) -gt $1 -o \
+\( $(VERSION) -eq $1 -a $(PATCHLEVEL) -ge $2 \) ] && echo y)
+endef
 
-RHEL_GE_8_3 := \
-        $(shell [ $(RHEL_MAJOR) -gt 8 -o \
-        \( $(RHEL_MAJOR) -eq 8 -a $(RHEL_MINOR) -ge 3 \) ] && echo y)
+# Define a variable to indicate whether given file containes given string
+#
+# @param $1: file to search in
+# @param $2: string to match
+# @param $3: variable used in following makefile context
+define add_compat_var
+$3 := $(shell grep -q $2 $1 2>/dev/null && echo y)
+endef
 
-RHEL_GE_8_5 := \
-        $(shell [ $(RHEL_MAJOR) -gt 8 -o \
-        \( $(RHEL_MAJOR) -eq 8 -a $(RHEL_MINOR) -ge 5 \) ] && echo y)
+# Define a macro used by source code if given file containes given string
+#
+# @param $1: file to search in
+# @param $2: string to match
+# @param $3: macro used in source code
+define add_compat_flag
+ifeq ($(shell grep -q $2 $1 2>/dev/null && echo y), y)
+  ccflags-y += -D$3
+endif
+endef
 
-KERNEL_GE_4_6 := \
-	$(shell [ $(VERSION) -gt 4 -o \
-	\( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 6 \) ] && echo y)
+# Define a variable to indicate whether given file containes given string
+# and define a macro used by source code if yes
+#
+# @param $1: file to search in
+# @param $2: string to match
+# @param $3: variable used in following makefile context
+# @param $4: macro used in source code
+define add_compat_var_flag
+$3 := $(shell grep -q $2 $1 2>/dev/null && echo y)
+ifeq ($$($3), y)
+  ccflags-y += -D$4
+endif
+endef
 
-KERNEL_GE_4_7 := \
-	$(shell [ $(VERSION) -gt 4 -o \
-	\( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 7 \) ] && echo y)
-
-KERNEL_GE_4_9 := \
-	$(shell [ $(VERSION) -gt 4 -o \
-	\( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 9 \) ] && echo y)
-
-KERNEL_GE_4_13 := \
-	$(shell [ $(VERSION) -gt 4 -o \
-	\( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 13 \) ] && echo y)
-
-KERNEL_GE_4_18 := \
-	$(shell [ $(VERSION) -gt 4 -o \
-	\( $(VERSION) -eq 4 -a $(PATCHLEVEL) -ge 18 \) ] && echo y)
-
-KERNEL_GE_5_0 := \
-	$(shell [ $(VERSION) -gt 5 -o \
-	\( $(VERSION) -eq 5 -a $(PATCHLEVEL) -ge 0 \) ] && echo y)
-
-KERNEL_GE_5_2 := \
-	$(shell [ $(VERSION) -gt 5 -o \
-	\( $(VERSION) -eq 5 -a $(PATCHLEVEL) -ge 2 \) ] && echo y)
-
-KERNEL_GE_5_3 := \
-	$(shell [ $(VERSION) -gt 5 -o \
-	\( $(VERSION) -eq 5 -a $(PATCHLEVEL) -ge 3 \) ] && echo y)
-
-KERNEL_GE_5_4 := \
-	$(shell grep -qr DEVLINK_PARAM_FW_LOAD_POLICY_VALUE_UNKNOWN \
-		$(srctree)/include/uapi/linux/devlink.h 2>/dev/null && echo y)
-
-KERNEL_GE_5_9 := \
-        $(shell [ $(VERSION) -gt 5 -o \
-        \( $(VERSION) -eq 5 -a $(PATCHLEVEL) -ge 9 \) ] && echo y)
-
-KERNEL_GE_5_10 := \
-        $(shell [ $(VERSION) -gt 5 -o \
-        \( $(VERSION) -eq 5 -a $(PATCHLEVEL) -ge 10 \) ] && echo y)
-
-ifeq ($(KERNEL_GE_4_9),y)
+ifeq ($(call kern_ge,4,9),y)
   nfp-objs += nfp_hwmon.o
 else
   nfp-objs += nfp_hwmon_legacy.o
@@ -202,28 +193,11 @@ endif
 
 # Check for ipv6_dst_lookup_flow - in two different locations as some
 # distros have backported this at different times
-ipv6_stubs_h_path := $(srctree)/include/net/ipv6_stubs.h
-addrconf_h_path := $(srctree)/include/net/addrconf.h
-ifneq (,$(wildcard $(ipv6_stubs_h_path)))
-  COMPAT__HAVE_IP6_DST_FLOW_LOOKUP := \
-        $(shell grep -q ipv6_dst_lookup_flow $(ipv6_stubs_h_path) && echo y)
-else
-  COMPAT__HAVE_IP6_DST_FLOW_LOOKUP := \
-        $(shell grep -q ipv6_dst_lookup_flow $(addrconf_h_path) && echo y)
-endif
-ifeq ($(COMPAT__HAVE_IP6_DST_FLOW_LOOKUP), y)
-  ccflags-y += -DCOMPAT__HAVE_IP6_DST_FLOW_LOOKUP=1
-endif
+$(eval $(call add_compat_flag,$(srctree)/include/net/ipv6_stubs.h,ipv6_dst_lookup_flow,COMPAT__HAVE_IP6_DST_FLOW_LOOKUP))
+$(eval $(call add_compat_flag,$(srctree)/include/net/addrconf.h,ipv6_dst_lookup_flow,COMPAT__HAVE_IP6_DST_FLOW_LOOKUP))
 
 # Check for rate_pkt_ps
-flow_offload_h_path := $(srctree)/include/net/flow_offload.h
-ifneq (,$(wildcard $(flow_offload_h_path)))
-  COMPAT__HAVE_RATE_PKT_PS := \
-        $(shell grep -q rate_pkt_ps $(flow_offload_h_path) && echo y)
-endif
-ifeq ($(COMPAT__HAVE_RATE_PKT_PS), y)
-  ccflags-y += -DCOMPAT__HAVE_RATE_PKT_PS=1
-endif
+$(eval $(call add_compat_flag,$(srctree)/include/net/flow_offload.h,rate_pkt_ps,COMPAT__HAVE_RATE_PKT_PS))
 
 ifeq ($(CONFIG_NFP_USER_SPACE_CPP),y)
   ccflags-y += -DCONFIG_NFP_USER_SPACE_CPP
@@ -235,76 +209,24 @@ ifeq ($(CONFIG_NFP_EXPORTS),y)
 endif
 
 # Check for DIM
-dim_path :=$(srctree)/include/linux/dim.h
-ifneq (,$(wildcard $(dim_path)))
-COMPAT_HAVE_DIM := \
-		$(shell grep -q net_dim_get_rx $(dim_path) && echo y)
-endif
-
-ifeq ($(COMPAT_HAVE_DIM),y)
-	ccflags-y +=-DCOMPAT_HAVE_DIM=1
-endif
+$(eval $(call add_compat_flag,$(srctree)/include/linux/dim.h,net_dim_get_rx,COMPAT_HAVE_DIM))
 
 # Check for netif_set_real_num_queues
-netdevice_h_path :=$(srctree)/include/linux/netdevice.h
-ifneq (,$(wildcard $(netdevice_h_path)))
-  COMPAT__HAVE_NETIF_SET_REAL_NUM_QUEUES := \
-        $(shell grep -q netif_set_real_num_queues $(netdevice_h_path) && echo y)
-endif
-ifeq ($(COMPAT__HAVE_NETIF_SET_REAL_NUM_QUEUES),y)
-        ccflags-y +=-DCOMPAT__HAVE_NETIF_SET_REAL_NUM_QUEUES=1
-endif
+$(eval $(call add_compat_flag,$(srctree)/include/linux/netdevice.h,netif_set_real_num_queues,COMPAT__HAVE_NETIF_SET_REAL_NUM_QUEUES))
 
 # Check for flow_offload
-flow_offload_path :=$(srctree)/include/net/flow_offload.h
-ifneq (,$(wildcard $(flow_offload_path)))
-COMPAT__HAVE_FLOW_OFFLOAD := \
-		$(shell grep -q _NET_FLOW_OFFLOAD_H $(flow_offload_path) && echo y)
-endif
+$(eval $(call add_compat_flag,$(srctree)/include/net/flow_offload.h,_NET_FLOW_OFFLOAD_H,COMPAT__HAVE_FLOW_OFFLOAD))
 
-ifeq ($(COMPAT__HAVE_FLOW_OFFLOAD),y)
-	ccflags-y +=-DCOMPAT__HAVE_FLOW_OFFLOAD=1
-endif
-
+utsrelease_h_path :=$(srctree)/include/generated/utsrelease.h
 # Check for BC Linux
-utsrelease_h_path :=$(srctree)/include/generated/utsrelease.h
-ifneq (,$(wildcard $(utsrelease_h_path)))
-  COMPAT_BCLINUX := \
-        $(shell grep -q bclinux $(utsrelease_h_path) && echo y)
-endif
-ifeq ($(COMPAT_BCLINUX),y)
-        ccflags-y +=-DCOMPAT_BCLINUX=1
-endif
-
+$(eval $(call add_compat_flag,$(utsrelease_h_path),bclinux,COMPAT_BCLINUX=1))
 # Check for openEuler Linux
-utsrelease_h_path :=$(srctree)/include/generated/utsrelease.h
-ifneq (,$(wildcard $(utsrelease_h_path)))
-  COMPAT_OELINUX := \
-        $(shell grep -q oe $(utsrelease_h_path) && echo y)
-endif
-ifeq ($(COMPAT_OELINUX),y)
-        ccflags-y +=-DCOMPAT_OELINUX=1
-endif
-
+$(eval $(call add_compat_flag,$(utsrelease_h_path),oe,COMPAT_OELINUX=1))
 # Check for KYLIN Linux
-utsrelease_h_path :=$(srctree)/include/generated/utsrelease.h
-ifneq (,$(wildcard $(utsrelease_h_path)))
-  COMPAT_KYLINUX := \
-        $(shell grep -q ky $(utsrelease_h_path) && echo y)
-endif
-ifeq ($(COMPAT_KYLINUX),y)
-        ccflags-y +=-DCOMPAT_KYLINUX=1
-endif
+$(eval $(call add_compat_var_flag,$(utsrelease_h_path),ky,COMPAT_KYLINUX,COMPAT_KYLINUX=1))
 
 VER_IS_NON_RHEL_OR_KYL := \
 	$(shell [ $(RHEL_MAJOR) -eq 0 ] && [ -z $(COMPAT_KYLINUX) ] && echo y)
-
-# Check for xarray
-xarray_path :=$(srctree)/include/linux/xarray.h
-ifneq (,$(wildcard $(xarray_path)))
-COMPAT_HAVE_XARRAY := \
-		$(shell grep -q XA_LIMIT $(xarray_path) && echo y)
-endif
 
 ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
   ccflags-y += -DCONFIG_NFP_DEBUG
@@ -325,7 +247,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 		nfp_net_sriov.o \
 		nfp_port.o
 
-  ifeq ($(KERNEL_GE_5_3)$(CONFIG_TLS_DEVICE),yy)
+  ifeq ($(call kern_ge,5,3)$(CONFIG_TLS_DEVICE),yy)
     ccflags-y += -DCOMPAT__HAVE_TLS_OFFLOAD=1
 
     nfp-objs += \
@@ -341,12 +263,12 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 		nfp_net_main.o \
 		nic/main.o
 
-    ifneq (,$(filter y,$(KERNEL_GE_4_6) $(RHEL_GE_7_4)))
+    ifneq (,$(filter y,$(call kern_ge,4,6) $(call rhel_ge,7,4)))
       nfp-objs += \
 	       nfp_devlink.o
     endif
 
-    ifneq (,$(filter y,$(KERNEL_GE_5_10) $(RHEL_GE_8_5)))
+    ifneq (,$(filter y,$(call kern_ge,5,10) $(call rhel_ge,8,5)))
       ccflags-y += -DCOMPAT__HAVE_XDP_SOCK_DRV=1
 
       nfp-objs += \
@@ -354,22 +276,23 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 	       nfp_net_xsk.o
     endif
 
-    ifeq ($(KERNEL_GE_5_4),y)
+    $(eval $(call add_compat_var,$(srctree)/include/uapi/linux/devlink.h,DEVLINK_PARAM_FW_LOAD_POLICY_VALUE_UNKNOWN,COMPAT__DEVLINK_PARAM))
+    ifeq ($(COMPAT__DEVLINK_PARAM),y)
       nfp-objs += \
 	       devlink_param.o
     endif
 
-    ifneq (,$(filter y,$(KERNEL_GE_4_7) $(RHEL_GE_7_4)))
+    ifneq (,$(filter y,$(call kern_ge,4,7) $(call rhel_ge,7,4)))
       nfp-objs += \
 		nfp_shared_buf.o
     endif
 
-    ifeq ($(KERNEL_GE_4_13),y)
+    ifeq ($(call kern_ge,4,13),y)
       nfp-objs += \
 		ccm.o
     endif
 
-    ifeq ($(KERNEL_GE_4_18),y)
+    ifeq ($(call kern_ge,4,18),y)
       ifeq ($(CONFIG_BPF_SYSCALL),y)
         nfp-objs += \
 		nfp_asm.o \
@@ -381,24 +304,11 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
       endif
     endif
 
-    netdevice_h_path := $(srctree)/include/linux/netdevice.h
-    COMPAT__HAVE_REGISTER_NETDEVICE_NOTIFIER_RH := \
-	    $(shell [ -e $(netdevice_h_path) ] && \
-		    grep register_netdevice_notifier_rh $(netdevice_h_path) > /dev/null && \
-		    echo y)
-
-    ifeq ($(COMPAT__HAVE_REGISTER_NETDEVICE_NOTIFIER_RH), y)
-        ccflags-y += -DCOMPAT__HAVE_REGISTER_NETDEVICE_NOTIFIER_RH=1
-    endif
-
-    metadata_h_path := $(srctree)/include/net/dst_metadata.h
-    COMPAT__HAVE_METADATA_IP_TUNNEL := \
-	    $(shell [ -e $(metadata_h_path) ] && \
-		    grep METADATA_IP_TUNNEL $(metadata_h_path) > /dev/null && \
-		    echo y)
+    $(eval $(call add_compat_flag,$(srctree)/include/linux/netdevice.h,register_netdevice_notifier_rh,COMPAT__HAVE_REGISTER_NETDEVICE_NOTIFIER_RH))
+    $(eval $(call add_compat_var,$(srctree)/include/net/dst_metadata.h,METADATA_IP_TUNNEL,COMPAT__HAVE_METADATA_IP_TUNNEL))
 
     ifeq ($(COMPAT__HAVE_METADATA_IP_TUNNEL), y)
-      ifneq (,$(filter y,$(VER_IS_NON_RHEL_OR_KYL) $(RHEL_GE_8_0)))
+      ifneq (,$(filter y,$(VER_IS_NON_RHEL_OR_KYL) $(call rhel_ge,8,0)))
 	ccflags-y += -DCOMPAT__HAVE_METADATA_IP_TUNNEL=1
 	nfp-objs += \
 		nfp_net_repr.o
@@ -415,12 +325,12 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
 		flower/main.o \
 		flower/tunnel_conf.o
 
-          ifneq (,$(filter y,$(KERNEL_GE_5_2) $(RHEL_GE_8_2)))
+          ifneq (,$(filter y,$(call kern_ge,5,2) $(call rhel_ge,8,2)))
 	    nfp-objs += \
 		flower/qos_conf.o
 	  endif
 
-          ifneq (,$(filter y,$(KERNEL_GE_5_9) $(RHEL_GE_8_3)))
+          ifneq (,$(filter y,$(call kern_ge,5,9) $(call rhel_ge,8,3)))
 	    nfp-objs += \
 		flower/conntrack.o
 	  endif
@@ -429,7 +339,7 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
           $(warning NFP: CONFIG_NET_SWITCHDEV not enabled in the kernel, disabling apps: flower)
 	endif
 
-	ifeq ($(KERNEL_GE_5_0),y)
+	ifeq ($(call kern_ge,5,0),y)
 	  ccflags-y += -DCONFIG_NFP_APP_ABM_NIC
 	  nfp-objs += \
 		abm/cls.o \
@@ -450,13 +360,10 @@ ifneq (,$(filter y,$(CONFIG_NFP_NET_PF) $(CONFIG_NFP_NET_VF)))
     nfp-objs += nfp_netvf_main.o
   endif
 
-  ifeq ($(CONFIG_NFP_NET_IPSEC),y)
-    ifeq ($(COMPAT_HAVE_XARRAY),y)
-      nfp-objs += crypto/ipsec.o
-      nfp-objs += nfd3/ipsec.o
-	  nfp-objs += nfdk/ipsec.o
-      ccflags-y += -DCONFIG_NFP_NET_IPSEC
-    endif
+  $(eval $(call add_compat_var,$(srctree)/include/linux/xarray.h,XA_LIMIT,COMPAT_HAVE_XARRAY))
+  ifeq ($(CONFIG_NFP_NET_IPSEC)$(COMPAT_HAVE_XARRAY),yy)
+    nfp-objs += crypto/ipsec.o nfd3/ipsec.o nfdk/ipsec.o
+    ccflags-y += -DCONFIG_NFP_NET_IPSEC
   endif
 endif # CONFIG_NFP_NET_*
 
