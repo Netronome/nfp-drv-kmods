@@ -40,6 +40,9 @@
 #ifndef COMPAT_KYLINUX
 #define COMPAT_KYLINUX 0
 #endif
+#ifndef COMPAT_ANOLISLINUX
+#define COMPAT_ANOLISLINUX 0
+#endif
 
 #ifdef COMPAT__UTS_UBUNTU_RELEASE_ABI_BAD
 #undef UTS_UBUNTU_RELEASE_ABI
@@ -106,6 +109,13 @@
 #define VER_OEL_GE(x, y)	(COMPAT_OELINUX && VER_KERN_GE(x, y))
 #define VER_OEL_LT(x, y)	(COMPAT_OELINUX && VER_KERN_LT(x, y))
 #define VER_OEL_EQ(x, y)	(COMPAT_OELINUX && VER_KERN_EQ(x, y))
+
+#define VER_NON_ANOLISL_GE(x, y)	(!COMPAT_ANOLISLINUX && VER_KERN_GE(x, y))
+#define VER_NON_ANOLISL_LT(x, y)	(!COMPAT_ANOLISLINUX && VER_KERN_LT(x, y))
+#define VER_NON_ANOLISL_EQ(x, y)	(!COMPAT_ANOLISLINUX && VER_KERN_EQ(x, y))
+#define VER_ANOLISL_GE(x, y)	(COMPAT_ANOLISLINUX && VER_KERN_GE(x, y))
+#define VER_ANOLISL_LT(x, y)	(COMPAT_ANOLISLINUX && VER_KERN_LT(x, y))
+#define VER_ANOLISL_EQ(x, y)	(COMPAT_ANOLISLINUX && VER_KERN_EQ(x, y))
 
 #define RHEL_RELEASE_MERGE(a, b, c) (((a) << 16) + ((b) << 8) + (c))
 #define RHEL_RELEASE_EXTRACT\

@@ -227,6 +227,8 @@ $(eval $(call add_compat_flag,$(utsrelease_h_path),bclinux,COMPAT_BCLINUX=1))
 $(eval $(call add_compat_flag,$(utsrelease_h_path),oe,COMPAT_OELINUX=1))
 # Check for KYLIN Linux
 $(eval $(call add_compat_var_flag,$(utsrelease_h_path),ky,COMPAT_KYLINUX,COMPAT_KYLINUX=1))
+# Check for Anolis Linux
+$(eval $(call add_compat_var_flag,$(utsrelease_h_path),an8,COMPAT_ANOLISLINUX,COMPAT_ANOLISLINUX=1))
 
 VER_IS_NON_RHEL_OR_KYL := \
 	$(shell [ $(RHEL_MAJOR) -eq 0 ] && [ -z $(COMPAT_KYLINUX) ] && echo y)
