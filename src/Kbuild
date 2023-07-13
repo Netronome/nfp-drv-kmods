@@ -217,6 +217,9 @@ $(eval $(call add_compat_flag,$(srctree)/include/linux/netdevice.h,netif_set_rea
 # Check for flow_offload
 $(eval $(call add_compat_flag,$(srctree)/include/net/flow_offload.h,_NET_FLOW_OFFLOAD_H,COMPAT__HAVE_FLOW_OFFLOAD))
 
+# Check for bpf_mac_inc type
+$(eval $(call add_compat_flag,$(srctree)/include/linux/bpf.h,"^void bpf_map_inc(struct bpf_map \*map);",COMPAT__VOID_BPF_MAP_INC))
+
 utsrelease_h_path :=$(srctree)/include/generated/utsrelease.h
 # Check for BC Linux
 $(eval $(call add_compat_flag,$(utsrelease_h_path),bclinux,COMPAT_BCLINUX=1))

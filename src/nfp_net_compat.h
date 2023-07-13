@@ -1392,7 +1392,7 @@ compat__tls_offload_tx_resync_request(struct sock *sk, u32 got_seq, u32 exp_seq)
 static inline struct bpf_map *
 compat__bpf_map_inc(struct bpf_map *map, bool uref)
 {
-#if VER_NON_RHEL_OR_KYL_LT(5, 5) || VER_RHEL_LT(8, 3) || VER_KYL_LT(10, 3)
+#ifndef COMPAT__VOID_BPF_MAP_INC
 	return bpf_map_inc(map, uref);
 #else
 	bpf_map_inc(map);
