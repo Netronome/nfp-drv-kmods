@@ -256,6 +256,10 @@ jobs:
                 { "name": "V10SP1", "container": "rockylinux:8.5" },
                 { "name": "V10SP2", "container": "rockylinux:8.5" },
                 { "name": "V10SP3", "container": "rockylinux:8.5" },
+                # OpenCloud
+                { "name": "opencloudos/8.5", "container": "rockylinux:8.5" },
+                { "name": "opencloudos/8.6", "container": "rockylinux:8.5" },
+                { "name": "opencloudos/9.0", "container": "rockylinux:9.0" },
         ]
     container:
       image: ${{ matrix.release.container }}
@@ -271,12 +275,13 @@ jobs:
           el8*)                MIRROR="mirrors.bclinux.org/bclinux" ;;
           openEuler*)          MIRROR="mirrors.dotsrc.org/openeuler" ;;
           V10*)                MIRROR="update.cs2c.com.cn/NS/V10" ;;
+          opencloud*)          MIRROR="mirrors.opencloudos.tech" ;;
           esac
 
           case $RELEASE_NAME in
-          el8*)   OS_DIR1="BaseOS"
-                  OS_DIR2="os"
-                  ;;
+          el8*|opencloud*) OS_DIR1="BaseOS"
+                           OS_DIR2="os"
+                           ;;
           openEuler*) OS_DIR1="OS"
                       OS_DIR2=""
                   ;;
