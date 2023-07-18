@@ -7,8 +7,9 @@ on:
       - 'public-main'   # Or other default branch name
       - 'test-*'        # Temporary test build
       - 'build-*'       # Temporary build, no testing
-      - 'prerelease-*'  # Prerelease build
-      - 'release-*'     # Release build
+    tags:
+      - 'prerelease-*'  # Prerelease tag
+      - 'release-*'     # Release tag
   workflow_dispatch:
 
 jobs:
@@ -35,8 +36,8 @@ jobs:
     if: >-
       always() &&
       (((github.head_ref || github.ref_name) == 'public-main')
-      || startsWith(github.head_ref || github.ref_name, 'release-')
-      || startsWith(github.head_ref || github.ref_name, 'prerelease-'))
+      || startsWith(github.ref_name, 'release-')
+      || startsWith(github.ref_name, 'prerelease-'))
     steps:
       - name: Clean old artifacts
         run: sudo find -delete
