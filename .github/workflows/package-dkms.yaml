@@ -121,6 +121,7 @@ jobs:
         env:
           DISTRO: ${{ matrix.distro }}
           DEFAULT_BRANCH: public-main
+          HEAD_REF: ${{ github.head_ref || github.ref_name }}
 
       # --- BUILD DKMS PACKAGE ---
       - name: Ubuntu | Build DEB DKMS package
@@ -128,15 +129,18 @@ jobs:
         run: sudo -E .github/scripts/package-dkms.sh -t d
         env:
           DEFAULT_BRANCH: ${{steps.describe.outputs.default_branch}}
+          HEAD_REF: ${{ github.head_ref || github.ref_name }}
 
       - name: CentOS | Build RPM DKMS package
         if: matrix.distro == 'rockylinux:8.5'
         run: sudo -E .github/scripts/package-dkms.sh -t r
         env:
           DEFAULT_BRANCH: ${{steps.describe.outputs.default_branch}}
+          HEAD_REF: ${{ github.head_ref || github.ref_name }}
 
       - name: Prepare environment for upload
         id: build_dest
+        shell: bash
         run: |
           DATE="$(date -u +%Y.%m.%d)"
 
@@ -153,18 +157,18 @@ jobs:
           if [ ! "$DEFAULT_BRANCH" = "public-main" ]; then
             DST_SUFFIX=".${DEFAULT_BRANCH#wip-}"
           fi
-          case $GITHUB_REF in
-            "refs/heads/release-"*)
-              TARGET_FOLDER=${GITHUB_REF#*-}
+          case $HEAD_REF in
+            "release-"*)
+              TARGET_FOLDER=${HEAD_REF#*-}
               TARGET_FOLDER=${TARGET_FOLDER:0:5}
               AZURE_PATH="binaries/nfp-drv-dkms/releases${DST_SUFFIX}/${TARGET_FOLDER}"
               ;;
-            "refs/heads/prerelease-"*)
-              TARGET_FOLDER=${GITHUB_REF#*-}
+            "prerelease-"*)
+              TARGET_FOLDER=${HEAD_REF#*-}
               TARGET_FOLDER=${TARGET_FOLDER:0:5}
               AZURE_PATH="binaries/nfp-drv-dkms/prereleases${DST_SUFFIX}/${TARGET_FOLDER}"
               ;;
-            "refs/heads/${DEFAULT_BRANCH}")
+            "${DEFAULT_BRANCH}")
               AZURE_PATH="binaries/nfp-drv-dkms/interim${DST_SUFFIX}/${BIN_PKG_NAME}"
               ;;
             *)
@@ -180,6 +184,7 @@ jobs:
           DEFAULT_BRANCH: ${{steps.describe.outputs.default_branch}}
           BIN_TYPE: '${{ steps.describe.outputs.binary_type }}'
           BIN_PKG_NAME: '${{ steps.describe.outputs.pkg_name }}'
+          HEAD_REF: ${{ github.head_ref || github.ref_name }}
 
       # --- UPLOAD DKMS PACKAGE TO AZURE ---
       - name: Upload to DKMS Package to Azure storage

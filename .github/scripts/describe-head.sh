@@ -22,6 +22,15 @@ optional arguments:
     --pkg_rev       package revision
     --help          output this prompt
 
+environment variables:
+    HEAD_REF        Ref name that takes priority over the automatic
+                    determination of the branch. This can be any ref
+                    for example a TAG name and is not just applicable to
+                    branches.
+    BUILD_DATE      Variable that can be used to specify the build date,
+                    if it is not set then the build date is determined
+                    automatically.
+
 EOH
 }
 
@@ -33,7 +42,7 @@ fi
 
 HASH="$(git rev-parse --short HEAD)"
 DATE="${BUILD_DATE:-$(date -u +%y.%m.%d)}"
-BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+BRANCH="${HEAD_REF:-$(git rev-parse --abbrev-ref HEAD)}"
 CHANGES=""
 
 # Find total number of commits

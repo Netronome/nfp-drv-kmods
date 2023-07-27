@@ -150,18 +150,23 @@ jobs:
           if [ ! "$DEFAULT_BRANCH" = "public-main" ]; then
             DST_SUFFIX=".${DEFAULT_BRANCH#wip-}"
           fi
-          case $GITHUB_REF in
-            "refs/heads/release-"*)
-              AZURE_PATH="binaries/nfp-drv-dkms/releases${DST_SUFFIX}"
+          case $HEAD_REF in
+            "release-"*)
+              TARGET_FOLDER=${HEAD_REF#*-}
+              TARGET_FOLDER=${TARGET_FOLDER:0:5}
+              AZURE_PATH="binaries/nfp-drv-dkms/releases${DST_SUFFIX}/${TARGET_FOLDER}"
               ;;
-            "refs/heads/prerelease-"*)
-              AZURE_PATH="binaries/nfp-drv-dkms/prereleases${DST_SUFFIX}"
+            "prerelease-"*)
+              TARGET_FOLDER=${HEAD_REF#*-}
+              TARGET_FOLDER=${TARGET_FOLDER:0:5}
+              AZURE_PATH="binaries/nfp-drv-dkms/prereleases${DST_SUFFIX}/${TARGET_FOLDER}"
               ;;
-            "refs/heads/${DEFAULT_BRANCH}")
+            "${DEFAULT_BRANCH}")
               AZURE_PATH="binaries/nfp-drv-dkms/interim${DST_SUFFIX}/${PACKAGE_NAME}"
               ;;
             *)
               AZURE_PATH="tmp/nfp_drv_dkms_builds${DST_SUFFIX}"
+              AZURE_PATH="$AZURE_PATH/${{ github.actor }}"
               ;;
           esac
 
@@ -169,6 +174,7 @@ jobs:
         env:
           DISTRO: ${{ matrix.distro }}
           DEFAULT_BRANCH: public-main
+          HEAD_REF: ${{ github.head_ref || github.ref_name }}
 
       - name: Find package name from Azure
         uses: ./ci-libs/github_actions/azure/azcopy_list
