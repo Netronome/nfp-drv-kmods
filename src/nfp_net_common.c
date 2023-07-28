@@ -1083,7 +1083,7 @@ static int nfp_net_set_config_and_enable(struct nfp_net *nn)
 	for (r = 0; r < nn->dp.num_rx_rings; r++)
 		nfp_net_rx_ring_fill_freelist(&nn->dp, &nn->dp.rx_rings[r]);
 
-#if COMPAT__HAVE_VXLAN_OFFLOAD && LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
+#if COMPAT__HAVE_VXLAN_OFFLOAD && (VER_NON_RHEL_LT(5, 9) || VER_RHEL_LT(8, 4))
 	/* Since reconfiguration requests while NFP is down are ignored we
 	 * have to wipe the entire VXLAN configuration and reinitialize it.
 	 */
