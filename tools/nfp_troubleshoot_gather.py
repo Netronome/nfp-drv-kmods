@@ -603,15 +603,17 @@ def common_data(outDir):
 
 def sos_data(outDir):
     """Output data from sos."""
-    loaded_plugins, _, _ = scmd('echo "-o networking -o logs -o kernel"',
-                                fail=False)
+    sos_cmd = get_sosreport_cmd()
+    if sos_cmd == "":
+        return False
+    loaded_plugins = "-o networking -o logs -o kernel"
     loaded_plugins_path = f'{outDir}/loaded_plugins'
-    write_logfile(loaded_plugins, loaded_plugins_path)
+    write_logfile(f"{loaded_plugins}\n", loaded_plugins_path)
     # sos report -o networking -o logs -o kernel --batch --tmp-dir --build
-    plugins, _, _ = scmd(f'cat {loaded_plugins_path}')
-    plugins = plugins.replace('\n', '')
-    scmd(f'sos report {plugins} --batch --tmp-dir {outDir} --build',
+    print("Generate DATA with sos")
+    scmd(f'{sos_cmd} {loaded_plugins} --batch --tmp-dir {outDir} --build',
          fail=False)
+    return True
 
 
 def self_data(outDir):
@@ -1132,6 +1134,27 @@ def collect_bsp_data(bsp_path, outDir, args):
             write_rtsym(bsp_path, ndev_pci, rtsym_dict, sym, fpath)
 
 
+def get_sosreport_cmd():
+    """ Check for the existance of either 'sos' or 'sosreport'
+
+    Return 'sos report' if tool is 'sos'
+    Return 'sosreport' if tools is 'sosreport'
+    Return empty string if neither was found
+    """
+
+    # Try 'sosreport'
+    sos_path = shutil.which("sosreport")
+    if sos_path is not None:
+        return sos_path
+
+    # Try 'sos'
+    sos_path = shutil.which("sos")
+    if sos_path is not None:
+        return f"{sos_path} report"
+
+    return ""
+
+
 def main():
     """Call the main program functions."""
     global SCRIPT_LOG
@@ -1160,17 +1183,12 @@ def main():
         with open(SCRIPT_LOG, 'a') as logf:
             logf.write('Script NOT executed as root\n')
 
-    is_sos, _, _ = scmd('whereis sos')
-    is_sos = is_sos.replace('\n', '')
-    if is_sos != "sos:":
-        print("Generate DATA with sos")
-        common_data(outDir)
-        sos_data(outDir)
-    else:
+    common_data(outDir)
+    if not sos_data(outDir):
         print("sos is not installed. Suggest install")
         print("Generate DATA without sos")
-        common_data(outDir)
         self_data(outDir)
+
     # BSP tools require sudo access, only execute if running as superuser
     if is_root is True:
         bsp_path = check_bsp_tools_installed()
