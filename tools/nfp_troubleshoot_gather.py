@@ -393,9 +393,9 @@ def check_bsp_tools_installed():
        Returns the path of the installation if found, else empty string
     """
     # Check if in path by checking "which"
-    out, err, ret = scmd("which nfp-hwinfo", fail=False)
-    if ret == 0:
-        return os.path.dirname(out.strip())
+    path = shutil.which("nfp-hwinfo")
+    if path is not None:
+        return os.path.dirname(path)
 
     # Otherwise check common path(s) for tools installation
     for path in BSP_PATHS:
