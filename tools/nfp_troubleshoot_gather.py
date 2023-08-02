@@ -468,6 +468,15 @@ def common_data(outDir):
     write_logfile(str(nfp_pcis), nfp_pcis_path)
 
     for line in nfp_pcis:
+        # Driver might not be bound to nfp, in which case none of the below
+        # data can be gathered. Log this and move to next nfp pci device.
+        if not os.path.exists(f'/sys/bus/pci/drivers/nfp/{line}/net'):
+            no_ndev_log_path = f'{outDir}/{line}_no_netdevs'
+            msg = f"No netdevs seem to exist for {line}. Most likely cause "
+            msg += "is that the device is not bound to the nfp driver\n"
+            write_logfile(msg, no_ndev_log_path)
+            continue
+
         ndevs = "\n".join(os.listdir(f'/sys/bus/pci/drivers/nfp/{line}/net'))
         ndevs_path = f'{outDir}/ndevs.log'
         write_logfile(ndevs, ndevs_path, flags='a')
