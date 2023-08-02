@@ -12,6 +12,7 @@ VENDOR_LIST = ["0x19ee", "0x1da8"]
 CONFIG_DEBUG_SCMD = False
 SCRIPT_LOG = ""
 BSP_PATHS = ["/opt/corigine/bin", "/opt/netronome/bin"]
+REQ_SHELL_TOOLS = ["tar"]
 
 
 # Map of island number to human readable component
@@ -1160,6 +1161,15 @@ def main():
     global SCRIPT_LOG
 
     args = parse_cmdline()
+
+    missing_tools = []
+    for tool in REQ_SHELL_TOOLS:
+        if shutil.which(tool) is None:
+            missing_tools.append(tool)
+    if missing_tools:
+        print(f"Missing tools: {', '.join(missing_tools)}\n"
+              "Please ensure these are installed on the system.")
+        exit(1)
 
     baseDir = os.path.abspath(args.logdir)
     date, _, _ = scmd('date -u +%Y.%m.%d.%H%M')
