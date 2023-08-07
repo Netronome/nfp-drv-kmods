@@ -170,7 +170,7 @@ jobs:
               ;;
           esac
 
-          echo "azure_dest=$(echo "${AZURE_PATH}/${BINARY_TYPE}")" >> $GITHUB_OUTPUT
+          echo "azure_dest=$(echo "${AZURE_PATH}")" >> $GITHUB_OUTPUT
         env:
           DISTRO: ${{ matrix.distro }}
           DEFAULT_BRANCH: public-main
@@ -182,7 +182,7 @@ jobs:
         with:
           connection-string: ${{ secrets.AZ_SAS_TOK }}
           src: ${{ steps.describe.outputs.azure_dest }}
-          pattern: "${{ steps.describe.outputs.pkg_version }}"
+          pattern: "${{ steps.describe.outputs.pkg_version }}.*${{ steps.describe.outputs.binary_type }}"
 
       - name: Download DKMS Package from Azure storage
         uses: ./ci-libs/github_actions/azure/azcopy_download_sync
