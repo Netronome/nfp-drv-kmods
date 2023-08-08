@@ -515,6 +515,11 @@ def common_data(outDir):
     lspci_path = f'{outDir}/lspci'
     write_logfile(lspci_info, lspci_path)
 
+    # lspci - tree view
+    lspci_tv_info, _, _ = scmd('lspci -tv', fail=False)
+    lspci_tv_path = f'{outDir}/lspci_tv'
+    write_logfile(lspci_tv_info, lspci_tv_path)
+
     # firewalld
     firewalld_info, _, _ = scmd('systemctl status firewalld', fail=False)
     firewalld_path = f'{outDir}/systemctl_status_firewalld'
@@ -546,6 +551,23 @@ def common_data(outDir):
     numactl_path = f'{outDir}/numactl_hardware'
     write_logfile(numactl_info, numactl_path)
 
+    # The next two commands tries to capture the installed packages on
+    # the system. Adding system detection that is stable accross all
+    # OS's is complicated and error prone, so instead just log both
+    # std_out and std_err for both 'rpm -qa' and 'dpkg -l'
+
+    # rpm -qa
+    rpm_info, err, _ = scmd('rpm -qa', fail=False)
+    rpm_info += f"\n{err}"
+    rpm_path = f'{outDir}/rpm_package_list'
+    write_logfile(rpm_info, rpm_path)
+
+    # dpkg -l
+    deb_info, err, _ = scmd('dpkg -l', fail=False)
+    deb_info += f"\n{err}"
+    deb_path = f'{outDir}/deb_package_list'
+    write_logfile(deb_info, deb_path)
+
     # dmidecode
     for dmi in ["bios", "system", "baseboard", "chassis", "processor",
                 "memory", "cache", "connector", "slot"]:
@@ -560,6 +582,20 @@ def common_data(outDir):
         shutil.copy2('/proc/meminfo', meminfo_path)
     except Exception:
         write_logfile('Error reading /proc/meminfo', meminfo_path)
+
+    # /proc/cpuinfo
+    cpuinfo_path = f'{outDir}/proc_cpuinfo'
+    try:
+        shutil.copy2('/proc/cpuinfo', cpuinfo_path)
+    except Exception:
+        write_logfile('Error reading /proc/cpuinfo', cpuinfo_path)
+
+    # /var/boot.log
+    bootlog_path = f'{outDir}/boot.log'
+    try:
+        shutil.copy2('/var/log/boot.log', bootlog_path)
+    except Exception:
+        write_logfile('Error reading /var/log/boot.log', bootlog_path)
 
     # history
     home_dir = os.path.expanduser('~')
