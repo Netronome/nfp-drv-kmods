@@ -260,6 +260,10 @@ jobs:
                 { "name": "opencloudos/8.5", "container": "rockylinux:8.5" },
                 { "name": "opencloudos/8.6", "container": "rockylinux:8.5" },
                 { "name": "opencloudos/9.0", "container": "rockylinux:9.0" },
+                # Anolis
+                { "name": "anolis/7.9", "container": "openanolis/anolisos:7.9-x86_64" },
+                { "name": "anolis/8.6", "container": "openanolis/anolisos:8.6" },
+                { "name": "anolis/8.8", "container": "openanolis/anolisos:8.8" },
         ]
     container:
       image: ${{ matrix.release.container }}
@@ -276,17 +280,34 @@ jobs:
           openEuler*)          MIRROR="mirrors.dotsrc.org/openeuler" ;;
           V10*)                MIRROR="update.cs2c.com.cn/NS/V10" ;;
           opencloud*)          MIRROR="mirrors.opencloudos.tech" ;;
+          anolis*)             MIRROR="mirrors.openanolis.cn" ;;
           esac
 
           case $RELEASE_NAME in
-          el8*|opencloud*) OS_DIR1="BaseOS"
-                           OS_DIR2="os"
-                           ;;
-          openEuler*) OS_DIR1="OS"
-                      OS_DIR2=""
+          el8*|opencloud*|8.[2-6])
+                  OS_DIR1="BaseOS"
+                  OS_DIR2="os"
                   ;;
-          V10*)   OS_DIR1="os/adv/lic/base"
+          openEuler*)
+                  OS_DIR1="OS"
                   OS_DIR2=""
+                  ;;
+          V10*)
+                  OS_DIR1="os/adv/lic/base"
+                  OS_DIR2=""
+                  ;;
+          anolis/7.9)
+                  OS_DIR1="os"
+                  OS_DIR2="os"
+                  ;;
+          anolis/8.6)
+                  OS_DIR1="BaseOS"
+                  OS_DIR2="os"
+                  ;;
+          anolis/8.8)
+                  OS_DIR1="kernel-5.10"
+                  OS_DIR2="os"
+                  ;;
           esac
 
           OS_PATH="$MIRROR/$RELEASE_NAME/$OS_DIR1/x86_64/$OS_DIR2/Packages/"
