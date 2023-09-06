@@ -36,6 +36,8 @@ EXTRA_CFLAGS += $(CFLAGS_EXTRA)
 
 CPATH := $(KSRC)/certs
 
+MOD_DIR ?= updates
+
 ###########################################################################
 # Build rules
 
@@ -86,12 +88,12 @@ ifeq ("$(wildcard tools)", "tools")
 	install -d "/etc/profile.d"
 	install -m 755 tools/profile.sh /etc/profile.d/nfp_drv_kmods_dkms_profile.sh
 endif
-	$(MAKE) $(COMMON_ARGS) modules_install
+	$(MAKE) $(COMMON_ARGS) modules_install INSTALL_MOD_DIR=$(MOD_DIR)
 
 uninstall:
-	rm -f $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/extra/nfp.ko
-	rm -f $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/extra/nfp_net.ko
-	rm -f $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/extra/nfp_netvf.ko
+	rm -f $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/$(MOD_DIR)/nfp.ko
+	rm -f $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/$(MOD_DIR)/nfp_net.ko
+	rm -f $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/$(MOD_DIR)/nfp_netvf.ko
 	rm -rf /opt/netronome/drv
 	rm -f /etc/profile.d/nfp_drv_kmods_dkms_profile.sh
 	depmod $(DEPMOD_PATH) $(KVER)
