@@ -265,7 +265,11 @@ nfp_nfd3_xsk_rx(struct nfp_net_rx_ring *rx_ring, int budget,
 	nfp_net_xsk_rx_ring_fill_freelist(r_vec->rx_ring);
 
 	if (xdp_redir)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 7, 0)
 		xdp_do_flush_map();
+#else
+		xdp_do_flush();
+#endif
 
 	if (tx_ring->wr_ptr_add)
 		nfp_net_tx_xmit_more_flush(tx_ring);
