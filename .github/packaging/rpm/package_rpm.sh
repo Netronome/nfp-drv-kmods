@@ -108,7 +108,6 @@ build_nfp_drv_kmod_dkms () {
         --define "release ${PKG_REVISION}" \
         --define "module_name ${PKG_NAME}" \
         --define "mktarball_line none" \
-        --define "__find_provides  /usr/lib/dkms/find-provides" \
         --define "_use_internal_dependency_generator 0" \
         --define "__python3 /usr/bin/python3" \
         -ba ${BUILDDIR}/rpmbuild/SPECS/${PKG_NAME}-dkms.spec
