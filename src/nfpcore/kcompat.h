@@ -998,6 +998,7 @@ static inline u64 pci_get_dsn(struct pci_dev *dev)
 # define __has_attribute(x) __GCC4_has_attribute_##x
 # define __GCC4_has_attribute___assume_aligned__      (__GNUC_MINOR__ >= 9)
 # define __GCC4_has_attribute___copy__                0
+# define __GCC4_has_attribute___counted_by__          0
 # define __GCC4_has_attribute___designated_init__     0
 # define __GCC4_has_attribute___externally_visible__  1
 # define __GCC4_has_attribute___no_caller_saved_registers__ 0
@@ -1025,3 +1026,18 @@ static inline u64 pci_get_dsn(struct pci_dev *dev)
 #endif
 
 #endif /* __KERNEL__NFP_COMPAT_H__ */
+
+/*
+ * Optional: only supported since gcc >= 14
+ * Optional: only supported since clang >= 18
+ *
+ *   gcc: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=108896
+ * clang: https://reviews.llvm.org/D148381
+ */
+#ifndef __counted_by
+#if __has_attribute(__counted_by__)
+# define __counted_by(member) __attribute__((__counted_by__(member)))
+#else
+# define __counted_by(member)
+#endif
+#endif
