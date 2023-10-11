@@ -126,6 +126,10 @@ cleanup () {
 }
 
 prepare
+# Clean atrifacts from a preveous build that may have failed and that did not cleanup properly.
+set +e # Ignore errors since it is expected that some things might be missing at this point.
+cleanup
+set -e # Reset to not ignore errors.
 build_nfp_drv_kmod_dkms
 output_manifest
 cleanup
