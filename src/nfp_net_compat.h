@@ -53,11 +53,11 @@
 #endif
 
 /* Redefine LINUX_VERSION_CODE for net and *-next kernels */
-#if LINUX_VERSION_CODE == KERNEL_VERSION(6, 4, 0)
-#include <linux/bpf_verifier.h>
-#ifdef TMP_STR_BUF_LEN
+#if LINUX_VERSION_CODE == KERNEL_VERSION(6, 6, 0)
+#include <linux/udp.h>
+#ifdef udp_test_bit
 #undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(6, 5, 0)
+#define LINUX_VERSION_CODE KERNEL_VERSION(6, 7, 0)
 #endif
 #endif
 
