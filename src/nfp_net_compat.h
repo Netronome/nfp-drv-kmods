@@ -1545,7 +1545,7 @@ void flow_rule_match_cvlan(const struct flow_rule *rule,
 			   struct flow_match_vlan *out);
 #endif
 
-#if VER_NON_RHEL_LT(5, 15) || RHEL_RELEASE_LT(8, 358, 0, 0)
+#ifndef COMPAT__HAVE_ETH_HW_ADDR_SET
 static inline void eth_hw_addr_set(struct net_device *dev, const u8 *addr)
 {
 	ether_addr_copy(dev->dev_addr, addr);

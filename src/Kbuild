@@ -191,6 +191,10 @@ else
   nfp-objs += nfp_hwmon_legacy.o
 endif
 
+
+# Check for eth_hw_addr_set
+$(eval $(call add_compat_flag,$(srctree)/include/linux/etherdevice.h,eth_hw_addr_set,COMPAT__HAVE_ETH_HW_ADDR_SET))
+
 # Check for ipv6_dst_lookup_flow - in two different locations as some
 # distros have backported this at different times
 $(eval $(call add_compat_flag,$(srctree)/include/net/ipv6_stubs.h,ipv6_dst_lookup_flow,COMPAT__HAVE_IP6_DST_FLOW_LOOKUP))
