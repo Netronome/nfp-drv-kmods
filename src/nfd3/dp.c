@@ -1114,7 +1114,11 @@ static int nfp_nfd3_rx(struct nfp_net_rx_ring *rx_ring, int budget)
 				nfp_repr_inc_rx_stats(netdev, pkt_len);
 		}
 
+#if VER_NON_RHEL_GE(5, 12) || RHEL_RELEASE_GE(8, 383, 0, 0)
+		skb = napi_build_skb(rxbuf->frag, true_bufsz);
+#else
 		skb = build_skb(rxbuf->frag, true_bufsz);
+#endif
 		if (unlikely(!skb)) {
 			nfp_nfd3_rx_drop(dp, r_vec, rx_ring, rxbuf, NULL);
 			continue;
