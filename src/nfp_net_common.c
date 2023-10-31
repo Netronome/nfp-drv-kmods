@@ -1123,7 +1123,8 @@ static int nfp_net_set_config_and_enable(struct nfp_net *nn)
 		nn->dp.ctrl = new_ctrl;
 	}
 
-#if COMPAT__HAVE_VXLAN_OFFLOAD && (VER_NON_RHEL_LT(5, 9) || VER_RHEL_LT(8, 4))
+#if COMPAT__HAVE_VXLAN_OFFLOAD && (VER_NON_RHEL_OR_KYL_LT(5, 9) || VER_RHEL_LT(8, 4) \
+		|| VER_KYL_LT(10, 4))
 	/* Since reconfiguration requests while NFP is down are ignored we
 	 * have to wipe the entire VXLAN configuration and reinitialize it.
 	 */
@@ -2581,7 +2582,7 @@ static int nfp_net_bridge_getlink(struct sk_buff *skb, u32 pid, u32 seq,
 				       nlflags, filter_mask, NULL);
 }
 
-#if VER_NON_RHEL_GE(5, 0) || VER_RHEL_GE(8, 1)
+#if VER_NON_RHEL_OR_KYL_GE(5, 0) || VER_RHEL_GE(8, 1) || VER_KYL_GE(10, 4)
 static int nfp_net_bridge_setlink(struct net_device *dev, struct nlmsghdr *nlh,
 				  u16 flags, struct netlink_ext_ack *extack)
 #else
@@ -2822,7 +2823,7 @@ const struct net_device_ops nfp_nfdk_netdev_ops = {
 #endif
 };
 
-#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 4)
+#if VER_NON_RHEL_OR_KYL_GE(5, 9) || VER_RHEL_GE(8, 4) || VER_KYL_GE(10, 4)
 static int nfp_udp_tunnel_sync(struct net_device *netdev, unsigned int table)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
@@ -3183,7 +3184,7 @@ static void nfp_net_netdev_init(struct nfp_net *nn)
 			netdev->hw_features |= NETIF_F_GSO_UDP_TUNNEL;
 #endif
 	}
-#if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 4)
+#if VER_NON_RHEL_OR_KYL_GE(5, 9) || VER_RHEL_GE(8, 4) || VER_KYL_GE(10, 4)
 		netdev->udp_tunnel_nic_info = &nfp_udp_tunnels;
 #endif
 		nn->dp.ctrl |= NFP_NET_CFG_CTRL_VXLAN;
