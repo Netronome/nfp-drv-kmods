@@ -1613,4 +1613,8 @@ static inline bool tls_is_skb_tx_device_offloaded(struct sk_buff *skb)
 	return skb->sk && tls_is_sk_tx_device_offloaded(skb->sk);
 }
 #endif
+
+#ifndef FLOW_RSS
+#define FLOW_RSS	0
+#endif
 #endif /* _NFP_NET_COMPAT_H_ */
