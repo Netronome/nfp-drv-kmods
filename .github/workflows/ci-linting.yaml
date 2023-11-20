@@ -39,5 +39,5 @@ jobs:
         current_branch: ${{ steps.get_diffs.outputs.current_branch }}
         files_list: ${{ steps.get_diffs.outputs.files_list }}
         python_version: '2'
-        fail_flag: false
+        fail_flag: true
       if: always()
