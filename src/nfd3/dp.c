@@ -183,7 +183,7 @@ static int nfp_nfd3_prep_tx_meta(struct nfp_net_dp *dp, struct sk_buff *skb,
 #else
 	void *md_dst = NULL;
 #endif
-	struct nfp_ipsec_offload offload_info;
+	struct nfp_ipsec_offload offload_info = {};
 	unsigned char *data;
 	bool vlan_insert;
 	u32 meta_id = 0;
