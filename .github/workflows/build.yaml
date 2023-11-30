@@ -122,6 +122,7 @@ jobs:
                 { "name": "8.6", "container": "rockylinux:8.5" },
                 { "name": "8.7", "container": "rockylinux:8.5" },
                 { "name": "8.8", "container": "rockylinux:8.5" },
+                { "name": "8.9", "container": "rockylinux:8.5" },
                 { "name": "8-stream", "container": "rockylinux:8.5" },
                 { "name": "9.0", "container": "rockylinux:9.0" },
                 { "name": "9.1", "container": "rockylinux:9.0" },
@@ -141,8 +142,8 @@ jobs:
         run: |
           case $RELEASE_NAME in
           7.[0-8].*|8.[0-5].*) MIRROR="vault.centos.org" ;;
-          8.[6-7])             MIRROR="dl.rockylinux.org/vault/rocky" ;;
-          8.8)                 MIRROR="dl.rockylinux.org/pub/rocky" ;;
+          8.[6-8])             MIRROR="dl.rockylinux.org/vault/rocky" ;;
+          8.9)                 MIRROR="dl.rockylinux.org/pub/rocky" ;;
           9.[0-2])             MIRROR="dl.rockylinux.org/vault/rocky" ;;
           9.[3-9])             MIRROR="dl.rockylinux.org/pub/rocky" ;;
           9-*)                 MIRROR="mirror.stream.centos.org" ;;
