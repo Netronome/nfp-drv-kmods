@@ -1286,7 +1286,7 @@ int nfp_dev_cpp_init(void)
 	dev_t dev_id;
 	int err = -EINVAL;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+#if VER_NON_RHEL_GE(6, 4) || RHEL_RELEASE_GE(9, 388, 0, 0)
 	nfp_dev_cpp_class = class_create("nfp-dev-cpp");
 #else
 	nfp_dev_cpp_class = class_create(THIS_MODULE, "nfp-dev-cpp");
