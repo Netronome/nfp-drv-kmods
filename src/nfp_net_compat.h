@@ -1617,4 +1617,12 @@ static inline bool tls_is_skb_tx_device_offloaded(struct sk_buff *skb)
 #ifndef FLOW_RSS
 #define FLOW_RSS	0
 #endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 13, 0)
+__printf(2, 3) void ethtool_sprintf(u8 **data, const char *fmt, ...);
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 8, 0)
+#define ethtool_puts(data, str) ethtool_sprintf((data), (str))
+#endif
 #endif /* _NFP_NET_COMPAT_H_ */

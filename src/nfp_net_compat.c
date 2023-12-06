@@ -247,4 +247,17 @@ void netif_inherit_tso_max(struct net_device *to, const struct net_device *from)
 	netif_set_gso_max_size(to, from->gso_max_size);
 	netif_set_gso_max_segs(to, from->gso_max_segs);
 }
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 13, 0)
+__printf(2, 3) void ethtool_sprintf(u8 **data, const char *fmt, ...)
+{
+	va_list args;
+
+	va_start(args, fmt);
+	vsnprintf(*data, ETH_GSTRING_LEN, fmt, args);
+	va_end(args);
+
+	*data += ETH_GSTRING_LEN;
+}
+#endif
 #endif
