@@ -709,14 +709,13 @@ err_bad_set:
 }
 
 static void nfp_net_get_ringparam(struct net_device *netdev,
-#if (VER_NON_RHEL_LT(5, 17) && !COMPAT_OELINUX) || RHEL_RELEASE_LT(8, 408, 0, 0) || \
-    (RHEL_RELEASE_GE(9, 0, 0, 0) && RHEL_RELEASE_LT(9, 119, 0, 0)) || VER_OEL_LT(5, 10)
+#ifndef VERSION__ETHTOOL_RINGPARAM
 				  struct ethtool_ringparam *ring)
 #else
 				  struct ethtool_ringparam *ring,
 				  struct kernel_ethtool_ringparam *kernel_ring,
 				  struct netlink_ext_ack *extack)
-#endif
+#endif /* VERSION__ETHTOOL_RINGPARAM */
 {
 	struct nfp_net *nn = netdev_priv(netdev);
 	u32 qc_max = nn->dev_info->max_qc_size;
@@ -727,7 +726,8 @@ static void nfp_net_get_ringparam(struct net_device *netdev,
 	ring->tx_pending = nn->dp.txd_cnt;
 }
 
-static int nfp_net_set_ring_size(struct nfp_net *nn, u32 rxd_cnt, u32 txd_cnt)
+static int nfp_net_set_ring_size(struct nfp_net *nn, u32 rxd_cnt, u32 txd_cnt,
+				 struct netlink_ext_ack *extack)
 {
 	struct nfp_net_dp *dp;
 
@@ -738,18 +738,17 @@ static int nfp_net_set_ring_size(struct nfp_net *nn, u32 rxd_cnt, u32 txd_cnt)
 	dp->rxd_cnt = rxd_cnt;
 	dp->txd_cnt = txd_cnt;
 
-	return nfp_net_ring_reconfig(nn, dp, NULL);
+	return nfp_net_ring_reconfig(nn, dp, extack);
 }
 
 static int nfp_net_set_ringparam(struct net_device *netdev,
-#if (VER_NON_RHEL_LT(5, 17) && !COMPAT_OELINUX) || RHEL_RELEASE_LT(8, 408, 0, 0) || \
-    (RHEL_RELEASE_GE(9, 0, 0, 0) && RHEL_RELEASE_LT(9, 119, 0, 0)) || VER_OEL_LT(5, 10)
+#ifndef VERSION__ETHTOOL_RINGPARAM
 				 struct ethtool_ringparam *ring)
 #else
 				 struct ethtool_ringparam *ring,
 				 struct kernel_ethtool_ringparam *kernel_ring,
 				 struct netlink_ext_ack *extack)
-#endif
+#endif /* VERSION__ETHTOOL_RINGPARAM */
 {
 	u32 tx_dpp, qc_min, qc_max, rxd_cnt, txd_cnt;
 	struct nfp_net *nn = netdev_priv(netdev);
@@ -765,9 +764,19 @@ static int nfp_net_set_ringparam(struct net_device *netdev,
 	rxd_cnt = roundup_pow_of_two(ring->rx_pending);
 	txd_cnt = roundup_pow_of_two(ring->tx_pending);
 
-	if (rxd_cnt < qc_min || rxd_cnt > qc_max ||
-	    txd_cnt < qc_min / tx_dpp || txd_cnt > qc_max / tx_dpp)
+	if (rxd_cnt < qc_min || rxd_cnt > qc_max) {
+#ifdef VERSION__ETHTOOL_RINGPARAM
+		NL_SET_ERR_MSG_MOD(extack, "rx parameter out of bounds");
+#endif
 		return -EINVAL;
+	}
+
+	if (txd_cnt < qc_min / tx_dpp || txd_cnt > qc_max / tx_dpp) {
+#ifdef VERSION__ETHTOOL_RINGPARAM
+		NL_SET_ERR_MSG_MOD(extack, "tx parameter out of bounds");
+#endif
+		return -EINVAL;
+	}
 
 	if (nn->dp.rxd_cnt == rxd_cnt && nn->dp.txd_cnt == txd_cnt)
 		return 0;
@@ -775,7 +784,11 @@ static int nfp_net_set_ringparam(struct net_device *netdev,
 	nn_dbg(nn, "Change ring size: RxQ %u->%u, TxQ %u->%u\n",
 	       nn->dp.rxd_cnt, rxd_cnt, nn->dp.txd_cnt, txd_cnt);
 
-	return nfp_net_set_ring_size(nn, rxd_cnt, txd_cnt);
+#ifndef VERSION__ETHTOOL_RINGPARAM
+	return nfp_net_set_ring_size(nn, rxd_cnt, txd_cnt, NULL);
+#else
+	return nfp_net_set_ring_size(nn, rxd_cnt, txd_cnt, extack);
+#endif /* VERSION__ETHTOOL_RINGPARAM */
 }
 
 static int nfp_test_link(struct net_device *netdev)
@@ -2043,20 +2056,18 @@ static void nfp_net_get_regs(struct net_device *netdev,
 }
 
 static int nfp_net_get_coalesce(struct net_device *netdev,
-#if VER_NON_RHEL_GE(5, 15) || (RHEL_RELEASE_GE(8, 358, 0, 0) && \
-    RHEL_RELEASE_LT(9, 70, 0, 0)) || RHEL_RELEASE_GE(9, 119, 0, 0) || \
-    VER_OEL_GE(5, 10)
+#ifndef VERSION__ETHTOOL_COALESCE
+				struct ethtool_coalesce *ec)
+#else
 				struct ethtool_coalesce *ec,
 				struct kernel_ethtool_coalesce *kernel_coal,
 				struct netlink_ext_ack *extack)
-#else
-				struct ethtool_coalesce *ec)
-#endif
+#endif /* VERSION__ETHTOOL_COALESCE */
 {
 	struct nfp_net *nn = netdev_priv(netdev);
 
 	if (!(nn->cap & NFP_NET_CFG_CTRL_IRQMOD))
-		return -EINVAL;
+		return -EOPNOTSUPP;
 
 #ifdef COMPAT_HAVE_DIM
 	ec->use_adaptive_rx_coalesce = nn->rx_coalesce_adapt_on;
@@ -2310,15 +2321,13 @@ exit_close_nsp:
 }
 
 static int nfp_net_set_coalesce(struct net_device *netdev,
-#if VER_NON_RHEL_GE(5, 15) || (RHEL_RELEASE_GE(8, 358, 0, 0) && \
-    RHEL_RELEASE_LT(9, 70, 0, 0)) || RHEL_RELEASE_GE(9, 119, 0, 0) || \
-    VER_OEL_GE(5, 10)
+#ifndef VERSION__ETHTOOL_COALESCE
+				struct ethtool_coalesce *ec)
+#else
 				struct ethtool_coalesce *ec,
 				struct kernel_ethtool_coalesce *kernel_coal,
 				struct netlink_ext_ack *extack)
-#else
-				struct ethtool_coalesce *ec)
-#endif
+#endif /* VERSION__ETHTOOL_COALESCE */
 {
 	struct nfp_net *nn = netdev_priv(netdev);
 	unsigned int factor;
@@ -2367,22 +2376,52 @@ static int nfp_net_set_coalesce(struct net_device *netdev,
 	 */
 
 	if (!(nn->cap & NFP_NET_CFG_CTRL_IRQMOD))
-		return -EINVAL;
+		return -EOPNOTSUPP;
 
 	/* ensure valid configuration */
-	if (!ec->rx_coalesce_usecs && !ec->rx_max_coalesced_frames)
+	if (!ec->rx_coalesce_usecs && !ec->rx_max_coalesced_frames) {
+#ifdef VERSION__ETHTOOL_COALESCE
+		NL_SET_ERR_MSG_MOD(extack,
+				   "rx-usecs and rx-frames cannot both be zero");
+#endif
 		return -EINVAL;
+	}
 
-	if (!ec->tx_coalesce_usecs && !ec->tx_max_coalesced_frames)
+	if (!ec->tx_coalesce_usecs && !ec->tx_max_coalesced_frames) {
+#ifdef VERSION__ETHTOOL_COALESCE
+		NL_SET_ERR_MSG_MOD(extack,
+				   "tx-usecs and tx-frames cannot both be zero");
+#endif
 		return -EINVAL;
+	}
 
-	if (nfp_net_coalesce_para_check(ec->rx_coalesce_usecs * factor,
-					ec->rx_max_coalesced_frames))
+	if (nfp_net_coalesce_para_check(ec->rx_coalesce_usecs * factor)) {
+#ifdef VERSION__ETHTOOL_COALESCE
+		NL_SET_ERR_MSG_MOD(extack, "rx-usecs too large");
+#endif
 		return -EINVAL;
+	}
 
-	if (nfp_net_coalesce_para_check(ec->tx_coalesce_usecs * factor,
-					ec->tx_max_coalesced_frames))
+	if (nfp_net_coalesce_para_check(ec->rx_max_coalesced_frames)) {
+#ifdef VERSION__ETHTOOL_COALESCE
+		NL_SET_ERR_MSG_MOD(extack, "rx-frames too large");
+#endif
 		return -EINVAL;
+	}
+
+	if (nfp_net_coalesce_para_check(ec->tx_coalesce_usecs * factor)) {
+#ifdef VERSION__ETHTOOL_COALESCE
+		NL_SET_ERR_MSG_MOD(extack, "tx-usecs too large");
+#endif
+		return -EINVAL;
+	}
+
+	if (nfp_net_coalesce_para_check(ec->tx_max_coalesced_frames)) {
+#ifdef VERSION__ETHTOOL_COALESCE
+		NL_SET_ERR_MSG_MOD(extack, "tx-frames too large");
+#endif
+		return -EINVAL;
+	}
 
 	/* configuration is valid */
 #ifdef COMPAT_HAVE_DIM

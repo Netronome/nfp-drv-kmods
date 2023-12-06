@@ -1253,7 +1253,8 @@ static void nfp_net_rx_dim_work(struct work_struct *work)
 	 * count.
 	 */
 	factor = nn->tlv_caps.me_freq_mhz / 16;
-	if (nfp_net_coalesce_para_check(factor * moder.usec, moder.pkts))
+	if (nfp_net_coalesce_para_check(factor * moder.usec) ||
+            nfp_net_coalesce_para_check(moder.pkts))
 		return;
 
 	/* copy RX interrupt coalesce parameters */
@@ -1282,7 +1283,8 @@ static void nfp_net_tx_dim_work(struct work_struct *work)
 	 * count.
 	 */
 	factor = nn->tlv_caps.me_freq_mhz / 16;
-	if (nfp_net_coalesce_para_check(factor * moder.usec, moder.pkts))
+	if (nfp_net_coalesce_para_check(factor * moder.usec) ||
+	    nfp_net_coalesce_para_check(moder.pkts))
 		return;
 
 	/* copy TX interrupt coalesce parameters */

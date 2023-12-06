@@ -1625,4 +1625,18 @@ __printf(2, 3) void ethtool_sprintf(u8 **data, const char *fmt, ...);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 8, 0)
 #define ethtool_puts(data, str) ethtool_sprintf((data), (str))
 #endif
+
+#if ! ((VER_NON_RHEL_LT(5, 17) && !COMPAT_OELINUX) || \
+       RHEL_RELEASE_LT(8, 408, 0, 0) || \
+       (RHEL_RELEASE_GE(9, 0, 0, 0) && RHEL_RELEASE_LT(9, 119, 0, 0)) || \
+       VER_OEL_LT(5, 10))
+#define VERSION__ETHTOOL_RINGPARAM
+#endif
+
+#if (VER_NON_RHEL_GE(5, 15) || \
+     (RHEL_RELEASE_GE(8, 358, 0, 0) && RHEL_RELEASE_LT(9, 70, 0, 0)) || \
+     RHEL_RELEASE_GE(9, 119, 0, 0) || \
+     VER_OEL_GE(5, 10))
+#define VERSION__ETHTOOL_COALESCE
+#endif
 #endif /* _NFP_NET_COMPAT_H_ */
