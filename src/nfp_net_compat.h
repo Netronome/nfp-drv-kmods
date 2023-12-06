@@ -1639,4 +1639,11 @@ __printf(2, 3) void ethtool_sprintf(u8 **data, const char *fmt, ...);
      VER_OEL_GE(5, 10))
 #define VERSION__ETHTOOL_COALESCE
 #endif
+
+#if ! (VER_NON_RHEL_LT(5, 18) || \
+       (RHEL_RELEASE_GE(9, 0, 0, 0) && RHEL_RELEASE_LT(9, 163, 0, 0)) || \
+       (RHEL_RELEASE_LT(8, 425, 0, 0) && !COMPAT_ANOLISLINUX) || \
+       ANOLIS_RELEASE_LT(8, 425, 10, 1))
+#define VERSION__DEVLINK_PORT_SPLIT
+#endif
 #endif /* _NFP_NET_COMPAT_H_ */

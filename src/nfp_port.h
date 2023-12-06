@@ -134,7 +134,7 @@ nfp_port_set_features(struct net_device *netdev, netdev_features_t features);
 struct nfp_port *nfp_port_from_netdev(struct net_device *netdev);
 int nfp_port_get_port_parent_id(struct net_device *netdev,
 				struct netdev_phys_item_id *ppid);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
+#ifndef VERSION__DEVLINK_PORT_SPLIT
 struct nfp_port *
 nfp_port_from_id(struct nfp_pf *pf, enum nfp_port_type type, unsigned int id);
 #endif

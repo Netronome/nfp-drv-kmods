@@ -29,27 +29,21 @@ nfp_devlink_fill_eth_port(struct nfp_port *port,
 }
 
 static int
-#if VER_NON_RHEL_LT(5, 18) || \
-		(RHEL_RELEASE_GE(9, 0, 0, 0) && RHEL_RELEASE_LT(9, 163, 0, 0)) || \
-		(RHEL_RELEASE_LT(8, 425, 0, 0) && !COMPAT_ANOLISLINUX) || \
-		ANOLIS_RELEASE_LT(8, 425, 10, 1)
+#ifndef VERSION__DEVLINK_PORT_SPLIT
 nfp_devlink_fill_eth_port_from_id(struct nfp_pf *pf, unsigned int port_index,
 #else
 nfp_devlink_fill_eth_port_from_id(struct nfp_pf *pf,
 				  struct devlink_port *dl_port,
-#endif
+#endif /* VERSION__DEVLINK_PORT_SPLIT */
 				  struct nfp_eth_table_port *copy)
 {
 	struct nfp_port *port;
 
-#if VER_NON_RHEL_LT(5, 18) || \
-		(RHEL_RELEASE_GE(9, 0, 0, 0) && RHEL_RELEASE_LT(9, 163, 0, 0)) || \
-		(RHEL_RELEASE_LT(8, 425, 0, 0) && !COMPAT_ANOLISLINUX) || \
-		ANOLIS_RELEASE_LT(8, 425, 10, 1)
+#ifndef VERSION__DEVLINK_PORT_SPLIT
 	port = nfp_port_from_id(pf, NFP_PORT_PHYS_PORT, port_index);
 #else
 	port = container_of(dl_port, struct nfp_port, dl_port);
-#endif
+#endif /* VERSION__DEVLINK_PORT_SPLIT */
 
 	return nfp_devlink_fill_eth_port(port, copy);
 }
@@ -80,18 +74,17 @@ nfp_devlink_set_lanes(struct nfp_pf *pf, unsigned int idx, unsigned int lanes)
 }
 
 static int
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
+#if VER_KERN_LT(4, 18)
 nfp_devlink_port_split(struct devlink *devlink, unsigned int port_index,
 		       unsigned int count)
-#elif VER_NON_RHEL_LT(5, 18) || \
-		(RHEL_RELEASE_GE(9, 0, 0, 0) && RHEL_RELEASE_LT(9, 163, 0, 0)) || \
-		(RHEL_RELEASE_LT(8, 425, 0, 0) && !COMPAT_ANOLISLINUX) || \
-		ANOLIS_RELEASE_LT(8, 425, 10, 1)
+#else
+#ifndef VERSION__DEVLINK_PORT_SPLIT
 nfp_devlink_port_split(struct devlink *devlink, unsigned int port_index,
 		       unsigned int count, struct netlink_ext_ack *extack)
 #else
 nfp_devlink_port_split(struct devlink *devlink, struct devlink_port *port,
 		       unsigned int count, struct netlink_ext_ack *extack)
+#endif /* VERSION__DEVLINK_PORT_SPLIT */
 #endif
 {
 	struct nfp_pf *pf = devlink_priv(devlink);
@@ -104,19 +97,19 @@ nfp_devlink_port_split(struct devlink *devlink, struct devlink_port *port,
 #endif
 
 	rtnl_lock();
-#if VER_NON_RHEL_LT(5, 18) || \
-		(RHEL_RELEASE_GE(9, 0, 0, 0) && RHEL_RELEASE_LT(9, 163, 0, 0)) || \
-		(RHEL_RELEASE_LT(8, 425, 0, 0) && !COMPAT_ANOLISLINUX) || \
-		ANOLIS_RELEASE_LT(8, 425, 10, 1)
+#ifndef VERSION__DEVLINK_PORT_SPLIT
 	ret = nfp_devlink_fill_eth_port_from_id(pf, port_index, &eth_port);
 #else
 	ret = nfp_devlink_fill_eth_port_from_id(pf, port, &eth_port);
-#endif
+#endif /* VERSION__DEVLINK_PORT_SPLIT */
 	rtnl_unlock();
 	if (ret)
 		goto out;
 
 	if (eth_port.port_lanes % count) {
+#if VER_KERN_GE(4, 18)
+		NL_SET_ERR_MSG_MOD(extack, "invalid count");
+#endif
 		ret = -EINVAL;
 		goto out;
 	}
@@ -136,17 +129,16 @@ out:
 }
 
 static int
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
+#if VER_KERN_LT(4, 18)
 nfp_devlink_port_unsplit(struct devlink *devlink, unsigned int port_index)
-#elif VER_NON_RHEL_LT(5, 18) || \
-		(RHEL_RELEASE_GE(9, 0, 0, 0) && RHEL_RELEASE_LT(9, 163, 0, 0)) || \
-		(RHEL_RELEASE_LT(8, 425, 0, 0) && !COMPAT_ANOLISLINUX) || \
-		ANOLIS_RELEASE_LT(8, 425, 10, 1)
+#else
+#ifndef VERSION__DEVLINK_PORT_SPLIT
 nfp_devlink_port_unsplit(struct devlink *devlink, unsigned int port_index,
 			 struct netlink_ext_ack *extack)
 #else
 nfp_devlink_port_unsplit(struct devlink *devlink, struct devlink_port *port,
 			 struct netlink_ext_ack *extack)
+#endif /* VERSION__DEVLINK_PORT_SPLIT */
 #endif
 {
 	struct nfp_pf *pf = devlink_priv(devlink);
@@ -159,19 +151,19 @@ nfp_devlink_port_unsplit(struct devlink *devlink, struct devlink_port *port,
 #endif
 
 	rtnl_lock();
-#if VER_NON_RHEL_LT(5, 18) || \
-		(RHEL_RELEASE_GE(9, 0, 0, 0) && RHEL_RELEASE_LT(9, 163, 0, 0)) || \
-		(RHEL_RELEASE_LT(8, 425, 0, 0) && !COMPAT_ANOLISLINUX) || \
-		ANOLIS_RELEASE_LT(8, 425, 10, 1)
+#ifndef VERSION__DEVLINK_PORT_SPLIT
 	ret = nfp_devlink_fill_eth_port_from_id(pf, port_index, &eth_port);
 #else
 	ret = nfp_devlink_fill_eth_port_from_id(pf, port, &eth_port);
-#endif
+#endif /* VERSION__DEVLINK_PORT_SPLIT */
 	rtnl_unlock();
 	if (ret)
 		goto out;
 
 	if (!eth_port.is_split) {
+#if VER_KERN_GE(4, 18)
+		NL_SET_ERR_MSG_MOD(extack, "port is not split");
+#endif
 		ret = -EINVAL;
 		goto out;
 	}
