@@ -3222,10 +3222,19 @@ static void nfp_net_netdev_init(struct nfp_net *nn)
 	nn->dp.ctrl &= ~NFP_NET_CFG_CTRL_RXQINQ;
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+	netdev->xdp_features = NETDEV_XDP_ACT_BASIC;
+	if (nn->app && nn->app->type->id == NFP_APP_BPF_NIC)
+		netdev->xdp_features |= NETDEV_XDP_ACT_HW_OFFLOAD;
+#endif
+
 	/* Finalise the netdev setup */
 	switch (nn->dp.ops->version) {
 	case NFP_NFD_VER_NFD3:
 		netdev->netdev_ops = &nfp_nfd3_netdev_ops;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+		netdev->xdp_features |= NETDEV_XDP_ACT_XSK_ZEROCOPY;
+#endif
 		break;
 	case NFP_NFD_VER_NFDK:
 		netdev->netdev_ops = &nfp_nfdk_netdev_ops;
