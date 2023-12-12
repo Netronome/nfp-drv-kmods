@@ -53,11 +53,11 @@
 #endif
 
 /* Redefine LINUX_VERSION_CODE for net and *-next kernels */
-#if LINUX_VERSION_CODE == KERNEL_VERSION(6, 6, 0)
-#include <linux/udp.h>
-#ifdef udp_test_bit
+#if LINUX_VERSION_CODE == KERNEL_VERSION(6, 7, 0)
+#include <linux/ieee80211.h>
+#ifdef IEEE80211_PV1_FCTL_FROMDS
 #undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(6, 7, 0)
+#define LINUX_VERSION_CODE KERNEL_VERSION(6, 8, 0)
 #endif
 #endif
 
