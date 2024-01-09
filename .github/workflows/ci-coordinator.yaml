@@ -4,12 +4,17 @@ name: Coordinate NFP-DRV-KMODS Workflows
 on:
   push:
     branches:
-      - 'public-main'   # Or other default branch name
-      - 'test-*'        # Temporary test build
-      - 'build-*'       # Temporary build, no testing
+      - '*-main'          # Branch name ending with '-main'. e.g, public-main, <customer>-main
+      - '!testing-main'   # Exclude this specific branch
+      - '!sgw-sdk-main'   # Exclude this specific branch
+      - '!wip-*'          # Exclude any wip branch
+      - 'test-*'          # Temporary test build
+      - 'build-*'         # Temporary build, no testing
     tags:
-      - 'prerelease-*'  # Prerelease tag
-      - 'release-*'     # Release tag
+      - '*-prerelease-[0-9][0-9].[0-9][0-9].[0-9]-rc[0-9]'  # Customer Prerelease tag
+      - '*-release-[0-9][0-9].[0-9][0-9].[0-9]'             # Customer Release tag
+      - 'prerelease-[0-9][0-9].[0-9][0-9].[0-9]-rc[0-9]'    # Prerelease tag
+      - 'release-[0-9][0-9].[0-9][0-9].[0-9]'               # Release tag
   workflow_dispatch:
 
 jobs:
@@ -35,9 +40,9 @@ jobs:
       - ci-linter-vm
     if: >-
       always() &&
-      (((github.head_ref || github.ref_name) == 'public-main')
-      || startsWith(github.ref_name, 'release-')
-      || startsWith(github.ref_name, 'prerelease-'))
+      (((github.head_ref || github.ref_name) == '*-main')
+      || contains(github.ref_name, 'release-')
+      || contains(github.ref_name, 'prerelease-'))
     steps:
       - name: Clean old artifacts
         run: sudo find -delete
