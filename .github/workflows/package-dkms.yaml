@@ -67,7 +67,7 @@ jobs:
         run: find -delete
 
       # --- CLONE REPOSITORIES ---
-      - name: Checkout nfp driver kmods repo
+      - name: Checkout nfp-driver-kmods-repo
         uses: Corigine/ci-libs/github_actions/utilities/checkout_corigine@main
         with:
           token: ${{ secrets.GHUB_TOKEN }}
@@ -97,15 +97,15 @@ jobs:
 
           PACKAGE_NAME=$(.github/scripts/describe-head.sh --pkg_name)
 
-          echo "pkg_name=${PACKAGE_NAME}" >> $GITHUB_OUTPUT
-          echo "binary_type=${BINARY_TYPE}" >> $GITHUB_OUTPUT
+          echo "pkg_name=${PACKAGE_NAME}" | tee -a $GITHUB_OUTPUT
+          echo "binary_type=${BINARY_TYPE}" | tee -a $GITHUB_OUTPUT
 
           # DEFAULT_BRANCH defaults to public-main, but can be used to denote
           # other long-running branches for separate interim releases
-          echo "default_branch=${DEFAULT_BRANCH}" >> $GITHUB_OUTPUT
+          DEFAULT_BRANCH=$(bash .github/scripts/describe-head.sh --default_branch)
+          echo "default_branch=${DEFAULT_BRANCH}" | tee -a $GITHUB_OUTPUT
         env:
           DISTRO: ${{ matrix.distro }}
-          DEFAULT_BRANCH: public-main
           HEAD_REF: ${{ github.head_ref || github.ref_name }}
 
       # --- BUILD DKMS PACKAGE ---
@@ -137,23 +137,41 @@ jobs:
           echo "${BIN_TYPE}/${BIN_PKG_NAME}/${DKMS_PKG_NAME}"
           echo "${BIN_PKG_NAME}"
 
+          # Determine the target folder for releases and pre-releases
+          TARGET_FOLDER=${HEAD_REF#*release-}
+          TARGET_FOLDER=${TARGET_FOLDER:0:5}
+
           # If the default branch is not 'public-main', append the branch name,
-          # without 'wip-', to the upload destination
-          if [ ! "$DEFAULT_BRANCH" = "public-main" ]; then
-            DST_SUFFIX=".${DEFAULT_BRANCH#wip-}"
-          fi
+          # without 'wip-', to the upload destination.
+          # If the default branch is a customer branch (*-main), append
+          # customer name to directory.
+          case ${DEFAULT_BRANCH} in
+            "public-main")
+              readonly DST_SUFFIX=""
+              ;;
+            "wip-"*)
+              readonly DST_SUFFIX=".${DEFAULT_BRANCH#wip-}"
+              ;;
+            *"-main")
+              # Customer branch
+              readonly DST_SUFFIX=".${DEFAULT_BRANCH%-main}"
+              ;;
+            *)
+              readonly DST_SUFFIX=""
+              ;;
+          esac
           case $HEAD_REF in
-            "release-"*)
-              TARGET_FOLDER=${HEAD_REF#*-}
-              TARGET_FOLDER=${TARGET_FOLDER:0:5}
+            release-[0-9][0-9].[0-9][0-9].[0-9]|\
+            ${DEFAULT_BRANCH%-main}-release-[0-9][0-9].[0-9][0-9].[0-9])
+              # Release tag
               AZURE_PATH="binaries/nfp-drv-dkms/releases${DST_SUFFIX}/${TARGET_FOLDER}"
               ;;
-            "prerelease-"*)
-              TARGET_FOLDER=${HEAD_REF#*-}
-              TARGET_FOLDER=${TARGET_FOLDER:0:5}
+            prerelease-[0-9][0-9].[0-9][0-9].[0-9]-rc[0-9]|\
+            ${DEFAULT_BRANCH%-main}-prerelease-[0-9][0-9].[0-9][0-9].[0-9]-rc[0-9])
+              # Prerelease tag
               AZURE_PATH="binaries/nfp-drv-dkms/prereleases${DST_SUFFIX}/${TARGET_FOLDER}"
               ;;
-            "${DEFAULT_BRANCH}")
+            ${DEFAULT_BRANCH})
               AZURE_PATH="binaries/nfp-drv-dkms/interim${DST_SUFFIX}/${BIN_PKG_NAME}"
               ;;
             *)
@@ -163,8 +181,8 @@ jobs:
           esac
 
           AZURE_DEST=$(echo "${AZURE_PATH}/${BIN_TYPE}")
-          echo "dkms_bin_path=$(echo "${BIN_TYPE}/${BIN_PKG_NAME}/${DKMS_PKG_NAME}")" >> $GITHUB_OUTPUT
-          echo "azure_dest=${AZURE_DEST}" >> $GITHUB_OUTPUT
+          echo "dkms_bin_path=$(echo "${BIN_TYPE}/${BIN_PKG_NAME}/${DKMS_PKG_NAME}")" | tee -a $GITHUB_OUTPUT
+          echo "azure_dest=${AZURE_DEST}" | tee -a $GITHUB_OUTPUT
         env:
           DEFAULT_BRANCH: ${{steps.describe.outputs.default_branch}}
           BIN_TYPE: '${{ steps.describe.outputs.binary_type }}'
