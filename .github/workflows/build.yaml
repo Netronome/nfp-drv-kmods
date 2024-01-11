@@ -11,6 +11,9 @@ on:
       - 'prerelease-*'  # Prerelease build
       - 'release-*'     # Release build
       - '*.check'
+  # Schedule run at midnight daily
+  schedule:
+    - cron: '0 0 * * *'
 
 env:
   DOWNLOAD: ".download"
