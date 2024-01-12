@@ -82,6 +82,8 @@ build_nfp_drv_kmod_dkms () {
     echo ${FULL_PKG_VERSION} > ${BUILDDIR}/${PKG_NAME}/src/.revision
     cp_from_template ${SRCDIR}/.github/packaging/dkms.conf ${BUILDDIR}/${PKG_NAME}/dkms.conf
     cp -r ${SRCDIR}/Makefile ${BUILDDIR}/${PKG_NAME}/Makefile
+    cp -r ${SRCDIR}/.github/packaging/module-symverse-save.sh \
+      ${BUILDDIR}/${PKG_NAME}/module-symverse-save.sh
     ln -sf ${BUILDDIR}/${PKG_NAME} /usr/src/${PKG_NAME}-${FULL_PKG_VERSION}
 
     mkdir -p ${BUILDDIR}/rpmbuild/{BUILD,RPMS,SRPMS,SPECS,SOURCES}

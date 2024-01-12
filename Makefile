@@ -89,11 +89,15 @@ ifeq ("$(wildcard tools)", "tools")
 	install -m 755 tools/profile.sh /etc/profile.d/nfp_drv_kmods_dkms_profile.sh
 endif
 	$(MAKE) $(COMMON_ARGS) modules_install INSTALL_MOD_DIR=$(MOD_DIR)
+	mkdir -p $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/$(MOD_DIR)-symvers
+	cp -f ./src/Module.symvers \
+		$(INSTALL_MOD_PATH)/lib/modules/$(KVER)/$(MOD_DIR)-symvers/nfp_driver.symvers
 
 uninstall:
 	rm -f $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/$(MOD_DIR)/nfp.ko
 	rm -f $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/$(MOD_DIR)/nfp_net.ko
 	rm -f $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/$(MOD_DIR)/nfp_netvf.ko
+	rm -f $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/$(MOD_DIR)-symvers/nfp_driver.symvers
 	rm -rf /opt/netronome/drv
 	rm -f /etc/profile.d/nfp_drv_kmods_dkms_profile.sh
 	depmod $(DEPMOD_PATH) $(KVER)
