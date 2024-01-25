@@ -22,7 +22,7 @@ trap cleanup EXIT
 # Gather some very basic info
 date > $OUTPUT/date 2>&1
 uname -a > $OUTPUT/uname 2>&1
-lspci -d 19ee: -vv > $OUTPUT/lspci 2>&1
+( lspci -d 19ee: -vv; lspci -d 1da8: -vv ) > $OUTPUT/lspci 2>&1
 
 # Check if we have any NFP netdevs
 if ls /sys/bus/pci/drivers/nfp/*/net/ > /dev/null 2>&1; then
@@ -54,7 +54,7 @@ else
 	LOADED=y
     fi
 
-    for dev in $(lspci -d 19ee: | awk '{print$1}'); do
+    for dev in $(( lspci -d 19ee:; lspci -d 1da8: ) | awk '{print$1}'); do
 	nfp-arm -Z "$dev" -D > "$OUTPUT/$dev"
     done
 fi
