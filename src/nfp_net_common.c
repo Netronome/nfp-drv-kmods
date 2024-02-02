@@ -3250,6 +3250,7 @@ static void nfp_net_netdev_init(struct nfp_net *nn)
 		netdev->netdev_ops = &nfp_nfd3_netdev_ops;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
 		netdev->xdp_features |= NETDEV_XDP_ACT_XSK_ZEROCOPY;
+		netdev->xdp_features |= NETDEV_XDP_ACT_REDIRECT;
 #endif
 		break;
 	case NFP_NFD_VER_NFDK:
