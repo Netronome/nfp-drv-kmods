@@ -61,6 +61,12 @@ sparse: clean
 clean:
 	$(MAKE) -C $(KSRC) M=`pwd` clean
 
+modules_install_only:
+	$(MAKE) $(COMMON_ARGS) modules_install INSTALL_MOD_DIR=$(MOD_DIR)
+	mkdir -p $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/$(MOD_DIR)-symvers
+	cp -f ./src/Module.symvers \
+		$(INSTALL_MOD_PATH)/lib/modules/$(KVER)/$(MOD_DIR)-symvers/nfp_driver.symvers
+
 install: build
 ifeq ("$(wildcard /lib/modules/$(KVER)/build/System.map)","")
 	ln -sf /boot/System.map-$(KVER) /lib/modules/$(KVER)/build/System.map
@@ -88,10 +94,7 @@ ifeq ("$(wildcard tools)", "tools")
 	install -d "/etc/profile.d"
 	install -m 755 tools/profile.sh /etc/profile.d/nfp_drv_kmods_dkms_profile.sh
 endif
-	$(MAKE) $(COMMON_ARGS) modules_install INSTALL_MOD_DIR=$(MOD_DIR)
-	mkdir -p $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/$(MOD_DIR)-symvers
-	cp -f ./src/Module.symvers \
-		$(INSTALL_MOD_PATH)/lib/modules/$(KVER)/$(MOD_DIR)-symvers/nfp_driver.symvers
+	$(MAKE) modules_install_only
 
 uninstall:
 	rm -f $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/$(MOD_DIR)/nfp.ko
@@ -102,4 +105,4 @@ uninstall:
 	rm -f /etc/profile.d/nfp_drv_kmods_dkms_profile.sh
 	depmod $(DEPMOD_PATH) $(KVER)
 
-.PHONY: build nfp_net noisy coccicheck sparse clean install uninstall
+.PHONY: build nfp_net noisy coccicheck sparse clean modules_install_only install uninstall

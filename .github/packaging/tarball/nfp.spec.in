@@ -1,0 +1,148 @@
+%if 0%{?kernel_path:1}
+
+# Setting %build_kernel
+%if "%(echo %{kernel_path} | sed 's/.*\(.\)$/\1/')" == "/"
+%global build_kernel %(echo %{kernel_path} | awk -F '/' '{print  $(NF-1)}')
+%else
+%global build_kernel %(echo %{kernel_path} | awk -F '/' '{print  $NF}')
+%endif # %build_kernel is now set
+
+# Setting %kernel_ver based on %build_kernel if %kernel_path was set, else use `uname -r`
+%global kernel_ver %(echo "%{build_kernel}" | sed 's/-/_/g' | awk -F "." 'OFS="."{$NF="";print}' | sed 's/.$//g')
+%else
+%global kernel_ver %(echo %(uname -r) | sed 's/-/_/g' | awk -F "." 'OFS="."{$NF="";print}' | sed 's/.$//g')
+%endif # 0%{?kernel_path:1} - %kernel_ver is now set
+
+Name: agilio-nfp-driver
+Summary: Corigine, Inc. Device
+Version: __PKG_VERSION__
+Release: __PKG_REVISION__~%{kernel_ver}
+Source: %{name}-%{version}.tgz
+Vendor: Corigine
+License: GPL-2.0-only
+ExclusiveOS: linux
+Group: System Environment/Kernel
+Provides: %{name}
+URL: https://www.corigine.com/DPUDownload.html
+BuildRoot: %{_tmppath}/%{name}-%{version}-root
+Conflicts: agilio-nfp-driver-dkms
+Requires: kernel, findutils, bash
+%global debug_package %{nil}
+%description
+This package contains the Corigine Flow Processor (NFP) Kernel Drivers.
+
+%prep
+%setup
+
+%build
+%if 0%{?kernel_path:1}
+make -C %{kernel_path} M=`pwd`/src clean -j $(nproc)
+make -C %{kernel_path} M=`pwd`/src -j $(nproc)
+%else
+make clean -j $(nproc)
+make -j $(nproc)
+%endif
+
+%install
+%if 0%{?kernel_path:1}
+make KSRC=%{kernel_path} KVER=%{build_kernel} INSTALL_MOD_PATH=%{buildroot} modules_install_only -j $(nproc)
+%else
+make INSTALL_MOD_PATH=%{buildroot} modules_install_only -j $(nproc)
+%endif
+install -d "%{buildroot}/opt/netronome/drv"
+install -d "%{buildroot}/etc/profile.d"
+install -m 755 ./tools/set_irq_affinity.sh %{buildroot}/opt/netronome/drv/nfp_set_irq_affinity
+install -m 755 ./tools/nfp_troubleshoot_gather.py %{buildroot}/opt/netronome/drv/nfp_troubleshoot_gather
+install -m 755 ./tools/profile.sh %{buildroot}/etc/profile.d/nfp_drv_kmods_dkms_profile.sh
+# Remove the files that we do not need
+find %{buildroot}/lib/modules/ -name 'modules.*' -exec rm -f {} \;
+cd %{buildroot}
+find lib -name "nfp.ko" -printf "/%p\n" \
+	>%{_builddir}/%{name}-%{version}/file.list
+find lib -name "nfp_driver.symvers" -printf "/%p\n" \
+	>>%{_builddir}/%{name}-%{version}/file.list
+find ./ -name "nfp_set_irq_affinity" -printf "/%p\n" \
+	>%{_builddir}/%{name}-%{version}/tools.list
+find ./ -name "nfp_troubleshoot_gather" -printf "/%p\n" \
+	>>%{_builddir}/%{name}-%{version}/tools.list
+find ./ -name "nfp_drv_kmods_dkms_profile.sh" -printf "/%p\n" \
+	>>%{_builddir}/%{name}-%{version}/tools.list
+
+%clean
+rm -rf %{buildroot}
+
+%files -f file.list
+%files -f tools.list
+%defattr(-,root,root)
+%doc file.list
+%doc tools.list
+
+%post
+uname -r | grep BOOT || /sbin/depmod -a > /dev/null 2>&1 || true
+if [ -x "/usr/sbin/weak-modules" ]; then
+    modules=( $(cat %{_docdir}/%{name}/file.list | grep '\.ko$' | xargs realpath) )
+    printf '%s\n' "${modules[@]}" | /usr/sbin/weak-modules --no-initramfs --add-modules
+fi
+
+if which dracut >/dev/null 2>&1; then
+	echo "Updating initramfs with dracut..."
+	if dracut --force ; then
+		echo "Successfully updated initramfs."
+	else
+		echo "Failed to update initramfs."
+		echo "You must update your initramfs image for changes to take place."
+		exit -1
+	fi
+elif which mkinitrd >/dev/null 2>&1; then
+	echo "Updating initrd with mkinitrd..."
+	if mkinitrd; then
+		echo "Successfully updated initrd."
+	else
+		echo "Failed to update initrd."
+		echo "You must update your initrd image for changes to take place."
+		exit -1
+	fi
+else
+	echo "Unable to determine utility to update initrd image."
+	echo "You must update your initrd manually for changes to take place."
+	exit -1
+fi
+
+%preun
+# save tmp list of installed kernel modules for weak-modules
+cat %{_docdir}/%{name}/file.list | grep '\.ko$' | xargs realpath > /var/run/rpm-%{name}-modules.list
+
+rm -rf /usr/local/share/%{name}
+
+%postun
+uname -r | grep BOOT || /sbin/depmod -a > /dev/null 2>&1 || true
+if [ -x "/usr/sbin/weak-modules" ]; then
+	modules=( $(cat /var/run/rpm-%{name}-modules.list) )
+	printf '%s\n' "${modules[@]}" | /usr/sbin/weak-modules --no-initramfs --remove-modules
+fi
+rm /var/run/rpm-%{name}-modules.list
+
+if which dracut >/dev/null 2>&1; then
+	echo "Updating initramfs with dracut..."
+	if dracut --force ; then
+		echo "Successfully updated initramfs."
+	else
+		echo "Failed to update initramfs."
+		echo "You must update your initramfs image for changes to take place."
+		exit -1
+	fi
+elif which mkinitrd >/dev/null 2>&1; then
+	echo "Updating initrd with mkinitrd..."
+	if mkinitrd; then
+		echo "Successfully updated initrd."
+	else
+		echo "Failed to update initrd."
+		echo "You must update your initrd image for changes to take place."
+		exit -1
+	fi
+else
+	echo "Unable to determine utility to update initrd image."
+	echo "You must update your initrd manually for changes to take place."
+	exit -1
+fi
+
