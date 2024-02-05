@@ -264,7 +264,7 @@ jobs:
                 # OpenCloud
                 { "name": "opencloudos/8.5", "container": "rockylinux:8.5" },
                 { "name": "opencloudos/8.6", "container": "rockylinux:8.5" },
-                { "name": "opencloudos/9.0", "container": "rockylinux:9.0" },
+                { "name": "opencloudos/9.0", "container": "opencloudos/opencloudos:9.0" },
                 # Anolis
                 { "name": "anolis/7.9", "container": "openanolis/anolisos:7.9-x86_64" },
                 { "name": "anolis/8.6", "container": "openanolis/anolisos:8.6" },
@@ -273,9 +273,6 @@ jobs:
     container:
       image: ${{ matrix.release.container }}
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v3
-
       - name: Set Download Environment
         env:
           RELEASE_NAME: ${{ matrix.release.name }}
@@ -284,12 +281,12 @@ jobs:
           el8*)                MIRROR="mirrors.bclinux.org/bclinux" ;;
           openEuler*)          MIRROR="mirrors.dotsrc.org/openeuler" ;;
           V10*)                MIRROR="update.cs2c.com.cn/NS/V10" ;;
-          opencloud*)          MIRROR="mirrors.opencloudos.tech" ;;
+          opencloud*)          MIRROR="mirrors.opencloudos.org" ;;
           anolis*)             MIRROR="mirrors.openanolis.cn" ;;
           esac
 
           case $RELEASE_NAME in
-          el8*|opencloud*|8.[2-6])
+          el8*|8.[2-6])
                   OS_DIR1="BaseOS"
                   OS_DIR2="os"
                   ;;
@@ -313,6 +310,14 @@ jobs:
                   OS_DIR1="kernel-5.10"
                   OS_DIR2="os"
                   ;;
+          opencloudos/8*)
+                  OS_DIR1="BaseOS"
+                  OS_DIR2="os"
+                  ;;
+          opencloudos/9*)
+                  OS_DIR1="AppStream"
+                  OS_DIR2="os"
+                  ;;
           esac
 
           OS_PATH="$MIRROR/$RELEASE_NAME/$OS_DIR1/x86_64/$OS_DIR2/Packages/"
@@ -331,7 +336,10 @@ jobs:
         run: sed -i 's|repo.openeuler.org|mirrors.dotsrc.org/openeuler|g' /etc/yum.repos.d/openEuler.repo
 
       - name: Install Dependencies
-        run: yum -q -y install cpio elfutils-libelf-devel findutils gcc make wget ca-certificates
+        run: yum -q -y install cpio elfutils-libelf-devel findutils gcc make wget ca-certificates tar gzip hostname
+
+      - name: Check out repository
+        uses: actions/checkout@v3
 
       - name: Filter latest BCLinux stream kernel
         if: startsWith(matrix.release.name, 'el8')
