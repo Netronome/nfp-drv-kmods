@@ -283,7 +283,7 @@ nfp_fl_output(struct nfp_app *app, struct nfp_fl_output *output,
 }
 
 #if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
-static enum nfp_flower_tun_type
+static bool
 nfp_flower_tun_is_gre(struct flow_rule *rule, int start_idx)
 {
 	struct flow_action_entry *act = rule->action.entries;
