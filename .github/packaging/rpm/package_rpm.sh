@@ -8,7 +8,7 @@ Usage: .github/packaging/rpm/package_rpm.sh $NFP_DRV_REPO $PKG_NAME $PACKAGE_VER
 Copyright (C) 2022 Corigine, Inc
 
 Builds DKMS RPM packages. This script should not be run manually, instead it should be called
-from the package-dkms.sh script under the scripts directory.
+from the create-packages.sh script under the scripts directory.
 
 EOH
     exit 1

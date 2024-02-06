@@ -8,7 +8,7 @@ Usage: .github/packaging/deb/package_deb.sh $NFP_DRV_REPO $PKG_NAME $PKG_VERSION
 Copyright (C) 2022 Corigine, Inc
 
 Builds DKMS DEB packages. This script should not be run manually, instead it should be called
-from the package-dkms.sh script under the scripts directory.
+from the create-packages.sh script under the scripts directory.
 
 EOH
     exit 1

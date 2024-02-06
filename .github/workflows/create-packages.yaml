@@ -111,14 +111,14 @@ jobs:
       # --- BUILD DKMS PACKAGE ---
       - name: Ubuntu | Build DEB DKMS package
         if: matrix.distro == 'ubuntu:20.04'
-        run: sudo -E .github/scripts/package-dkms.sh -t d
+        run: sudo -E .github/scripts/create-packages.sh -t d
         env:
           DEFAULT_BRANCH: ${{steps.describe.outputs.default_branch}}
           HEAD_REF: ${{ github.head_ref || github.ref_name }}
 
       - name: CentOS | Build RPM DKMS package
         if: matrix.distro == 'rockylinux:8.5'
-        run: sudo -E .github/scripts/package-dkms.sh -t r
+        run: sudo -E .github/scripts/create-packages.sh -t r
         env:
           DEFAULT_BRANCH: ${{steps.describe.outputs.default_branch}}
           HEAD_REF: ${{ github.head_ref || github.ref_name }}

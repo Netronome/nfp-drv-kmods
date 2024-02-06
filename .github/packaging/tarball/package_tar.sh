@@ -9,7 +9,7 @@ Copyright (C) 2024 Corigine, Inc
 
 Builds tarball packages. These can be used to generate non-dkms .rpm packages
 for specific kernel versions. This script should not be run manually, instead
-it should be called from the package-dkms.sh script under the scripts
+it should be called from the create-packages.sh script under the scripts
 directory.
 
 EOH
