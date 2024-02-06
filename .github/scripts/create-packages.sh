@@ -15,6 +15,7 @@ The following options can be provided:
  -t package_type: Select the output package type. Select one of:
              r: .rpm
              d: .deb
+             t: .tar
 
 EOH
     exit 1
@@ -39,6 +40,9 @@ while getopts "t:h" opt; do
                     ;;
                 d)  PACKAGE_TYPE=".deb"
                     GENERATE_DEB=1
+                    ;;
+                t)  PACKAGE_TYPE=".tar"
+                    GENERATE_TAR=1
                     ;;
                 *) echo "Invalid package type selected"
                     ;;
@@ -75,4 +79,8 @@ fi
 
 if [ -n "$GENERATE_RPM" ]; then
     .github/packaging/rpm/package_rpm.sh $NFP_DRV_REPO $PACKAGE_NAME $PACKAGE_VERSION $PACKAGE_REVISION
+fi
+
+if [ -n "$GENERATE_TAR" ]; then
+    .github/packaging/tarball/package_tar.sh $NFP_DRV_REPO $PACKAGE_NAME $PACKAGE_VERSION $PACKAGE_REVISION
 fi
