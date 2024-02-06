@@ -1,4 +1,4 @@
-name: Package DKMS
+name: Create Distro packages
 run-name: >-
   Package-DKMS: ${{ github.head_ref || github.ref_name }}
 
@@ -13,8 +13,8 @@ on:
         required: true
 
 jobs:
-  build_dkms_package:
-    name: Build DKMS package
+  build_distro_package:
+    name: Build Distro package
 
     runs-on:
       - self-hosted
@@ -23,12 +23,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distro:
-          - ubuntu:20.04
-          - rockylinux:8.5
+        distro: [
+            { "container": "ubuntu:20.04", "bin_type": "deb" },
+            { "container": "rockylinux:8.5", "bin_type": "rpm" },
+            { "container": "rockylinux:8.5", "bin_type": "tgz" },
+          ]
 
     container:
-      image: ${{ matrix.distro }}
+      image: ${{ matrix.distro.container }}
       volumes:
         - /mnt/cloud:/mnt/cloud
         - /mnt/local:/mnt/local
@@ -37,7 +39,7 @@ jobs:
     steps:
       # --- INSTALL PRE-REQUISITES ---
       - name: APT | Update cache
-        if: matrix.distro == 'ubuntu:20.04'
+        if: matrix.distro.container == 'ubuntu:20.04'
         run:  |
           apt-get update -y
           apt-get install -y software-properties-common
@@ -45,7 +47,7 @@ jobs:
           apt-get update -y
 
       - name: APT | Install pre-requisite packages
-        if: matrix.distro == 'ubuntu:20.04'
+        if: matrix.distro.container == 'ubuntu:20.04'
         run: >-
           apt-get -o Dpkg::Options::="--force-confdef"
           -o Dpkg::Options::="--force-confold" -y install
@@ -54,14 +56,19 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
 
       - name: DNF | Install epel
-        if: matrix.distro == 'rockylinux:8.5'
+        if: matrix.distro.container == 'rockylinux:8.5'
         run: dnf install -y epel-release
 
-      - name: DNF | Install pre-requisite packages
-        if: matrix.distro == 'rockylinux:8.5'
+      - name: DNF | Install pre-requisite packages | rpm
+        if: matrix.distro.container == 'rockylinux:8.5' && matrix.distro.bin_type == 'rpm'
         run: >-
           dnf install -y --enablerepo=powertools
           git wget sudo gcc make automake dkms rpm-build findutils
+
+      - name: DNF | Install pre-requisite packages | tgz
+        if: matrix.distro.container == 'rockylinux:8.5' && matrix.distro.bin_type == 'tgz'
+        run: >-
+          dnf install -y git wget sudo findutils
 
       - name: Clean up the working directory
         run: find -delete
@@ -83,18 +90,7 @@ jobs:
       - name: Collect metadata
         id: describe
         run: |-2
-          case "$DISTRO" in
-            'ubuntu:20.04')
-              BINARY_TYPE="deb"
-              ;;
-            'rockylinux:8.5')
-              BINARY_TYPE="rpm"
-              ;;
-            *)
-              BINARY_TYPE="unknown"
-              ;;
-          esac
-
+          BINARY_TYPE=${{ matrix.distro.bin_type }}
           PACKAGE_NAME=$(.github/scripts/describe-head.sh --pkg_name)
 
           echo "pkg_name=${PACKAGE_NAME}" | tee -a $GITHUB_OUTPUT
@@ -105,20 +101,27 @@ jobs:
           DEFAULT_BRANCH=$(bash .github/scripts/describe-head.sh --default_branch)
           echo "default_branch=${DEFAULT_BRANCH}" | tee -a $GITHUB_OUTPUT
         env:
-          DISTRO: ${{ matrix.distro }}
+          DISTRO: ${{ matrix.distro.container }}
           HEAD_REF: ${{ github.head_ref || github.ref_name }}
 
       # --- BUILD DKMS PACKAGE ---
       - name: Ubuntu | Build DEB DKMS package
-        if: matrix.distro == 'ubuntu:20.04'
+        if: matrix.distro.bin_type == 'deb'
         run: sudo -E .github/scripts/create-packages.sh -t d
         env:
           DEFAULT_BRANCH: ${{steps.describe.outputs.default_branch}}
           HEAD_REF: ${{ github.head_ref || github.ref_name }}
 
       - name: CentOS | Build RPM DKMS package
-        if: matrix.distro == 'rockylinux:8.5'
+        if: matrix.distro.bin_type == 'rpm'
         run: sudo -E .github/scripts/create-packages.sh -t r
+        env:
+          DEFAULT_BRANCH: ${{steps.describe.outputs.default_branch}}
+          HEAD_REF: ${{ github.head_ref || github.ref_name }}
+
+      - name: CentOS | Build TAR package
+        if: matrix.distro.bin_type == 'tgz'
+        run: sudo -E .github/scripts/create-packages.sh -t t
         env:
           DEFAULT_BRANCH: ${{steps.describe.outputs.default_branch}}
           HEAD_REF: ${{ github.head_ref || github.ref_name }}
@@ -131,10 +134,10 @@ jobs:
 
           temp_dir=$(pwd)
           cd ${BIN_TYPE}/${BIN_PKG_NAME}
-          DKMS_PKG_NAME=$(ls ${BIN_PKG_NAME}-dkms*.${BIN_TYPE})
+          FINAL_PKG_NAME=$(ls ${BIN_PKG_NAME}*.${BIN_TYPE})
           cd $temp_dir
 
-          echo "${BIN_TYPE}/${BIN_PKG_NAME}/${DKMS_PKG_NAME}"
+          echo "${BIN_TYPE}/${BIN_PKG_NAME}/${FINAL_PKG_NAME}"
           echo "${BIN_PKG_NAME}"
 
           # Determine the target folder for releases and pre-releases
@@ -181,7 +184,7 @@ jobs:
           esac
 
           AZURE_DEST=$(echo "${AZURE_PATH}/${BIN_TYPE}")
-          echo "dkms_bin_path=$(echo "${BIN_TYPE}/${BIN_PKG_NAME}/${DKMS_PKG_NAME}")" | tee -a $GITHUB_OUTPUT
+          echo "dkms_bin_path=$(echo "${BIN_TYPE}/${BIN_PKG_NAME}/${FINAL_PKG_NAME}")" | tee -a $GITHUB_OUTPUT
           echo "azure_dest=${AZURE_DEST}" | tee -a $GITHUB_OUTPUT
         env:
           DEFAULT_BRANCH: ${{steps.describe.outputs.default_branch}}
