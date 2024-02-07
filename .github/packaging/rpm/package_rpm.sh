@@ -45,23 +45,19 @@ cp_from_template () {
 }
 
 
-prepare () {
+prepare () (
     echo "Preparing build environment"
-    tmpdir=$(pwd)
     cd ${SRCDIR}
     rm -rf ${OUTDIR}/${PKG_NAME}
-    cd ${tmpdir}
     mkdir -p ${OUTDIR}/${PKG_NAME}
-}
+)
 
-output_manifest () {
-    tmpdir=$(pwd)
+output_manifest () (
     echo "MANIFEST:${PKG_NAME}-${FULL_PKG_VERSION}" > ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${FULL_PKG_VERSION}".manifest"
     cd ${SRCDIR}
     tag=$(git rev-parse HEAD)
     branch=$(git rev-parse --abbrev-ref HEAD)
     url=$(git config --get remote.origin.url)
-    cd ${tmpdir}
     echo "DATE:$(date -u +%Y.%m.%d.%H%M)" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${FULL_PKG_VERSION}".manifest"
     echo "BRANCH:${branch}" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${FULL_PKG_VERSION}".manifest"
     echo "TAG:${tag}" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${FULL_PKG_VERSION}".manifest"
@@ -74,7 +70,7 @@ output_manifest () {
     echo "HOSTNAME:${host_name}" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${FULL_PKG_VERSION}".manifest"
     echo "KERNEL_VERSION:${kernel_version}" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${FULL_PKG_VERSION}".manifest"
     echo "${os_info}" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${FULL_PKG_VERSION}".manifest"
-}
+)
 
 build_nfp_drv_kmod_dkms () {
     mkdir -p ${BUILDDIR}/${PKG_NAME}

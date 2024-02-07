@@ -57,14 +57,12 @@ prepare () {
     mkdir -p ${OUTDIR}/${PKG_NAME}
 }
 
-output_manifest () {
-    tmpdir=$(pwd)
+output_manifest () (
     echo "MANIFEST:${PKG_NAME}-${PKG_VERSION}" > ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${PKG_VERSION}".manifest"
     cd ${SRCDIR}
     tag=$(git rev-parse HEAD)
     branch=$(git rev-parse --abbrev-ref HEAD)
     url=$(git config --get remote.origin.url)
-    cd ${tmpdir}
     echo "DATE:$(date -u +%Y.%m.%d.%H%M)" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${PKG_VERSION}".manifest"
     echo "BRANCH:${branch}" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${PKG_VERSION}".manifest"
     echo "TAG:${tag}" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${PKG_VERSION}".manifest"
@@ -77,9 +75,9 @@ output_manifest () {
     echo "HOSTNAME:${host_name}" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${PKG_VERSION}".manifest"
     echo "KERNEL_VERSION:${kernel_version}" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${PKG_VERSION}".manifest"
     echo "${os_info}" >> ${OUTDIR}/${PKG_NAME}/${PKG_NAME}-dkms-${PKG_VERSION}".manifest"
-}
+)
 
-build_nfp_drv_kmod_dkms () {
+build_nfp_drv_kmod_dkms () (
     mkdir -p ${BUILDDIR}/${PKG_NAME}
     cp -r ${SRCDIR}/src ${BUILDDIR}/${PKG_NAME}/src
     echo ${PKG_VERSION} > ${BUILDDIR}/${PKG_NAME}/src/.revision
@@ -115,15 +113,13 @@ build_nfp_drv_kmod_dkms () {
     chmod 755 ${BUILDDIR}/${PKG_NAME}-dkms-${PKG_VERSION}/debian/postrm
     chmod 755 ${BUILDDIR}/${PKG_NAME}-dkms-${PKG_VERSION}/debian/postinst
 
-    temp_dir=$(pwd)
     cd ${BUILDDIR}/${PKG_NAME}-dkms-${PKG_VERSION}
     dpkg-buildpackage -d -b -us -uc
-    cd ${temp_dir}
 
     cp ${BUILDDIR}/*.deb ${OUTDIR}/${PKG_NAME}/.
     cp ${BUILDDIR}/*.buildinfo ${OUTDIR}/${PKG_NAME}/.
     cp ${BUILDDIR}/*.changes ${OUTDIR}/${PKG_NAME}/.
-}
+)
 
 
 cleanup () {

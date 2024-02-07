@@ -48,23 +48,19 @@ cp_from_template () {
 }
 
 
-prepare () {
+prepare () (
     echo "Preparing build environment"
-    tmpdir=$(pwd)
     cd ${SRCDIR}
     rm -rf ${OUTDIR}
-    cd ${tmpdir}
     mkdir -p ${FULL_OUTDIR}
-}
+)
 
-output_manifest () {
-    tmpdir=$(pwd)
+output_manifest () (
     echo "MANIFEST:${PKG_NAME}-${FULL_PKG_VERSION}" > ${FULL_OUTDIR}/${PKG_NAME}-${FULL_PKG_VERSION}".manifest"
     cd ${SRCDIR}
     tag=$(git rev-parse HEAD)
     branch=$(git rev-parse --abbrev-ref HEAD)
     url=$(git config --get remote.origin.url)
-    cd ${tmpdir}
     echo "DATE:$(date -u +%Y.%m.%d.%H%M)" >> ${FULL_OUTDIR}/${PKG_NAME}-${FULL_PKG_VERSION}".manifest"
     echo "BRANCH:${branch}" >> ${FULL_OUTDIR}/${PKG_NAME}-${FULL_PKG_VERSION}".manifest"
     echo "TAG:${tag}" >> ${FULL_OUTDIR}/${PKG_NAME}-${FULL_PKG_VERSION}".manifest"
@@ -77,7 +73,7 @@ output_manifest () {
     echo "HOSTNAME:${host_name}" >> ${FULL_OUTDIR}/${PKG_NAME}-${FULL_PKG_VERSION}".manifest"
     echo "KERNEL_VERSION:${kernel_version}" >> ${FULL_OUTDIR}/${PKG_NAME}-${FULL_PKG_VERSION}".manifest"
     echo "${os_info}" >> ${FULL_OUTDIR}/${PKG_NAME}-${FULL_PKG_VERSION}".manifest"
-}
+)
 
 build_nfp_drv_kmod_tar () {
     mkdir -p ${BUILDDIR}/${PKG_NAME}-${PKG_VERSION}
