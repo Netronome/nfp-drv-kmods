@@ -1,0 +1,207 @@
+name: Package RPM
+run-name: >-
+  ${{ format( 'driver: {0} kernel: {1}',
+             inputs.driver, inputs.kdev_package_name)
+  }}
+
+on:
+  workflow_dispatch:
+    secrets:
+      GHUB_TOKEN:
+        required: true
+      AZ_SAS_TOK:
+        required: true
+    inputs:
+      driver_build_type:
+        type: choice
+        required: false
+        options:
+          - tmp
+          - interim
+          - prereleases
+          - releases
+        default: releases
+        description: >-
+          Where the O-O-T driver tarball is located.
+      driver:
+        type: string
+        required: false
+        default: github.head_ref || github.ref_name
+        description: >-
+          Full filename of the nfp O-O-T driver tarball to package
+          to RPM.
+      kdev_base_url:
+        type: string
+        required: false
+        default: >-
+          http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/Packages/
+        description: >-
+          Base URL for desired kernel-devel to be used in building
+          RPM files.
+      kdev_package_name:
+        type: string
+        required: true
+        description: >-
+          Package name for desired kernel-devel to be used in building
+          RPM files.
+      target_distro:
+        type: choice
+        required: false
+        options:
+          - centos:8
+          - dokken/centos-stream-9
+          - rockylinux:8.5
+          - rockylinux:9
+          - openanolis/anolisos:8.6
+          - openanolis/anolisos:8.8
+          - opencloudos/opencloudos:8.6
+          - opencloudos/opencloudos:8.8
+          - opencloudos/opencloudos:9.0
+        default: centos:8
+        description: >-
+          Target distro on which the driver .rpm will be built.
+
+jobs:
+  package_rpm:
+    name: 'Package RPM: ${{ inputs.driver }}'
+    runs-on:
+      - self-hosted
+      - builder
+    container:
+      image: ${{ inputs.target_distro }}
+      volumes:
+        - /mnt/cloud:/mnt/cloud
+        - /mnt/local:/mnt/local
+      options: "--entrypoint /bin/bash"
+    steps:
+      - name: Add pre-requisite repositories and plugins
+        if: inputs.target_distro == 'centos:8'
+        run: |
+          sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-Linux-*
+          sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-Linux-*
+
+      - name: Install pre-requisite packages | DNF
+        if: inputs.target_distro != 'openanolis/anolisos:7.9-x86_64'
+        run: |
+          dnf clean all
+          dnf distro-sync -y
+          if [[ "${{ inputs.target_distro }}" != "opencloudos/opencloudos:9.0" ]]; then
+            dnf install -y epel-release
+          fi
+          dnf install -y wget sudo git sed \
+            gcc make rpm-build elfutils-libelf-devel
+
+      - name: Check out repository
+        uses: Corigine/ci-libs/github_actions/utilities/checkout_corigine@main
+        with:
+          token: ${{ secrets.GHUB_TOKEN }}
+
+      - name: Prepare environment variables
+        shell: bash
+        run: |
+          if [[ '${{ inputs.driver_build_type }}' == 'tmp' ]]; then
+            BASE_DIR=tmp/nfp_drv_dkms_builds/
+          else
+            BASE_DIR=binaries/nfp-drv-dkms/${{ inputs.driver_build_type }}/
+          fi
+          echo "BASE_DIR=$BASE_DIR" | tee -a $GITHUB_ENV
+
+          DOWNLOAD=$(pwd)/.download/
+          echo "DOWNLOAD=$DOWNLOAD" | tee -a $GITHUB_ENV
+          mkdir -p $DOWNLOAD
+          UNPACKED=$(pwd)/.unpacked/
+          echo "UNPACKED=$UNPACKED" | tee -a $GITHUB_ENV
+          mkdir -p $UNPACKED
+
+          DRIVER_TAR=${{ inputs.driver }}
+          DRIVER_VER=${DRIVER_TAR%.tgz}
+          RPM_TAR=${DRIVER_VER%-*}
+
+          echo "DRIVER_TAR=$DRIVER_TAR" | tee -a $GITHUB_ENV
+          echo "DRIVER_VER=$DRIVER_VER" | tee -a $GITHUB_ENV
+          echo "RPM_TAR=$RPM_TAR.tgz" | tee -a $GITHUB_ENV
+
+          KERNEL_DEVEL=${{ inputs.kdev_base_url }}/${{ inputs.kdev_package_name }}
+          KERNEL_VER=${{ inputs.kdev_package_name }}
+          KERNEL_VER=${KERNEL_VER%.rpm}
+          KERNEL_VER=${KERNEL_VER#*devel-}
+
+          echo "KERNEL_DEVEL=$KERNEL_DEVEL" | tee -a $GITHUB_ENV
+          echo "KERNEL_VER=$KERNEL_VER" | tee -a $GITHUB_ENV
+
+      - name: Install azcopy binary
+        run: |
+          wget https://aka.ms/downloadazcopy-v10-linux -O /tmp/downloadazcopy-v10-linux.tgz
+          tar -xvf /tmp/downloadazcopy-v10-linux.tgz -C /tmp/
+          sudo cp /tmp/azcopy_linux_amd64_*/azcopy /usr/bin/
+
+      - name: Find driver tarball
+        uses: Corigine/ci-libs/github_actions/azure/azcopy_list@main
+        id: artifact_driver
+        with:
+          connection-string: ${{ secrets.AZ_SAS_TOK }}
+          src: ${{ env.BASE_DIR }}
+          pattern: '.*${{ env.DRIVER_TAR }}'
+
+      - name: Download driver tarball
+        uses: Corigine/ci-libs/github_actions/azure/azcopy_download@main
+        with:
+          connection-string: ${{ secrets.AZ_SAS_TOK }}
+          src: ${{ env.BASE_DIR }}/${{ steps.artifact_driver.outputs.latest }}
+          dst: ${{ env.DOWNLOAD }}/
+
+      - name: Extract driver tarball
+        shell: bash
+        run: |
+          tar xvfz ${{ env.DOWNLOAD }}/${{ env.DRIVER_TAR }} -C ${{ env.UNPACKED }}
+
+      - name: Download Kernel Header Packages
+        uses: ./.github/actions/download
+        with:
+          output-path: ${{ env.DOWNLOAD }}
+          url: ${{ env.KERNEL_DEVEL }}
+          accept: "kernel-devel-${{ env.KERNEL_VER }}.rpm"
+
+      - name: Unpack Kernel Headers
+        uses: ./.github/actions/unpack-rpm
+        with:
+          input-path: ${{ env.DOWNLOAD }}
+          output-path: ${{ env.UNPACKED }}
+
+      - name: Build RPM packages
+        shell: bash
+        run: |
+          if [[ "${{ contains(inputs.target_distro, 'opencloudos:8') }}" == "true" ]]; then
+            SRC=$( echo ${{ env.KERNEL_VER }} | sed "s/\.[a-z].*//" )
+          else
+            SRC=${{ env.KERNEL_VER }}
+          fi
+          rpmbuild -D \
+          "%kernel_path ${{ env.UNPACKED }}/usr/src/kernels/$SRC/" \
+          -tb ${{ env.UNPACKED }}/${{ env.DRIVER_VER }}/${{ env.RPM_TAR }} > build_out.txt
+
+          RPM_OUT=$(awk '{if ($1 == "Wrote:") print $2}' build_out.txt)
+          echo "RPM_OUT=$RPM_OUT" | tee -a $GITHUB_ENV
+
+      - name: Prepare environment for upload
+        shell: bash
+        run: |
+          DATE="$(date -u +%Y.%m.%d)"
+
+          TARGET_DISTRO=${{ inputs.target_distro }}
+          TARGET_DISTRO=${TARGET_DISTRO#*/}
+          TARGET_DISTRO=$(echo $TARGET_DISTRO | tr : -)
+
+          if [[ '${{ inputs.driver_build_type }}' == 'tmp' ]]; then
+            AZURE_PATH=${{ env.BASE_DIR }}/${{ github.actor }}/$DATE/rpm/$TARGET_DISTRO
+          else
+            AZURE_PATH=${{ env.BASE_DIR }}/rpm/$TARGET_DISTRO
+          fi
+          echo "AZURE_PATH=$AZURE_PATH" | tee -a $GITHUB_ENV
+
+      - name: Upload RPM packages
+        uses: Corigine/ci-libs/github_actions/azure/azcopy_upload_sync@main
+        with:
+          connection-string: ${{ secrets.AZ_SAS_TOK }}
+          src: ${{ env.RPM_OUT }}
+          dst: ${{ env.AZURE_PATH }}
