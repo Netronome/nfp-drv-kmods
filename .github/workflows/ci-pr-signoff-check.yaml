@@ -1,0 +1,27 @@
+---
+# This workflow performs linting checks to promote code quality.
+name: Check PR commit signoffs
+
+# Run when opening a PR or push to PR
+on:
+  pull_request:
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  linters:
+    runs-on:
+      - ci-linter-vm
+      - self-hosted
+    steps:
+      - name: Checkout current repository
+        uses: Corigine/ci-libs/github_actions/utilities/checkout_corigine@main
+        with:
+          token: ${{ secrets.GHUB_TOKEN }}
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Check commit message format
+        uses: Corigine/ci-libs/github_actions/linting/commit_check@main
+        with:
+          token: ${{ secrets.GHUB_TOKEN }}
