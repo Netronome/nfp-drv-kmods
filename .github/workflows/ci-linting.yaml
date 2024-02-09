@@ -1,43 +1,25 @@
-# Run linting actions to check for trailing whitespace and
-# commit message issues.
+# Run linting actions to check for trailing whitespace,
+# spelling, commit message, and code format issues.
 name: Linter/commit check
 
 on:
   push:
+  pull_request:
+    types: [opened, reopened]
 
 jobs:
   linters:
-    runs-on: [self-hosted, ci-linter-vm]
-    steps:
-    - uses: Corigine/ci-libs/github_actions/utilities/checkout_corigine@main
-      with:
-        ref: ${{ github.head_ref }}
-        fetch-depth: 0
-        token: ${{ secrets.GHUB_TOKEN }}
-
-    - name: Checkout ci-libs
-      uses: Corigine/ci-libs/github_actions/utilities/checkout_corigine@main
-      with:
-        repository: Corigine/ci-libs
-        token: ${{ secrets.GHUB_TOKEN }}
-        path: ci-libs
-      if: always()
-
-    - name: Get the changed files and hash lists
-      uses: ./ci-libs/github_actions/linting/get_diffs
-      # Outputs:
-      #   current_branch
-      #   other_branches
-      #   files_list
-      #   hash_list
-      id: get_diffs
-      if: always()
-
-    - name: Lint codebase
-      uses: ./ci-libs/github_actions/linting/code_check
-      with:
-        current_branch: ${{ steps.get_diffs.outputs.current_branch }}
-        files_list: ${{ steps.get_diffs.outputs.files_list }}
-        python_version: '2'
-        fail_flag: true
-      if: always()
+    uses: Corigine/ci-libs/.github/workflows/ci-linting.yaml@main
+    with:
+      json_config: >-
+        {"commit_check": ${{ vars.lint_conf_commit || '{}' }},
+        "code_check": ${{ vars.lint_conf_code || '{}' }},
+        "spell_check": ${{ vars.lint_conf_spell || '{"fail_flag": true}' }}
+        ${{ vars.lint_conf_other }}
+        }
+      enabled_linters: >-
+        ${{ vars.lint_commits || 'commit_check' }},
+        ${{ vars.lint_coding || 'code_check' }},
+        ${{ vars.lint_spelling || 'spell_check' }},
+        ${{ vars.lint_other }}
+    secrets: inherit
