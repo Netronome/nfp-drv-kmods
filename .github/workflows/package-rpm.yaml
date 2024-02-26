@@ -75,20 +75,6 @@ jobs:
         - /mnt/local:/mnt/local
       options: "--entrypoint /bin/bash"
     steps:
-      - name: Metadata | Set Variables | Print user inputs
-        if: github.event_name == 'workflow_dispatch'
-        shell: python3 {0}
-        run: |
-          import json
-          inputs ={
-                    "driver_build_type" : "${{ inputs.driver_build_type }}",
-                    "driver" : "${{ inputs.driver }}",
-                    "kdev_base_url" : "${{ inputs.kdev_base_url }}",
-                    "kdev_package_name" : "${{ inputs.kdev_package_name }}",
-                    "target_distro" : "${{ inputs.target_distro }}",
-                    }
-          print(json.dumps(inputs, indent=1))
-
       - name: Add pre-requisite repositories and plugins
         if: inputs.target_distro == 'centos:8'
         run: |
@@ -105,7 +91,21 @@ jobs:
             dnf install -y epel-release
           fi
           dnf install -y wget sudo git sed \
-            gcc make rpm-build elfutils-libelf-devel
+            gcc make rpm-build elfutils-libelf-devel python3
+
+      - name: Metadata | Set Variables | Print user inputs
+        if: github.event_name == 'workflow_dispatch'
+        shell: python3 {0}
+        run: |
+          import json
+          inputs ={
+                    "driver_build_type" : "${{ inputs.driver_build_type }}",
+                    "driver" : "${{ inputs.driver }}",
+                    "kdev_base_url" : "${{ inputs.kdev_base_url }}",
+                    "kdev_package_name" : "${{ inputs.kdev_package_name }}",
+                    "target_distro" : "${{ inputs.target_distro }}",
+                    }
+          print(json.dumps(inputs, indent=1))
 
       - name: Check out repository
         uses: Corigine/ci-libs/github_actions/utilities/checkout_corigine@main
