@@ -1,7 +1,7 @@
 name: Package RPM
 run-name: >-
-  ${{ format( 'driver: {0} kernel: {1}',
-             inputs.driver, inputs.kdev_package_name)
+  ${{ format( 'driver: {0} OS: {1}',
+             inputs.driver, inputs.target_distro)
   }}
 
 on:
@@ -37,12 +37,6 @@ on:
           http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/Packages/
         description: >-
           Base URL for desired kernel-devel to be used in building
-          RPM files.
-      kdev_package_name:
-        type: string
-        required: true
-        description: >-
-          Package name for desired kernel-devel to be used in building
           RPM files.
       target_distro:
         type: choice
@@ -93,7 +87,11 @@ jobs:
           dnf install -y wget sudo git sed \
             gcc make rpm-build elfutils-libelf-devel python3
 
-      - name: Metadata | Set Variables | Print user inputs
+      - name: Clean old artifacts
+        run: |
+          sudo find -delete
+
+      - name: Metadata | Print user inputs
         if: github.event_name == 'workflow_dispatch'
         shell: python3 {0}
         run: |
@@ -102,8 +100,7 @@ jobs:
                     "driver_build_type" : "${{ inputs.driver_build_type }}",
                     "driver" : "${{ inputs.driver }}",
                     "kdev_base_url" : "${{ inputs.kdev_base_url }}",
-                    "kdev_package_name" : "${{ inputs.kdev_package_name }}",
-                    "target_distro" : "${{ inputs.target_distro }}",
+                    "target_distro" : "${{ inputs.target_distro }}"
                     }
           print(json.dumps(inputs, indent=1))
 
@@ -137,13 +134,9 @@ jobs:
           echo "DRIVER_VER=$DRIVER_VER" | tee -a $GITHUB_ENV
           echo "RPM_TAR=$RPM_TAR.tgz" | tee -a $GITHUB_ENV
 
-          KERNEL_DEVEL=${{ inputs.kdev_base_url }}/${{ inputs.kdev_package_name }}
-          KERNEL_VER=${{ inputs.kdev_package_name }}
-          KERNEL_VER=${KERNEL_VER%.rpm}
-          KERNEL_VER=${KERNEL_VER#*devel-}
+          KERNEL_DEVEL=${{ inputs.kdev_base_url }}
 
           echo "KERNEL_DEVEL=$KERNEL_DEVEL" | tee -a $GITHUB_ENV
-          echo "KERNEL_VER=$KERNEL_VER" | tee -a $GITHUB_ENV
 
       - name: Install azcopy binary
         run: |
@@ -176,7 +169,7 @@ jobs:
         with:
           output-path: ${{ env.DOWNLOAD }}
           url: ${{ env.KERNEL_DEVEL }}
-          accept: "kernel-devel-${{ env.KERNEL_VER }}.rpm"
+          accept: "kernel-devel-*.rpm"
 
       - name: Unpack Kernel Headers
         uses: ./.github/actions/unpack-rpm
@@ -187,17 +180,16 @@ jobs:
       - name: Build RPM packages
         shell: bash
         run: |
-          if [[ "${{ contains(inputs.target_distro, 'opencloudos:8') }}" == "true" ]]; then
-            SRC=$( echo ${{ env.KERNEL_VER }} | sed "s/\.[a-z].*//" )
-          else
-            SRC=${{ env.KERNEL_VER }}
-          fi
-          rpmbuild -D \
-          "%kernel_path ${{ env.UNPACKED }}/usr/src/kernels/$SRC/" \
-          -tb ${{ env.UNPACKED }}/${{ env.DRIVER_VER }}/${{ env.RPM_TAR }} > build_out.txt
+          mkdir -p ./built_rpms
 
-          RPM_OUT=$(awk '{if ($1 == "Wrote:") print $2}' build_out.txt)
-          echo "RPM_OUT=$RPM_OUT" | tee -a $GITHUB_ENV
+          for HEADERS in $(ls ${{ env.UNPACKED }}/usr/src/kernels/); do
+            rpmbuild -D \
+              "%kernel_path ${{ env.UNPACKED }}/usr/src/kernels/$HEADERS/" \
+              -tb ${{ env.UNPACKED }}/${{ env.DRIVER_VER }}/${{ env.RPM_TAR }} > build_out.txt
+
+            RPM_OUT=$(awk '{if ($1 == "Wrote:") print $2}' build_out.txt)
+            mv $RPM_OUT ./built_rpms/
+          done
 
       - name: Prepare environment for upload
         shell: bash
@@ -219,5 +211,5 @@ jobs:
         uses: Corigine/ci-libs/github_actions/azure/azcopy_upload_sync@main
         with:
           connection-string: ${{ secrets.AZ_SAS_TOK }}
-          src: ${{ env.RPM_OUT }}
+          src: ./built_rpms/*
           dst: ${{ env.AZURE_PATH }}
