@@ -52,7 +52,9 @@ make INSTALL_MOD_PATH=%{buildroot} modules_install_only -j $(nproc)
 install -d "%{buildroot}/opt/netronome/drv"
 install -d "%{buildroot}/etc/profile.d"
 install -m 755 ./tools/set_irq_affinity.sh %{buildroot}/opt/netronome/drv/nfp_set_irq_affinity
-install -m 755 ./tools/nfp_troubleshoot_gather.py %{buildroot}/opt/netronome/drv/nfp_troubleshoot_gather
+# Disable the executable bit of nfp_troubleshoot_gather to ensure the python interpreter is not modified
+# when building packages on CentOS
+install -m 644 ./tools/nfp_troubleshoot_gather.py %{buildroot}/opt/netronome/drv/nfp_troubleshoot_gather
 install -m 755 ./tools/profile.sh %{buildroot}/etc/profile.d/nfp_drv_kmods_dkms_profile.sh
 # Remove the files that we do not need
 find %{buildroot}/lib/modules/ -name 'modules.*' -exec rm -f {} \;
@@ -82,6 +84,11 @@ uname -r | grep BOOT || /sbin/depmod -a > /dev/null 2>&1 || true
 if [ -x "/usr/sbin/weak-modules" ]; then
     modules=( $(cat %{_docdir}/%{name}/file.list | grep '\.ko$' | xargs realpath) )
     printf '%s\n' "${modules[@]}" | /usr/sbin/weak-modules --no-initramfs --add-modules
+fi
+
+# Set the executable bit
+if [ -e "/opt/netronome/drv/nfp_troubleshoot_gather" ]; then
+	chmod 755 /opt/netronome/drv/nfp_troubleshoot_gather
 fi
 
 if which dracut >/dev/null 2>&1; then
