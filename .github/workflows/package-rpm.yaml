@@ -55,13 +55,22 @@ on:
         default: centos:8
         description: >-
           Target distro on which the driver .rpm will be built.
+      target_arch:
+        type: choice
+        required: false
+        options:
+          - x86_64
+          - aarch64
+        default: x86_64
+        description: >-
+          Target architecture on which the driver .rpm will be built.
 
 jobs:
   package_rpm:
     name: 'Package RPM: ${{ inputs.driver }}'
     runs-on:
       - self-hosted
-      - builder
+      - ${{ inputs.target_arch == 'aarch64' && 'builder-arm' || 'builder' }}
     container:
       image: ${{ inputs.target_distro }}
       volumes:
@@ -140,9 +149,15 @@ jobs:
 
       - name: Install azcopy binary
         run: |
-          wget https://aka.ms/downloadazcopy-v10-linux -O /tmp/downloadazcopy-v10-linux.tgz
-          tar -xvf /tmp/downloadazcopy-v10-linux.tgz -C /tmp/
-          sudo cp /tmp/azcopy_linux_amd64_*/azcopy /usr/bin/
+          if [[ '${{ inputs.target_arch }}' == 'aarch64' ]]; then
+            binary_link=https://aka.ms/downloadazcopy-v10-linux-arm64
+          else
+            binary_link=https://aka.ms/downloadazcopy-v10-linux
+          fi
+
+          wget $binary_link -O /tmp/downloadazcopy-v10-linux.tgz
+          tar -xvf /tmp/downloadazcopy-v10-linux.tgz -C /tmp/ --strip-components=1
+          sudo cp /tmp/azcopy /usr/bin/
 
       - name: Find driver tarball
         uses: Corigine/ci-libs/github_actions/azure/azcopy_list@main
