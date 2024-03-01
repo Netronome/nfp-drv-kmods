@@ -195,16 +195,15 @@ jobs:
       - name: Build RPM packages
         shell: bash
         run: |
-          mkdir -p ./built_rpms
-
           for HEADERS in $(ls ${{ env.UNPACKED }}/usr/src/kernels/); do
-            rpmbuild -D \
-              "%kernel_path ${{ env.UNPACKED }}/usr/src/kernels/$HEADERS/" \
-              -tb ${{ env.UNPACKED }}/${{ env.DRIVER_VER }}/${{ env.RPM_TAR }} > build_out.txt
-
-            RPM_OUT=$(awk '{if ($1 == "Wrote:") print $2}' build_out.txt)
-            mv $RPM_OUT ./built_rpms/
+            rpmbuild \
+              -D "%kernel_path ${{ env.UNPACKED }}/usr/src/kernels/$HEADERS/" \
+              -D "_topdir $(pwd)/rpmbuild" \
+              -tb ${{ env.UNPACKED }}/${{ env.DRIVER_VER }}/${{ env.RPM_TAR }}
           done
+
+          RPM_DIR=$(pwd)/rpmbuild/RPMS/${{ inputs.target_arch }}/
+          echo "RPM_DIR=${RPM_DIR}/*" | tee -a $GITHUB_ENV
 
       - name: Prepare environment for upload
         shell: bash
@@ -228,5 +227,5 @@ jobs:
         uses: Corigine/ci-libs/github_actions/azure/azcopy_upload_sync@main
         with:
           connection-string: ${{ secrets.AZ_SAS_TOK }}
-          src: ./built_rpms/*
+          src: ${{ env.RPM_DIR }}
           dst: ${{ env.AZURE_PATH }}
