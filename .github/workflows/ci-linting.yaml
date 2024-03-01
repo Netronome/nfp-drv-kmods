@@ -3,9 +3,8 @@
 name: Linter/commit check
 
 on:
-  push:
   pull_request:
-    types: [opened, reopened]
+    types: [opened, reopened, synchronize]
 
 jobs:
   linters:
@@ -13,10 +12,11 @@ jobs:
     with:
       json_config: >-
         {"commit_check": ${{ vars.lint_conf_commit || '{}' }},
-        "code_check": ${{ vars.lint_conf_code || '{}' }},
+        "code_check": ${{ vars.lint_conf_code || '{"python_version": "2"}' }},
         "spell_check": ${{ vars.lint_conf_spell || '{"fail_flag": true}' }}
         ${{ vars.lint_conf_other }}
         }
+
       enabled_linters: >-
         ${{ vars.lint_commits || 'commit_check' }},
         ${{ vars.lint_coding || 'code_check' }},
