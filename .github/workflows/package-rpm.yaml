@@ -43,7 +43,7 @@ on:
         required: false
         options:
           - centos:8
-          - dokken/centos-stream-9
+          - dokken/centos-stream-9:main
           - rockylinux:8.5
           - rockylinux:9
           - openanolis/anolisos:8.6
@@ -66,13 +66,56 @@ on:
           Target architecture on which the driver .rpm will be built.
 
 jobs:
+  prepare:
+    name: 'Prepare'
+    runs-on:
+      - self-hosted
+      - ci-linter-vm
+    outputs:
+      target_distro: ${{ steps.distro.outputs.distro }}
+    steps:
+      - name: Metadata | Print user inputs
+        if: github.event_name == 'workflow_dispatch'
+        shell: python3 {0}
+        run: |
+          import json
+          inputs ={
+                    "driver_build_type" : "${{ inputs.driver_build_type }}",
+                    "driver" : "${{ inputs.driver }}",
+                    "kdev_base_url" : "${{ inputs.kdev_base_url }}",
+                    "target_distro" : "${{ inputs.target_distro }}",
+                    "target_arch" : "${{ inputs.target_arch }}"
+                    }
+          print(json.dumps(inputs, indent=1))
+
+      - name: Format target distro
+        id: distro
+        shell: python3 {0}
+        run: |
+          import os as operating_sys
+          target_distro = "${{ inputs.target_distro }}"
+
+          distro, version = target_distro.split(':')
+
+          if "${{ inputs.target_arch }}" == "aarch64":
+            if distro == "opencloudos/opencloudos":
+              distro += "_aarch64"
+            elif distro == "lhrbest/kylinos":
+              version = version.replace("_","")
+              version += "_arm64"
+
+          target_distro = distro + ":" + version
+          with open(operating_sys.environ['GITHUB_OUTPUT'], 'a') as github_output:
+            github_output.write(f"distro={target_distro}")
+
   package_rpm:
     name: 'Package RPM: ${{ inputs.driver }}'
+    needs: prepare
     runs-on:
       - self-hosted
       - ${{ inputs.target_arch == 'aarch64' && 'builder-arm' || 'builder' }}
     container:
-      image: ${{ inputs.target_distro }}
+      image: ${{ needs.prepare.outputs.target_distro }}
       volumes:
         - /mnt/cloud:/mnt/cloud
         - /mnt/local:/mnt/local
@@ -94,24 +137,11 @@ jobs:
             dnf install -y epel-release
           fi
           dnf install -y wget sudo git sed \
-            gcc make rpm-build elfutils-libelf-devel python3
+            gcc make rpm-build elfutils-libelf-devel
 
       - name: Clean old artifacts
         run: |
           sudo find -delete
-
-      - name: Metadata | Print user inputs
-        if: github.event_name == 'workflow_dispatch'
-        shell: python3 {0}
-        run: |
-          import json
-          inputs ={
-                    "driver_build_type" : "${{ inputs.driver_build_type }}",
-                    "driver" : "${{ inputs.driver }}",
-                    "kdev_base_url" : "${{ inputs.kdev_base_url }}",
-                    "target_distro" : "${{ inputs.target_distro }}"
-                    }
-          print(json.dumps(inputs, indent=1))
 
       - name: Check out repository
         uses: Corigine/ci-libs/github_actions/utilities/checkout_corigine@main
@@ -211,8 +241,12 @@ jobs:
           DATE="$(date -u +%Y.%m.%d)"
 
           TARGET_DISTRO=${{ inputs.target_distro }}
-          TARGET_DISTRO=${TARGET_DISTRO#*/}
-          TARGET_DISTRO=$(echo $TARGET_DISTRO | tr : -)
+          if [[ $TARGET_DISTRO == "dokken/centos-stream-9:main" ]]; then
+            TARGET_DISTRO="centos-9"
+          else
+            TARGET_DISTRO=${TARGET_DISTRO#*/}
+            TARGET_DISTRO=$(echo $TARGET_DISTRO | tr : -)
+          fi
 
           if [[ '${{ inputs.driver_build_type }}' == 'tmp' ]]; then
             AZURE_PATH=${{ env.BASE_DIR }}/${{ github.actor }}/$DATE/rpm/$TARGET_DISTRO
