@@ -34,6 +34,9 @@
 #ifndef COMPAT_BCLINUX
 #define COMPAT_BCLINUX 0
 #endif
+#ifndef COMPAT_BC82_KERN_11
+#define COMPAT_BC82_KERN_11 0
+#endif
 #ifndef COMPAT_OELINUX
 #define COMPAT_OELINUX 0
 #endif

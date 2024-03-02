@@ -227,6 +227,7 @@ $(eval $(call add_compat_flag,$(srctree)/include/linux/bpf.h,"^void bpf_map_inc(
 utsrelease_h_path :=$(srctree)/include/generated/utsrelease.h
 # Check for BC Linux
 $(eval $(call add_compat_flag,$(utsrelease_h_path),bclinux,COMPAT_BCLINUX=1))
+$(eval $(call add_compat_flag,$(utsrelease_h_path),4.19.0-240.23.11.el8_2.bclinux.x86_64,COMPAT_BC82_KERN_11=1))
 # Check for openEuler Linux
 $(eval $(call add_compat_flag,$(utsrelease_h_path),oe,COMPAT_OELINUX=1))
 # Check for KYLIN Linux

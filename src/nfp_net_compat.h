@@ -1480,7 +1480,7 @@ struct flow_block_cb {};
 
 #if VER_NON_RHEL_GE(5, 9) || VER_RHEL_GE(8, 4)
 #define compat__nfp_flower_indr_setup_tc_cb nfp_flower_indr_setup_tc_cb
-#elif VER_NON_RHEL_GE(5, 8) || VER_BCL_GE(8, 3)
+#elif VER_NON_RHEL_GE(5, 8) || VER_BCL_GE(8, 3) && !COMPAT_BC82_KERN_11
 int compat__nfp_flower_indr_setup_tc_cb(struct net_device *netdev,
 					void *cb_priv, enum tc_setup_type type,
 					void *type_data, void *data,
@@ -1491,7 +1491,8 @@ int compat__nfp_flower_indr_setup_tc_cb(struct net_device *netdev,
 					void *type_data);
 #endif
 
-#if VER_NON_RHEL_GE(5, 8) || VER_BCL_GE(8, 3) || VER_NON_BCL_GE(8, 4)
+#if VER_NON_RHEL_GE(5, 8) || (VER_BCL_GE(8, 3) && !COMPAT_BC82_KERN_11) || \
+    VER_NON_BCL_GE(8, 4)
 #define compat__nfp_flower_setup_indr_tc_release \
 	nfp_flower_setup_indr_tc_release
 #elif VER_RHEL_GE(8, 3)
@@ -1513,7 +1514,7 @@ compat__flow_indr_block_cb_alloc(flow_setup_cb_t *cb, void *cb_ident,
 				 void *indr_cb_priv,
 				 void (*cleanup)(struct flow_block_cb *block_cb))
 {
-#if VER_NON_RHEL_GE(5, 8) || VER_BCL_GE(8, 3)
+#if VER_NON_RHEL_GE(5, 8) || (VER_BCL_GE(8, 3) && !COMPAT_BC82_KERN_11)
 	return flow_indr_block_cb_alloc(cb, cb_ident, cb_priv, release, bo,
 					dev, data, indr_cb_priv, cleanup);
 #else
@@ -1525,7 +1526,8 @@ compat__flow_indr_block_cb_alloc(flow_setup_cb_t *cb, void *cb_ident,
 #endif /* VER_NON_RHEL_GE(5, 0) || VER_RHEL_GE(8, 0) */
 
 #if (VER_NON_RHEL_GE(5, 3) && VER_NON_RHEL_LT(5, 8)) || \
-	(VER_RHEL_GE(8, 2) && (VER_NON_BCL_LT(8, 4) || VER_BCL_LT(8, 3)))
+	(VER_RHEL_GE(8, 2) && \
+	 (VER_NON_BCL_LT(8, 4) || VER_BCL_LT(8, 3) || COMPAT_BC82_KERN_11))
 static inline void
 flow_indr_block_cb_remove(struct flow_block_cb *block_cb,
 			  struct flow_block_offload *offload)

@@ -184,7 +184,8 @@ void nfp_devlink_params_unregister(struct nfp_pf *pf)
 
 #ifdef CONFIG_NFP_APP_FLOWER
 #if VER_NON_RHEL_GE(5, 0) || VER_RHEL_GE(8, 1)
-#if VER_NON_RHEL_LT(5, 8) || VER_NON_BCL_LT(8, 4) || VER_BCL_LT(8, 3)
+#if VER_NON_RHEL_LT(5, 8) || VER_NON_BCL_LT(8, 4) || \
+    (VER_BCL_LT(8, 3) || COMPAT_BC82_KERN_11)
 int compat__nfp_flower_indr_setup_tc_cb(struct net_device *netdev,
 					void *cb_priv, enum tc_setup_type type,
 					void *type_data)
