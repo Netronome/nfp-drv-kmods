@@ -26,10 +26,9 @@ on:
       driver:
         type: string
         required: false
-        default: github.head_ref || github.ref_name
         description: >-
           Full filename of the nfp O-O-T driver tarball to package
-          to RPM.
+          to RPM. Leave blank to use the latest available
       kdev_base_url:
         type: string
         required: false
@@ -174,16 +173,7 @@ jobs:
           echo "UNPACKED=$UNPACKED" | tee -a $GITHUB_ENV
           mkdir -p $UNPACKED
 
-          DRIVER_TAR=${{ inputs.driver }}
-          DRIVER_VER=${DRIVER_TAR%.tgz}
-          RPM_TAR=${DRIVER_VER%-*}
-
-          echo "DRIVER_TAR=$DRIVER_TAR" | tee -a $GITHUB_ENV
-          echo "DRIVER_VER=$DRIVER_VER" | tee -a $GITHUB_ENV
-          echo "RPM_TAR=$RPM_TAR.tgz" | tee -a $GITHUB_ENV
-
           KERNEL_DEVEL=${{ inputs.kdev_base_url }}
-
           echo "KERNEL_DEVEL=$KERNEL_DEVEL" | tee -a $GITHUB_ENV
 
       - name: Install azcopy binary
@@ -204,19 +194,28 @@ jobs:
         with:
           connection-string: ${{ secrets.AZ_SAS_TOK }}
           src: ${{ env.BASE_DIR }}
-          pattern: '.*${{ env.DRIVER_TAR }}'
+          pattern: ".*${{ inputs.driver == '' && 'agilio-nfp-driver.*.tgz' || inputs.driver }}"
 
       - name: Download driver tarball
         uses: Corigine/ci-libs/github_actions/azure/azcopy_download@main
         with:
           connection-string: ${{ secrets.AZ_SAS_TOK }}
-          src: ${{ env.BASE_DIR }}/${{ steps.artifact_driver.outputs.latest }}
+          src: ${{ env.BASE_DIR }}/${{ steps.artifact_driver.outputs.latest-ver }}
           dst: ${{ env.DOWNLOAD }}/
 
       - name: Extract driver tarball
         shell: bash
         run: |
-          tar xvfz ${{ env.DOWNLOAD }}/${{ env.DRIVER_TAR }} -C ${{ env.UNPACKED }}
+          DRIVER_TAR=${{ steps.artifact_driver.outputs.latest-ver }}
+          DRIVER_TAR=${DRIVER_TAR##*/}
+          DRIVER_VER=${DRIVER_TAR%.tgz}
+          RPM_TAR=${DRIVER_VER%-*}
+
+          tar xvfz ${{ env.DOWNLOAD }}/$DRIVER_TAR -C ${{ env.UNPACKED }}
+
+          echo "DRIVER_TAR=$DRIVER_TAR" | tee -a $GITHUB_ENV
+          echo "DRIVER_VER=$DRIVER_VER" | tee -a $GITHUB_ENV
+          echo "RPM_TAR=$RPM_TAR.tgz" | tee -a $GITHUB_ENV
 
       - name: Download Kernel Header Packages
         uses: ./.github/actions/download
