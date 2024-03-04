@@ -52,6 +52,9 @@ on:
           - opencloudos/opencloudos:8.8
           - opencloudos/opencloudos:9.0
           - lhrbest/kylinos:v10_sp3
+          - nfschinadocker/nfschina-server:v4.0
+          - openeuler/openeuler:20.03
+          - openeuler/openeuler:22.03
         default: centos:8
         description: >-
           Target distro on which the driver .rpm will be built.
@@ -92,6 +95,7 @@ jobs:
         id: distro
         shell: python3 {0}
         run: |
+          import sys
           import os as operating_sys
           target_distro = "${{ inputs.target_distro }}"
 
@@ -103,6 +107,9 @@ jobs:
             elif distro == "lhrbest/kylinos":
               version = version.replace("_","")
               version += "_arm64"
+            elif distro == "nfschinadocker/nfschina-server":
+              print("::error::Specified target_distro does not support aarch64 architecture")
+              sys.exit(1)
 
           target_distro = distro + ":" + version
           with open(operating_sys.environ['GITHUB_OUTPUT'], 'a') as github_output:
@@ -133,7 +140,9 @@ jobs:
           dnf clean all
           dnf distro-sync -y
           if [[ "${{ inputs.target_distro }}" != "opencloudos/opencloudos:9.0" && \
-                "${{ inputs.target_distro }}" != *"kylinos"* ]]; then
+                "${{ inputs.target_distro }}" != *"kylinos"* && \
+                "${{ inputs.target_distro }}" != *"openeuler"* && \
+                "${{ inputs.target_distro }}" != *"nfschina-server"* ]]; then
             dnf install -y epel-release
           fi
           dnf install -y wget sudo git sed \
