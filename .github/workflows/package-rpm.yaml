@@ -29,6 +29,17 @@ on:
         description: >-
           Full filename of the nfp O-O-T driver tarball to package
           to RPM. Leave blank to use the latest available
+      driver_upload_location:
+        type: choice
+        required: false
+        options:
+          - tmp
+          - default
+        default: default
+        description: >-
+          Where the O-O-T driver RPM will be uploaded to. The default here
+          being the same location (broadly speaking), as where the original
+          O-O-T driver tarball was found.
       kdev_base_url:
         type: string
         required: false
@@ -84,6 +95,7 @@ jobs:
           inputs ={
                     "driver_build_type" : "${{ inputs.driver_build_type }}",
                     "driver" : "${{ inputs.driver }}",
+                    "driver_upload_location" : "${{ inputs.driver_upload_location }}",
                     "kdev_base_url" : "${{ inputs.kdev_base_url }}",
                     "target_distro" : "${{ inputs.target_distro }}",
                     "target_arch" : "${{ inputs.target_arch }}"
@@ -256,8 +268,9 @@ jobs:
             TARGET_DISTRO=$(echo $TARGET_DISTRO | tr : -)
           fi
 
-          if [[ '${{ inputs.driver_build_type }}' == 'tmp' ]]; then
-            AZURE_PATH=${{ env.BASE_DIR }}/${{ github.actor }}/$DATE/rpm/$TARGET_DISTRO
+          if [[ '${{ inputs.driver_upload_location }}' == 'tmp' || \
+                '${{ inputs.driver_build_type }}' == 'tmp' ]]; then
+            AZURE_PATH=tmp/nfp_drv_dkms_builds/${{ github.actor }}/$DATE/rpm/$TARGET_DISTRO
           else
             RELEASE_VER_MAJOR=$(echo ${{ env.RPM_TAR }} | \
               sed 's/agilio-nfp-driver-\([0-9]\{2\}\.[0-9]\{2\}\).*/\1/' )
