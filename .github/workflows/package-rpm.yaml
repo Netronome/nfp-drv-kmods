@@ -245,21 +245,6 @@ jobs:
       - name: Build RPM packages
         shell: bash
         run: |
-          for HEADERS in $(ls ${{ env.UNPACKED }}/usr/src/kernels/); do
-            rpmbuild \
-              -D "%kernel_path ${{ env.UNPACKED }}/usr/src/kernels/$HEADERS/" \
-              -D "_topdir $(pwd)/rpmbuild" \
-              -tb ${{ env.UNPACKED }}/${{ env.DRIVER_VER }}/${{ env.RPM_TAR }}
-          done
-
-          RPM_DIR=$(pwd)/rpmbuild/RPMS/${{ inputs.target_arch }}/
-          echo "RPM_DIR=${RPM_DIR}/*" | tee -a $GITHUB_ENV
-
-      - name: Prepare environment for upload
-        shell: bash
-        run: |
-          DATE="$(date -u +%Y.%m.%d)"
-
           TARGET_DISTRO=${{ inputs.target_distro }}
           if [[ $TARGET_DISTRO == "dokken/centos-stream-9:main" ]]; then
             TARGET_DISTRO="centos-9"
@@ -268,13 +253,30 @@ jobs:
             TARGET_DISTRO=$(echo $TARGET_DISTRO | tr : -)
           fi
 
+          for HEADERS in $(ls ${{ env.UNPACKED }}/usr/src/kernels/); do
+            rpmbuild \
+              -D "%kernel_path ${{ env.UNPACKED }}/usr/src/kernels/$HEADERS/" \
+              -D "_topdir /tmp/$TARGET_DISTRO/${{ env.DRIVER_VER }}/rpmbuild" \
+              -tb ${{ env.UNPACKED }}/${{ env.DRIVER_VER }}/${{ env.RPM_TAR }}
+          done
+
+          RPM_DIR=/tmp/$TARGET_DISTRO/${{ env.DRIVER_VER }}/rpmbuild/RPMS/${{ inputs.target_arch }}
+          echo "RPM_DIR=${RPM_DIR}/*" | tee -a $GITHUB_ENV
+          echo "TARGET_DISTRO=${TARGET_DISTRO}" | tee -a $GITHUB_ENV
+
+
+      - name: Prepare environment for upload
+        shell: bash
+        run: |
+          DATE="$(date -u +%Y.%m.%d)"
+
           if [[ '${{ inputs.driver_upload_location }}' == 'tmp' || \
                 '${{ inputs.driver_build_type }}' == 'tmp' ]]; then
-            AZURE_PATH=tmp/nfp_drv_dkms_builds/${{ github.actor }}/$DATE/rpm/$TARGET_DISTRO
+            AZURE_PATH=tmp/nfp_drv_dkms_builds/${{ github.actor }}/$DATE/rpm/${{ env.TARGET_DISTRO }}
           else
             RELEASE_VER_MAJOR=$(echo ${{ env.RPM_TAR }} | \
               sed 's/agilio-nfp-driver-\([0-9]\{2\}\.[0-9]\{2\}\).*/\1/' )
-            AZURE_PATH=${{ env.BASE_DIR }}/$RELEASE_VER_MAJOR/rpm/$TARGET_DISTRO
+            AZURE_PATH=${{ env.BASE_DIR }}/$RELEASE_VER_MAJOR/rpm/${{ env.TARGET_DISTRO }}
           fi
           echo "AZURE_PATH=$AZURE_PATH" | tee -a $GITHUB_ENV
 
@@ -284,3 +286,8 @@ jobs:
           connection-string: ${{ secrets.AZ_SAS_TOK }}
           src: ${{ env.RPM_DIR }}
           dst: ${{ env.AZURE_PATH }}
+
+      - name: Cleanup RPM build tree
+        shell: bash
+        run: |
+          sudo rm -r /tmp/${{ env.TARGET_DISTRO }}/${{ env.DRIVER_VER }}/rpmbuild
