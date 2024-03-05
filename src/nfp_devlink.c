@@ -74,7 +74,7 @@ nfp_devlink_set_lanes(struct nfp_pf *pf, unsigned int idx, unsigned int lanes)
 }
 
 static int
-#if VER_KERN_LT(4, 18)
+#if VER_NON_SLEL_LT(4, 18) || SLEL_LOCALVER_LT(4, 12, 14, 122, 37)
 nfp_devlink_port_split(struct devlink *devlink, unsigned int port_index,
 		       unsigned int count)
 #else
@@ -129,7 +129,7 @@ out:
 }
 
 static int
-#if VER_KERN_LT(4, 18)
+#if VER_NON_SLEL_LT(4, 18) || SLEL_LOCALVER_LT(4, 12, 14, 122, 37)
 nfp_devlink_port_unsplit(struct devlink *devlink, unsigned int port_index)
 #else
 #ifndef VERSION__DEVLINK_PORT_SPLIT
@@ -217,7 +217,8 @@ static int nfp_devlink_eswitch_mode_get(struct devlink *devlink, u16 *mode)
 	return nfp_app_eswitch_mode_get(pf->app, mode);
 }
 
-#if VER_NON_RHEL_OR_KYL_LT(4, 20) || VER_RHEL_LT(8, 0) || VER_KYL_LT(10, 3)
+#if (!COMPAT_SLELINUX && VER_NON_RHEL_OR_KYL_LT(4, 20)) || VER_RHEL_LT(8, 0) || \
+    VER_KYL_LT(10, 3) || SLEL_LOCALVER_LT(4, 12, 14, 122, 37)
 static int nfp_devlink_eswitch_mode_set(struct devlink *devlink, u16 mode)
 #else
 static int nfp_devlink_eswitch_mode_set(struct devlink *devlink, u16 mode,

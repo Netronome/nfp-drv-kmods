@@ -1479,7 +1479,7 @@ int nfp_flower_compile_action(struct nfp_app *app,
 	tun_out_cnt = 0;
 	out_cnt = 0;
 
-#if VER_NON_RHEL_LT(4, 19)
+#if VER_NON_RHEL_OR_SLEL_LT(4, 19) || SLEL_LOCALVER_LT(4, 12, 14, 122, 37)
 	i = 0; i = i;
 	tcf_exts_to_list(flow->exts, &actions);
 	list_for_each_entry(act, &actions, list) {

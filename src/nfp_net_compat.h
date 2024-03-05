@@ -695,7 +695,7 @@ static inline struct netlink_ext_ack *compat__xdp_extact(struct netdev_xdp *xdp)
 #define compat__xdp_extact(xdp)		(xdp)->extack
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
+#if VER_NON_SLEL_GE(4, 13) || SLEL_LOCALVER_GE(4, 12, 14, 122, 37)
 #define compat__xdp_flags(xdp)		(xdp)->flags
 #else
 static inline u32 compat__xdp_flags(struct netdev_xdp *xdp)
@@ -743,13 +743,15 @@ enum tc_setup_type {
 };
 #endif
 
-#if VER_NON_RHEL_LT(4, 15) || VER_RHEL_LT(7, 7)
+#if VER_NON_RHEL_OR_SLEL_LT(4, 15) || VER_RHEL_LT(7, 7) || \
+    SLEL_LOCALVER_LT(4, 12, 14, 122, 37)
 static inline void skb_metadata_set(const struct sk_buff *skb, u8 value)
 {
 }
 #endif
 
-#if VER_NON_RHEL_LT(4, 15) || VER_RHEL_LT(7, 6)
+#if VER_NON_RHEL_OR_SLEL_LT(4, 15) || VER_RHEL_LT(7, 6) || \
+    SLEL_LOCALVER_LT(4, 12, 14, 122, 37)
 typedef int tc_setup_cb_t(enum tc_setup_type type, void *type_data,
 			  void *cb_priv);
 
@@ -795,7 +797,8 @@ tc_cls_can_offload_and_chain0(const struct net_device *dev,
 #endif
 
 #ifdef COMPAT__HAVE_METADATA_IP_TUNNEL
-#if VER_NON_RHEL_LT(4, 16) || VER_RHEL_LT(7, 6)
+#if VER_NON_RHEL_OR_SLEL_LT(4, 16) || VER_RHEL_LT(7, 6) || \
+    SLEL_LOCALVER_LT(4, 12, 14, 122, 37)
 static inline struct net_device *tcf_mirred_dev(const struct tc_action *action)
 {
 	int ifindex;
@@ -811,7 +814,8 @@ static inline struct net_device *tcf_mirred_dev(const struct tc_action *action)
 #define tcf_block_shared(b)	false
 #endif
 
-#if VER_NON_RHEL_LT(4, 16) || VER_RHEL_LT(7, 6)
+#if VER_NON_RHEL_OR_SLEL_LT(4, 16) || VER_RHEL_LT(7, 6) || \
+    SLEL_LOCALVER_LT(4, 12, 14, 122, 37)
 static inline void xdp_rxq_info_unreg(struct xdp_rxq_info *xdp_rxq)
 {
 }
@@ -823,7 +827,8 @@ xdp_rxq_info_reg(struct xdp_rxq_info *xdp_rxq, struct net_device *dev, u32 q)
 }
 #endif
 
-#if COMPAT__HAS_DEVLINK && (VER_NON_RHEL_LT(4, 18) || VER_RHEL_LT(7, 7))
+#if COMPAT__HAS_DEVLINK && (VER_NON_RHEL_OR_SLEL_LT(4, 18) || \
+    VER_RHEL_LT(7, 7) || SLEL_LOCALVER_LT(4, 12, 14, 122, 37))
 enum devlink_port_flavour {
 	DEVLINK_PORT_FLAVOUR_PHYSICAL,
 	DEVLINK_PORT_FLAVOUR_CPU,
@@ -857,7 +862,8 @@ static inline
 void compat__devlink_port_attrs_set(struct devlink_port *devlink_port,
 				    struct compat__devlink_port_attrs *attrs)
 {
-#if VER_NON_RHEL_LT(4, 18) || VER_RHEL_LT(7, 7)
+#if VER_NON_RHEL_OR_SLEL_LT(4, 18) || VER_RHEL_LT(7, 7) || \
+    SLEL_LOCALVER_LT(4, 12, 14, 122, 37)
 	if (attrs->split)
 		devlink_port_split_set(devlink_port, attrs->phys.port_number);
 #else
@@ -877,7 +883,8 @@ void compat__devlink_port_attrs_set(struct devlink_port *devlink_port,
 
 #endif /* COMPAT__HAS_DEVLINK */
 
-#if VER_NON_RHEL_LT(4, 19) || VER_RHEL_LT(8, 1)
+#if VER_NON_RHEL_OR_SLEL_LT(4, 19) || VER_RHEL_LT(8, 1) || \
+    SLEL_LOCALVER_LT(4, 12, 14, 122, 37)
 struct bpf_offload_dev {
 	u32 empty;
 };
@@ -930,7 +937,8 @@ compat_bpf_offload_dev_match(struct bpf_prog *prog, struct net_device *dev)
 
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0) */
 
-#if VER_NON_RHEL_LT(4, 19) || VER_RHEL_LT(7, 7)
+#if VER_NON_RHEL_OR_SLEL_LT(4, 19) || VER_RHEL_LT(7, 7) || \
+    SLEL_LOCALVER_LT(4, 12, 14, 122, 37)
 #define FLOW_DIS_TUN_OPTS_MAX 255
 struct flow_dissector_key_enc_opts {
 	u8 data[FLOW_DIS_TUN_OPTS_MAX];
@@ -1037,8 +1045,9 @@ static inline struct sk_buff *__skb_peek(const struct sk_buff_head *list)
 }
 #endif
 
-#if VER_NON_RHEL_OR_KYL_LT(4, 20) || \
-    VER_RHEL_LT(7, 7) || VER_RHEL_EQ(8, 0) || VER_KYL_LT(10, 3)
+#if (!COMPAT_SLELINUX && VER_NON_RHEL_OR_KYL_LT(4, 20)) || \
+    VER_RHEL_LT(7, 7) || VER_RHEL_EQ(8, 0) || VER_KYL_LT(10, 3) || \
+    SLEL_LOCALVER_LT(4, 12, 14, 122, 37)
 static inline bool netif_is_vxlan(const struct net_device *dev)
 {
 	return dev->rtnl_link_ops &&
@@ -1571,7 +1580,8 @@ static inline void netif_set_gso_max_segs(struct net_device *dev,
 }
 #endif
 
-#if VER_NON_RHEL_LT(4, 19) || VER_RHEL_LT(8, 1)
+#if VER_NON_RHEL_OR_SLEL_LT(4, 19) || VER_RHEL_LT(8, 1) || \
+    SLEL_LOCALVER_LT(4, 12, 14, 122, 37)
 #define ida_alloc_max(ida, max, gfp)	\
 		ida_simple_get(ida, 0, (max)+1, gfp)
 #define ida_free(ida, id)	ida_simple_remove(ida, id)

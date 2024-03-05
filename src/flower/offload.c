@@ -2161,7 +2161,7 @@ nfp_flower_repr_offload(struct nfp_app *app, struct net_device *netdev,
 	return ret;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+#if VER_NON_SLEL_GE(4, 15) || SLEL_LOCALVER_GE(4, 12, 14, 122, 37)
 #if VER_NON_RHEL_LT(5, 0)
 int nfp_flower_setup_tc_egress_cb(enum tc_setup_type type, void *type_data,
 				  void *cb_priv)
