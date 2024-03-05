@@ -234,6 +234,13 @@ $(eval $(call add_compat_flag,$(utsrelease_h_path),oe,COMPAT_OELINUX=1))
 $(eval $(call add_compat_var_flag,$(utsrelease_h_path),ky,COMPAT_KYLINUX,COMPAT_KYLINUX=1))
 # Check for Anolis Linux
 $(eval $(call add_compat_var_flag,$(utsrelease_h_path),an8,COMPAT_ANOLISLINUX,COMPAT_ANOLISLINUX=1))
+# Check for SUSE linux
+ifneq (, $(wildcard $(srctree)/include/generated/uapi/linux/suse_version.h))
+  ccflags-y += -DCOMPAT_SLELINUX=1
+  local_version="$(shell echo $(CONFIG_LOCALVERSION) | cut -f 2 -d "-").0"
+  ccflags-y += -DSLEL_LOCALVER_X=$(shell echo $(local_version) | cut -d '.' -f 1)
+  ccflags-y += -DSLEL_LOCALVER_Y=$(shell echo $(local_version) | cut -d '.' -f 2)
+endif
 
 VER_IS_NON_RHEL_OR_KYL := \
 	$(shell [ $(RHEL_MAJOR) -eq 0 ] && [ -z $(COMPAT_KYLINUX) ] && echo y)
