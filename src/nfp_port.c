@@ -50,13 +50,14 @@ int nfp_port_get_port_parent_id(struct net_device *netdev,
 }
 #endif
 
-#if VER_NON_RHEL_GE(4, 13) || VER_RHEL_GE(7, 5)
-#if VER_NON_RHEL_GE(4, 14) || VER_RHEL_GE(7, 5)
-int nfp_port_setup_tc(struct net_device *netdev, enum tc_setup_type type,
-		      void *type_data)
-#else
+#if VER_NON_RHEL_OR_SLEL_GE(4, 13) || VER_RHEL_GE(7, 5) || \
+    SLEL_LOCALVER_GE(4, 12, 14, 95, 60)
+#if VER_NON_RHEL_OR_SLEL_LT(4, 14)
 int nfp_port_setup_tc(struct net_device *netdev, u32 handle, u32 chain_index,
 		      __be16 proto, struct tc_to_netdev *tc)
+#else
+int nfp_port_setup_tc(struct net_device *netdev, enum tc_setup_type type,
+		      void *type_data)
 #endif
 {
 	struct nfp_port *port;
@@ -65,7 +66,7 @@ int nfp_port_setup_tc(struct net_device *netdev, u32 handle, u32 chain_index,
 	if (!port)
 		return -EOPNOTSUPP;
 
-#if VER_NON_RHEL_LT(4, 14)
+#if VER_NON_RHEL_OR_SLEL_LT(4, 14) || SLEL_LOCALVER_LT(4, 12, 14, 95, 60)
 	if (TC_H_MAJ(handle) != TC_H_MAJ(TC_H_INGRESS) || chain_index ||
 	    (tc->type == TC_SETUP_CLSFLOWER && !eth_proto_is_802_3(proto)))
 		return -EOPNOTSUPP;

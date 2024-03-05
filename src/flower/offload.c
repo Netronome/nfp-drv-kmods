@@ -2295,7 +2295,7 @@ int nfp_flower_setup_tc(struct nfp_app *app, struct net_device *netdev,
 		return -EOPNOTSUPP;
 	}
 }
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
+#elif VER_NON_SLEL_GE(4, 14) || SLEL_LOCALVER_GE(4, 12, 14, 95, 60)
 int nfp_flower_setup_tc(struct nfp_app *app, struct net_device *netdev,
 			enum tc_setup_type type, void *type_data)
 {

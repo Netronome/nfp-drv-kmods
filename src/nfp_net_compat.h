@@ -704,8 +704,8 @@ static inline u32 compat__xdp_flags(struct netdev_xdp *xdp)
 }
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0) &&	\
-    LINUX_VERSION_CODE  < KERNEL_VERSION(4, 13, 0)
+#if (VER_NON_SLEL_GE(4, 9) && VER_NON_SLEL_LT(4, 13)) || \
+    SLEL_LOCALVER_LT(4, 12, 14, 95, 60)
 static inline void
 tcf_exts_stats_update(const struct tcf_exts *exts,
 		      u64 bytes, u64 packets, u64 lastuse)
@@ -730,7 +730,8 @@ tcf_exts_stats_update(const struct tcf_exts *exts,
 #define SFP_SFF8472_COMPLIANCE		0x5e
 #endif
 
-#if VER_NON_RHEL_LT(4, 14) || VER_RHEL_LT(7, 5)
+#if VER_NON_RHEL_OR_SLEL_LT(4, 14) || VER_RHEL_LT(7, 5) || \
+    SLEL_LOCALVER_LT(4, 12, 14, 95, 60)
 struct tc_to_netdev;
 
 enum tc_setup_type {
