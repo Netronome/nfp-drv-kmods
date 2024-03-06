@@ -405,7 +405,8 @@ err_close_nsp:
 	return err;
 }
 
-#if VER_NON_RHEL_LT(5, 10) || VER_RHEL_LT(8, 5)
+#if VER_NON_RHEL_OR_SLEL_LT(5, 10) || VER_RHEL_LT(8, 5) || \
+    SLEL_LOCALVER_LT(5, 3, 18, 57, 0)
 static int
 nfp_devlink_flash_update(struct devlink *devlink, const char *path,
 			 const char *component, struct netlink_ext_ack *extack)

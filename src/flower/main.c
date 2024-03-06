@@ -1005,8 +1005,8 @@ nfp_flower_netdev_event(struct nfp_app *app, struct net_device *netdev,
 			return ret;
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0) && \
-    LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
+#if (VER_NON_SLEL_GE(5, 0) && VER_NON_SLEL_LT(5, 8)) || \
+    (SLEL_LOCALVER_GE(5, 3, 18, 22, 0) && SLEL_LOCALVER_LT(5, 3, 18, 57, 0))
 	ret = nfp_flower_reg_indir_block_handler(app, netdev, event);
 	if (ret & NOTIFY_STOP_MASK)
 		return ret;

@@ -157,7 +157,8 @@ nfp_flower_compile_mpls(struct nfp_flower_mac_mpls *ext,
 		u32 key_mpls, msk_mpls;
 
 		flow_rule_match_mpls(rule, &match);
-#if VER_NON_RHEL_GE(5, 8) || VER_RHEL_GE(8, 4)
+#if VER_NON_RHEL_OR_SLEL_GE(5, 8) || VER_RHEL_GE(8, 4) || \
+    SLEL_LOCALVER_GE(5, 3, 18, 57, 0)
 		/* Only support matching the first LSE */
 		if (match.mask->used_lses != 1) {
 			NL_SET_ERR_MSG_MOD(extack,

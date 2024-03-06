@@ -996,7 +996,8 @@ struct xdp_attachment_info {
 typedef siginfo_t kernel_siginfo_t;
 #endif
 
-#if VER_NON_RHEL_OR_KYL_LT(5, 7) || VER_RHEL_LT(8, 3) || VER_KYL_LT(10, 3)
+#if (!COMPAT_SLELINUX && VER_NON_RHEL_OR_KYL_LT(5, 7)) || VER_RHEL_LT(8, 3) || \
+    VER_KYL_LT(10, 3) || SLEL_LOCALVER_LT(5, 3, 18, 57, 0)
 /**
  * pci_get_dsn - Read and return the 8-byte Device Serial Number
  * @dev: PCI device to query

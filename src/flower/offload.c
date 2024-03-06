@@ -2511,7 +2511,8 @@ int nfp_flower_indr_setup_tc_cb(struct net_device *netdev, struct Qdisc *sch, vo
 	}
 }
 
-#if VER_NON_RHEL_LT(5, 8) || (VER_RHEL_GE(8, 1) && VER_RHEL_LT(8, 3))
+#if VER_NON_RHEL_OR_SLEL_LT(5, 8) || (VER_RHEL_GE(8, 1) && VER_RHEL_LT(8, 3)) || \
+    SLEL_LOCALVER_LT(5, 3, 18, 57, 0)
 int nfp_flower_reg_indir_block_handler(struct nfp_app *app,
 				       struct net_device *netdev,
 				       unsigned long event)

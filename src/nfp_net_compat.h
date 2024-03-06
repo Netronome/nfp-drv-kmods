@@ -857,7 +857,8 @@ struct compat__devlink_port_attrs {
 #define compat__devlink_port_attrs devlink_port_attrs
 #endif
 
-#if VER_NON_RHEL_LT(5, 9) || VER_RHEL_LT(8, 4)
+#if VER_NON_RHEL_OR_SLEL_LT(5, 9) || VER_RHEL_LT(8, 4) || \
+    SLEL_LOCALVER_LT(5, 3, 18, 57, 0)
 static inline
 void compat__devlink_port_attrs_set(struct devlink_port *devlink_port,
 				    struct compat__devlink_port_attrs *attrs)
@@ -1437,7 +1438,7 @@ compat__ipv6_dst_lookup_flow(struct net *net, struct sock *sk,
 }
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 6, 0)
+#if VER_NON_SLEL_LT(5, 6) || SLEL_LOCALVER_LT(5, 3, 18, 57, 0)
 static inline bool tls_is_sk_rx_device_offloaded(struct sock *sk)
 {
 	return true;
@@ -1449,7 +1450,8 @@ static inline bool tls_is_sk_rx_device_offloaded(struct sock *sk)
 #endif
 
 #if VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)
-#if VER_NON_RHEL_LT(5, 9) || VER_RHEL_LT(8, 4)
+#if VER_NON_RHEL_OR_SLEL_LT(5, 9) || VER_RHEL_LT(8, 4) || \
+    SLEL_LOCALVER_LT(5, 3, 18, 57, 0)
 #if VER_NON_RHEL_LT(5, 7) || VER_RHEL_LT(8, 3)
 enum flow_action_hw_stats_bit {
 	FLOW_ACTION_HW_STATS_IMMEDIATE_BIT,
@@ -1535,9 +1537,10 @@ compat__flow_indr_block_cb_alloc(flow_setup_cb_t *cb, void *cb_ident,
 
 #endif /* VER_NON_RHEL_GE(5, 0) || VER_RHEL_GE(8, 0) */
 
-#if (VER_NON_RHEL_GE(5, 3) && VER_NON_RHEL_LT(5, 8)) || \
-	(VER_RHEL_GE(8, 2) && \
-	 (VER_NON_BCL_LT(8, 4) || VER_BCL_LT(8, 3) || COMPAT_BC82_KERN_11))
+#if (VER_NON_RHEL_OR_SLEL_GE(5, 3) && VER_NON_RHEL_OR_SLEL_LT(5, 8)) || \
+    (VER_RHEL_GE(8, 2) && (VER_NON_BCL_LT(8, 4) || VER_BCL_LT(8, 3) || \
+    COMPAT_BC82_KERN_11)) || \
+    (SLEL_LOCALVER_GE(5, 3, 18, 22, 0) && SLEL_LOCALVER_LT(5, 3, 18, 57, 0))
 static inline void
 flow_indr_block_cb_remove(struct flow_block_cb *block_cb,
 			  struct flow_block_offload *offload)
@@ -1546,8 +1549,8 @@ flow_indr_block_cb_remove(struct flow_block_cb *block_cb,
 }
 #endif
 
-#if COMPAT__HAVE_UDP_OFFLOAD && (VER_NON_RHEL_OR_KYL_LT(5, 9) || VER_RHEL_LT(8, 4) \
-		|| VER_KYL_LT(10, 4))
+#if COMPAT__HAVE_UDP_OFFLOAD && ((!COMPAT_SLELINUX && VER_NON_RHEL_OR_KYL_LT(5, 9)) || \
+    VER_RHEL_LT(8, 4) || VER_KYL_LT(10, 4) || SLEL_LOCALVER_LT(5, 3, 18, 57, 0))
 #define udp_tunnel_nic_add_port nfp_net_add_vxlan_port
 #define udp_tunnel_nic_del_port nfp_net_del_vxlan_port
 #endif

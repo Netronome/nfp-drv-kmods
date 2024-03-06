@@ -706,7 +706,8 @@ void nfp_net_tls_tx_undo(struct sk_buff *skb, u64 tls_handle)
 #endif
 }
 
-#if VER_NON_RHEL_LT(5, 6) || VER_RHEL_LT(8, 3)
+#if VER_NON_RHEL_OR_SLEL_LT(5, 6) || VER_RHEL_LT(8, 3) || \
+    SLEL_LOCALVER_LT(5, 3, 18, 57, 0)
 static void nfp_net_tx_timeout(struct net_device *netdev)
 {
 	struct nfp_net *nn = netdev_priv(netdev);
@@ -2346,7 +2347,8 @@ nfp_net_get_phys_port_name(struct net_device *netdev, char *name, size_t len)
 }
 #endif
 
-#if COMPAT__HAVE_VXLAN_OFFLOAD && (VER_NON_RHEL_LT(5, 9) || VER_RHEL_LT(8, 4))
+#if COMPAT__HAVE_VXLAN_OFFLOAD && (VER_NON_RHEL_OR_SLEL_LT(5, 9) || \
+    VER_RHEL_LT(8, 4) || SLEL_LOCALVER_LT(5, 3, 18, 57, 0))
 /**
  * nfp_net_set_vxlan_port() - set vxlan port in SW and reconfigure HW
  * @nn:   NFP Net device to reconfigure
@@ -2454,7 +2456,8 @@ static int nfp_net_xdp_setup_drv(struct nfp_net *nn, struct netdev_bpf *bpf)
 	struct nfp_net_dp *dp;
 	int err;
 
-#if VER_NON_RHEL_LT(5, 10) || VER_RHEL_LT(8, 4)
+#if VER_NON_RHEL_OR_SLEL_LT(5, 10) || VER_RHEL_LT(8, 4) || \
+    SLEL_LOCALVER_LT(5, 3, 18, 57, 0)
 	if (!xdp_attachment_flags_ok(&nn->xdp, bpf))
 		return -EBUSY;
 #endif
@@ -2488,7 +2491,8 @@ static int nfp_net_xdp_setup_hw(struct nfp_net *nn, struct netdev_bpf *bpf)
 {
 	int err;
 
-#if VER_NON_RHEL_LT(5, 10) || VER_RHEL_LT(8, 4)
+#if VER_NON_RHEL_OR_SLEL_LT(5, 10) || VER_RHEL_LT(8, 4) || \
+    SLEL_LOCALVER_LT(5, 3, 18, 57, 0)
 	if (!xdp_attachment_flags_ok(&nn->xdp_hw, bpf))
 		return -EBUSY;
 #endif
