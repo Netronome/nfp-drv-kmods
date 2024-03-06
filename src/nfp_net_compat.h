@@ -1575,8 +1575,9 @@ typedef struct gnet_stats_basic_packed compat__gnet_stats_basic_sync;
 typedef struct gnet_stats_basic_sync compat__gnet_stats_basic_sync;
 #endif
 
-#if VER_NON_RHEL_LT(5, 17) || RHEL_RELEASE_LT(8, 394, 0, 0) \
-		|| (RHEL_RELEASE_GE(9, 70, 0, 0) && RHEL_RELEASE_LT(9, 119, 0, 0))
+#if VER_NON_RHEL_OR_SLEL_LT(5, 17) || RHEL_RELEASE_LT(8, 394, 0, 0) || \
+    (RHEL_RELEASE_GE(9, 70, 0, 0) && RHEL_RELEASE_LT(9, 119, 0, 0)) || \
+    SLEL_LOCALVER_LT(5, 14, 21, 150500, 53)
 static inline void netif_set_gso_max_segs(struct net_device *dev,
 					  unsigned int segs)
 {
@@ -1644,10 +1645,10 @@ __printf(2, 3) void ethtool_sprintf(u8 **data, const char *fmt, ...);
 #define ethtool_puts(data, str) ethtool_sprintf((data), (str))
 #endif
 
-#if ! ((VER_NON_RHEL_LT(5, 17) && !COMPAT_OELINUX) || \
+#if ! ((VER_NON_RHEL_OR_SLEL_LT(5, 17) && !COMPAT_OELINUX) || \
        RHEL_RELEASE_LT(8, 408, 0, 0) || \
        (RHEL_RELEASE_GE(9, 0, 0, 0) && RHEL_RELEASE_LT(9, 119, 0, 0)) || \
-       VER_OEL_LT(5, 10))
+       VER_OEL_LT(5, 10) || SLEL_LOCALVER_LT(5, 14, 21, 150500, 53))
 #define VERSION__ETHTOOL_RINGPARAM
 #endif
 
@@ -1658,10 +1659,11 @@ __printf(2, 3) void ethtool_sprintf(u8 **data, const char *fmt, ...);
 #define VERSION__ETHTOOL_COALESCE
 #endif
 
-#if ! (VER_NON_RHEL_LT(5, 18) || \
+#if ! (VER_NON_RHEL_OR_SLEL_LT(5, 18) || \
        (RHEL_RELEASE_GE(9, 0, 0, 0) && RHEL_RELEASE_LT(9, 163, 0, 0)) || \
        (RHEL_RELEASE_LT(8, 425, 0, 0) && !COMPAT_ANOLISLINUX) || \
-       ANOLIS_RELEASE_LT(8, 425, 10, 1))
+       ANOLIS_RELEASE_LT(8, 425, 10, 1) || \
+       SLEL_LOCALVER_LT(5, 14, 21, 150500, 53))
 #define VERSION__DEVLINK_PORT_SPLIT
 #endif
 #endif /* _NFP_NET_COMPAT_H_ */
