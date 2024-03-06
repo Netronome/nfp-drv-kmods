@@ -1363,7 +1363,7 @@ nfp_flower_stats_rlim_reply(struct nfp_app *app, struct sk_buff *skb)
 }
 #endif
 
-#if VER_NON_RHEL_LT(5, 4) || VER_RHEL_LT(8, 2)
+#if VER_NON_RHEL_OR_SLEL_LT(5, 4) || VER_RHEL_LT(8, 2) || VER_SLEL_LT(5, 3, 18)
 enum {
 	FLOW_ACTION_REDIRECT_INGRESS = 0xfe,
 	FLOW_ACTION_MIRRED_INGRESS = 0xff,
@@ -1384,13 +1384,13 @@ __flow_indr_block_cb_unregister(struct net_device *dev,
 	__tc_indr_block_cb_unregister(dev, cb, cb_ident);
 }
 #endif
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0) */
+#endif /* VER_NON_RHEL_OR_SLEL_LT(5, 4) || VER_RHEL_LT(8, 2) || VER_SLEL_LT(5, 3, 18) */
 
 #ifdef COMPAT__HAVE_TLS_OFFLOAD
 static inline void
 compat__tls_offload_tx_resync_request(struct sock *sk, u32 got_seq, u32 exp_seq)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 5, 0)
+#if VER_NON_SLEL_LT(5, 5) || VER_SLEL_LT(5, 3, 18)
 	tls_offload_tx_resync_request(sk);
 #else
 	tls_offload_tx_resync_request(sk, got_seq, exp_seq);

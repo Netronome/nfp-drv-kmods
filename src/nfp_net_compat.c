@@ -171,7 +171,8 @@ void nfp_shared_buf_unregister(struct nfp_pf *pf)
 }
 #endif
 
-#if VER_NON_RHEL_LT(5, 4) || VER_RHEL_LT(8, 3)
+#if VER_NON_RHEL_OR_SLEL_LT(5, 4) || VER_RHEL_LT(8, 3) || \
+    VER_SLEL_LT(5, 3, 18)
 int nfp_devlink_params_register(struct nfp_pf *pf)
 {
 	return 0;
