@@ -777,9 +777,10 @@ int nfp_net_pci_probe(struct nfp_pf *pf)
 	if (err)
 		goto err_unmap;
 
-#if VER_NON_RHEL_LT(5, 15) || RHEL_RELEASE_LT(8, 394, 0, 0)
+#if VER_NON_RHEL_OR_SLEL_LT(5, 15) || RHEL_RELEASE_LT(8, 394, 0, 0) || \
+    VER_SLEL_LT(5, 14, 21)
 	devlink_register(devlink, &pf->pdev->dev);
-#elif VER_NON_RHEL_LT(5, 16)
+#elif VER_NON_RHEL_OR_SLEL_LT(5, 16)
 	devlink_register(devlink);
 #endif
 
@@ -817,7 +818,8 @@ int nfp_net_pci_probe(struct nfp_pf *pf)
 		goto err_stop_app;
 
 	devl_unlock(devlink);
-#if VER_NON_RHEL_GE(5,16) || RHEL_RELEASE_GE(8, 394, 0, 0)
+#if VER_NON_RHEL_OR_SLEL_GE(5, 16) || RHEL_RELEASE_GE(8, 394, 0, 0) || \
+    VER_SLEL_GE(5, 14, 21)
 	devlink_register(devlink);
 #endif
 
@@ -842,7 +844,8 @@ err_shared_buf_unreg:
 	nfp_shared_buf_unregister(pf);
 err_devlink_unreg:
 	cancel_work_sync(&pf->port_refresh_work);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
+#if VER_NON_RHEL_OR_SLEL_LT(5, 16) || RHEL_RELEASE_LT(8, 394, 0, 0) || \
+    VER_SLEL_LT(5, 14, 21)
 	devlink_unregister(devlink);
 #endif
 	nfp_net_pf_app_clean(pf);
@@ -856,7 +859,8 @@ void nfp_net_pci_remove(struct nfp_pf *pf)
 	struct devlink *devlink = priv_to_devlink(pf);
 	struct nfp_net *nn, *next;
 
-#if VER_NON_RHEL_GE(5, 16) || RHEL_RELEASE_GE(8, 394 , 0, 0)
+#if VER_NON_RHEL_OR_SLEL_GE(5, 16) || RHEL_RELEASE_GE(8, 394, 0, 0) || \
+    VER_SLEL_GE(5, 14, 21)
 	devlink_unregister(priv_to_devlink(pf));
 #endif
 	devl_lock(devlink);
@@ -882,7 +886,8 @@ void nfp_net_pci_remove(struct nfp_pf *pf)
 #endif
 
 	nfp_shared_buf_unregister(pf);
-#if VER_NON_RHEL_LT(5, 16) || RHEL_RELEASE_LT(8, 394 , 0, 0)
+#if VER_NON_RHEL_OR_SLEL_LT(5, 16) || RHEL_RELEASE_LT(8, 394, 0, 0) || \
+    VER_SLEL_LT(5, 14, 21)
 	devlink_unregister(priv_to_devlink(pf));
 #endif
 

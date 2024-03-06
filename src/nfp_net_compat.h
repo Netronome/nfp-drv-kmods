@@ -1568,7 +1568,8 @@ static inline void eth_hw_addr_set(struct net_device *dev, const u8 *addr)
 }
 #endif
 
-#if VER_NON_RHEL_LT(5, 16) || RHEL_RELEASE_LT(9, 119, 0, 0)
+#if VER_NON_RHEL_OR_SLEL_LT(5, 16) || RHEL_RELEASE_LT(9, 119, 0, 0) || \
+    SLEL_LOCALVER_LT(5, 14, 21, 150400, 22)
 typedef struct gnet_stats_basic_packed compat__gnet_stats_basic_sync;
 #else
 typedef struct gnet_stats_basic_sync compat__gnet_stats_basic_sync;
@@ -1650,10 +1651,10 @@ __printf(2, 3) void ethtool_sprintf(u8 **data, const char *fmt, ...);
 #define VERSION__ETHTOOL_RINGPARAM
 #endif
 
-#if (VER_NON_RHEL_GE(5, 15) || \
+#if (VER_NON_RHEL_OR_SLEL_GE(5, 15) || \
      (RHEL_RELEASE_GE(8, 358, 0, 0) && RHEL_RELEASE_LT(9, 70, 0, 0)) || \
-     RHEL_RELEASE_GE(9, 119, 0, 0) || \
-     VER_OEL_GE(5, 10))
+     RHEL_RELEASE_GE(9, 119, 0, 0) || VER_OEL_GE(5, 10) || \
+     VER_SLEL_GE(5, 14, 21))
 #define VERSION__ETHTOOL_COALESCE
 #endif
 

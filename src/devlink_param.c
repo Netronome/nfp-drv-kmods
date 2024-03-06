@@ -235,7 +235,8 @@ int nfp_devlink_params_register(struct nfp_pf *pf)
 	if (err <= 0)
 		return err;
 
-#if VER_NON_RHEL_LT(5, 16) || RHEL_RELEASE_LT(8, 394, 0, 0)
+#if VER_NON_RHEL_OR_SLEL_LT(5, 16) || RHEL_RELEASE_LT(8, 394, 0, 0) || \
+    SLEL_LOCALVER_LT(5, 14, 21, 150400, 22)
 	err = devlink_params_register(devlink, nfp_devlink_params,
 				      ARRAY_SIZE(nfp_devlink_params));
 	if (err)

@@ -974,7 +974,8 @@ static int nfp_pci_probe(struct pci_dev *pdev,
 		goto err_pci_disable;
 	}
 
-#if VER_NON_RHEL_LT(5, 15) || RHEL_RELEASE_LT(8, 394, 0, 0)
+#if VER_NON_RHEL_OR_SLEL_LT(5, 15) || RHEL_RELEASE_LT(8, 394, 0, 0) || \
+    SLEL_LOCALVER_LT(5, 14, 21, 150400, 22)
 	devlink = devlink_alloc(&nfp_devlink_ops, sizeof(*pf));
 #else
 	devlink = devlink_alloc(&nfp_devlink_ops, sizeof(*pf), &pdev->dev);
