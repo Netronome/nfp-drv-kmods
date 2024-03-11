@@ -1,0 +1,185 @@
+name: Build c4c local
+
+# ========== TRIGGER ==========
+
+on:
+  push:
+    branches:
+      - 'public-main'   # default branch name
+      - '*-build*'      # Temporary build, no testing
+      - '*build-*'      # Temporary build, no testing
+      - 'prerelease-*'  # Prerelease build
+      - 'release-*'     # Release build
+      - '*.check'
+    paths:
+      - 'Makefile'
+      - 'src/**'
+      - '.github/workflows/build-local.yaml'
+  workflow_dispatch:
+    secrets:
+      GHUB_TOKEN:
+        required: true
+      AZ_SAS_TOK:
+        required: true
+    inputs:
+        whitelist:
+          type: string
+          required: false
+          default: .*
+          description: >-
+            Whitelist of operating systems to build against, supplied in
+            the form of a regular expression. (e.g. ".*anolis.*")
+  workflow_call:
+    secrets:
+      GHUB_TOKEN:
+        required: true
+      AZ_SAS_TOK:
+        required: true
+    inputs:
+        whitelist:
+          type: string
+          required: false
+          default: .*
+          description: >-
+            Whitelist of operating systems to build against, supplied in
+            the form of a regular expression. (e.g. ".*anolis.*")
+
+env:
+  DOWNLOAD: ".download"
+  UNPACKED: ".unpacked"
+
+jobs:
+  prepare:
+    name: Prepare build matrix
+    runs-on:
+      - self-hosted
+      - ci-linter-vm
+    outputs:
+      releases: ${{ steps.matrix.outputs.releases }}
+    env:
+      BASE_DIR: tmp/misc/kernel-devel-c4c
+    steps:
+      - name: Get local kernel-devel metadata
+        uses: Corigine/ci-libs/github_actions/azure/azcopy_download@main
+        with:
+          connection-string: ${{ secrets.AZ_SAS_TOK }}
+          src: ${{ env.BASE_DIR }}/*
+          dst: ${{ env.DOWNLOAD }}
+          pattern: "*buildinfo.json"
+
+      - name: Create build matrix
+        id: matrix
+        shell: python3 {0}
+        working-directory: ${{ env.DOWNLOAD }}
+        run: |
+          import os
+          import re
+          import json
+
+          if "${{ github.event_name }}" == "workflow_dispatch":
+            whitelist = "${{ inputs.whitelist }}"
+          else:
+            whitelist = ".*"
+
+          releases = []
+          directories = [d for d in sorted(os.listdir()) if
+                         (os.path.isdir(d) and re.search(whitelist, d))]
+          for directory in directories:
+            with open(f"{directory}/buildinfo.json") as buildinfo:
+              release = json.load(buildinfo)
+              release["directory"] = f"${{ env.BASE_DIR }}/{directory}"
+
+              releases.append(release)
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as github_output:
+            github_output.write(f"releases={releases}")
+
+  build-c4c-misc:
+    name: 'Build-C4C-MISC: ${{matrix.release.name}}'
+    needs: prepare
+    runs-on:
+      - self-hosted
+      - builder
+    timeout-minutes: 90
+    env:
+      KVER: "*"
+    strategy:
+      fail-fast: false
+      matrix:
+        release: ${{ fromJSON(needs.prepare.outputs.releases) }}
+    container:
+      image: ${{ matrix.release.container }}
+    steps:
+      - name: Update OpenEuler mirror
+        if: startsWith(matrix.release.name, 'openEuler')
+        run: |
+          if [[ ! -f /etc/yum.repos.d/openEuler.repo ]]; then
+            echo "[base]" >> /etc/yum.repos.d/openEuler.repo
+            echo "name=base" >> /etc/yum.repos.d/openEuler.repo
+            echo "baseurl=http://repo.openeuler.org/${{ matrix.release.name }}/OS/x86_64/" \
+                 >> /etc/yum.repos.d/openEuler.repo
+            echo "enabled=1" >> /etc/yum.repos.d/openEuler.repo
+            echo "gpgcheck=1" >> /etc/yum.repos.d/openEuler.repo
+            echo "gpgkey=http://repo.openeuler.org/${{ matrix.release.name }}/OS/x86_64/RPM-GPG-KEY-openEuler"\
+                 >> /etc/yum.repos.d/openEuler.repo
+          fi
+
+          sed -i 's|repo.openeuler.org|mirrors.dotsrc.org/openeuler|g' /etc/yum.repos.d/openEuler.repo
+
+      - name: Install pre-requisite packages | YUM
+        if: matrix.release.name == 'AnolisOS/7.9'
+        run: |
+          yum install -y https://repo.ius.io/ius-release-el7.rpm \
+                      https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+          yum install -y sudo cpio elfutils-libelf-devel findutils gcc \
+                            git236 which make wget ca-certificates tar gzip hostname
+
+      - name: Install pre-requisite packages | DNF
+        if: matrix.release.name != 'AnolisOS/7.9'
+        run: |
+          dnf clean all
+          dnf distro-sync -y
+          if [[ "${{ matrix.release.name }}" != "OpenCloudOS/9.0" && \
+                "${{ matrix.release.name }}" != "KylinOS/V10"* && \
+                "${{ matrix.release.name }}" != "openEuler"* ]]; then
+            dnf install -y epel-release
+          fi
+          dnf install -y wget sudo git sed \
+            gcc make cpio elfutils-libelf-devel findutils wget ca-certificates tar gzip hostname
+          dnf reinstall -y crypto-policies
+
+      - name: Clean old artifacts
+        run: |
+          sudo find -delete
+
+      - name: Check out repository
+        uses: Corigine/ci-libs/github_actions/utilities/checkout_corigine@main
+        with:
+          token: ${{ secrets.GHUB_TOKEN }}
+
+      - name: Install azcopy binary
+        run: |
+          binary_link=https://aka.ms/downloadazcopy-v10-linux
+
+          wget $binary_link -O /tmp/downloadazcopy-v10-linux.tgz
+          tar -xvf /tmp/downloadazcopy-v10-linux.tgz -C /tmp/ --strip-components=1
+          sudo cp /tmp/azcopy /usr/bin/
+
+      - name: Get local kernel-devel packages
+        uses: Corigine/ci-libs/github_actions/azure/azcopy_download@main
+        with:
+          connection-string: ${{ secrets.AZ_SAS_TOK }}
+          src: ${{ matrix.release.directory }}
+          dst: ${{ env.DOWNLOAD }}
+          pattern: "*.rpm"
+
+      - name: Unpack Kernel Headers
+        uses: ./.github/actions/unpack-rpm
+        with:
+            input-path: ${{ env.DOWNLOAD }}
+            output-path: ${{ env.UNPACKED }}
+
+      - name: Build
+        uses: ./.github/actions/build
+        with:
+            search-path: "${{ env.UNPACKED }}/usr/src/kernels"
