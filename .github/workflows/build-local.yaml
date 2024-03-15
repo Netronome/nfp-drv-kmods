@@ -135,7 +135,9 @@ jobs:
                             git236 which make wget ca-certificates tar gzip hostname
 
       - name: Install pre-requisite packages | DNF
-        if: matrix.release.name != 'AnolisOS/7.9'
+        if: >-
+          matrix.release.name != 'AnolisOS/7.9' &&
+          !contains(matrix.release.name, 'openSUSE')
         run: |
           dnf clean all
           dnf distro-sync -y
@@ -147,6 +149,15 @@ jobs:
           dnf install -y wget sudo git sed \
             gcc make cpio elfutils-libelf-devel findutils wget ca-certificates tar gzip hostname
           dnf reinstall -y crypto-policies
+
+      - name: Install pre-requisite packages | Zypper
+        if: contains(matrix.release.name, 'openSUSE')
+        run: |
+          zypper ar -f http://download.opensuse.org/distribution/openSUSE-stable/repo/oss repo-oss
+          zypper --gpg-auto-import-keys ref
+          zypper -n in sudo cpio libelf1 libelf-devel findutils wget make \
+            ca-certificates gzip hostname which git libopenssl-devel bison flex \
+            gcc tar sed bc awk python3
 
       - name: Clean old artifacts
         run: |
@@ -179,7 +190,23 @@ jobs:
             input-path: ${{ env.DOWNLOAD }}
             output-path: ${{ env.UNPACKED }}
 
+      - name: Set build environment variables | openSUSE
+        if: contains(matrix.release.name, 'openSUSE')
+        working-directory: ${{ env.UNPACKED }}/usr/src
+        shell: bash
+        run: |
+          mkdir -p kernels
+          VERSIONS=$(ls ./ | grep "linux-.*[0-9]$")
+
+          for SOURCE in $VERSIONS; do
+            find $(pwd)/$SOURCE-obj/x86_64/default/ -maxdepth 1 -mindepth 1 -not -name Makefile \
+              -exec cp -r {} $(pwd)/$SOURCE/ \;
+
+            ln -sf $(pwd)/$SOURCE/ $(pwd)/kernels/$SOURCE
+          done
+
       - name: Build
         uses: ./.github/actions/build
         with:
             search-path: "${{ env.UNPACKED }}/usr/src/kernels"
+            redirect-stderr: ${{ contains(matrix.release.name, 'openSUSE') && 'false' || 'true' }}

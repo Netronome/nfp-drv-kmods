@@ -21,7 +21,7 @@ runs:
       run: |
         set -o pipefail
         export MAKEFLAGS="${{ env.MAKEFLAGS }} -s -j$(nproc) M=$(pwd)/src CFLAGS_EXTRA+=-Werror"
-        find "${{ inputs.search-path }}" -mindepth 1 -maxdepth 1 -type d \
+        find "${{ inputs.search-path }}" -mindepth 1 -maxdepth 1 -type d -o -type l \
           -name "${{ inputs.search-pattern }}" -print0 | \
           xargs -t -r -0 -I "{}" \
             sh -c 'make -C "{}" clean && make -C "{}" ${{ inputs.redirect-stderr == 'true' && '2>&1' || '' }}' | \
