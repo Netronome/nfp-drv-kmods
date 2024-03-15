@@ -52,6 +52,7 @@ on:
         type: choice
         required: false
         options:
+          - centos:7
           - centos:8
           - dokken/centos-stream-9:main
           - rockylinux:8.5
@@ -145,8 +146,25 @@ jobs:
           sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-Linux-*
           sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-Linux-*
 
+      - name: Install pre-requisite packages | YUM
+        if: >-
+          inputs.target_distro == 'openanolis/anolisos:7.9-x86_64' ||
+          inputs.target_distro == 'centos:7'
+        run: |
+          if [[ "${{ inputs.target_arch }}" == "x86_64" ]]; then
+            yum install -y https://repo.ius.io/ius-release-el7.rpm \
+                        https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+            GIT=git236
+          else
+            GIT=git
+          fi
+          yum install -y sudo cpio elfutils-libelf-devel findutils gcc rpm-build \
+                            $GIT which make wget ca-certificates tar gzip hostname
+
       - name: Install pre-requisite packages | DNF
-        if: inputs.target_distro != 'openanolis/anolisos:7.9-x86_64'
+        if: >-
+          inputs.target_distro != 'openanolis/anolisos:7.9-x86_64' &&
+          inputs.target_distro != 'centos:7'
         run: |
           dnf clean all
           dnf distro-sync -y
@@ -163,10 +181,21 @@ jobs:
         run: |
           sudo find -delete
 
-      - name: Check out repository
+      - name: Check out repository | Corigine
+        if: >-
+          inputs.target_arch == 'x86_64' ||
+          ( inputs.target_distro != 'openanolis/anolisos:7.9-x86_64' &&
+            inputs.target_distro != 'centos:7' )
         uses: Corigine/ci-libs/github_actions/utilities/checkout_corigine@main
         with:
           token: ${{ secrets.GHUB_TOKEN }}
+
+      - name: Check out repository
+        if: >-
+          inputs.target_arch == 'aarch64' &&
+          ( inputs.target_distro == 'openanolis/anolisos:7.9-x86_64' ||
+            inputs.target_distro == 'centos:7' )
+        uses: actions/checkout@v2
 
       - name: Prepare environment variables
         shell: bash
