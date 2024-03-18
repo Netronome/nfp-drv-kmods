@@ -43,11 +43,10 @@ on:
       kdev_base_url:
         type: string
         required: false
-        default: >-
-          http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/Packages/
         description: >-
           Base URL for desired kernel-devel to be used in building
-          RPM files.
+          RPM files. Leave blank to use the default for the targetted
+          OS/Arch.
       target_distro:
         type: choice
         required: false
@@ -87,7 +86,7 @@ jobs:
       - self-hosted
       - ci-linter-vm
     outputs:
-      target_distro: ${{ steps.distro.outputs.distro }}
+      matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
       - name: Metadata | Print user inputs
         if: github.event_name == 'workflow_dispatch'
@@ -104,14 +103,77 @@ jobs:
                     }
           print(json.dumps(inputs, indent=1))
 
-      - name: Format target distro
-        id: distro
+      - name: Prepare build matrix
+        id: matrix
         shell: python3 {0}
         run: |
           import sys
           import os as operating_sys
-          target_distro = "${{ inputs.target_distro }}"
 
+          repositories = {
+                          "centos:7": {
+                                       "x86_64": ["http://mirror.centos.org/centos/7/os/x86_64/Packages/"],
+                                       "aarch64": ["http://mirror.centos.org/altarch/7/os/aarch64/Packages"],
+                                      },
+                          "centos:8": {
+                                       "x86_64": ["http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/Packages/"],
+                                       "aarch64": ["http://mirror.centos.org/centos/8-stream/BaseOS/aarch64/os/Packages/"]
+                                      },
+                          "dokken/centos-stream-9:main": {
+                                                          "x86_64": ["https://mirror.stream.centos.org/9-stream/AppStream/x86_64/os/Packages/"],
+                                                          "aarch64": ["https://mirror.stream.centos.org/9-stream/AppStream/aarch64/os/Packages/"]
+                                                         },
+                          "rockylinux:8.5": {
+                                             "x86_64": ["https://download.rockylinux.org/pub/rocky/8/BaseOS/x86_64/os/Packages/k/"],
+                                             "aarch64": ["https://download.rockylinux.org/pub/rocky/8/BaseOS/aarch64/os/Packages/k/"]
+                                            },
+                          "rockylinux:9": {
+                                           "x86_64": ["https://download.rockylinux.org/pub/rocky/9/AppStream/x86_64/os/Packages/k/"],
+                                           "aarch64": ["https://download.rockylinux.org/pub/rocky/9/AppStream/aarch64/os/Packages/k/"]
+                                          },
+                          "openanolis/anolisos:7.9": {
+                                                      "x86_64": ["https://mirrors.openanolis.cn/anolis/7.9/os/x86_64/os/Packages/"],
+                                                      "aarch64": ["https://mirrors.openanolis.cn/anolis/7.9/os/aarch64/os/Packages/"]
+                                                     },
+                          "openanolis/anolisos:8.6": {
+                                                      "x86_64": ["https://mirrors.openanolis.cn/anolis/8.6/BaseOS/x86_64/os/Packages/"],
+                                                      "aarch64": ["https://mirrors.openanolis.cn/anolis/8.6/BaseOS/aarch64/os/Packages/"]
+                                                     },
+                          "openanolis/anolisos:8.8": {
+                                                      "x86_64": ["https://mirrors.openanolis.cn/anolis/8.8/BaseOS/x86_64/os/Packages/"],
+                                                      "aarch64": ["https://mirrors.openanolis.cn/anolis/8.8/BaseOS/aarch64/os/Packages/"]
+                                                     },
+                          "opencloudos/opencloudos:8.6": {
+                                                          "x86_64": ["https://mirrors.opencloudos.org/opencloudos/8.6/BaseOS/x86_64/os/Packages/"],
+                                                          "aarch64": ["https://mirrors.opencloudos.org/opencloudos/8.6/BaseOS/aarch64/os/Packages/"]
+                                                         },
+                          "opencloudos/opencloudos:8.8": {
+                                                          "x86_64": ["https://mirrors.opencloudos.org/opencloudos/8.8/BaseOS/x86_64/os/Packages/"],
+                                                          "aarch64": ["https://mirrors.opencloudos.org/opencloudos/8.8/BaseOS/aarch64/os/Packages/"]
+                                                         },
+                          "opencloudos/opencloudos:9.0": {
+                                                          "x86_64": ["https://mirrors.opencloudos.org/opencloudos/9.0/AppStream/x86_64/os/Packages/"],
+                                                          "aarch64": ["https://mirrors.opencloudos.org/opencloudos/9.0/AppStream/aarch64/os/Packages/"]
+                                                         },
+                          "lhrbest/kylinos:v10_sp3": {
+                                                      "x86_64": ["https://update.cs2c.com.cn/NS/V10/V10SP3/os/adv/lic/base/x86_64/Packages/"],
+                                                      "aarch64": ["https://update.cs2c.com.cn/NS/V10/V10SP3/os/adv/lic/base/aarch64/Packages/"]
+                                                     },
+                          "nfschinadocker/nfschina-server:v4.0": {
+                                                                  "x86_64": ["https://updates.os.nfschina.com/NFS4.0/GenOS/RPMS/Releases/Packages/"]
+                                                                 },
+                          "openeuler/openeuler:20.03": {
+                                                        "x86_64": ["http://mirrors.dotsrc.org/openeuler/openEuler-20.03-LTS/OS/x86_64/Packages/"],
+                                                        "aarch64": ["http://mirrors.dotsrc.org/openeuler/openEuler-20.03-LTS/OS/aarch64/Packages/"]
+                                                       },
+                          "openeuler/openeuler:22.03": {
+                                                        "x86_64": ["http://mirrors.dotsrc.org/openeuler/openEuler-22.03-LTS/OS/x86_64/Packages/"],
+                                                        "aarch64": ["http://mirrors.dotsrc.org/openeuler/openEuler-22.03-LTS/OS/aarch64/Packages/"]
+                                                       },
+                         }
+
+          release = {}
+          target_distro = "${{ inputs.target_distro }}"
           distro, version = target_distro.split(':')
 
           if "${{ inputs.target_arch }}" == "aarch64":
@@ -124,38 +186,58 @@ jobs:
               print("::error::Specified target_distro does not support aarch64 architecture")
               sys.exit(1)
 
+          if distro == "openanolis/anolisos" and version == "7.9":
+            version += "-${{ inputs.target_arch }}"
+
           if distro == "openanolis/anolisos":
             version += "-${{ inputs.target_arch }}"
 
           target_distro = distro + ":" + version
+          if "${{ inputs.kdev_base_url }}" == "":
+            mirror = repositories["${{ inputs.target_distro }}"][arch]
+          else:
+            mirror = "${{ inputs.kdev_base_url }}"
+          release = {
+                      "container": target_distro,
+                      "mirror": mirror,
+                      "arch": "${{ inputs.target_arch }}"
+                    }
+
+          releases = [release]
+
           with open(operating_sys.environ['GITHUB_OUTPUT'], 'a') as github_output:
-            github_output.write(f"distro={target_distro}")
+            github_output.write(f"matrix={releases}")
 
   package_rpm:
     name: 'Package RPM: ${{ inputs.driver }}'
     needs: prepare
     runs-on:
       - self-hosted
-      - ${{ inputs.target_arch == 'aarch64' && 'builder-arm' || 'builder' }}
+      - ${{ matrix.release.arch == 'aarch64' && 'builder-arm' || 'builder' }}
     container:
-      image: ${{ needs.prepare.outputs.target_distro }}
+      image: ${{ matrix.release.container }}
       volumes:
         - /mnt/cloud:/mnt/cloud
         - /mnt/local:/mnt/local
       options: "--entrypoint /bin/bash"
+    strategy:
+      fail-fast: false
+      matrix:
+        release: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     steps:
       - name: Add pre-requisite repositories and plugins
-        if: inputs.target_distro == 'centos:8'
+        if: matrix.release.container == 'centos:8'
         run: |
           sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-Linux-*
           sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-Linux-*
 
       - name: Install pre-requisite packages | YUM
         if: >-
-          inputs.target_distro == 'openanolis/anolisos:7.9' ||
-          inputs.target_distro == 'centos:7'
+          matrix.release.container == 'openanolis/anolisos:7.9-x86_64' ||
+          matrix.release.container == 'openanolis/anolisos:7.9-aarch64' ||
+          matrix.release.container == 'centos:7'
         run: |
-          if [[ "${{ inputs.target_arch }}" == "x86_64" ]]; then
+          if [[ "${{ matrix.release.arch }}" == "x86_64" ]]; then
             yum install -y https://repo.ius.io/ius-release-el7.rpm \
                         https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
             GIT=git236
@@ -167,15 +249,16 @@ jobs:
 
       - name: Install pre-requisite packages | DNF
         if: >-
-          inputs.target_distro != 'openanolis/anolisos:7.9' &&
-          inputs.target_distro != 'centos:7'
+          matrix.release.container != 'openanolis/anolisos:7.9-x86_64' &&
+          matrix.release.container != 'openanolis/anolisos:7.9-aarch64' &&
+          matrix.release.container != 'centos:7'
         run: |
           dnf clean all
           dnf distro-sync -y
-          if [[ "${{ inputs.target_distro }}" != "opencloudos/opencloudos:9.0" && \
-                "${{ inputs.target_distro }}" != *"kylinos"* && \
-                "${{ inputs.target_distro }}" != *"openeuler"* && \
-                "${{ inputs.target_distro }}" != *"nfschina-server"* ]]; then
+          if [[ "${{ matrix.release.container }}" != "opencloudos/opencloudos:9.0" && \
+                "${{ matrix.release.container }}" != *"kylinos"* && \
+                "${{ matrix.release.container }}" != *"openeuler"* && \
+                "${{ matrix.release.container }}" != *"nfschina-server"* ]]; then
             dnf install -y epel-release
           fi
           dnf install -y wget sudo git sed \
@@ -187,18 +270,18 @@ jobs:
 
       - name: Check out repository | Corigine
         if: >-
-          inputs.target_arch == 'x86_64' ||
-          ( inputs.target_distro != 'openanolis/anolisos:7.9' &&
-            inputs.target_distro != 'centos:7' )
+          matrix.release.arch == 'x86_64' ||
+          ( matrix.release.container != 'openanolis/anolisos:7.9-x86_64' &&
+            matrix.release.container != 'centos:7' )
         uses: Corigine/ci-libs/github_actions/utilities/checkout_corigine@main
         with:
           token: ${{ secrets.GHUB_TOKEN }}
 
       - name: Check out repository
         if: >-
-          inputs.target_arch == 'aarch64' &&
-          ( inputs.target_distro == 'openanolis/anolisos:7.9' ||
-            inputs.target_distro == 'centos:7' )
+          matrix.release.arch == 'aarch64' &&
+          ( matrix.release.container == 'openanolis/anolisos:7.9-aarch64' ||
+            matrix.release.container == 'centos:7' )
         uses: actions/checkout@v2
 
       - name: Prepare environment variables
@@ -218,12 +301,9 @@ jobs:
           echo "UNPACKED=$UNPACKED" | tee -a $GITHUB_ENV
           mkdir -p $UNPACKED
 
-          KERNEL_DEVEL=${{ inputs.kdev_base_url }}
-          echo "KERNEL_DEVEL=$KERNEL_DEVEL" | tee -a $GITHUB_ENV
-
       - name: Install azcopy binary
         run: |
-          if [[ '${{ inputs.target_arch }}' == 'aarch64' ]]; then
+          if [[ '${{ matrix.release.arch }}' == 'aarch64' ]]; then
             binary_link=https://aka.ms/downloadazcopy-v10-linux-arm64
           else
             binary_link=https://aka.ms/downloadazcopy-v10-linux
@@ -266,7 +346,7 @@ jobs:
         uses: ./.github/actions/download
         with:
           output-path: ${{ env.DOWNLOAD }}
-          url: ${{ env.KERNEL_DEVEL }}
+          url: ${{ matrix.release.mirror }}
           accept: "kernel-devel-*.rpm"
 
       - name: Unpack Kernel Headers
@@ -293,7 +373,7 @@ jobs:
               -tb ${{ env.UNPACKED }}/${{ env.DRIVER_VER }}/${{ env.RPM_TAR }}
           done
 
-          RPM_DIR=/tmp/$TARGET_DISTRO/${{ env.DRIVER_VER }}/rpmbuild/RPMS/${{ inputs.target_arch }}
+          RPM_DIR=/tmp/$TARGET_DISTRO/${{ env.DRIVER_VER }}/rpmbuild/RPMS/${{ matrix.release.arch }}
           echo "RPM_DIR=${RPM_DIR}/*" | tee -a $GITHUB_ENV
           echo "TARGET_DISTRO=${TARGET_DISTRO}" | tee -a $GITHUB_ENV
 
