@@ -1,7 +1,8 @@
 name: Package RPM
 run-name: >-
-  ${{ format( 'driver: {0} OS: {1}',
-             inputs.driver, inputs.target_distro)
+  ${{ format( 'driver: {0}/{1} OS: {2}', inputs.driver_build_type,
+             inputs.driver == '' && 'latest' || inputs.driver,
+             inputs.target_distro)
   }}
 
 on:
@@ -66,6 +67,7 @@ on:
           - nfschinadocker/nfschina-server:v4.0
           - openeuler/openeuler:20.03
           - openeuler/openeuler:22.03
+          - all
         default: centos:8
         description: >-
           Target distro on which the driver .rpm will be built.
@@ -75,6 +77,7 @@ on:
         options:
           - x86_64
           - aarch64
+          - all
         default: x86_64
         description: >-
           Target architecture on which the driver .rpm will be built.
@@ -107,6 +110,7 @@ jobs:
         id: matrix
         shell: python3 {0}
         run: |
+          import re
           import sys
           import os as operating_sys
 
@@ -172,44 +176,60 @@ jobs:
                                                        },
                          }
 
-          release = {}
-          target_distro = "${{ inputs.target_distro }}"
-          distro, version = target_distro.split(':')
-
-          if "${{ inputs.target_arch }}" == "aarch64":
-            if distro == "opencloudos/opencloudos":
-              distro += "_aarch64"
-            elif distro == "lhrbest/kylinos":
-              version = version.replace("_","")
-              version += "_arm64"
-            elif distro == "nfschinadocker/nfschina-server":
-              print("::error::Specified target_distro does not support aarch64 architecture")
-              sys.exit(1)
-
-          if distro == "openanolis/anolisos" and version == "7.9":
-            version += "-${{ inputs.target_arch }}"
-
-          if distro == "openanolis/anolisos":
-            version += "-${{ inputs.target_arch }}"
-
-          target_distro = distro + ":" + version
-          if "${{ inputs.kdev_base_url }}" == "":
-            mirror = repositories["${{ inputs.target_distro }}"][arch]
+          releases = []
+          if "${{ inputs.target_distro }}" == "all":
+            distros = list(repositories.keys())
           else:
-            mirror = "${{ inputs.kdev_base_url }}"
-          release = {
-                      "container": target_distro,
-                      "mirror": mirror,
-                      "arch": "${{ inputs.target_arch }}"
-                    }
+            distros = ["${{ inputs.target_distro }}"]
 
-          releases = [release]
+          if "${{ inputs.target_arch }}" == "all":
+            architectures = ["x86_64", "aarch64"]
+          else:
+            architectures = ["${{ inputs.target_arch }}"]
+
+          for arch in architectures:
+            for target_distro in distros:
+              distro, version = target_distro.split(':')
+
+              if distro == "dokken/centos-stream-9":
+                upload_dir = "centos-9"
+              else:
+                upload_dir = re.sub(r'^[^/]*/', '', distro) + "-" + version
+
+              if arch == "aarch64":
+                if distro == "opencloudos/opencloudos":
+                  distro += "_aarch64"
+                elif distro == "lhrbest/kylinos":
+                  version = version.replace("_","")
+                  version += "_arm64"
+                elif distro == "nfschinadocker/nfschina-server":
+                  print("::notice::nfschinadocker/nfschina-server:v4.0 does not support aarch64 architecture")
+                  continue
+
+              if distro == "openanolis/anolisos" and version == "7.9":
+                version += f"-{arch}"
+
+              if "${{ inputs.kdev_base_url }}" == "":
+                mirror = repositories[target_distro][arch][0]
+              else:
+                mirror = "${{ inputs.kdev_base_url }}"
+
+              target_distro = distro + ":" + version
+
+              release = {
+                          "container": target_distro,
+                          "mirror": mirror,
+                          "arch": arch,
+                          "upload_dir": upload_dir
+                        }
+
+              releases.append(release)
 
           with open(operating_sys.environ['GITHUB_OUTPUT'], 'a') as github_output:
             github_output.write(f"matrix={releases}")
 
   package_rpm:
-    name: 'Package RPM: ${{ inputs.driver }}'
+    name: '${{ matrix.release.container }} - ${{ matrix.release.arch }}'
     needs: prepare
     runs-on:
       - self-hosted
@@ -255,7 +275,7 @@ jobs:
         run: |
           dnf clean all
           dnf distro-sync -y
-          if [[ "${{ matrix.release.container }}" != "opencloudos/opencloudos:9.0" && \
+          if [[ "${{ matrix.release.container }}" != "opencloudos/opencloudos"*"9.0" && \
                 "${{ matrix.release.container }}" != *"kylinos"* && \
                 "${{ matrix.release.container }}" != *"openeuler"* && \
                 "${{ matrix.release.container }}" != *"nfschina-server"* ]]; then
@@ -272,6 +292,7 @@ jobs:
         if: >-
           matrix.release.arch == 'x86_64' ||
           ( matrix.release.container != 'openanolis/anolisos:7.9-x86_64' &&
+            matrix.release.container != 'openanolis/anolisos:7.9-aarch64' &&
             matrix.release.container != 'centos:7' )
         uses: Corigine/ci-libs/github_actions/utilities/checkout_corigine@main
         with:
@@ -358,13 +379,7 @@ jobs:
       - name: Build RPM packages
         shell: bash
         run: |
-          TARGET_DISTRO=${{ inputs.target_distro }}
-          if [[ $TARGET_DISTRO == "dokken/centos-stream-9:main" ]]; then
-            TARGET_DISTRO="centos-9"
-          else
-            TARGET_DISTRO=${TARGET_DISTRO#*/}
-            TARGET_DISTRO=$(echo $TARGET_DISTRO | tr : -)
-          fi
+          TARGET_DISTRO=${{ matrix.release.upload_dir }}
 
           for HEADERS in $(ls ${{ env.UNPACKED }}/usr/src/kernels/); do
             rpmbuild \
