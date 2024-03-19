@@ -81,11 +81,6 @@ rm -rf %{buildroot}
 
 %post
 uname -r | grep BOOT || /sbin/depmod -a > /dev/null 2>&1 || true
-if [ -x "/usr/sbin/weak-modules" ]; then
-    modules=( $(cat %{_docdir}/%{name}/file.list | grep '\.ko$' | xargs realpath) )
-    printf '%s\n' "${modules[@]}" | /usr/sbin/weak-modules --no-initramfs --add-modules
-fi
-
 # Set the executable bit
 if [ -e "/opt/netronome/drv/nfp_troubleshoot_gather" ]; then
 	chmod 755 /opt/netronome/drv/nfp_troubleshoot_gather
@@ -116,18 +111,9 @@ else
 fi
 
 %preun
-# save tmp list of installed kernel modules for weak-modules
-cat %{_docdir}/%{name}/file.list | grep '\.ko$' | xargs realpath > /var/run/rpm-%{name}-modules.list
-
-rm -rf /usr/local/share/%{name}
 
 %postun
 uname -r | grep BOOT || /sbin/depmod -a > /dev/null 2>&1 || true
-if [ -x "/usr/sbin/weak-modules" ]; then
-	modules=( $(cat /var/run/rpm-%{name}-modules.list) )
-	printf '%s\n' "${modules[@]}" | /usr/sbin/weak-modules --no-initramfs --remove-modules
-fi
-rm /var/run/rpm-%{name}-modules.list
 
 if which dracut >/dev/null 2>&1; then
 	echo "Updating initramfs with dracut..."
