@@ -57,6 +57,7 @@ on:
           - dokken/centos-stream-9:main
           - rockylinux:8.5
           - rockylinux:9
+          - openanolis/anolisos:7.9
           - openanolis/anolisos:8.6
           - openanolis/anolisos:8.8
           - opencloudos/opencloudos:8.6
@@ -123,6 +124,9 @@ jobs:
               print("::error::Specified target_distro does not support aarch64 architecture")
               sys.exit(1)
 
+          if distro == "openanolis/anolisos":
+            version += "-${{ inputs.target_arch }}"
+
           target_distro = distro + ":" + version
           with open(operating_sys.environ['GITHUB_OUTPUT'], 'a') as github_output:
             github_output.write(f"distro={target_distro}")
@@ -148,7 +152,7 @@ jobs:
 
       - name: Install pre-requisite packages | YUM
         if: >-
-          inputs.target_distro == 'openanolis/anolisos:7.9-x86_64' ||
+          inputs.target_distro == 'openanolis/anolisos:7.9' ||
           inputs.target_distro == 'centos:7'
         run: |
           if [[ "${{ inputs.target_arch }}" == "x86_64" ]]; then
@@ -163,7 +167,7 @@ jobs:
 
       - name: Install pre-requisite packages | DNF
         if: >-
-          inputs.target_distro != 'openanolis/anolisos:7.9-x86_64' &&
+          inputs.target_distro != 'openanolis/anolisos:7.9' &&
           inputs.target_distro != 'centos:7'
         run: |
           dnf clean all
@@ -184,7 +188,7 @@ jobs:
       - name: Check out repository | Corigine
         if: >-
           inputs.target_arch == 'x86_64' ||
-          ( inputs.target_distro != 'openanolis/anolisos:7.9-x86_64' &&
+          ( inputs.target_distro != 'openanolis/anolisos:7.9' &&
             inputs.target_distro != 'centos:7' )
         uses: Corigine/ci-libs/github_actions/utilities/checkout_corigine@main
         with:
@@ -193,7 +197,7 @@ jobs:
       - name: Check out repository
         if: >-
           inputs.target_arch == 'aarch64' &&
-          ( inputs.target_distro == 'openanolis/anolisos:7.9-x86_64' ||
+          ( inputs.target_distro == 'openanolis/anolisos:7.9' ||
             inputs.target_distro == 'centos:7' )
         uses: actions/checkout@v2
 
