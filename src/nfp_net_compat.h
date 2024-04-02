@@ -53,11 +53,11 @@
 #endif
 
 /* Redefine LINUX_VERSION_CODE for net and *-next kernels */
-#if LINUX_VERSION_CODE == KERNEL_VERSION(6, 7, 0)
-#include <linux/ieee80211.h>
-#ifdef IEEE80211_PV1_FCTL_FROMDS
+#if LINUX_VERSION_CODE == KERNEL_VERSION(6, 9, 0)
+#include <linux/phy.h>
+#ifdef PHY_F_RXC_ALWAYS_ON
 #undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(6, 8, 0)
+#define LINUX_VERSION_CODE KERNEL_VERSION(6, 10, 0)
 #endif
 #endif
 
