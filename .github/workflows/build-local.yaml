@@ -110,8 +110,52 @@ jobs:
     container:
       image: ${{ matrix.release.container }}
     steps:
+      - name: Check for pre-requisite packages
+        id: provision_check
+        shell: bash
+        run: |
+          declare -A dependencies=( ["yum"]="ca-certificates cpio \
+                                             elfutils-libelf-devel findutils \
+                                             gcc git236 gzip hostname make \
+                                             sudo tar wget which" \
+                                    ["dnf"]="ca-certificates cpio \
+                                             elfutils-libelf-devel findutils \
+                                             gcc git gzip hostname make sed \
+                                             sudo tar wget" \
+                                    ["zypper"]="gawk bc bison ca-certificates \
+                                                cpio findutils flex gcc git \
+                                                gzip hostname libelf-devel \
+                                                libelf1 libopenssl-devel make \
+                                                python3 sed sudo tar wget \
+                                                which" )
+
+          if [[ "${{ matrix.release.name }}" == "AnolisOS/7.9" ]]; then
+            package_manager="yum"
+            installed_packages="$(yum list installed | sed 1d | awk -F'\.' '{print $1}')"
+          elif [[ "${{ matrix.release.name }}" == "openSUSE"* ]]; then
+            package_manager="zypper"
+            installed_packages="$(zypper search -i | awk '{if ($1 == "i" || $1 == "i+") {print $3}}')"
+          else
+            package_manager="dnf"
+            installed_packages="$(dnf list --installed | sed 1d | awk -F'\.' '{print $1}')"
+          fi
+
+          prerequisites="${dependencies[$package_manager]}"
+          provision="false"
+          for package in $prerequisites; do
+            if ! $(echo "$installed_packages" | grep -w -q "$package"); then
+              missing_deps=$missing_deps$package" "
+              provision="true"
+            fi
+          done
+
+          echo "missing_deps=$missing_deps" | tee -a $GITHUB_OUTPUT
+          echo "provision=$provision" | tee -a $GITHUB_OUTPUT
+
       - name: Update OpenEuler mirror
-        if: startsWith(matrix.release.name, 'openEuler')
+        if: >-
+          steps.provision_check.outputs.provision == 'true' &&
+          startsWith(matrix.release.name, 'openEuler')
         run: |
           if [[ ! -f /etc/yum.repos.d/openEuler.repo ]]; then
             echo "[base]" >> /etc/yum.repos.d/openEuler.repo
@@ -127,15 +171,17 @@ jobs:
           sed -i 's|repo.openeuler.org|mirrors.dotsrc.org/openeuler|g' /etc/yum.repos.d/openEuler.repo
 
       - name: Install pre-requisite packages | YUM
-        if: matrix.release.name == 'AnolisOS/7.9'
+        if: >-
+          steps.provision_check.outputs.provision == 'true' &&
+          matrix.release.name == 'AnolisOS/7.9'
         run: |
           yum install -y https://repo.ius.io/ius-release-el7.rpm \
                       https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-          yum install -y sudo cpio elfutils-libelf-devel findutils gcc \
-                            git236 which make wget ca-certificates tar gzip hostname
+          yum install -y ${{ steps.provision_check.outputs.missing_deps }}
 
       - name: Install pre-requisite packages | DNF
         if: >-
+          steps.provision_check.outputs.provision == 'true' &&
           matrix.release.name != 'AnolisOS/7.9' &&
           !contains(matrix.release.name, 'openSUSE')
         run: |
@@ -146,18 +192,17 @@ jobs:
                 "${{ matrix.release.name }}" != "openEuler"* ]]; then
             dnf install -y epel-release
           fi
-          dnf install -y wget sudo git sed \
-            gcc make cpio elfutils-libelf-devel findutils wget ca-certificates tar gzip hostname
+          dnf install -y ${{ steps.provision_check.outputs.missing_deps }}
           dnf reinstall -y crypto-policies
 
       - name: Install pre-requisite packages | Zypper
-        if: contains(matrix.release.name, 'openSUSE')
+        if: >-
+          steps.provision_check.outputs.provision == 'true' &&
+          contains(matrix.release.name, 'openSUSE')
         run: |
           zypper ar -f http://download.opensuse.org/distribution/openSUSE-stable/repo/oss repo-oss
           zypper --gpg-auto-import-keys ref
-          zypper -n in sudo cpio libelf1 libelf-devel findutils wget make \
-            ca-certificates gzip hostname which git libopenssl-devel bison flex \
-            gcc tar sed bc awk python3
+          zypper -n in ${{ steps.provision_check.outputs.missing_deps }}
 
       - name: Clean old artifacts
         run: |
@@ -169,6 +214,8 @@ jobs:
           token: ${{ secrets.GHUB_TOKEN }}
 
       - name: Install azcopy binary
+        if: >-
+          steps.provision_check.outputs.provision == 'true'
         run: |
           binary_link=https://aka.ms/downloadazcopy-v10-linux
 
