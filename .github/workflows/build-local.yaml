@@ -59,6 +59,10 @@ jobs:
     env:
       BASE_DIR: tmp/misc/kernel-devel-c4c
     steps:
+      - name: Clean old artifacts
+        run: |
+          sudo find -delete
+
       - name: Get local kernel-devel metadata
         uses: Corigine/ci-libs/github_actions/azure/azcopy_download@main
         with:
