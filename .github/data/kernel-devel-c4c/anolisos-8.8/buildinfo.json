@@ -1,0 +1,4 @@
+{
+	"name": "AnolisOS/8.8",
+	"container": "ci-docker-registry-vm:5000/drv-x86-64-anolisos8.8"
+}
