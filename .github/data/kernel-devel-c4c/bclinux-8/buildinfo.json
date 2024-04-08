@@ -1,4 +1,5 @@
 {
 	"name": "BCLinux/8",
-	"container": "ci-docker-registry-vm:5000/drv-x86-64-rocky8"
+	"container": "ci-docker-registry-vm:5000/drv-x86-64-rocky8",
+	"mirror": "mirrors.cmecloud.cn/bclinux/el8/BaseOS/x86_64/os/Packages"
 }
