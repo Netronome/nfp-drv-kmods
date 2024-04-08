@@ -253,7 +253,7 @@ jobs:
             find $(pwd)/$SOURCE-obj/x86_64/default/ -maxdepth 1 -mindepth 1 -not -name Makefile \
               -exec cp -r {} $(pwd)/$SOURCE/ \;
 
-            ln -sf $(pwd)/$SOURCE/ $(pwd)/kernels/$SOURCE
+            mv $(pwd)/$SOURCE/ $(pwd)/kernels/$SOURCE
           done
 
       - name: Build
