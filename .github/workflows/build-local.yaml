@@ -15,6 +15,20 @@ on:
       - 'Makefile'
       - 'src/**'
       - '.github/workflows/build-local.yaml'
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    paths:
+      - 'Makefile'
+      - 'src/**'
+      - '.github/workflows/build-local.yaml'
+    secrets:
+      GHUB_TOKEN:
+        required: true
+      AZ_SAS_TOK:
+        required: true
   workflow_dispatch:
     secrets:
       GHUB_TOKEN:
