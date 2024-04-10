@@ -1572,6 +1572,10 @@ static inline void eth_hw_addr_set(struct net_device *dev, const u8 *addr)
 }
 #endif
 
+#ifndef DEVLINK_INFO_VERSION_GENERIC_BOARD_PART_NUMBER
+#define DEVLINK_INFO_VERSION_GENERIC_BOARD_PART_NUMBER	"board.part_number"
+#endif
+
 #if VER_NON_RHEL_OR_SLEL_LT(5, 16) || RHEL_RELEASE_LT(9, 119, 0, 0) || \
     SLEL_LOCALVER_LT(5, 14, 21, 150400, 22)
 typedef struct gnet_stats_basic_packed compat__gnet_stats_basic_sync;
