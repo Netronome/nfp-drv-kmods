@@ -134,7 +134,8 @@ exit_close_nsp:
 
 static int
 nfp_devlink_param_u8_set(struct devlink *devlink, u32 id,
-			 struct devlink_param_gset_ctx *ctx)
+			 struct devlink_param_gset_ctx *ctx,
+			 struct netlink_ext_ack *extack)
 {
 	const struct nfp_devlink_param_u8_arg *arg;
 	struct nfp_pf *pf = devlink_priv(devlink);
@@ -168,6 +169,25 @@ exit_close_nsp:
 	return err;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
+static int
+compat__nfp_devlink_param_u8_set(struct devlink *devlink, u32 id,
+				 struct devlink_param_gset_ctx *ctx,
+				 struct netlink_ext_ack *extack)
+{
+	return nfp_devlink_param_u8_set(devlink, id, ctx, extack);
+}
+#else
+static int
+compat__nfp_devlink_param_u8_set(struct devlink *devlink, u32 id,
+				 struct devlink_param_gset_ctx *ctx)
+{
+	return nfp_devlink_param_u8_set(devlink, id, ctx, NULL);
+}
+
+#endif
+
+
 static int
 nfp_devlink_param_u8_validate(struct devlink *devlink, u32 id,
 			      union devlink_param_value val,
@@ -197,12 +217,12 @@ static const struct devlink_param nfp_devlink_params[] = {
 	DEVLINK_PARAM_GENERIC(FW_LOAD_POLICY,
 			      BIT(DEVLINK_PARAM_CMODE_PERMANENT),
 			      nfp_devlink_param_u8_get,
-			      nfp_devlink_param_u8_set,
+			      compat__nfp_devlink_param_u8_set,
 			      nfp_devlink_param_u8_validate),
 	DEVLINK_PARAM_GENERIC(RESET_DEV_ON_DRV_PROBE,
 			      BIT(DEVLINK_PARAM_CMODE_PERMANENT),
 			      nfp_devlink_param_u8_get,
-			      nfp_devlink_param_u8_set,
+			      compat__nfp_devlink_param_u8_set,
 			      nfp_devlink_param_u8_validate),
 };
 
