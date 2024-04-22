@@ -77,6 +77,20 @@ jobs:
         run: |
           sudo find -delete
 
+      - name: Check out repository
+        uses: Corigine/ci-libs/github_actions/utilities/checkout_corigine@main
+        with:
+          token: ${{ secrets.GHUB_TOKEN }}
+
+      - name: Determine list of accepted distros using repo kernel-devel metadata
+        id: compat
+        shell: bash
+        run: |
+          accepted="$(find .github/data/kernel-devel-c4c -type f -name buildinfo.json \
+                      -exec sh -c "echo {} | awk -F'/' '{print \$(NF-1)}'" \; | xargs)"
+
+          echo "ACCEPTED_OS=${accepted}" | tee -a $GITHUB_OUTPUT
+
       - name: Get local kernel-devel metadata
         uses: Corigine/ci-libs/github_actions/azure/azcopy_download@main
         with:
@@ -99,15 +113,20 @@ jobs:
           else:
             whitelist = ".*"
 
+          accepted_os = "${{ steps.compat.outputs.ACCEPTED_OS }}".split()
+
           releases = []
           directories = [d for d in sorted(os.listdir()) if
                          (os.path.isdir(d) and re.search(whitelist, d))]
           for directory in directories:
-            with open(f"{directory}/buildinfo.json") as buildinfo:
-              release = json.load(buildinfo)
-              release["directory"] = f"${{ env.BASE_DIR }}/{directory}"
+            if directory in accepted_os:
+              with open(f"{directory}/buildinfo.json") as buildinfo:
+                release = json.load(buildinfo)
+                release["directory"] = f"${{ env.BASE_DIR }}/{directory}"
 
-              releases.append(release)
+                releases.append(release)
+            else:
+              print(f"::notice::{directory} is not supported for this version of the o-o-t driver")
 
           with open(os.environ['GITHUB_OUTPUT'], 'a') as github_output:
             github_output.write(f"releases={releases}")
