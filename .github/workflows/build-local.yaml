@@ -158,6 +158,13 @@ jobs:
             installed_packages="$(dnf list --installed | sed 1d | awk -F'\.' '{print $1}')"
           fi
 
+          if [[ "${{ matrix.release.name }}" == "openEuler"* || \
+                "${{ matrix.release.name }}" == "KylinOS"* ]]; then
+            new_dependencies="$( echo "${dependencies[$package_manager]}" | \
+                                 sed 's/elfutils-libelf-devel/elfutils-devel/' )"
+            dependencies[$package_manager]="$new_dependencies"
+          fi
+
           prerequisites="${dependencies[$package_manager]}"
           provision="false"
           for package in $prerequisites; do
