@@ -188,7 +188,11 @@ nfp_nfd3_xsk_rx(struct nfp_net_rx_ring *rx_ring, int budget,
 		xrxbuf->xdp->data += meta_len;
 		xrxbuf->xdp->data_end = xrxbuf->xdp->data + pkt_len;
 		xdp_set_data_meta_invalid(xrxbuf->xdp);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
+		xsk_buff_dma_sync_for_cpu(xrxbuf->xdp);
+#else
 		xsk_buff_dma_sync_for_cpu(xrxbuf->xdp, r_vec->xsk_pool);
+#endif
 		net_prefetch(xrxbuf->xdp->data);
 
 		if (meta_len) {
