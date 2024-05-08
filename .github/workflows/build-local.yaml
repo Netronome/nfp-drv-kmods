@@ -244,7 +244,9 @@ jobs:
           steps.provision_check.outputs.provision == 'true' &&
           contains(matrix.release.name, 'openSUSE')
         run: |
-          zypper ar -f http://download.opensuse.org/distribution/openSUSE-stable/repo/oss repo-oss
+          if ! zypper lr repo-oss >/dev/null 2>&1; then
+            zypper ar -f http://download.opensuse.org/distribution/openSUSE-stable/repo/oss repo-oss
+          fi
           zypper --gpg-auto-import-keys ref
           zypper -n in ${{ steps.provision_check.outputs.missing_deps }}
 
