@@ -71,7 +71,7 @@ jobs:
     outputs:
       releases: ${{ steps.matrix.outputs.releases }}
     env:
-      BASE_DIR: tmp/misc/kernel-devel-c4c
+      BASE_DIR: binaries/misc/kernel-devel-c4c
     steps:
       - name: Clean old artifacts
         run: |
