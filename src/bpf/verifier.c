@@ -231,10 +231,11 @@ nfp_bpf_check_helper_call(struct nfp_prog *nfp_prog,
 		return -EOPNOTSUPP;
 
 	case BPF_FUNC_perf_event_output:
-		BUILD_BUG_ON(NFP_BPF_SCALAR_VALUE != SCALAR_VALUE ||
-			     NFP_BPF_MAP_VALUE != PTR_TO_MAP_VALUE ||
-			     NFP_BPF_STACK != PTR_TO_STACK ||
-			     NFP_BPF_PACKET_DATA != PTR_TO_PACKET);
+		if (NFP_BPF_SCALAR_VALUE != SCALAR_VALUE ||
+		    NFP_BPF_MAP_VALUE != PTR_TO_MAP_VALUE ||
+		    NFP_BPF_STACK != PTR_TO_STACK ||
+		    NFP_BPF_PACKET_DATA != PTR_TO_PACKET)
+			return -EOPNOTSUPP;
 
 		if (!bpf->helpers.perf_event_output) {
 			pr_vlog(env, "event_output: not supported by FW\n");
