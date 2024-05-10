@@ -131,6 +131,7 @@ jobs:
                 { "name": "9.1", "container": "rockylinux:9.0" },
                 { "name": "9.2", "container": "rockylinux:9.0" },
                 { "name": "9.3", "container": "rockylinux:9.0" },
+                { "name": "9.4", "container": "rockylinux:9.0" },
                 { "name": "9-stream", "container": "rockylinux:9.0" },
         ]
     container:
@@ -147,8 +148,8 @@ jobs:
           7.[0-8].*|8.[0-5].*) MIRROR="vault.centos.org" ;;
           8.[6-8])             MIRROR="dl.rockylinux.org/vault/rocky" ;;
           8.9)                 MIRROR="dl.rockylinux.org/pub/rocky" ;;
-          9.[0-2])             MIRROR="dl.rockylinux.org/vault/rocky" ;;
-          9.[3-9])             MIRROR="dl.rockylinux.org/pub/rocky" ;;
+          9.[0-3])             MIRROR="dl.rockylinux.org/vault/rocky" ;;
+          9.[4-9])             MIRROR="dl.rockylinux.org/pub/rocky" ;;
           9-*)                 MIRROR="mirror.stream.centos.org" ;;
           *)                   MIRROR="mirror.centos.org/centos" ;;
           esac
