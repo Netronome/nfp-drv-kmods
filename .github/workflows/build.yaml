@@ -21,7 +21,7 @@ env:
 
 jobs:
   build-ubuntu:
-    name: 'Build Ubuntu: ${{matrix.release.name}}-${{matrix.release.kernel}}'
+    name: 'Build Ubuntu: ${{matrix.release.name}}-${{matrix.release.kernel}}-${{matrix.release.hwe}}'
     runs-on: ubuntu-${{ matrix.release.name }}
     timeout-minutes: 90
     env:
@@ -35,16 +35,13 @@ jobs:
                 { "name": "22.04", "kernel": "5.15" },
                 { "name": "20.04", "kernel": "5.4" },
                 { "name": "20.04", "kernel": "5.15", "hwe": "hwe" },
-                { "name": "20.04", "kernel": "5.13", "hwe": "hwe" },
-                { "name": "20.04", "kernel": "5.11", "hwe": "hwe" },
-                { "name": "20.04", "kernel": "5.8", "hwe": "hwe" },
         ]
     steps:
       - name: Check out repository
         uses: actions/checkout@v3
 
-      - name: Set HWE Environment (Ubuntu 20.04/22.04)
-        if: matrix.release.hwe != ''
+      - name: Set HWE Environment (Ubuntu 22.04)
+        if: matrix.release.hwe != '' && matrix.release.name == '22.04'
         env:
           NAME: ${{ matrix.release.name }}
           KERNEL_VERSION: ${{ matrix.release.kernel }}
@@ -54,10 +51,44 @@ jobs:
           echo "FLAVOUR_MATCH=*-${FLAVOUR}_${MATCH}" >> $GITHUB_ENV
           echo "PKG_DIR=linux-hwe-${KERNEL_VERSION}" >> $GITHUB_ENV
 
+      - name: Set HWE Environment (Ubuntu 20.04)
+        if: matrix.release.hwe != '' && matrix.release.name == '20.04'
+        env:
+          NAME: ${{ matrix.release.name }}
+          KERNEL_VERSION: ${{ matrix.release.kernel }}
+        run: |
+          MATCH="${{ matrix.release.kernel }}.0-1[0-9][0-9]*~${NAME#*-}.[0-9]"
+          #MATCH="*~${NAME#*-}.[0-9]"
+          echo "MATCH=$MATCH" >> $GITHUB_ENV
+          echo "FLAVOUR_MATCH=*-${FLAVOUR}_${MATCH}" >> $GITHUB_ENV
+          echo "PKG_DIR=linux-hwe-${KERNEL_VERSION}" >> $GITHUB_ENV
+
       - name: Set Non-HWE Environment
         if: matrix.release.hwe == ''
         env:
           MATCH: ${{ matrix.release.kernel }}.0-*
+          REJECT: "*+[0-9][0-9].[0-9][0-9].[0-9]*"
+        run: |
+          echo "MATCH=$MATCH" >> $GITHUB_ENV
+          echo "REJECT=$REJECT" >> $GITHUB_ENV
+          echo "FLAVOUR_MATCH=${MATCH}-${FLAVOUR}_*" >> $GITHUB_ENV
+          echo "PKG_DIR=linux" >> $GITHUB_ENV
+
+      - name: Limit download range for 20.04
+        if: matrix.release.hwe == '' && matrix.release.kernel == 5.4
+        env:
+          MATCH: ${{ matrix.release.kernel }}.0-1[5-9][0-9]*
+          REJECT: "*+[0-9][0-9].[0-9][0-9].[0-9]*"
+        run: |
+          echo "MATCH=$MATCH" >> $GITHUB_ENV
+          echo "REJECT=$REJECT" >> $GITHUB_ENV
+          echo "FLAVOUR_MATCH=${MATCH}-${FLAVOUR}_*" >> $GITHUB_ENV
+          echo "PKG_DIR=linux" >> $GITHUB_ENV
+
+      - name: Limit download range for 22.04
+        if: matrix.release.hwe == '' && matrix.release.kernel == 5.15
+        env:
+          MATCH: ${{ matrix.release.kernel }}.0-1[0-9][0-9]*
           REJECT: "*+[0-9][0-9].[0-9][0-9].[0-9]*"
         run: |
           echo "MATCH=$MATCH" >> $GITHUB_ENV
@@ -81,7 +112,7 @@ jobs:
         with:
             output-path: ${{ env.DOWNLOAD }}
             url: "${{ env.MIRROR }}/pool/main/l/${{ env.PKG_DIR }}"
-            accept: "linux-headers-${{ env.MATCH }}_all.deb,linux-hwe*-headers${{ env.MATCH }}_all.deb,linux-headers-${{ env.FLAVOUR_MATCH }}_amd64.deb"
+            accept: "linux-headers-${{ env.MATCH }}_all.deb,linux-hwe*-headers-${{ env.MATCH }}_all.deb,linux-headers-${{ env.FLAVOUR_MATCH }}_amd64.deb"
             reject: "${{ env.REJECT }}"
 
       - name: Unpack Kernel Headers
