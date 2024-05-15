@@ -11,6 +11,16 @@ on:
         required: true
       AZ_SAS_TOK:
         required: true
+    outputs:
+      deb_name:
+        description: "Name of the resulting deb package."
+        value: ${{ jobs.build_distro_package.outputs.deb_name }}
+      rpm_name:
+        description: "Name of the resulting rpm package."
+        value: ${{ jobs.build_distro_package.outputs.rpm_name }}
+      tgz_name:
+        description: "Name of the resulting tarball."
+        value: ${{ jobs.build_distro_package.outputs.tgz_name }}
 
 jobs:
   build_distro_package:
@@ -19,6 +29,11 @@ jobs:
     runs-on:
       - self-hosted
       - builder
+
+    outputs:
+      deb_name: ${{ steps.build_dest.outputs.deb_name }}
+      rpm_name: ${{ steps.build_dest.outputs.rpm_name }}
+      tgz_name: ${{ steps.build_dest.outputs.tgz_name }}
 
     strategy:
       fail-fast: false
@@ -184,6 +199,7 @@ jobs:
           esac
 
           AZURE_DEST=$(echo "${AZURE_PATH}/${BIN_TYPE}")
+          echo "${{ matrix.distro.bin_type }}_name=$(echo "${FINAL_PKG_NAME}")" | tee -a $GITHUB_OUTPUT
           echo "dkms_bin_path=$(echo "${BIN_TYPE}/${BIN_PKG_NAME}/${FINAL_PKG_NAME}")" | tee -a $GITHUB_OUTPUT
           echo "azure_dest=${AZURE_DEST}" | tee -a $GITHUB_OUTPUT
         env:

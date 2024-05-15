@@ -6,6 +6,57 @@ run-name: >-
   }}
 
 on:
+  workflow_call:
+    secrets:
+      GHUB_TOKEN:
+        required: true
+      AZ_SAS_TOK:
+        required: true
+    inputs:
+      driver_build_type:
+        type: string
+        required: false
+        default: releases
+        description: |
+          Which subdirectory the O-O-T driver tarball is located.
+          Possible options are
+            - tmp
+            - interim
+            - prereleases
+            - releases
+      driver:
+        type: string
+        required: false
+        description: >-
+          Full filename of the nfp O-O-T driver tarball to package
+          to RPM. Leave blank to use the latest available
+      driver_upload_location:
+        type: string
+        required: false
+        default: default
+        description: >-
+          Where the O-O-T driver RPM will be uploaded to. The default here
+          being the same location (broadly speaking), as where the original
+          O-O-T driver tarball was found.
+      kdev_base_url:
+        type: string
+        required: false
+        description: >-
+          Base URL for desired kernel-devel to be used in building
+          RPM files. Leave blank to use the default for the targetted
+          OS/Arch.
+      target_distro:
+        type: string
+        required: false
+        default: centos:8
+        description: >-
+          Target distro on which the driver .rpm will be built.
+      target_arch:
+        type: string
+        required: false
+        default: x86_64
+        description: >-
+          Target architecture on which the driver .rpm will be built.
   workflow_dispatch:
     secrets:
       GHUB_TOKEN:
@@ -92,7 +143,6 @@ jobs:
       matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
       - name: Metadata | Print user inputs
-        if: github.event_name == 'workflow_dispatch'
         shell: python3 {0}
         run: |
           import json
@@ -309,9 +359,9 @@ jobs:
         shell: bash
         run: |
           if [[ '${{ inputs.driver_build_type }}' == 'tmp' ]]; then
-            BASE_DIR=tmp/nfp_drv_dkms_builds/
+            BASE_DIR=tmp/nfp_drv_dkms_builds
           else
-            BASE_DIR=binaries/nfp-drv-dkms/${{ inputs.driver_build_type }}/
+            BASE_DIR=binaries/nfp-drv-dkms/${{ inputs.driver_build_type }}
           fi
           echo "BASE_DIR=$BASE_DIR" | tee -a $GITHUB_ENV
 
@@ -348,6 +398,7 @@ jobs:
           connection-string: ${{ secrets.AZ_SAS_TOK }}
           src: ${{ env.BASE_DIR }}/${{ steps.artifact_driver.outputs.latest-ver }}
           dst: ${{ env.DOWNLOAD }}/
+          force_download: "${{ github.event_name != 'workflow_dispatch' }}"
 
       - name: Extract driver tarball
         shell: bash

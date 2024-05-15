@@ -24,6 +24,20 @@ jobs:
       AZ_SAS_TOK: ${{ secrets.AZ_SAS_TOK }}
       GHUB_TOKEN: ${{ secrets.GHUB_TOKEN }}
 
+  package_rpm:
+    if: contains(github.ref_name, 'release-')
+    needs: package_dkms
+    uses: ./.github/workflows/package-rpm.yaml
+    with:
+      driver_build_type: releases
+      driver: '${{ needs.package_dkms.outputs.tgz_name }}'
+      driver_upload_location: default
+      target_distro: all
+      target_arch: all
+    secrets:
+      AZ_SAS_TOK: ${{ secrets.AZ_SAS_TOK }}
+      GHUB_TOKEN: ${{ secrets.GHUB_TOKEN }}
+
   install_dkms_packages:
     needs: package_dkms
     uses: ./.github/workflows/ci-test-interop.yaml
