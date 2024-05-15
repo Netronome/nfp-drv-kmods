@@ -114,10 +114,22 @@ on:
           - opencloudos/opencloudos:8.6
           - opencloudos/opencloudos:8.8
           - opencloudos/opencloudos:9.0
-          - lhrbest/kylinos:v10_sp3
+          - lhrbest/kylinos:v10sp1
+          - lhrbest/kylinos:v10sp2
+          - lhrbest/kylinos:v10sp3
           - nfschinadocker/nfschina-server:v4.0
           - openeuler/openeuler:20.03
           - openeuler/openeuler:22.03
+          - bclinux/bclinux:8
+          - bclinux/bclinux:8.1
+          - bclinux/bclinux:8.2
+          - opensuse/opensuse12.4
+          - opensuse/opensuse12.5
+          - opensuse/opensuse15.1
+          - opensuse/opensuse15.2
+          - opensuse/opensuse15.3
+          - opensuse/opensuse15.4
+          - opensuse/opensuse15.5
           - all
         default: centos:8
         description: >-
@@ -166,65 +178,391 @@ jobs:
 
           repositories = {
                           "centos:7": {
-                                       "x86_64": ["http://mirror.centos.org/centos/7/os/x86_64/Packages/"],
-                                       "aarch64": ["http://mirror.centos.org/altarch/7/os/aarch64/Packages"],
-                                      },
+                             "x86_64": {
+                                "container": "centos:7",
+                                "mirrors": [
+                                   "http://mirror.centos.org/centos/7/os/x86_64/Packages/"
+                                ]
+                             },
+                             "aarch64": {
+                                "container": "centos:7",
+                                "mirrors": [
+                                   "http://mirror.centos.org/altarch/7/os/aarch64/Packages"
+                                ]
+                             }
+                          },
                           "centos:8": {
-                                       "x86_64": ["http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/Packages/"],
-                                       "aarch64": ["http://mirror.centos.org/centos/8-stream/BaseOS/aarch64/os/Packages/"]
-                                      },
+                             "x86_64": {
+                                "container": "centos:8",
+                                "mirrors": [
+                                   "https://vault.centos.org/8-stream/BaseOS/x86_64/os/Packages/"
+                                ]
+                             },
+                             "aarch64": {
+                                "container": "centos:8",
+                                "mirrors": [
+                                   "https://vault.centos.org/8-stream/BaseOS/aarch64/os/Packages/"
+                                ]
+                             }
+                          },
                           "dokken/centos-stream-9:main": {
-                                                          "x86_64": ["https://mirror.stream.centos.org/9-stream/AppStream/x86_64/os/Packages/"],
-                                                          "aarch64": ["https://mirror.stream.centos.org/9-stream/AppStream/aarch64/os/Packages/"]
-                                                         },
+                             "x86_64": {
+                                "container": "dokken/centos-stream-9:main",
+                                "mirrors": [
+                                   "https://mirror.stream.centos.org/9-stream/AppStream/x86_64/os/Packages/"
+                                ]
+                             },
+                             "aarch64": {
+                                "container": "dokken/centos-stream-9:main",
+                                "mirrors": [
+                                   "https://mirror.stream.centos.org/9-stream/AppStream/aarch64/os/Packages/"
+                                ]
+                             }
+                          },
                           "rockylinux:8.5": {
-                                             "x86_64": ["https://download.rockylinux.org/pub/rocky/8/BaseOS/x86_64/os/Packages/k/"],
-                                             "aarch64": ["https://download.rockylinux.org/pub/rocky/8/BaseOS/aarch64/os/Packages/k/"]
-                                            },
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-rocky8",
+                                "mirrors": [
+                                   "https://download.rockylinux.org/pub/rocky/8/BaseOS/x86_64/os/Packages/k/"
+                                ]
+                             },
+                             "aarch64": {
+                                "container": "ci-docker-registry-vm:5000/drv-aarch64-rocky8",
+                                "mirrors": [
+                                   "https://download.rockylinux.org/pub/rocky/8/BaseOS/aarch64/os/Packages/k/"
+                                ]
+                             }
+                          },
                           "rockylinux:9": {
-                                           "x86_64": ["https://download.rockylinux.org/pub/rocky/9/AppStream/x86_64/os/Packages/k/"],
-                                           "aarch64": ["https://download.rockylinux.org/pub/rocky/9/AppStream/aarch64/os/Packages/k/"]
-                                          },
+                             "x86_64": {
+                                "container": "rockylinux:9",
+                                "mirrors": [
+                                   "https://download.rockylinux.org/pub/rocky/9/AppStream/x86_64/os/Packages/k/"
+                                ]
+                             },
+                             "aarch64": {
+                                "container": "rockylinux:9",
+                                "mirrors": [
+                                   "https://download.rockylinux.org/pub/rocky/9/AppStream/aarch64/os/Packages/k/"
+                                ]
+                             }
+                          },
                           "openanolis/anolisos:7.9": {
-                                                      "x86_64": ["https://mirrors.openanolis.cn/anolis/7.9/os/x86_64/os/Packages/"],
-                                                      "aarch64": ["https://mirrors.openanolis.cn/anolis/7.9/os/aarch64/os/Packages/"]
-                                                     },
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-anolisos7.9",
+                                "mirrors": [
+                                   "local",
+                                   "https://mirrors.openanolis.cn/anolis/7.9/os/x86_64/os/Packages/"
+                                ]
+                             },
+                             "aarch64": {
+                                "container": "ci-docker-registry-vm:5000/drv-aarch64-anolisos7.9",
+                                "mirrors": [
+                                   "local",
+                                   "https://mirrors.openanolis.cn/anolis/7.9/os/aarch64/os/Packages/"
+                                ]
+                             }
+                          },
                           "openanolis/anolisos:8.6": {
-                                                      "x86_64": ["https://mirrors.openanolis.cn/anolis/8.6/BaseOS/x86_64/os/Packages/"],
-                                                      "aarch64": ["https://mirrors.openanolis.cn/anolis/8.6/BaseOS/aarch64/os/Packages/"]
-                                                     },
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-anolisos8.6",
+                                "mirrors": [
+                                   "local",
+                                   "https://mirrors.openanolis.cn/anolis/8.6/BaseOS/x86_64/os/Packages/"
+                                ]
+                             },
+                             "aarch64": {
+                                "container": "ci-docker-registry-vm:5000/drv-aarch64-anolisos8.6",
+                                "mirrors": [
+                                   "local",
+                                   "https://mirrors.openanolis.cn/anolis/8.6/BaseOS/aarch64/os/Packages/"
+                                ]
+                             }
+                          },
                           "openanolis/anolisos:8.8": {
-                                                      "x86_64": ["https://mirrors.openanolis.cn/anolis/8.8/BaseOS/x86_64/os/Packages/"],
-                                                      "aarch64": ["https://mirrors.openanolis.cn/anolis/8.8/BaseOS/aarch64/os/Packages/"]
-                                                     },
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-anolisos8.8",
+                                "mirrors": [
+                                   "local",
+                                   "https://mirrors.openanolis.cn/anolis/8.8/BaseOS/x86_64/os/Packages/"
+                                ]
+                             },
+                             "aarch64": {
+                                "container": "ci-docker-registry-vm:5000/drv-aarch64-anolisos8.8",
+                                "mirrors": [
+                                   "local",
+                                   "https://mirrors.openanolis.cn/anolis/8.8/BaseOS/aarch64/os/Packages/"
+                                ]
+                             }
+                          },
                           "opencloudos/opencloudos:8.6": {
-                                                          "x86_64": ["https://mirrors.opencloudos.org/opencloudos/8.6/BaseOS/x86_64/os/Packages/"],
-                                                          "aarch64": ["https://mirrors.opencloudos.org/opencloudos/8.6/BaseOS/aarch64/os/Packages/"]
-                                                         },
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-opencloudos8.6",
+                                "mirrors": [
+                                   "local",
+                                   "https://mirrors.opencloudos.org/opencloudos/8.6/BaseOS/x86_64/os/Packages/"
+                                ]
+                             },
+                             "aarch64": {
+                                "container": "ci-docker-registry-vm:5000/drv-aarch64-opencloudos8.6",
+                                "mirrors": [
+                                   "local",
+                                   "https://mirrors.opencloudos.org/opencloudos/8.6/BaseOS/aarch64/os/Packages/"
+                                ]
+                             }
+                          },
                           "opencloudos/opencloudos:8.8": {
-                                                          "x86_64": ["https://mirrors.opencloudos.org/opencloudos/8.8/BaseOS/x86_64/os/Packages/"],
-                                                          "aarch64": ["https://mirrors.opencloudos.org/opencloudos/8.8/BaseOS/aarch64/os/Packages/"]
-                                                         },
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-opencloudos8.8",
+                                "mirrors": [
+                                   "local",
+                                   "https://mirrors.opencloudos.org/opencloudos/8.8/BaseOS/x86_64/os/Packages/"
+                                ]
+                             },
+                             "aarch64": {
+                                "container": "ci-docker-registry-vm:5000/drv-aarch64-opencloudos8.8",
+                                "mirrors": [
+                                   "local",
+                                   "https://mirrors.opencloudos.org/opencloudos/8.8/BaseOS/aarch64/os/Packages/"
+                                ]
+                             }
+                          },
                           "opencloudos/opencloudos:9.0": {
-                                                          "x86_64": ["https://mirrors.opencloudos.org/opencloudos/9.0/AppStream/x86_64/os/Packages/"],
-                                                          "aarch64": ["https://mirrors.opencloudos.org/opencloudos/9.0/AppStream/aarch64/os/Packages/"]
-                                                         },
-                          "lhrbest/kylinos:v10_sp3": {
-                                                      "x86_64": ["https://update.cs2c.com.cn/NS/V10/V10SP3/os/adv/lic/base/x86_64/Packages/"],
-                                                      "aarch64": ["https://update.cs2c.com.cn/NS/V10/V10SP3/os/adv/lic/base/aarch64/Packages/"]
-                                                     },
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-opencloudos9.0",
+                                "mirrors": [
+                                   "local",
+                                   "https://mirrors.opencloudos.org/opencloudos/9.0/AppStream/x86_64/os/Packages/"
+                                ]
+                             },
+                             "aarch64": {
+                                "container": "ci-docker-registry-vm:5000/drv-aarch64-opencloudos9.0",
+                                "mirrors": [
+                                   "local",
+                                   "https://mirrors.opencloudos.org/opencloudos/9.0/AppStream/aarch64/os/Packages/"
+                                ]
+                             }
+                          },
+                          "lhrbest/kylinos:v10sp1": {
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-kylinosv10sp1",
+                                "mirrors": [
+                                   "local",
+                                   "https://update.cs2c.com.cn/NS/V10/V10SP1/os/adv/lic/base/x86_64/Packages/"
+                                ]
+                             },
+                             # Currently unable to run any dnf commands due to certificate issues with the default
+                             # repository for this container
+                             # "aarch64": {
+                             #    "container": "lhrbest/kylinos:v10sp1_arm64",
+                             #    "mirrors": [
+                             #       "https://update.cs2c.com.cn/NS/V10/V10SP1/os/adv/lic/base/aarch64/Packages/"
+                             #    ]
+                             # }
+                          },
+                          "lhrbest/kylinos:v10sp2": {
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-kylinosv10sp2",
+                                "mirrors": [
+                                   "local",
+                                   "https://update.cs2c.com.cn/NS/V10/V10SP2/os/adv/lic/base/x86_64/Packages/"
+                                ]
+                             },
+                             "aarch64": {
+                                "container": "ci-docker-registry-vm:5000/drv-aarch64-kylinosv10sp2",
+                                "mirrors": [
+                                   "local",
+                                   "https://update.cs2c.com.cn/NS/V10/V10SP2/os/adv/lic/base/aarch64/Packages/"
+                                ]
+                             }
+                          },
+                          "lhrbest/kylinos:v10sp3": {
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-kylinosv10sp3",
+                                "mirrors": [
+                                   "local",
+                                   "https://update.cs2c.com.cn/NS/V10/V10SP3/os/adv/lic/base/x86_64/Packages/"
+                                ]
+                             },
+                             "aarch64": {
+                                "container": "ci-docker-registry-vm:5000/drv-aarch64-kylinosv10sp3",
+                                "mirrors": [
+                                   "local",
+                                   "https://update.cs2c.com.cn/NS/V10/V10SP3/os/adv/lic/base/aarch64/Packages/"
+                                ]
+                             }
+                          },
                           "nfschinadocker/nfschina-server:v4.0": {
-                                                                  "x86_64": ["https://updates.os.nfschina.com/NFS4.0/GenOS/RPMS/Releases/Packages/"]
-                                                                 },
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-nfschina-serverv4.0",
+                                "mirrors": [
+                                   "local",
+                                   "https://updates.os.nfschina.com/NFS4.0/GenOS/RPMS/Releases/Packages/"
+                                ]
+                             }
+                          },
                           "openeuler/openeuler:20.03": {
-                                                        "x86_64": ["http://mirrors.dotsrc.org/openeuler/openEuler-20.03-LTS/OS/x86_64/Packages/"],
-                                                        "aarch64": ["http://mirrors.dotsrc.org/openeuler/openEuler-20.03-LTS/OS/aarch64/Packages/"]
-                                                       },
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-openeuler20.03-lts",
+                                "mirrors": [
+                                   "local",
+                                   "http://mirrors.dotsrc.org/openeuler/openEuler-20.03-LTS/OS/x86_64/Packages/"
+                                ]
+                             },
+                             "aarch64": {
+                                "container": "ci-docker-registry-vm:5000/drv-aarch64-openeuler20.03-lts",
+                                "mirrors": [
+                                   "local",
+                                   "http://mirrors.dotsrc.org/openeuler/openEuler-20.03-LTS/OS/aarch64/Packages/"
+                                ]
+                             }
+                          },
                           "openeuler/openeuler:22.03": {
-                                                        "x86_64": ["http://mirrors.dotsrc.org/openeuler/openEuler-22.03-LTS/OS/x86_64/Packages/"],
-                                                        "aarch64": ["http://mirrors.dotsrc.org/openeuler/openEuler-22.03-LTS/OS/aarch64/Packages/"]
-                                                       },
-                         }
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-openeuler22.03-lts",
+                                "mirrors": [
+                                   "local",
+                                   "http://mirrors.dotsrc.org/openeuler/openEuler-22.03-LTS/OS/x86_64/Packages/"
+                                ]
+                             },
+                             "aarch64": {
+                                "container": "ci-docker-registry-vm:5000/drv-aarch64-openeuler22.03-lts",
+                                "mirrors": [
+                                   "local",
+                                   "http://mirrors.dotsrc.org/openeuler/openEuler-22.03-LTS/OS/aarch64/Packages/"
+                                ]
+                             }
+                          },
+                          "bclinux/bclinux:8": {
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-rocky8",
+                                "mirrors": [
+                                   "local"
+                                ]
+                             }
+                          },
+                          "bclinux/bclinux:8.1": {
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-rocky8",
+                                "mirrors": [
+                                   "local"
+                                ]
+                             }
+                          },
+                          "bclinux/bclinux:8.2": {
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-rocky8",
+                                "mirrors": [
+                                   "local"
+                                ]
+                             }
+                          },
+                          "opensuse/opensuse:12.4": {
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-opensuse12.4",
+                                "mirrors": [
+                                   "local"
+                                ]
+                             },
+                             # Currently there is no container image for sles12sp4 on the arm platform
+                             # "aarch64": {
+                             #    "container": "ci-docker-registry-vm:5000/drv-aarch64-opensuse12.4",
+                             #    "mirrors": [
+                             #       "local"
+                             #    ]
+                             # }
+                          },
+                          "opensuse/opensuse:12.5": {
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-opensuse12.5",
+                                "mirrors": [
+                                   "local"
+                                ]
+                             },
+                             # Currently we have no kernel header packages for OpenSUSE on ARM architectures
+                             # "aarch64": {
+                             #    "container": "ci-docker-registry-vm:5000/drv-aarch64-opensuse12.5",
+                             #    "mirrors": [
+                             #       "local"
+                             #    ]
+                             # }
+                          },
+                          "opensuse/opensuse:15.1": {
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-opensuse15.1",
+                                "mirrors": [
+                                   "local"
+                                ]
+                             },
+                             # Currently we have no kernel header packages for OpenSUSE on ARM architectures
+                             # "aarch64": {
+                             #    "container": "ci-docker-registry-vm:5000/drv-aarch64-opensuse15.1",
+                             #    "mirrors": [
+                             #       "local"
+                             #    ]
+                             # }
+                          },
+                          "opensuse/opensuse:15.2": {
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-opensuse15.2",
+                                "mirrors": [
+                                   "local"
+                                ]
+                             },
+                             # Currently we have no kernel header packages for OpenSUSE on ARM architectures
+                             # "aarch64": {
+                             #    "container": "ci-docker-registry-vm:5000/drv-aarch64-opensuse15.2",
+                             #    "mirrors": [
+                             #       "local"
+                             #    ]
+                             # }
+                          },
+                          "opensuse/opensuse:15.3": {
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-opensuse15.3",
+                                "mirrors": [
+                                   "local"
+                                ]
+                             },
+                             # Currently we have no kernel header packages for OpenSUSE on ARM architectures
+                             # "aarch64": {
+                             #    "container": "ci-docker-registry-vm:5000/drv-aarch64-opensuse15.3",
+                             #    "mirrors": [
+                             #       "local"
+                             #    ]
+                             # }
+                          },
+                          "opensuse/opensuse:15.4": {
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-opensuse15.4",
+                                "mirrors": [
+                                   "local"
+                                ]
+                             },
+                             # Currently we have no kernel header packages for OpenSUSE on ARM architectures
+                             # "aarch64": {
+                             #    "container": "ci-docker-registry-vm:5000/drv-aarch64-opensuse15.4",
+                             #    "mirrors": [
+                             #       "local"
+                             #    ]
+                             # }
+                          },
+                          "opensuse/opensuse:15.5": {
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-opensuse15.5",
+                                "mirrors": [
+                                   "local"
+                                ]
+                             },
+                             # Currently we have no kernel header packages for OpenSUSE on ARM architectures
+                             # "aarch64": {
+                             #    "container": "ci-docker-registry-vm:5000/drv-aarch64-opensuse15.5",
+                             #    "mirrors": [
+                             #       "local"
+                             #    ]
+                             # }
+                          }
+                        }
 
           releases = []
           if "${{ inputs.target_distro }}" == "all":
@@ -246,28 +584,22 @@ jobs:
               else:
                 upload_dir = re.sub(r'^[^/]*/', '', distro) + "-" + version
 
-              if arch == "aarch64":
-                if distro == "opencloudos/opencloudos":
-                  distro += "_aarch64"
-                elif distro == "lhrbest/kylinos":
-                  version = version.replace("_","")
-                  version += "_arm64"
-                elif distro == "nfschinadocker/nfschina-server":
-                  print("::notice::nfschinadocker/nfschina-server:v4.0 does not support aarch64 architecture")
-                  continue
+              if "openeuler" in distro:
+                upload_dir += "-lts"
 
-              if distro == "openanolis/anolisos" and version == "7.9":
-                version += f"-{arch}"
+              if arch == "aarch64" and "aarch64" not in repositories[target_distro]:
+                print(f"::notice::aarch64 architecture is not supported for {target_distro}")
+                continue
 
               if "${{ inputs.kdev_base_url }}" == "":
-                mirror = repositories[target_distro][arch][0]
+                mirror = repositories[target_distro][arch]["mirrors"][0]
               else:
                 mirror = "${{ inputs.kdev_base_url }}"
 
               target_distro = distro + ":" + version
 
               release = {
-                          "container": target_distro,
+                          "container": repositories[target_distro][arch]["container"],
                           "mirror": mirror,
                           "arch": arch,
                           "upload_dir": upload_dir
@@ -279,7 +611,7 @@ jobs:
             github_output.write(f"matrix={releases}")
 
   package_rpm:
-    name: '${{ matrix.release.container }} - ${{ matrix.release.arch }}'
+    name: '${{ matrix.release.upload_dir }} - ${{ matrix.release.arch }}'
     needs: prepare
     runs-on:
       - self-hosted
@@ -295,44 +627,143 @@ jobs:
       matrix:
         release: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     steps:
-      - name: Add pre-requisite repositories and plugins
-        if: matrix.release.container == 'centos:8'
-        run: |
-          sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-Linux-*
-          sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-Linux-*
-
-      - name: Install pre-requisite packages | YUM
-        if: >-
-          matrix.release.container == 'openanolis/anolisos:7.9-x86_64' ||
-          matrix.release.container == 'openanolis/anolisos:7.9-aarch64' ||
-          matrix.release.container == 'centos:7'
+      - name: Check for pre-requisite packages
+        id: provision_check
+        shell: bash
         run: |
           if [[ "${{ matrix.release.arch }}" == "x86_64" ]]; then
-            yum install -y https://repo.ius.io/ius-release-el7.rpm \
-                        https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
             GIT=git236
           else
             GIT=git
           fi
-          yum install -y sudo cpio elfutils-libelf-devel findutils gcc rpm-build \
-                            $GIT which make wget ca-certificates tar gzip hostname
+          declare -A dependencies=( ["yum"]="ca-certificates cpio \
+                                             elfutils-libelf-devel findutils ${GIT} \
+                                             gcc gzip hostname make rpm-build \
+                                             rpmdevtools sudo tar wget which" \
+                                    ["dnf"]="ca-certificates cpio \
+                                             elfutils-libelf-devel findutils \
+                                             gcc git gzip hostname make
+                                             rpm-build rpmdevtools sed sudo \
+                                             tar wget" \
+                                    ["zypper"]="gawk bc bison ca-certificates \
+                                                cpio findutils flex gcc git \
+                                                gzip hostname libelf-devel \
+                                                libelf1 libopenssl-devel make \
+                                                python3 rpm-build sed sudo \
+                                                tar wget which" )
+
+          if [[ "${{ matrix.release.upload_dir }}" == "anolisos-7.9" || \
+                "${{ matrix.release.upload_dir }}" == "centos-7" ]]; then
+            package_manager="yum"
+            installed_packages="$(yum list installed | sed 1d | awk -F'\.' '{print $1}')"
+          elif [[ "${{ matrix.release.upload_dir }}" == "opensuse"* ]]; then
+            package_manager="zypper"
+            installed_packages="$(zypper search -i | awk '{if ($1 == "i" || $1 == "i+") {print $3}}')"
+          else
+            package_manager="dnf"
+            installed_packages="$(dnf list --installed | sed 1d | awk -F'\.' '{print $1}')"
+          fi
+
+          if [[ "${{ matrix.release.upload_dir }}" == "openeuler"* || \
+                "${{ matrix.release.upload_dir }}" == "kylinos"* ]]; then
+            new_dependencies="$( echo "${dependencies[$package_manager]}" | \
+                                 sed 's/elfutils-libelf-devel/elfutils-devel/' )"
+            dependencies[$package_manager]="$new_dependencies"
+          fi
+
+          prerequisites="${dependencies[$package_manager]}"
+          provision="false"
+          for package in $prerequisites; do
+            if ! $(echo "$installed_packages" | grep -w -q "$package"); then
+              missing_deps=$missing_deps$package" "
+              provision="true"
+            fi
+          done
+
+          if azcopy --version >/dev/null 2>&1; then
+            azcopy_present="true"
+          else
+            azcopy_present="false"
+          fi
+
+          echo "missing_deps=$missing_deps" | tee -a $GITHUB_OUTPUT
+          echo "provision=$provision" | tee -a $GITHUB_OUTPUT
+          echo "azcopy_present=${azcopy_present}" | tee -a $GITHUB_OUTPUT
+
+      - name: Add pre-requisite repositories and plugins | CentOS-8
+        if: >-
+          steps.provision_check.outputs.provision == 'true' &&
+          matrix.release.upload_dir == 'centos-8'
+        run: |
+          sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-Linux-*
+          sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-Linux-*
+
+      - name: Update OpenEuler mirror | OpenEuler
+        if: >-
+          steps.provision_check.outputs.provision == 'true' &&
+          startsWith(matrix.release.upload_dir, 'openeuler')
+        run: |
+          version=$(echo "${ matrix.release.upload_dir }" | cut -d "-" -f2)
+          if [[ ! -f /etc/yum.repos.d/openEuler.repo ]]; then
+            echo "[base]" >> /etc/yum.repos.d/openEuler.repo
+            echo "name=base" >> /etc/yum.repos.d/openEuler.repo
+            echo "baseurl=http://repo.openeuler.org/openEuler-$version-LTS/OS/${{ matrix.release.arch }}/" \
+                 >> /etc/yum.repos.d/openEuler.repo
+            echo "enabled=1" >> /etc/yum.repos.d/openEuler.repo
+            echo "gpgcheck=1" >> /etc/yum.repos.d/openEuler.repo
+            echo "gpgkey=http://repo.openeuler.org/openEuler-$version-LTS/OS/${{ matrix.release.arch }}/RPM-GPG-KEY-openEuler"\
+                 >> /etc/yum.repos.d/openEuler.repo
+          fi
+
+          sed -i 's|repo.openeuler.org|mirrors.dotsrc.org/openeuler|g' /etc/yum.repos.d/openEuler.repo
+
+      - name: Install pre-requisite packages | YUM
+        if: >-
+          steps.provision_check.outputs.provision == 'true' &&
+          (matrix.release.upload_dir == 'anolisos-7.9' ||
+           matrix.release.upload_dir == 'centos-7')
+        run: |
+          if [[ "${{ matrix.release.arch }}" == "x86_64" ]]; then
+            if ! yum list installed | grep -q ius-release-el7; then
+              yum install -y https://repo.ius.io/ius-release-el7.rpm
+            fi
+            if ! yum list installed | grep -q ius-release-el7; then
+              yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+            fi
+          fi
+
+          yum install -y sudo ${{ steps.provision_check.outputs.missing_deps }}
 
       - name: Install pre-requisite packages | DNF
         if: >-
-          matrix.release.container != 'openanolis/anolisos:7.9-x86_64' &&
-          matrix.release.container != 'openanolis/anolisos:7.9-aarch64' &&
-          matrix.release.container != 'centos:7'
+          steps.provision_check.outputs.provision == 'true' &&
+          (matrix.release.upload_dir != 'anolisos-7.9' &&
+           matrix.release.upload_dir != 'centos-7' &&
+           !startsWith(matrix.release.upload_dir, 'opensuse'))
         run: |
           dnf clean all
-          dnf distro-sync -y
-          if [[ "${{ matrix.release.container }}" != "opencloudos/opencloudos"*"9.0" && \
-                "${{ matrix.release.container }}" != *"kylinos"* && \
-                "${{ matrix.release.container }}" != *"openeuler"* && \
-                "${{ matrix.release.container }}" != *"nfschina-server"* ]]; then
+          if [[ "${{ matrix.release.upload_dir }}" != *"nfschina-server"* ]]; then
+            dnf distro-sync -y
+          fi
+          if [[ "${{ matrix.release.upload_dir }}" != "opencloudos-9.0" && \
+                "${{ matrix.release.upload_dir }}" != *"kylinos"* && \
+                "${{ matrix.release.upload_dir }}" != *"openeuler"* && \
+                "${{ matrix.release.upload_dir }}" != *"nfschina-server"* ]]; then
             dnf install -y epel-release
           fi
-          dnf install -y wget sudo git sed \
-            gcc make rpm-build elfutils-libelf-devel
+          dnf install -y ${{ steps.provision_check.outputs.missing_deps }}
+          dnf reinstall -y crypto-policies
+
+      - name: Install pre-requisite packages | Zypper
+        if: >-
+          steps.provision_check.outputs.provision == 'true' &&
+          startsWith(matrix.release.upload_dir, 'opensuse')
+        run: |
+          if ! zypper lr repo-oss >/dev/null 2>&1; then
+            zypper ar -f http://download.opensuse.org/distribution/openSUSE-stable/repo/oss repo-oss
+          fi
+          zypper --gpg-auto-import-keys ref
+          zypper -n in ${{ steps.provision_check.outputs.missing_deps }}
 
       - name: Clean old artifacts
         run: |
@@ -341,9 +772,8 @@ jobs:
       - name: Check out repository | Corigine
         if: >-
           matrix.release.arch == 'x86_64' ||
-          ( matrix.release.container != 'openanolis/anolisos:7.9-x86_64' &&
-            matrix.release.container != 'openanolis/anolisos:7.9-aarch64' &&
-            matrix.release.container != 'centos:7' )
+          ( matrix.release.upload_dir != 'anolisos-7.9' &&
+            matrix.release.upload_dir != 'centos-7' )
         uses: Corigine/ci-libs/github_actions/utilities/checkout_corigine@main
         with:
           token: ${{ secrets.GHUB_TOKEN }}
@@ -351,8 +781,8 @@ jobs:
       - name: Check out repository
         if: >-
           matrix.release.arch == 'aarch64' &&
-          ( matrix.release.container == 'openanolis/anolisos:7.9-aarch64' ||
-            matrix.release.container == 'centos:7' )
+          ( matrix.release.upload_dir == 'anolisos-7.9' ||
+            matrix.release.upload_dir == 'centos-7' )
         uses: actions/checkout@v2
 
       - name: Prepare environment variables
@@ -373,6 +803,8 @@ jobs:
           mkdir -p $UNPACKED
 
       - name: Install azcopy binary
+        if: >-
+          steps.provision_check.outputs.azcopy_present == 'false'
         run: |
           if [[ '${{ matrix.release.arch }}' == 'aarch64' ]]; then
             binary_link=https://aka.ms/downloadazcopy-v10-linux-arm64
@@ -414,18 +846,43 @@ jobs:
           echo "DRIVER_VER=$DRIVER_VER" | tee -a $GITHUB_ENV
           echo "RPM_TAR=$RPM_TAR.tgz" | tee -a $GITHUB_ENV
 
-      - name: Download Kernel Header Packages
+      - name: Download Kernel Header Packages | Mirror
+        if: matrix.release.mirror != 'local'
         uses: ./.github/actions/download
         with:
           output-path: ${{ env.DOWNLOAD }}
           url: ${{ matrix.release.mirror }}
           accept: "kernel-devel-*.rpm"
 
+      - name: Download Kernel Header Packages | Local
+        if: matrix.release.mirror == 'local'
+        uses: Corigine/ci-libs/github_actions/azure/azcopy_download@main
+        with:
+          connection-string: ${{ secrets.AZ_SAS_TOK }}
+          src: binaries/misc/kernel-devel-c4c/${{ matrix.release.arch }}/${{ matrix.release.upload_dir }}/
+          pattern: "*.rpm"
+          dst: ${{ env.DOWNLOAD }}/
+
       - name: Unpack Kernel Headers
         uses: ./.github/actions/unpack-rpm
         with:
           input-path: ${{ env.DOWNLOAD }}
           output-path: ${{ env.UNPACKED }}
+
+      - name: Set build environment variables | openSUSE
+        if: startsWith(matrix.release.upload_dir, 'opensuse')
+        working-directory: ${{ env.UNPACKED }}/usr/src
+        shell: bash
+        run: |
+          mkdir -p kernels
+          VERSIONS=$(ls ./ | grep "linux-.*[0-9]$")
+
+          for SOURCE in $VERSIONS; do
+            find $(pwd)/$SOURCE-obj/x86_64/default/ -maxdepth 1 -mindepth 1 -not -name Makefile \
+              -exec cp -r {} $(pwd)/$SOURCE/ \;
+
+            mv $(pwd)/$SOURCE/ $(pwd)/kernels/$SOURCE
+          done
 
       - name: Build RPM packages
         shell: bash
