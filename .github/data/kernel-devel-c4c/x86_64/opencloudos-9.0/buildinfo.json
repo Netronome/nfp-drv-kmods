@@ -1,0 +1,5 @@
+{
+	"name": "opencloudos-9.0",
+	"container": "ci-docker-registry-vm:5000/drv-x86-64-opencloudos9.0",
+	"mirror": "mirrors.opencloudos.org/opencloudos/9.0/AppStream/x86_64/os/Packages"
+}

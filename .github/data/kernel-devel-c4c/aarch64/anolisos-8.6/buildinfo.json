@@ -1,0 +1,5 @@
+{
+	"name": "anolisos-8.6",
+	"container": "ci-docker-registry-vm:5000/drv-aarch64-anolisos8.6",
+	"mirror": "mirrors.openanolis.cn/anolis/8.6/BaseOS/aarch64/os/Packages"
+}

@@ -1,0 +1,5 @@
+{
+	"name": "nfschina-server-v4.0",
+	"container": "ci-docker-registry-vm:5000/drv-x86-64-nfschina-serverv4.0",
+	"mirror": "https://updates.os.nfschina.com/NFS4.0/GenOS/RPMS/Releases/Packages/"
+}

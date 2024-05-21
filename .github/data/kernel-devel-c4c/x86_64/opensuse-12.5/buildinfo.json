@@ -1,0 +1,4 @@
+{
+	"name": "opensuse-12.5",
+	"container": "ci-docker-registry-vm:5000/drv-x86-64-opensuse12.5"
+}

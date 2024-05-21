@@ -1,0 +1,5 @@
+{
+	"name": "kylinos-v10sp1",
+	"container": "ci-docker-registry-vm:5000/drv-x86-64-kylinosv10sp1",
+	"mirror": "update.cs2c.com.cn/NS/V10/V10SP1/os/adv/lic/base/x86_64/Packages"
+}

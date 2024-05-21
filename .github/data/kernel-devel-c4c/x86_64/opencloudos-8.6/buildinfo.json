@@ -1,0 +1,5 @@
+{
+	"name": "opencloudos-8.6",
+	"container": "ci-docker-registry-vm:5000/drv-x86-64-opencloudos8.6",
+	"mirror": "mirrors.opencloudos.org/opencloudos/8.6/BaseOS/x86_64/os/Packages"
+}
