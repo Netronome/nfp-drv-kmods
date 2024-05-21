@@ -134,27 +134,32 @@ jobs:
           accepted_os = "${{ steps.compat.outputs.ACCEPTED_OS }}".split()
 
           releases = []
-          directories = [d for d in sorted(os.listdir()) if
-                         (os.path.isdir(d) and re.search(whitelist, d))]
-          for directory in directories:
-            if directory in accepted_os:
-              with open(f"{directory}/buildinfo.json") as buildinfo:
-                release = json.load(buildinfo)
-                release["directory"] = f"${{ env.BASE_DIR }}/{directory}"
+          architectures = [d for d in sorted(os.listdir()) if
+                           (os.path.isdir(d) and re.search(whitelist, d))]
+          for arch in architectures:
+            dir = f"{os.getcwd()}/{arch}/"
+            distros = [d for d in sorted(os.listdir(dir)) if
+                       (os.path.isdir(f"{dir}/{d}") and re.search(whitelist, d))]
+            for distro in distros:
+              if distro in accepted_os:
+                with open(f"{dir}/{distro}/buildinfo.json") as buildinfo:
+                  release = json.load(buildinfo)
+                  release["arch"] = arch
+                  release["directory"] = f"${{ env.BASE_DIR }}/{arch}/{distro}"
 
-                releases.append(release)
-            else:
-              print(f"::notice::{directory} is not supported for this version of the o-o-t driver")
+                  releases.append(release)
+              else:
+                print(f"::notice::{directory} is not supported for this version of the o-o-t driver")
 
           with open(os.environ['GITHUB_OUTPUT'], 'a') as github_output:
             github_output.write(f"releases={releases}")
 
   build-c4c-misc:
-    name: 'Build-C4C-MISC: ${{matrix.release.name}}'
+    name: '${{ matrix.release.name }} - ${{ matrix.release.arch }}'
     needs: prepare
     runs-on:
       - self-hosted
-      - builder
+      - ${{ matrix.release.arch == 'aarch64' && 'builder-arm' || 'builder' }}
     timeout-minutes: 90
     env:
       KVER: "*"
@@ -169,9 +174,16 @@ jobs:
         id: provision_check
         shell: bash
         run: |
+          if [[ "${{ matrix.release.arch }}" == "x86_64" && \
+                "${{ matrix.release.name }}" == "anolisos-7.9" ]]; then
+            GIT="git236"
+          else
+            GIT="git"
+          fi
+
           declare -A dependencies=( ["yum"]="ca-certificates cpio \
                                              elfutils-libelf-devel findutils \
-                                             gcc git236 gzip hostname make \
+                                             gcc ${GIT} gzip hostname make \
                                              sudo tar wget which" \
                                     ["dnf"]="ca-certificates cpio \
                                              elfutils-libelf-devel findutils \
@@ -184,10 +196,10 @@ jobs:
                                                 python3 sed sudo tar wget \
                                                 which" )
 
-          if [[ "${{ matrix.release.name }}" == "AnolisOS/7.9" ]]; then
+          if [[ "${{ matrix.release.name }}" == "anolisos-7.9" ]]; then
             package_manager="yum"
             installed_packages="$(yum list installed | sed 1d | awk -F'\.' '{print $1}')"
-          elif [[ "${{ matrix.release.name }}" == "openSUSE"* ]]; then
+          elif [[ "${{ matrix.release.name }}" == "opensuse"* ]]; then
             package_manager="zypper"
             installed_packages="$(zypper search -i | awk '{if ($1 == "i" || $1 == "i+") {print $3}}')"
           else
@@ -195,8 +207,8 @@ jobs:
             installed_packages="$(dnf list --installed | sed 1d | awk -F'\.' '{print $1}')"
           fi
 
-          if [[ "${{ matrix.release.name }}" == "openEuler"* || \
-                "${{ matrix.release.name }}" == "KylinOS"* ]]; then
+          if [[ "${{ matrix.release.name }}" == "openeuler"* || \
+                "${{ matrix.release.name }}" == "kylinos"* ]]; then
             new_dependencies="$( echo "${dependencies[$package_manager]}" | \
                                  sed 's/elfutils-libelf-devel/elfutils-devel/' )"
             dependencies[$package_manager]="$new_dependencies"
@@ -217,16 +229,17 @@ jobs:
       - name: Update OpenEuler mirror
         if: >-
           steps.provision_check.outputs.provision == 'true' &&
-          startsWith(matrix.release.name, 'openEuler')
+          startsWith(matrix.release.name, 'openeuler')
         run: |
+          version=$(echo "${ matrix.release.upload_dir }" | cut -d "-" -f2)
           if [[ ! -f /etc/yum.repos.d/openEuler.repo ]]; then
             echo "[base]" >> /etc/yum.repos.d/openEuler.repo
             echo "name=base" >> /etc/yum.repos.d/openEuler.repo
-            echo "baseurl=http://repo.openeuler.org/${{ matrix.release.name }}/OS/x86_64/" \
+            echo "baseurl=http://repo.openeuler.org/openEuler-${version}-LTS/OS/x86_64/" \
                  >> /etc/yum.repos.d/openEuler.repo
             echo "enabled=1" >> /etc/yum.repos.d/openEuler.repo
             echo "gpgcheck=1" >> /etc/yum.repos.d/openEuler.repo
-            echo "gpgkey=http://repo.openeuler.org/${{ matrix.release.name }}/OS/x86_64/RPM-GPG-KEY-openEuler"\
+            echo "gpgkey=http://repo.openeuler.org/openEuler-${version}-LTS/OS/x86_64/RPM-GPG-KEY-openEuler"\
                  >> /etc/yum.repos.d/openEuler.repo
           fi
 
@@ -235,23 +248,30 @@ jobs:
       - name: Install pre-requisite packages | YUM
         if: >-
           steps.provision_check.outputs.provision == 'true' &&
-          matrix.release.name == 'AnolisOS/7.9'
+          matrix.release.name == 'anolisos-7.9'
         run: |
-          yum install -y https://repo.ius.io/ius-release-el7.rpm \
-                      https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+          if [[ "${{ matrix.release.arch }}" == "x86_64" ]]; then
+            if ! yum list installed | grep -q ius-release-el7; then
+              yum install -y https://repo.ius.io/ius-release-el7.rpm
+            fi
+            if ! yum list installed | grep -q ius-release-el7; then
+              yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+            fi
+          fi
+
           yum install -y ${{ steps.provision_check.outputs.missing_deps }}
 
       - name: Install pre-requisite packages | DNF
         if: >-
           steps.provision_check.outputs.provision == 'true' &&
-          matrix.release.name != 'AnolisOS/7.9' &&
-          !contains(matrix.release.name, 'openSUSE')
+          matrix.release.name != 'anolisos-7.9' &&
+          !contains(matrix.release.name, 'opensuse')
         run: |
           dnf clean all
           dnf distro-sync -y
-          if [[ "${{ matrix.release.name }}" != "OpenCloudOS/9.0" && \
-                "${{ matrix.release.name }}" != "KylinOS/V10"* && \
-                "${{ matrix.release.name }}" != "openEuler"* ]]; then
+          if [[ "${{ matrix.release.name }}" != "opencloudos-9.0" && \
+                "${{ matrix.release.name }}" != "kylinos-v10"* && \
+                "${{ matrix.release.name }}" != "openeuler"* ]]; then
             dnf install -y epel-release
           fi
           dnf install -y ${{ steps.provision_check.outputs.missing_deps }}
@@ -260,7 +280,7 @@ jobs:
       - name: Install pre-requisite packages | Zypper
         if: >-
           steps.provision_check.outputs.provision == 'true' &&
-          contains(matrix.release.name, 'openSUSE')
+          contains(matrix.release.name, 'opensuse')
         run: |
           if ! zypper lr repo-oss >/dev/null 2>&1; then
             zypper ar -f http://download.opensuse.org/distribution/openSUSE-stable/repo/oss repo-oss
@@ -272,16 +292,27 @@ jobs:
         run: |
           sudo find -delete
 
-      - name: Check out repository
+      - name: Check out repository | Corigine
+        if: >-
+          matrix.release.arch == 'x86_64' || matrix.release.name != 'anolisos-7.9'
         uses: Corigine/ci-libs/github_actions/utilities/checkout_corigine@main
         with:
           token: ${{ secrets.GHUB_TOKEN }}
+
+      - name: Check out repository
+        if: >-
+          matrix.release.arch == 'aarch64' && matrix.release.name == 'anolisos-7.9'
+        uses: actions/checkout@v2
 
       - name: Install azcopy binary
         if: >-
           steps.provision_check.outputs.provision == 'true'
         run: |
-          binary_link=https://aka.ms/downloadazcopy-v10-linux
+          if [[ '${{ matrix.release.arch }}' == 'aarch64' ]]; then
+            binary_link=https://aka.ms/downloadazcopy-v10-linux-arm64
+          else
+            binary_link=https://aka.ms/downloadazcopy-v10-linux
+          fi
 
           wget $binary_link -O /tmp/downloadazcopy-v10-linux.tgz
           tar -xvf /tmp/downloadazcopy-v10-linux.tgz -C /tmp/ --strip-components=1
@@ -302,7 +333,7 @@ jobs:
             output-path: ${{ env.UNPACKED }}
 
       - name: Set build environment variables | openSUSE
-        if: contains(matrix.release.name, 'openSUSE')
+        if: contains(matrix.release.name, 'opensuse')
         working-directory: ${{ env.UNPACKED }}/usr/src
         shell: bash
         run: |
@@ -320,4 +351,4 @@ jobs:
         uses: ./.github/actions/build
         with:
             search-path: "${{ env.UNPACKED }}/usr/src/kernels"
-            redirect-stderr: ${{ contains(matrix.release.name, 'openSUSE') && 'false' || 'true' }}
+            redirect-stderr: ${{ contains(matrix.release.name, 'opensuse') && 'false' || 'true' }}
