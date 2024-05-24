@@ -43,6 +43,13 @@ on:
         description: >-
           Whitelist of operating systems to build against, supplied in
           the form of a regular expression. (e.g. ".*anolis.*")
+      force_download:
+        type: string
+        required: false
+        default: false
+        description: >-
+          Whether or not to force the use of azcopy to download the
+          local kernel-devel packages.
   workflow_call:
     secrets:
       GHUB_TOKEN:
@@ -57,6 +64,13 @@ on:
         description: >-
           Whitelist of operating systems to build against, supplied in
           the form of a regular expression. (e.g. ".*anolis.*")
+      force_download:
+        type: string
+        required: false
+        default: false
+        description: >-
+          Whether or not to force the use of azcopy to download the
+          local kernel-devel packages.
 
 env:
   DOWNLOAD: ".download"
@@ -325,6 +339,7 @@ jobs:
           src: ${{ matrix.release.directory }}
           dst: ${{ env.DOWNLOAD }}
           pattern: "*.rpm"
+          force_download: ${{ inputs.force_download == 'true' }}
 
       - name: Unpack Kernel Headers
         uses: ./.github/actions/unpack-rpm
