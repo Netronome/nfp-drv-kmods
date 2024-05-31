@@ -1957,7 +1957,7 @@ static int nfp_net_set_rxfh_indir(struct net_device *netdev,
 	return nfp_net_reconfig(nn, NFP_NET_CFG_UPDATE_RSS);
 }
 #else
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0))
+#if VER_NON_RHEL_GE(6, 8) || RHEL_RELEASE_GE(9, 452, 0, 0)
 static int nfp_net_get_rxfh(struct net_device *netdev,
 			    struct ethtool_rxfh_param *rxfh)
 {
@@ -1993,7 +1993,7 @@ static int nfp_net_get_rxfh(struct net_device *netdev, u32 *indir, u8 *key)
 	return 0;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0))
+#if VER_NON_RHEL_GE(6, 8) || RHEL_RELEASE_GE(9, 452, 0, 0)
 static int nfp_net_set_rxfh(struct net_device *netdev,
 			    struct ethtool_rxfh_param *rxfh,
 			    struct netlink_ext_ack *extack)

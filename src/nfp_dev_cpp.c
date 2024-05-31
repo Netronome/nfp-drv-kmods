@@ -1102,7 +1102,7 @@ static int nfp_dev_cpp_mmap(struct file *filp, struct vm_area_struct *vma)
  #define VM_DONTDUMP 0
 #endif
 	/* 'area' is now an area we've previously allocated */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+#if VER_NON_RHEL_GE(6, 3) || RHEL_RELEASE_GE(9, 452, 0, 0)
 	vm_flags_set(vma, VM_RESERVED | VM_IO | VM_PFNMAP |
 			  VM_DONTEXPAND | VM_DONTDUMP | VM_SHARED);
 #else
