@@ -157,6 +157,7 @@ jobs:
                 { "name": "8.7", "container": "rockylinux:8.5" },
                 { "name": "8.8", "container": "rockylinux:8.5" },
                 { "name": "8.9", "container": "rockylinux:8.5" },
+                { "name": "8.10", "container": "rockylinux:8.5" },
                 { "name": "8-stream", "container": "rockylinux:8.5" },
                 { "name": "9.0", "container": "rockylinux:9.0" },
                 { "name": "9.1", "container": "rockylinux:9.0" },
@@ -177,8 +178,8 @@ jobs:
         run: |
           case $RELEASE_NAME in
           7.[0-8].*|8.[0-5].*) MIRROR="vault.centos.org" ;;
-          8.[6-8])             MIRROR="dl.rockylinux.org/vault/rocky" ;;
-          8.9)                 MIRROR="dl.rockylinux.org/pub/rocky" ;;
+          8.[6-9])             MIRROR="dl.rockylinux.org/vault/rocky" ;;
+          8.10)                MIRROR="dl.rockylinux.org/pub/rocky" ;;
           9.[0-3])             MIRROR="dl.rockylinux.org/vault/rocky" ;;
           9.[4-9])             MIRROR="dl.rockylinux.org/pub/rocky" ;;
           9-*)                 MIRROR="mirror.stream.centos.org" ;;
@@ -201,6 +202,8 @@ jobs:
           9.*)    OS_PATH="$MIRROR/$RELEASE_NAME/$OS_DIR1/x86_64/$OS_DIR2/Packages/k/"
                   ;;
           8.[6-9])    OS_PATH="$MIRROR/$RELEASE_NAME/$OS_DIR1/x86_64/$OS_DIR2/Packages/k/"
+                  ;;
+          8.1[0-9])    OS_PATH="$MIRROR/$RELEASE_NAME/$OS_DIR1/x86_64/$OS_DIR2/Packages/k/"
                   ;;
           *)      OS_PATH="$MIRROR/$RELEASE_NAME/$OS_DIR1/x86_64/$OS_DIR2/Packages/"
           esac
