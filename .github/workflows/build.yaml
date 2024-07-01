@@ -177,7 +177,7 @@ jobs:
           RELEASE_NAME: ${{ matrix.release.name }}
         run: |
           case $RELEASE_NAME in
-          7.[0-8].*|8.[0-5].*|8-stream) MIRROR="vault.centos.org" ;;
+          7.[0-9].*|8.[0-5].*|8-stream) MIRROR="vault.centos.org" ;;
           8.[6-9])             MIRROR="dl.rockylinux.org/vault/rocky" ;;
           8.10)                MIRROR="dl.rockylinux.org/pub/rocky" ;;
           9.[0-3])             MIRROR="dl.rockylinux.org/vault/rocky" ;;
@@ -228,6 +228,12 @@ jobs:
         with:
           path: ${{ env.DOWNLOAD }}/${{ env.UPDATE_PATH }}
           key: ${{ env.cache-name }}-${{ matrix.release.name }}-v1
+
+      - name: Fixup mirror for CentOS7 - Point to vault after EOL
+        if: startsWith(matrix.release.name, '7')
+        run: |
+          sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
+          sed -i 's|#.*baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
 
       - name: Install Dependencies
         run: yum -q -y install cpio elfutils-libelf-devel findutils gcc make wget ca-certificates
@@ -557,6 +563,11 @@ jobs:
           echo "KERNEL_DIR=$UNPACKED/$DIR" >> $GITHUB_ENV
           echo "REMOTE=$CDN/v$MAJOR.x/$DIR.tar.xz" >> $GITHUB_ENV
           echo "TAR_FLAGS=-J" >> $GITHUB_ENV
+
+      - name: Fixup mirror for CentOS7 - Point to vault after EOL
+        run: |
+          sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
+          sed -i 's|#.*baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
 
       - name: Install Dependencies
         if: env.EXTRA_DEP != ''
