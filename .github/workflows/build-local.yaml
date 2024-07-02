@@ -163,7 +163,7 @@ jobs:
 
                   releases.append(release)
               else:
-                print(f"::notice::{directory} is not supported for this version of the o-o-t driver")
+                print(f"::notice::{arch}/{distro} is not supported for this version of the o-o-t driver")
 
           with open(os.environ['GITHUB_OUTPUT'], 'a') as github_output:
             github_output.write(f"releases={releases}")
