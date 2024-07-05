@@ -104,6 +104,7 @@ jobs:
       releases: ${{ steps.matrix.outputs.releases }}
     env:
       BASE_DIR: binaries/misc/kernel-devel-c4c
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     steps:
       - name: Clean old artifacts
         run: |
@@ -177,6 +178,7 @@ jobs:
     timeout-minutes: 90
     env:
       KVER: "*"
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     strategy:
       fail-fast: false
       matrix:
@@ -316,7 +318,10 @@ jobs:
       - name: Check out repository
         if: >-
           matrix.release.arch == 'aarch64' && matrix.release.name == 'anolisos-7.9'
-        uses: actions/checkout@v2
+        # This cannot use the 'checkout_corigine' action since it requires a
+        # newer version of git, which are not installable on this combination
+        # of OS and architecture.
+        uses: actions/checkout@v3
 
       - name: Install azcopy binary
         if: >-
