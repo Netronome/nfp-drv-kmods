@@ -120,7 +120,7 @@ jobs:
         shell: bash
         run: |
           accepted="$(find .github/data/kernel-devel-c4c -type f -name buildinfo.json \
-                      -exec sh -c "echo {} | awk -F'/' '{print \$(NF-1)}'" \; | xargs)"
+                      -exec sh -c "echo {} | awk -F'/' '{print \$(NF-2)\"/\"\$(NF-1)}'" \; | xargs)"
 
           echo "ACCEPTED_OS=${accepted}" | tee -a $GITHUB_OUTPUT
 
@@ -156,7 +156,7 @@ jobs:
             distros = [d for d in sorted(os.listdir(dir)) if
                        (os.path.isdir(f"{dir}/{d}") and re.search(whitelist, d))]
             for distro in distros:
-              if distro in accepted_os:
+              if f"{arch}/{distro}" in accepted_os:
                 with open(f"{dir}/{distro}/buildinfo.json") as buildinfo:
                   release = json.load(buildinfo)
                   release["arch"] = arch
