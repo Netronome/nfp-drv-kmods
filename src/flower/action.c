@@ -429,7 +429,7 @@ nfp_fl_push_geneve_options(struct nfp_fl_payload *nfp_fl, int *list_len,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
+#if VER_NON_RHEL_GE(6, 10) || RHEL_RELEASE_GE(9, 474, 0, 0)
 #define NFP_FL_CHECK(flag) ({				\
 	IP_TUNNEL_DECLARE_FLAGS(__check) = { };		\
 	__be16 __res;					\
@@ -461,7 +461,7 @@ nfp_fl_set_tun(struct nfp_app *app, struct nfp_fl_set_tun *set_tun,
 	u32 tmp_set_ip_tun_type_index = 0;
 	/* Currently support one pre-tunnel so index is always 0. */
 	int pretun_idx = 0;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
+#if VER_NON_RHEL_GE(6, 10) || RHEL_RELEASE_GE(9, 474, 0, 0)
 	__be16 tun_flags;
 #endif
 
@@ -471,7 +471,7 @@ nfp_fl_set_tun(struct nfp_app *app, struct nfp_fl_set_tun *set_tun,
 	if (ipv6 && !(priv->flower_ext_feats & NFP_FL_FEATS_IPV6_TUN))
 		return -EOPNOTSUPP;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
+#if VER_NON_RHEL_GE(6, 10) || RHEL_RELEASE_GE(9, 474, 0, 0)
 	NFP_FL_CHECK(CSUM);
 	NFP_FL_CHECK(KEY);
 	NFP_FL_CHECK(GENEVE_OPT);
@@ -487,7 +487,7 @@ nfp_fl_set_tun(struct nfp_app *app, struct nfp_fl_set_tun *set_tun,
 		return -EOPNOTSUPP;
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
+#if VER_NON_RHEL_GE(6, 10) || RHEL_RELEASE_GE(9, 474, 0, 0)
 	tun_flags = ip_tunnel_flags_to_be16(ip_tun->key.tun_flags);
 	if (!ip_tunnel_flags_is_be16_compat(ip_tun->key.tun_flags) ||
 	    (tun_flags & ~NFP_FL_SUPPORTED_UDP_TUN_FLAGS)) {
@@ -508,7 +508,7 @@ nfp_fl_set_tun(struct nfp_app *app, struct nfp_fl_set_tun *set_tun,
 		FIELD_PREP(NFP_FL_PRE_TUN_INDEX, pretun_idx);
 
 	set_tun->tun_type_index = cpu_to_be32(tmp_set_ip_tun_type_index);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
+#if VER_NON_RHEL_GE(6, 10) || RHEL_RELEASE_GE(9, 474, 0, 0)
 	if (tun_flags & NFP_FL_TUNNEL_KEY)
 #else
 	if (ip_tun->key.tun_flags & NFP_FL_TUNNEL_KEY)
@@ -556,7 +556,7 @@ nfp_fl_set_tun(struct nfp_app *app, struct nfp_fl_set_tun *set_tun,
 	}
 
 	set_tun->tos = ip_tun->key.tos;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
+#if VER_NON_RHEL_GE(6, 10) || RHEL_RELEASE_GE(9, 474, 0, 0)
 	set_tun->tun_flags = tun_flags;
 #else
 	set_tun->tun_flags = ip_tun->key.tun_flags;
