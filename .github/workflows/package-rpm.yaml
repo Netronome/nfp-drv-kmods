@@ -130,6 +130,11 @@ on:
           - opensuse/opensuse15.3
           - opensuse/opensuse15.4
           - opensuse/opensuse15.5
+          - uos/uos:1050
+          - uos/uos:1050u1
+          - uos/uos:1050u2
+          - uos/uos:1060
+          - uos/uos:1070
           - all
         default: centos:8
         description: >-
@@ -561,6 +566,46 @@ jobs:
                              #       "local"
                              #    ]
                              # }
+                          },
+                          "uos/uos:1050": {
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-rocky8",
+                                "mirrors": [
+                                   "local"
+                                ]
+                             }
+                          },
+                          "uos/uos:1050u1": {
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-rocky8",
+                                "mirrors": [
+                                   "local"
+                                ]
+                             }
+                          },
+                          "uos/uos:1050u2": {
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-rocky8",
+                                "mirrors": [
+                                   "local"
+                                ]
+                             }
+                          },
+                          "uos/uos:1060": {
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-rocky8",
+                                "mirrors": [
+                                   "local"
+                                ]
+                             }
+                          },
+                          "uos/uos:1070": {
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-rocky8",
+                                "mirrors": [
+                                   "local"
+                                ]
+                             }
                           }
                         }
 
