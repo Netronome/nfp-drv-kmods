@@ -1236,7 +1236,11 @@ err_cpp:
 /*
  * Remove a NFP CPP /dev entry
  */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 11, 0)
 static int nfp_dev_cpp_remove(struct platform_device *pdev)
+#else
+static void nfp_dev_cpp_remove(struct platform_device *pdev)
+#endif
 {
 	struct nfp_dev_cpp *cdev = platform_get_drvdata(pdev);
 	unsigned int minor = MINOR(cdev->cdev.dev);
@@ -1265,7 +1269,9 @@ static int nfp_dev_cpp_remove(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, NULL);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 11, 0)
 	return 0;
+#endif
 }
 
 static struct platform_driver nfp_dev_cpp_driver = {

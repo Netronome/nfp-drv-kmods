@@ -742,7 +742,11 @@ err_resource_acquire:
 	return err;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 11, 0)
 static int nfp_net_vnic_remove(struct platform_device *pdev)
+#else
+static void nfp_net_vnic_remove(struct platform_device *pdev)
+#endif
 {
 	struct nfp_net_vnic *vnic = platform_get_drvdata(pdev);
 
@@ -754,7 +758,9 @@ static int nfp_net_vnic_remove(struct platform_device *pdev)
 	nfp_cpp_area_release_free(vnic->area);
 	nfp_cpp_free(vnic->cpp);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 11, 0)
 	return 0;
+#endif
 }
 
 /*
