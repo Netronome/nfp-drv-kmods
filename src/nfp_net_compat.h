@@ -53,11 +53,11 @@
 #endif
 
 /* Redefine LINUX_VERSION_CODE for net and *-next kernels */
-#if LINUX_VERSION_CODE == KERNEL_VERSION(6, 9, 0)
-#include <linux/phy.h>
-#ifdef PHY_F_RXC_ALWAYS_ON
+#if LINUX_VERSION_CODE == KERNEL_VERSION(6, 10, 0)
+#include <linux/stat.h>
+#ifdef STATX_WRITE_ATOMIC
 #undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(6, 10, 0)
+#define LINUX_VERSION_CODE KERNEL_VERSION(6, 11, 0)
 #endif
 #endif
 
