@@ -217,7 +217,7 @@ jobs:
             installed_packages="$(yum list installed | sed 1d | awk -F'\.' '{print $1}')"
           elif [[ "${{ matrix.release.name }}" == "opensuse"* ]]; then
             package_manager="zypper"
-            installed_packages="$(zypper search -i | awk '{if ($1 == "i" || $1 == "i+") {print $3}}')"
+            installed_packages="$(zypper search -i | sed -n 's/^i[ \+] | \([^ ]*\).*$/\1/p')"
           else
             package_manager="dnf"
             installed_packages="$(dnf list --installed | sed 1d | awk -F'\.' '{print $1}')"
@@ -298,11 +298,26 @@ jobs:
           steps.provision_check.outputs.provision == 'true' &&
           contains(matrix.release.name, 'opensuse')
         run: |
-          if ! zypper lr repo-oss >/dev/null 2>&1; then
-            zypper ar -f http://download.opensuse.org/distribution/openSUSE-stable/repo/oss repo-oss
+          PACKAGES="${{ steps.provision_check.outputs.missing_deps }}"
+
+          if ! zypper repos >/dev/null 2>&1; then
+            if [[ "${{ matrix.release.name }}" == "opensuse-15"* ]]; then
+              SUSE_VER="${{ matrix.release.name }}"
+              REPO_URL="http://download.opensuse.org/distribution/leap/${SUSE_VER#*-}/repo/oss"
+            else
+              REPO_URL="http://download.opensuse.org/distribution/openSUSE-stable/repo/oss"
+            fi
+
+            zypper addrepo -f -p 50 "${REPO_URL}" repo-oss
+            if [[ "${{ matrix.release.name }}" == "opensuse-15.1" ]]; then
+              # Add repo at lower priority to install newer git version
+              zypper addrepo -f "http://download.opensuse.org/distribution/leap/15.2/repo/oss" \
+                repo-oss-git
+              PACKAGES=$(echo ${PACKAGES} | sed 's/git/git-2.25.0-lp152.1.6/')
+            fi
           fi
-          zypper --gpg-auto-import-keys ref
-          zypper -n in ${{ steps.provision_check.outputs.missing_deps }}
+          zypper --gpg-auto-import-keys refresh
+          zypper -n install ${PACKAGES}
 
       - name: Clean old artifacts
         run: |
