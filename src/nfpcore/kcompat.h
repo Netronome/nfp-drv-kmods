@@ -883,7 +883,7 @@ struct netlink_ext_ack;
 #endif
 
 #if VER_NON_RHEL_OR_SLEL_LT(4, 14) || VER_RHEL_LT(7, 6) || \
-    SLEL_LOCALVER_LT(4, 12, 14, 122, 37)
+    SLEL_LOCALVER_LT(4, 12, 14, 120, 0)
 static inline void timer_setup(struct timer_list *t, void (*f)(unsigned long),
 			       unsigned int flags)
 {
@@ -896,14 +896,14 @@ static inline void timer_setup(struct timer_list *t, void (*f)(unsigned long),
 
 
 #if VER_NON_RHEL_OR_SLEL_LT(4, 16) || VER_RHEL_LT(7, 6) || \
-    SLEL_LOCALVER_LT(4, 12, 14, 122, 37)
+    SLEL_LOCALVER_LT(4, 12, 14, 120, 0)
 struct xdp_rxq_info {
 	int empty;
 };
 #endif
 
 #if VER_NON_RHEL_OR_SLEL_LT(4, 17) || VER_RHEL_LT(7, 7) || \
-    SLEL_LOCALVER_LT(4, 12, 14, 122, 37)
+    SLEL_LOCALVER_LT(4, 12, 14, 120, 0)
 static inline void pcie_print_link_status(struct pci_dev *dev)
 {
 }
@@ -926,7 +926,7 @@ static inline void compat_pci_sriov_reset_totalvfs(struct pci_dev *dev)
 }
 
 #if VER_NON_RHEL_OR_SLEL_LT(4, 18) || VER_RHEL_LT(7, 7) || \
-    SLEL_LOCALVER_LT(4, 12, 14, 122, 37)
+    SLEL_LOCALVER_LT(4, 12, 14, 120, 0)
 static inline void *kvcalloc(size_t n, size_t size, gfp_t flags)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)
@@ -985,7 +985,7 @@ static inline struct reciprocal_value_adv reciprocal_value_adv(u32 d, u8 prec)
 #endif
 
 #if VER_NON_RHEL_OR_SLEL_LT(4, 19) || VER_RHEL_LT(8, 0) || \
-    SLEL_LOCALVER_LT(4, 12, 14, 122, 37)
+    SLEL_LOCALVER_LT(4, 12, 14, 120, 0)
 struct xdp_attachment_info {
 	struct bpf_prog *prog;
 	u32 flags;

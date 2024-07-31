@@ -175,7 +175,7 @@ static int nfp_net_reconfig_wait(struct nfp_net *nn, unsigned long deadline)
 }
 
 #if VER_NON_RHEL_OR_SLEL_LT(4, 14) || VER_RHEL_LT(7, 6) || \
-    SLEL_LOCALVER_LT(4, 12, 14, 122, 37)
+    SLEL_LOCALVER_LT(4, 12, 14, 120, 0)
 static void nfp_net_reconfig_timer(unsigned long t)
 #else
 static void nfp_net_reconfig_timer(struct timer_list *t)
@@ -2446,7 +2446,7 @@ static void nfp_net_del_vxlan_port(struct net_device *netdev,
 #endif /* COMPAT__HAVE_VXLAN_OFFLOAD */
 
 #if COMPAT__HAVE_XDP
-#if VER_NON_SLEL_LT(4, 15) || SLEL_LOCALVER_LT(4, 12, 14, 122, 37)
+#if VER_NON_SLEL_LT(4, 15) || SLEL_LOCALVER_LT(4, 12, 14, 120, 0)
 static int nfp_net_xdp_setup_drv(struct nfp_net *nn, struct netdev_xdp *bpf)
 #else
 static int nfp_net_xdp_setup_drv(struct nfp_net *nn, struct netdev_bpf *bpf)
@@ -2486,7 +2486,7 @@ static int nfp_net_xdp_setup_drv(struct nfp_net *nn, struct netdev_bpf *bpf)
 	return 0;
 }
 
-#if VER_NON_SLEL_GE(4, 18) || SLEL_LOCALVER_GE(4, 12, 14, 122, 37)
+#if VER_NON_SLEL_GE(4, 18) || SLEL_LOCALVER_GE(4, 12, 14, 120, 0)
 static int nfp_net_xdp_setup_hw(struct nfp_net *nn, struct netdev_bpf *bpf)
 {
 	int err;
@@ -2506,7 +2506,7 @@ static int nfp_net_xdp_setup_hw(struct nfp_net *nn, struct netdev_bpf *bpf)
 }
 #endif
 
-#if VER_NON_SLEL_LT(4, 15) || SLEL_LOCALVER_LT(4, 12, 14, 122, 37)
+#if VER_NON_SLEL_LT(4, 15) || SLEL_LOCALVER_LT(4, 12, 14, 120, 0)
 static int nfp_net_xdp(struct net_device *netdev, struct netdev_xdp *xdp)
 #else
 static int nfp_net_xdp(struct net_device *netdev, struct netdev_bpf *xdp)
@@ -2517,7 +2517,7 @@ static int nfp_net_xdp(struct net_device *netdev, struct netdev_bpf *xdp)
 	switch (xdp->command) {
 	case XDP_SETUP_PROG:
 		return nfp_net_xdp_setup_drv(nn, xdp);
-#if VER_NON_SLEL_GE(4, 18) || SLEL_LOCALVER_GE(4, 12, 14, 122, 37)
+#if VER_NON_SLEL_GE(4, 18) || SLEL_LOCALVER_GE(4, 12, 14, 120, 0)
 	case XDP_SETUP_PROG_HW:
 		return nfp_net_xdp_setup_hw(nn, xdp);
 #endif
@@ -2529,7 +2529,7 @@ static int nfp_net_xdp(struct net_device *netdev, struct netdev_bpf *xdp)
 
 #if VER_NON_RHEL_LT(5, 9) || VER_RHEL_LT(8, 4)
 	case XDP_QUERY_PROG:
-#if VER_NON_SLEL_LT(4, 19) || SLEL_LOCALVER_LT(4, 12, 14, 122, 37)
+#if VER_NON_SLEL_LT(4, 19) || SLEL_LOCALVER_LT(4, 12, 14, 120, 0)
 		if (nn->xdp.prog)
 			return xdp_attachment_query(&nn->xdp, xdp);
 #else
@@ -2539,7 +2539,7 @@ static int nfp_net_xdp(struct net_device *netdev, struct netdev_bpf *xdp)
 		return xdp_attachment_query(&nn->xdp_hw, xdp);
 #endif /* VER_NON_RHEL_LT(5, 9) || VER_RHEL_LT(8, 4) */
 	default:
-#if VER_NON_SLEL_GE(4, 16) || SLEL_LOCALVER_GE(4, 12, 14, 122, 37)
+#if VER_NON_SLEL_GE(4, 16) || SLEL_LOCALVER_GE(4, 12, 14, 120, 0)
 		return nfp_app_bpf(nn->app, nn, xdp);
 #else
 		return -EINVAL;
@@ -2697,7 +2697,7 @@ const struct net_device_ops nfp_nfd3_netdev_ops = {
 #endif
 #endif
 #if COMPAT__HAVE_XDP
-#if VER_NON_SLEL_GE(4, 15) || SLEL_LOCALVER_GE(4, 12, 14, 122, 37)
+#if VER_NON_SLEL_GE(4, 15) || SLEL_LOCALVER_GE(4, 12, 14, 120, 0)
 	.ndo_bpf		= nfp_net_xdp,
 #ifdef COMPAT__HAVE_XDP_SOCK_DRV
 	.ndo_xsk_wakeup		= nfp_net_xsk_wakeup,
@@ -2793,7 +2793,7 @@ const struct net_device_ops nfp_nfdk_netdev_ops = {
 #endif
 #endif
 #if COMPAT__HAVE_XDP
-#if VER_NON_SLEL_GE(4, 15) || SLEL_LOCALVER_GE(4, 12, 14, 122, 37)
+#if VER_NON_SLEL_GE(4, 15) || SLEL_LOCALVER_GE(4, 12, 14, 120, 0)
 	.ndo_bpf		= nfp_net_xdp,
 #else
 	.ndo_xdp		= nfp_net_xdp,

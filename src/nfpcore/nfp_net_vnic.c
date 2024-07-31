@@ -315,7 +315,7 @@ static void nfp_net_vnic_schedule(struct nfp_net_vnic *vnic)
  * @data:	vnic pointer
  */
 #if VER_NON_RHEL_OR_SLEL_LT(4, 14) || VER_RHEL_LT(7, 6) || \
-    SLEL_LOCALVER_LT(4, 12, 14, 122, 37)
+    SLEL_LOCALVER_LT(4, 12, 14, 120, 0)
 static void nfp_net_vnic_timer(unsigned long t)
 #else
 static void nfp_net_vnic_timer(struct timer_list *t)
