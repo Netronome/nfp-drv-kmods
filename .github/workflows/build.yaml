@@ -31,6 +31,7 @@ jobs:
     strategy:
       matrix:
         release: [
+                { "name": "24.04", "kernel": "6.8" },
                 { "name": "22.04", "kernel": "6.8", "hwe": "hwe" },
                 { "name": "22.04", "kernel": "5.15" },
                 { "name": "20.04", "kernel": "5.4" },
