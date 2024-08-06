@@ -53,11 +53,10 @@
 #endif
 
 /* Redefine LINUX_VERSION_CODE for net and *-next kernels */
-#if LINUX_VERSION_CODE == KERNEL_VERSION(6, 10, 0)
-#include <linux/stat.h>
-#ifdef STATX_WRITE_ATOMIC
+#if LINUX_VERSION_CODE == KERNEL_VERSION(6, 11, 0)
+#ifndef IFF_RXFH_CONFIGURED
 #undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(6, 11, 0)
+#define LINUX_VERSION_CODE KERNEL_VERSION(6, 12, 0)
 #endif
 #endif
 
@@ -619,7 +618,7 @@ compat__ethtool_cmd_speed_set(struct ethtool_link_ksettings *cmd, u32 speed)
 }
 #endif
 
-#ifndef IFF_RXFH_CONFIGURED
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)) && !defined(IFF_RXFH_CONFIGURED)
 static inline bool netif_is_rxfh_configured(const struct net_device *netdev)
 {
 	return false;
