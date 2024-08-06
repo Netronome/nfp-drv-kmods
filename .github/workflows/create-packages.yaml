@@ -21,6 +21,9 @@ on:
       tgz_name:
         description: "Name of the resulting tarball."
         value: ${{ jobs.build_distro_package.outputs.tgz_name }}
+      customer_name:
+        description: "Name of the customer, if customer-specific version."
+        value: ${{ jobs.build_distro_package.outputs.customer }}
 
 jobs:
   build_distro_package:
@@ -34,6 +37,7 @@ jobs:
       deb_name: ${{ steps.build_dest.outputs.deb_name }}
       rpm_name: ${{ steps.build_dest.outputs.rpm_name }}
       tgz_name: ${{ steps.build_dest.outputs.tgz_name }}
+      customer: ${{ steps.build_dest.outputs.customer }}
 
     strategy:
       fail-fast: false
@@ -173,7 +177,8 @@ jobs:
               ;;
             *"-main")
               # Customer branch
-              readonly DST_SUFFIX=".${DEFAULT_BRANCH%-main}"
+              readonly CUSTOMER="${DEFAULT_BRANCH%-main}"
+              readonly DST_SUFFIX=".${CUSTOMER}"
               ;;
             *)
               readonly DST_SUFFIX=""
@@ -201,6 +206,7 @@ jobs:
 
           AZURE_DEST=$(echo "${AZURE_PATH}/${BIN_TYPE}")
           echo "${{ matrix.distro.bin_type }}_name=$(echo "${FINAL_PKG_NAME}")" | tee -a $GITHUB_OUTPUT
+          echo "customer=${CUSTOMER}" | tee -a $GITHUB_OUTPUT
           echo "dkms_bin_path=$(echo "${BIN_TYPE}/${BIN_PKG_NAME}/${FINAL_PKG_NAME}")" | tee -a $GITHUB_OUTPUT
           echo "azure_dest=${AZURE_DEST}" | tee -a $GITHUB_OUTPUT
         env:
