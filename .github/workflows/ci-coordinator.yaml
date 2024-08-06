@@ -29,7 +29,9 @@ jobs:
     needs: package_dkms
     uses: ./.github/workflows/package-rpm.yaml
     with:
-      driver_build_type: releases
+      driver_build_type: >-
+        ${{ contains(github.ref, 'prerelease') && 'prereleases' || 'releases' }}
+      customer: '${{ needs.package_dkms.outputs.customer_name }}'
       driver: '${{ needs.package_dkms.outputs.tgz_name }}'
       driver_upload_location: default
       target_distro: all
