@@ -1057,7 +1057,9 @@ static inline bool netif_is_vxlan(const struct net_device *dev)
 	return dev->rtnl_link_ops &&
 		!strcmp(dev->rtnl_link_ops->kind, "vxlan");
 }
+#endif
 
+#ifndef COMPAT__NETDEV_TX_SENT_QUEUE
 static inline bool
 __netdev_tx_sent_queue(struct netdev_queue *nd_q, u32 len, bool xmit_more)
 {
