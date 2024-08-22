@@ -92,6 +92,7 @@ on:
         type: choice
         required: false
         options:
+          - ""
           - comba
           - customer
           - opencloud
