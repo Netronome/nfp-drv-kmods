@@ -258,7 +258,9 @@ nfp_repr_fix_features(struct net_device *netdev, netdev_features_t features)
 
 	features = netdev_intersect_features(features, lower_features);
 	features |= old_features & (NETIF_F_SOFT_FEATURES | NETIF_F_HW_TC);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
 	features |= NETIF_F_LLTX;
+#endif
 
 	return features;
 }
@@ -408,7 +410,11 @@ int nfp_repr_init(struct nfp_app *app, struct net_device *netdev,
 	netif_set_tso_max_segs(netdev, NFP_NET_LSO_MAX_SEGS);
 
 	netdev->priv_flags |= IFF_NO_QUEUE | IFF_DISABLE_NETPOLL;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
+	netdev->lltx |= true;
+#else
 	netdev->features |= NETIF_F_LLTX;
+#endif
 
 	if (nfp_app_has_tc(app)) {
 		netdev->features |= NETIF_F_HW_TC;
