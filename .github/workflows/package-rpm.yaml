@@ -144,6 +144,7 @@ on:
           - lhrbest/kylinos:v10sp1
           - lhrbest/kylinos:v10sp2
           - lhrbest/kylinos:v10sp3
+          - lhrbest/kylinos:v10sp3-2403
           - nfschinadocker/nfschina-server:v4.0
           - openeuler/openeuler:20.03
           - openeuler/openeuler:22.03
@@ -421,6 +422,22 @@ jobs:
                                 "mirrors": [
                                    "local",
                                    "https://update.cs2c.com.cn/NS/V10/V10SP3/os/adv/lic/base/aarch64/Packages/"
+                                ]
+                             }
+                          },
+                          "lhrbest/kylinos:v10sp3-2403": {
+                             "x86_64": {
+                                "container": "ci-docker-registry-vm:5000/drv-x86-64-kylinosv10sp3",
+                                "mirrors": [
+                                   "local",
+                                   "https://update.cs2c.com.cn/NS/V10/V10SP3-2403/os/adv/lic/base/x86_64/Packages/"
+                                ]
+                             },
+                             "aarch64": {
+                                "container": "ci-docker-registry-vm:5000/drv-aarch64-kylinosv10sp3",
+                                "mirrors": [
+                                   "local",
+                                   "https://update.cs2c.com.cn/NS/V10/V10SP3-2403/os/adv/lic/base/aarch64/Packages/"
                                 ]
                              }
                           },
