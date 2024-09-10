@@ -715,6 +715,8 @@ jobs:
       fail-fast: false
       matrix:
         release: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     steps:
       - name: Check for pre-requisite packages
         id: provision_check
