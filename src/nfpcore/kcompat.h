@@ -1063,11 +1063,13 @@ static inline u64 pci_get_dsn(struct pci_dev *dev)
 #undef CONFIG_NFP_APP_FLOWER
 #endif
 
-#if VER_NON_RHEL_LT(5, 3) || VER_RHEL_LT(8, 2)
+#include <linux/inetdevice.h>
+#ifndef in_dev_for_each_ifa_rtnl
 #define in_dev_for_each_ifa_rtnl(ifa, in_dev)                   \
 	for (ifa = rtnl_dereference((in_dev)->ifa_list); ifa;   \
 		ifa = rtnl_dereference(ifa->ifa_next))
-
+#endif
+#ifndef in_dev_for_each_ifa_rcu
 #define in_dev_for_each_ifa_rcu(ifa, in_dev)                    \
 	for (ifa = rcu_dereference((in_dev)->ifa_list); ifa;    \
 		ifa = rcu_dereference(ifa->ifa_next))

@@ -227,6 +227,9 @@ $(eval $(call add_compat_flag,$(srctree)/include/net/flow_offload.h,_NET_FLOW_OF
 # Check for bpf_mac_inc type
 $(eval $(call add_compat_flag,$(srctree)/include/linux/bpf.h,"^void bpf_map_inc(struct bpf_map \*map);",COMPAT__VOID_BPF_MAP_INC))
 
+# Check for udp_tunnel_nic_add/del_port
+$(eval $(call add_compat_flag,$(srctree)/include/net/udp_tunnel.h,"udp_tunnel_nic_add_port",COMPAT__UDP_TUN_NIC_PORT))
+
 utsrelease_h_path :=$(srctree)/include/generated/utsrelease.h
 # Check for BC Linux
 $(eval $(call add_compat_flag,$(utsrelease_h_path),bclinux,COMPAT_BCLINUX=1))
