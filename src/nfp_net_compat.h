@@ -1674,8 +1674,8 @@ __printf(2, 3) void ethtool_sprintf(u8 **data, const char *fmt, ...);
 #define VERSION__DEVLINK_PORT_SPLIT
 #endif
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0) && \
-     (VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)))
+#if ((VER_NON_RHEL_GE(5, 1) || VER_RHEL_GE(8, 1)) && \
+	(VER_NON_RHEL_LT(6, 10) || RHEL_RELEASE_LT(9, 513, 0, 0)))
 /**
  * flow_rule_is_supp_control_flags() - check for supported control flags
  * @supp_flags: control flags supported by driver
