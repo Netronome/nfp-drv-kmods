@@ -11,7 +11,12 @@
  */
 #include "kcompat.h"
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
 #include <asm/unaligned.h>
+#else
+#include <linux/unaligned.h>
+#endif
+
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/slab.h>

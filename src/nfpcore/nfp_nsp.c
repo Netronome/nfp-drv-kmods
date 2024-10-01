@@ -8,7 +8,11 @@
  */
 #include "kcompat.h"
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
 #include <asm/unaligned.h>
+#else
+#include <linux/unaligned.h>
+#endif
 #if VER_NON_RHEL_GE(4, 9) || VER_RHEL_GE(7, 5)
 #include <linux/bitfield.h>
 #endif

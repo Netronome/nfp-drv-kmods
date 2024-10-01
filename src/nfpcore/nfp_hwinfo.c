@@ -14,8 +14,14 @@
  *   (ie, in this example, ME 39 has been reserved by boardconfig.)
  */
 
+#include "nfpcore/kcompat.h"
+
 #include <asm/byteorder.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
 #include <asm/unaligned.h>
+#else
+#include <linux/unaligned.h>
+#endif
 #include <linux/delay.h>
 #include <linux/log2.h>
 #include <linux/kernel.h>
