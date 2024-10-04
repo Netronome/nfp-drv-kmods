@@ -124,18 +124,10 @@ jobs:
 
           echo "ACCEPTED_OS=${accepted}" | tee -a $GITHUB_OUTPUT
 
-      - name: Get local kernel-devel metadata
-        uses: Corigine/ci-libs/github_actions/azure/azcopy_download@main
-        with:
-          connection-string: ${{ secrets.AZ_SAS_TOK }}
-          src: ${{ env.BASE_DIR }}/*
-          dst: ${{ env.DOWNLOAD }}
-          pattern: "*buildinfo.json"
-
       - name: Create build matrix
         id: matrix
         shell: python3 {0}
-        working-directory: ${{ env.DOWNLOAD }}
+        working-directory: .github/data/kernel-devel-c4c
         run: |
           import os
           import re
