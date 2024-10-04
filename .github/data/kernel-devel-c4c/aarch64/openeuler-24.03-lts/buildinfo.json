@@ -1,0 +1,5 @@
+{
+	"name": "openeuler-24.03-lts",
+	"container": "ci-docker-registry-vm:5000/drv-aarch64-openeuler24.03-lts",
+	"mirror": "mirrors.dotsrc.org/openeuler/openEuler-24.03-LTS/OS/aarch64/Packages"
+}
