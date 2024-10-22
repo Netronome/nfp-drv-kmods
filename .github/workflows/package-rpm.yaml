@@ -220,7 +220,7 @@ jobs:
                              "aarch64": {
                                 "container": "centos:7",
                                 "mirrors": [
-                                   "http://vault.centos.org/altarch/7/os/aarch64/Packages"
+                                   "http://vault.centos.org/altarch/7/os/aarch64/Packages/"
                                 ]
                              }
                           },
