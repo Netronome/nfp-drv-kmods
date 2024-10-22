@@ -169,7 +169,7 @@ exit_close_nsp:
 	return err;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
+#if VER_NON_RHEL_GE(6, 10) || (RHEL_RELEASE_GE(9, 522, 0, 0))
 static int
 compat__nfp_devlink_param_u8_set(struct devlink *devlink, u32 id,
 				 struct devlink_param_gset_ctx *ctx,
