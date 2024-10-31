@@ -215,6 +215,9 @@ endif
 # Check for DIM
 $(eval $(call add_compat_flag,$(srctree)/include/linux/dim.h,net_dim_get_rx,COMPAT_HAVE_DIM))
 
+# Check for DIM sample by reference
+$(eval $(call add_compat_flag,$(srctree)/include/linux/dim.h,"^void net_dim.*struct dim_sample \*end_sample",COMPAT_DIM_PASS_BY_REF))
+
 # Check for netif_set_real_num_queues
 $(eval $(call add_compat_flag,$(srctree)/include/linux/netdevice.h,netif_set_real_num_queues,COMPAT__HAVE_NETIF_SET_REAL_NUM_QUEUES))
 

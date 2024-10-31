@@ -1731,4 +1731,19 @@ static inline bool flow_rule_match_has_control_flags(struct flow_rule *rule,
 	return flow_rule_has_control_flags(match.mask->flags, extack);
 }
 #endif
+
+/**
+ *      net_dim - main DIM algorithm entry point
+ *      @dim: DIM instance information
+ *      @end_sample: Current data measurement
+ *
+ * Called by the consumer.
+ * This is the main logic of the algorithm, where data is processed in order
+ * to decide on next required action.
+ *
+ * A compat version is needed, as end_sample changed from being passed by value
+ * to being passed as reference.
+ */
+void compat__net_dim(struct dim *dim, const struct dim_sample *end_sample);
+
 #endif /* _NFP_NET_COMPAT_H_ */
