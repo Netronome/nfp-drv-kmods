@@ -230,6 +230,9 @@ $(eval $(call add_compat_flag,$(srctree)/include/linux/bpf.h,"^void bpf_map_inc(
 # Check for udp_tunnel_nic_add/del_port
 $(eval $(call add_compat_flag,$(srctree)/include/net/udp_tunnel.h,"udp_tunnel_nic_add_port",COMPAT__UDP_TUN_NIC_PORT))
 
+# Check for irq_set_affinity_hint() deprecation
+$(eval $(call add_compat_flag,$(srctree)/include/linux/interrupt.h,"^irq_update_affinity_hint(unsigned int irq, const struct cpumask *m)",COMPAT__IRQ_SET_AFFINITY_HINT_DEPR))
+
 utsrelease_h_path :=$(srctree)/include/generated/utsrelease.h
 # Check for BC Linux
 $(eval $(call add_compat_flag,$(utsrelease_h_path),bclinux,COMPAT_BCLINUX=1))

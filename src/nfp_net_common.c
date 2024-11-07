@@ -900,7 +900,11 @@ nfp_net_prepare_vector(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 	disable_irq(r_vec->irq_vector);
 #endif
 
+#ifndef COMPAT__IRQ_SET_AFFINITY_HINT_DEPR
 	irq_set_affinity_hint(r_vec->irq_vector, &r_vec->affinity_mask);
+#else
+	irq_update_affinity_hint(r_vec->irq_vector, &r_vec->affinity_mask);
+#endif
 
 	nn_dbg(nn, "RV%02d: irq=%03d/%03d\n", idx, r_vec->irq_vector,
 	       r_vec->irq_entry);
@@ -911,7 +915,11 @@ nfp_net_prepare_vector(struct nfp_net *nn, struct nfp_net_r_vector *r_vec,
 static void
 nfp_net_cleanup_vector(struct nfp_net *nn, struct nfp_net_r_vector *r_vec)
 {
+#ifndef COMPAT__IRQ_SET_AFFINITY_HINT_DEPR
 	irq_set_affinity_hint(r_vec->irq_vector, NULL);
+#else
+	irq_update_affinity_hint(r_vec->irq_vector, NULL);
+#endif
 	nfp_net_napi_del(&nn->dp, r_vec);
 	free_irq(r_vec->irq_vector, r_vec);
 }
