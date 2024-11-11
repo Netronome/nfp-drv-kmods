@@ -1732,6 +1732,7 @@ static inline bool flow_rule_match_has_control_flags(struct flow_rule *rule,
 }
 #endif
 
+#ifdef COMPAT_HAVE_DIM
 /**
  *      net_dim - main DIM algorithm entry point
  *      @dim: DIM instance information
@@ -1745,5 +1746,6 @@ static inline bool flow_rule_match_has_control_flags(struct flow_rule *rule,
  * to being passed as reference.
  */
 void compat__net_dim(struct dim *dim, const struct dim_sample *end_sample);
+#endif
 
 #endif /* _NFP_NET_COMPAT_H_ */

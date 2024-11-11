@@ -264,6 +264,7 @@ __printf(2, 3) void ethtool_sprintf(u8 **data, const char *fmt, ...)
 #endif
 #endif
 
+#ifdef COMPAT_HAVE_DIM
 /* kernel commit: 61bf0009a765 ("dim: pass dim_sample to net_dim() by reference")
  * converted the 'net_dim' function to take in end_sample by reference. Add the
  * applicable compat function code. Use this compat__ function instead of doing
@@ -277,3 +278,4 @@ void compat__net_dim(struct dim *dim, const struct dim_sample *end_sample)
 	net_dim(dim, *end_sample);
 #endif
 }
+#endif
