@@ -350,7 +350,7 @@ jobs:
           TREE="${{ matrix.release.name }}"
           COMMIT_ID="$(wget -q -O - https://$GITWEB/netdev/$TREE/p/main | sed -En 's/[^ ]* //; T; s/(.{12}).*/\1/; p; q')"
           DIR="$TREE-main"
-          echo "REMOTE=$GITWEB/pub/scm/linux/kernel/git/netdev/$TREE.git/snapshot/$DIR.tar.gz" >> $GITHUB_ENV
+          echo "REMOTE=kernel.googlesource.com/pub/scm/linux/kernel/git/netdev/$TREE/+archive/refs/heads/main.tar.gz" >> $GITHUB_ENV
           echo "CACHE_ID=$COMMIT_ID" >> $GITHUB_ENV
           echo "KERNEL_DIR=$UNPACKED/$DIR" >> $GITHUB_ENV
           echo "TAR_FLAGS=-z" >> $GITHUB_ENV
@@ -386,8 +386,14 @@ jobs:
       - name: Unpack Kernel Source
         if: steps.header-cache.outputs.cache-hit != 'true'
         run: |
-          mkdir -p "$UNPACKED"
-          tar -C "$UNPACKED" "$TAR_FLAGS" -xf "$DOWNLOAD/$REMOTE"
+          case "${{ matrix.release.name }}" in
+            "net"*)
+              mkdir -p "$KERNEL_DIR";
+              tar -C "$KERNEL_DIR" "$TAR_FLAGS" -xf "$DOWNLOAD/$REMOTE";;
+            *)
+              mkdir -p "$UNPACKED";
+              tar -C "$UNPACKED" "$TAR_FLAGS" -xf "$DOWNLOAD/$REMOTE";;
+          esac
 
       - name: Configure Kernel
         if: steps.header-cache.outputs.cache-hit != 'true'
