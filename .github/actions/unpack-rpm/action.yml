@@ -14,7 +14,7 @@ runs:
   using: "composite"
   steps:
     - name: Unpack
-      shell: sh
+      shell: docker exec ci_drv_container bash {0}
       run: |
         mkdir -p "${{ inputs.output-path }}"
         find "${{ inputs.input-path }}" -type f -name "*.rpm" -print0 | \

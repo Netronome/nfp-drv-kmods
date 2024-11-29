@@ -31,13 +31,53 @@ jobs:
     strategy:
       matrix:
         release: [
-                { "name": "24.04", "kernel": "6.8" },
-                { "name": "22.04", "kernel": "6.8", "hwe": "hwe" },
-                { "name": "22.04", "kernel": "5.15" },
-                { "name": "20.04", "kernel": "5.4" },
-                { "name": "20.04", "kernel": "5.15", "hwe": "hwe" },
+                { "name": "24.04", "kernel": "6.8", "container": "ubuntu:24.04" },
+                { "name": "22.04", "kernel": "6.8", "container": "ubuntu:22.04", "hwe": "hwe" },
+                { "name": "22.04", "kernel": "5.15", "container": "ubuntu:22.04" },
+                { "name": "20.04", "kernel": "5.4", "container": "ubuntu:20.04" },
+                { "name": "20.04", "kernel": "5.15", "container": "ubuntu:20.04", "hwe": "hwe" },
         ]
     steps:
+      - name: Stop all previous docker containers
+        if: always()
+        run: |
+          docker stop ci_drv_container
+          docker rm -f ci_drv_container
+        continue-on-error: true
+
+      - name: Set up docker environment
+        run: |
+          docker pull ${{ matrix.release.container }}
+          docker run -d \
+            --name ci_drv_container \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v /mnt/cloud:/mnt/cloud \
+            -v /mnt/local:/mnt/local \
+            -v /tmp/ccache:/tmp/ccache \
+            -v /home/${USER}:/home/${USER} \
+            -e "HOME=/github/home" -e GITHUB_ACTIONS=true -e CI=true  \
+            --workdir ${{ github.workspace }} \
+            --entrypoint tail \
+            ${{ matrix.release.container }} -f /dev/null
+
+      - name: Set Environment (package dependencies)
+        run: |
+          EXTRA_DEP+=" libelf-dev"
+          EXTRA_DEP+=" gcc"
+          EXTRA_DEP+=" make"
+          EXTRA_DEP+=" wget"
+          EXTRA_DEP+=" perl"
+          EXTRA_DEP+=" libperl-dev"
+          EXTRA_DEP+=" bc"
+          EXTRA_DEP+=" ca-certificates"
+          echo "EXTRA_DEP=$EXTRA_DEP" >> $GITHUB_ENV
+
+      - name: Install Dependencies
+        shell: docker exec ci_drv_container bash {0}
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get -q=2 install ${{ env.EXTRA_DEP }}
+
       - name: Check out repository
         uses: actions/checkout@v3
 
@@ -99,12 +139,18 @@ jobs:
 
       - name: Install dependencies 20.04
         if: matrix.release.name == '20.04'
-        run: sudo apt-get -q=2 install libelf-dev
+        shell: docker exec ci_drv_container bash {0}
+        run: apt-get -q=2 install libelf-dev
 
       - name: Install dependencies 22.04
         if: matrix.release.name == '22.04'
+        shell: docker exec ci_drv_container bash {0}
         run: |
-          sudo apt-get -q=2 install libelf-dev gcc-12
+          apt-get -q=2 install libelf-dev gcc-12
+
+      - name: Set gcc-12 Environment (Ubuntu 22.04)
+        if: matrix.release.name == '22.04'
+        run: |
           MAKEFLAGS="${{ env.MAKEFLAGS }} CC=gcc-12"
           echo "MAKEFLAGS=$MAKEFLAGS" >> $GITHUB_ENV
 
@@ -128,13 +174,19 @@ jobs:
             search-path: "${{ env.UNPACKED }}/usr/src"
             search-pattern: "*-${{ env.FLAVOUR }}"
 
+      - name: Stop docker container environment
+        if: always()
+        run: |
+          docker stop ci_drv_container
+          docker rm -f ci_drv_container
+        continue-on-error: true
+
   build-centos:
     name: 'Build-CentOS: ${{matrix.release.name}}'
     runs-on: ubuntu-20.04
     timeout-minutes: 90
     env:
       KVER: "*"
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     strategy:
       matrix:
         release: [
@@ -169,15 +221,37 @@ jobs:
                 { "name": "9.5", "container": "rockylinux:9.0" },
                 { "name": "9-stream", "container": "rockylinux:9.0" },
         ]
-    container:
-      image: ${{ matrix.release.container }}
+
     steps:
+      - name: Stop all previous docker containers
+        if: always()
+        run: |
+          docker stop ci_drv_container
+          docker rm -f ci_drv_container
+        continue-on-error: true
+
+      - name: Set up docker environment
+        run: |
+          docker pull ${{ matrix.release.container }}
+          docker run -d \
+            --name ci_drv_container \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v /mnt/cloud:/mnt/cloud \
+            -v /mnt/local:/mnt/local \
+            -v /tmp/ccache:/tmp/ccache \
+            -v /home/${USER}:/home/${USER} \
+            -e "HOME=/github/home" -e GITHUB_ACTIONS=true -e CI=true  \
+            --workdir ${{ github.workspace }} \
+            --entrypoint tail \
+            ${{ matrix.release.container }} -f /dev/null
+
       - name: Check out repository
         uses: actions/checkout@v3
 
       - name: Set Download Environment
         env:
           RELEASE_NAME: ${{ matrix.release.name }}
+        shell: bash
         run: |
           case $RELEASE_NAME in
           7.[0-9].*|8.[0-5].*|8-stream) MIRROR="vault.centos.org" ;;
@@ -234,15 +308,18 @@ jobs:
 
       - name: Fixup mirror for CentOS7 - Point to vault after EOL
         if: startsWith(matrix.release.name, '7')
+        shell: docker exec ci_drv_container bash {0}
         run: |
           sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
           sed -i 's|#.*baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
 
       - name: Install Dependencies
+        shell: docker exec ci_drv_container bash {0}
         run: yum -q -y install cpio elfutils-libelf-devel findutils gcc make wget ca-certificates
 
       - name: Filter CentOS stream 8 kernel
         if: startsWith(matrix.release.name, '8-stream')
+        shell: bash
         run: |
           KVER=$(curl -s "http://${{ env.OS_PATH }}/" | \
             sed -En 's/.*kernel-devel-(4.18.0-[0-9].*).el8.*rpm.*/\1/p' | \
@@ -252,6 +329,7 @@ jobs:
 
       - name: Filter CentOS stream 9 and RHEL 9 kernels
         if: startsWith(matrix.release.name, '9')
+        shell: bash
         run: |
           KVER=$(curl -s "http://${{ env.OS_PATH }}/" | \
             sed -En 's/.*kernel-devel-(5.14.0-[0-9].*).el9*rpm.*/\1/p' | \
@@ -284,6 +362,13 @@ jobs:
         uses: ./.github/actions/build
         with:
             search-path: "${{ env.UNPACKED }}/usr/src/kernels"
+
+      - name: Stop docker container environment
+        if: always()
+        run: |
+          docker stop ci_drv_container
+          docker rm -f ci_drv_container
+        continue-on-error: true
 
   build-upstream-ubuntu:
     name: 'Build-Upstream: ${{matrix.release.name}}'
@@ -329,6 +414,28 @@ jobs:
           { name: "5.3",       runs-on: "20.04", },
         ]
     steps:
+      - name: Stop all previous docker containers
+        if: always()
+        run: |
+          docker stop ci_drv_container
+          docker rm -f ci_drv_container
+        continue-on-error: true
+
+      - name: Set up docker environment
+        run: |
+          docker pull ubuntu:20.04
+          docker run -d \
+            --name ci_drv_container \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v /mnt/cloud:/mnt/cloud \
+            -v /mnt/local:/mnt/local \
+            -v /tmp/ccache:/tmp/ccache \
+            -v /home/${USER}:/home/${USER} \
+            -e "HOME=/github/home" -e GITHUB_ACTIONS=true -e CI=true  \
+            --workdir ${{ github.workspace }} \
+            --entrypoint tail \
+            ubuntu:20.04 -f /dev/null
+
       - name: Check out repository
         uses: actions/checkout@v3
 
@@ -368,47 +475,68 @@ jobs:
       - name: Set Environment (Not Cached)
         if: steps.header-cache.outputs.cache-hit != 'true'
         run: |
-          EXTRA_DEP+=" libelf-dev"
+          EXTRA_DEP+=" bc"
+          EXTRA_DEP+=" bison"
+          EXTRA_DEP+=" build-essential"
+          EXTRA_DEP+=" ca-certificates"
+          EXTRA_DEP+=" cpio"
           EXTRA_DEP+=" debhelper"
+          EXTRA_DEP+=" dwarves"
+          EXTRA_DEP+=" flex"
+          EXTRA_DEP+=" gcc"
+          EXTRA_DEP+=" kmod"
+          EXTRA_DEP+=" libelf-dev"
+          EXTRA_DEP+=" libncurses-dev"
+          EXTRA_DEP+=" libperl-dev"
+          EXTRA_DEP+=" libssl-dev"
+          EXTRA_DEP+=" make"
+          EXTRA_DEP+=" perl"
+          EXTRA_DEP+=" rsync"
+          EXTRA_DEP+=" wget"
           echo "EXTRA_DEP=$EXTRA_DEP" >> $GITHUB_ENV
 
       - name: Install Dependencies
         if: env.EXTRA_DEP != ''
-        run: sudo apt-get -q=2 install ${{ env.EXTRA_DEP }}
+        shell: docker exec ci_drv_container bash {0}
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get -q=2 install ${{ env.EXTRA_DEP }}
 
       - name: Download Kernel Source
         if: steps.header-cache.outputs.cache-hit != 'true'
         uses: ./.github/actions/download
         with:
-          output-path: "$DOWNLOAD"
-          url: "https://$REMOTE"
+          output-path: "${{ env.DOWNLOAD }}"
+          url: "https://${{ env.REMOTE }}"
 
       - name: Unpack Kernel Source
         if: steps.header-cache.outputs.cache-hit != 'true'
         run: |
           case "${{ matrix.release.name }}" in
             "net"*)
-              mkdir -p "$KERNEL_DIR";
-              tar -C "$KERNEL_DIR" "$TAR_FLAGS" -xf "$DOWNLOAD/$REMOTE";;
+              mkdir -p "${{ env.KERNEL_DIR }}";
+              tar -C "${{ env.KERNEL_DIR }}" "${{ env.TAR_FLAGS }}" -xf "${{ env.DOWNLOAD }}/${{ env.REMOTE }}";;
             *)
-              mkdir -p "$UNPACKED";
-              tar -C "$UNPACKED" "$TAR_FLAGS" -xf "$DOWNLOAD/$REMOTE";;
+              mkdir -p "${{ env.UNPACKED }}";
+              tar -C "${{ env.UNPACKED }}" "${{ env.TAR_FLAGS }}" -xf "${{ env.DOWNLOAD }}/${{ env.REMOTE }}";;
           esac
 
       - name: Configure Kernel
         if: steps.header-cache.outputs.cache-hit != 'true'
+        shell: docker exec ci_drv_container bash {0}
         run: |
-          cp -p .github/data/local_defconfig "$KERNEL_DIR/arch/x86/configs/"
-          make -s -C "$KERNEL_DIR" local_defconfig
+          cp -p .github/data/local_defconfig "${{env.KERNEL_DIR}}/arch/x86/configs/"
+          make -s -C "${{ env.KERNEL_DIR }}" local_defconfig
 
       - name: Build Kernel Packages
         if: steps.header-cache.outputs.cache-hit != 'true'
+        shell: docker exec ci_drv_container bash {0}
         run: |
-          make -s -j"$(nproc)" -C "$KERNEL_DIR" "$KERNEL_TARGET"
+          make -s -j $(nproc) -C ${{ env.KERNEL_DIR }} ${{ env.KERNEL_TARGET }}
 
       - name: List Kernel Header Packages
         run: |
-          ls "$UNPACKED"/linux-headers-*.deb
+          ls "${{ env.UNPACKED }}"/linux-headers-*.deb
 
       - name: Unpack Kernel Headers
         uses: ./.github/actions/unpack-deb
@@ -421,6 +549,13 @@ jobs:
         with:
             search-path: "${{ env.UNPACKED }}/usr/src"
 
+      - name: Stop docker container environment
+        if: always()
+        run: |
+          docker stop ci_drv_container
+          docker rm -f ci_drv_container
+        continue-on-error: true
+
   build-upstream-ubuntu-container:
     name: 'Build-Upstream-Old: ${{matrix.release}}'
     runs-on: ubuntu-20.04
@@ -428,7 +563,7 @@ jobs:
     env:
       CDN: "cdn.kernel.org/pub/linux/kernel"
       KERNEL_TARGET: "deb-pkg"
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+      EXTRA_DEP: ""
     strategy:
       matrix:
         release: [
@@ -446,18 +581,58 @@ jobs:
           "4.12",
           "4.11",
         ]
-    container:
-      image: ubuntu:18.04
     steps:
+      - name: Stop all previous docker containers
+        if: always()
+        run: |
+          docker stop ci_drv_container
+          docker rm -f ci_drv_container
+        continue-on-error: true
+
+      - name: Set up docker environment
+        run: |
+          docker pull ubuntu:18.04
+          docker run -d \
+            --name ci_drv_container \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v /mnt/cloud:/mnt/cloud \
+            -v /mnt/local:/mnt/local \
+            -v /tmp/ccache:/tmp/ccache \
+            -v /home/${USER}:/home/${USER} \
+            -e "HOME=/github/home" -e GITHUB_ACTIONS=true -e CI=true  \
+            --workdir ${{ github.workspace }} \
+            --entrypoint tail \
+            ubuntu:18.04 -f /dev/null
+
       - name: Check out repository
         uses: actions/checkout@v3
 
       - name: Set Environment (Release)
+        shell: bash
         run: |
           RELEASE="${{ matrix.release }}"
-          EXTRA_DEP="wget libelf-dev xz-utils make gcc flex bison bc libssl-dev dpkg-dev kmod cpio"
           MAJOR="${RELEASE%.*}"
           DIR="linux-$RELEASE"
+          EXTRA_DEP+=" bc"
+          EXTRA_DEP+=" bison"
+          EXTRA_DEP+=" build-essential"
+          EXTRA_DEP+=" ca-certificates"
+          EXTRA_DEP+=" cpio"
+          EXTRA_DEP+=" debhelper"
+          EXTRA_DEP+=" dpkg-dev"
+          EXTRA_DEP+=" dwarves"
+          EXTRA_DEP+=" flex"
+          EXTRA_DEP+=" gcc"
+          EXTRA_DEP+=" kmod"
+          EXTRA_DEP+=" libelf-dev"
+          EXTRA_DEP+=" libncurses-dev"
+          EXTRA_DEP+=" libperl-dev"
+          EXTRA_DEP+=" libssl-dev"
+          EXTRA_DEP+=" make"
+          EXTRA_DEP+=" perl"
+          EXTRA_DEP+=" rsync"
+          EXTRA_DEP+=" wget"
+          EXTRA_DEP+=" xz-utils"
           echo "CACHE_ID=$RELEASE" >> $GITHUB_ENV
           echo "EXTRA_DEP=$EXTRA_DEP" >> $GITHUB_ENV
           echo "KERNEL_DIR=$UNPACKED/$DIR" >> $GITHUB_ENV
@@ -475,37 +650,42 @@ jobs:
           key: ${{ env.cache-name }}-${{ env.CACHE_ID }}-on-ubuntu-${{ hashFiles('./.github/data/local_defconfig') }}
 
       - name: Install Dependencies
+        shell: docker exec ci_drv_container bash {0}
         run: |
           apt-get update
-          apt-get -q=2 install ${{ env.EXTRA_DEP }}
+          DEBIAN_FRONTEND=noninteractive apt-get -q=2 install ${{ env.EXTRA_DEP }}
 
       - name: Download Kernel Source
         if: steps.header-cache.outputs.cache-hit != 'true'
         uses: ./.github/actions/download
         with:
-          output-path: "$DOWNLOAD"
-          url: "https://$REMOTE"
+          output-path: "${{ env.DOWNLOAD }}"
+          url: "https://${{ env.REMOTE }}"
 
       - name: Unpack Kernel Source
         if: steps.header-cache.outputs.cache-hit != 'true'
+        shell: bash
         run: |
-          mkdir -p "$UNPACKED"
-          tar -C "$UNPACKED" "$TAR_FLAGS" -xf "$DOWNLOAD/$REMOTE"
+          mkdir -p "${{ env.UNPACKED }}"
+          tar -C "${{ env.UNPACKED }}" "${{ env.TAR_FLAGS }}" -xf "${{ env.DOWNLOAD }}/${{ env.REMOTE }}"
 
       - name: Configure Kernel
         if: steps.header-cache.outputs.cache-hit != 'true'
+        shell: docker exec ci_drv_container bash {0}
         run: |
-          cp -p .github/data/local_defconfig "$KERNEL_DIR/arch/x86/configs/"
-          make -s -C "$KERNEL_DIR" local_defconfig
+          cp -p .github/data/local_defconfig "${{ env.KERNEL_DIR }}/arch/x86/configs/"
+          make -s -C "${{ env.KERNEL_DIR }}" local_defconfig
 
       - name: Build Kernel Packages
         if: steps.header-cache.outputs.cache-hit != 'true'
+        shell: docker exec ci_drv_container bash {0}
         run: |
-          make -s -j"$(nproc)" -C "$KERNEL_DIR" "$KERNEL_TARGET"
+          make -s -j $(nproc) -C "${{ env.KERNEL_DIR }}" "${{ env.KERNEL_TARGET}}"
 
       - name: List Kernel Header Packages
+        shell: bash
         run: |
-          ls "$UNPACKED"/linux-headers-*.deb
+          ls "${{ env.UNPACKED }}"/linux-headers-*.deb
 
       - name: Unpack Kernel Headers
         uses: ./.github/actions/unpack-deb
@@ -518,6 +698,13 @@ jobs:
         with:
             search-path: "${{ env.UNPACKED }}/usr/src"
 
+      - name: Stop docker container environment
+        if: always()
+        run: |
+          docker stop ci_drv_container
+          docker rm -f ci_drv_container
+        continue-on-error: true
+
   build-upstream-centos-container:
     name: 'Build-Really-Old: ${{matrix.release}}'
     runs-on: ubuntu-20.04
@@ -525,7 +712,6 @@ jobs:
     env:
       CDN: "cdn.kernel.org/pub/linux/kernel"
       KERNEL_TARGET: ""
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     strategy:
       matrix:
         release: [
@@ -553,13 +739,34 @@ jobs:
           "3.9",
           "3.8",
         ]
-    container:
-      image: centos:7.5.1804
     steps:
+      - name: Stop all previous docker containers
+        if: always()
+        run: |
+          docker stop ci_drv_container
+          docker rm -f ci_drv_container
+        continue-on-error: true
+
+      - name: Set up docker environment
+        run: |
+          docker pull centos:7.5.1804
+          docker run -d \
+            --name ci_drv_container \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v /mnt/cloud:/mnt/cloud \
+            -v /mnt/local:/mnt/local \
+            -v /tmp/ccache:/tmp/ccache \
+            -v /home/${USER}:/home/${USER} \
+            -e "HOME=/github/home" -e GITHUB_ACTIONS=true -e CI=true  \
+            --workdir ${{ github.workspace }} \
+            --entrypoint tail \
+            centos:7.5.1804 -f /dev/null
+
       - name: Check out repository
         uses: actions/checkout@v3
 
       - name: Set Environment (Release)
+        shell: bash
         run: |
           RELEASE="${{ matrix.release }}"
           EXTRA_DEP+=" elfutils-libelf-devel"
@@ -579,42 +786,54 @@ jobs:
           echo "TAR_FLAGS=-J" >> $GITHUB_ENV
 
       - name: Fixup mirror for CentOS7 - Point to vault after EOL
+        shell: docker exec ci_drv_container bash {0}
         run: |
           sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
           sed -i 's|#.*baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
 
       - name: Install Dependencies
-        if: env.EXTRA_DEP != ''
+        shell: docker exec ci_drv_container bash {0}
         run: yum -qy install ${{ env.EXTRA_DEP }}
 
       - name: Download Kernel Source
         uses: ./.github/actions/download
         with:
-          output-path: "$DOWNLOAD"
-          url: "https://$REMOTE"
+          output-path: "${{ env.DOWNLOAD }}"
+          url: "https://${{ env.REMOTE }}"
 
       - name: Unpack Kernel Source
+        shell: bash
         run: |
-          mkdir -p "$UNPACKED"
-          tar -C "$UNPACKED" "$TAR_FLAGS" -xf "$DOWNLOAD/$REMOTE"
+          mkdir -p "${{ env.UNPACKED }}"
+          tar -C "${{ env.UNPACKED }}" "${{ env.TAR_FLAGS }}" -xf "${{ env.DOWNLOAD }}/${{ env.REMOTE }}"
 
       - name: Patch Kernel Source
         if: matrix.release.name == '3.8'
+        shell: bash
         run: |
           sed -i 's/if (!defined(@val))/if (!(@val))/' \
-            "$KERNEL_DIR/kernel/timeconst.pl"
+            "${{ env.KERNEL_DIR }}/kernel/timeconst.pl"
 
       - name: Configure Kernel
+        shell: docker exec ci_drv_container bash {0}
         run: |
-          cp -p .github/data/local_defconfig "$KERNEL_DIR/arch/x86/configs/"
-          make -s -C "$KERNEL_DIR" local_defconfig
+          cp -p .github/data/local_defconfig "${{ env.KERNEL_DIR }}/arch/x86/configs/"
+          make -s -C "${{ env.KERNEL_DIR }}" local_defconfig
 
       - name: Build Kernel Packages
+        shell: docker exec ci_drv_container bash {0}
         run: |
-          make -s -j $(nproc) -C "$KERNEL_DIR"
+          make -s -j $(nproc) -C "${{ env.KERNEL_DIR }}"
 
       - name: Build
         uses: ./.github/actions/build
         with:
-          search-path: "$KERNEL_DIR/../"
+          search-path: "${{ env.KERNEL_DIR }}/../"
           search-pattern: "*${{ matrix.release.name }}*"
+
+      - name: Stop docker container environment
+        if: always()
+        run: |
+          docker stop ci_drv_container
+          docker rm -f ci_drv_container
+        continue-on-error: true
