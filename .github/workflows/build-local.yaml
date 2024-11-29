@@ -104,7 +104,6 @@ jobs:
       releases: ${{ steps.matrix.outputs.releases }}
     env:
       BASE_DIR: binaries/misc/kernel-devel-c4c
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     steps:
       - name: Clean old artifacts
         run: |
@@ -170,17 +169,35 @@ jobs:
     timeout-minutes: 90
     env:
       KVER: "*"
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     strategy:
       fail-fast: false
       matrix:
         release: ${{ fromJSON(needs.prepare.outputs.releases) }}
-    container:
-      image: ${{ matrix.release.container }}
     steps:
+      - name: Stop all previous docker containers
+        if: always()
+        run: |
+          docker stop ci_drv_container
+          docker rm -f ci_drv_container
+        continue-on-error: true
+
+      - name: Set up docker environment
+        run: |
+          docker pull ${{ matrix.release.container }}
+          docker run -d \
+            --name ci_drv_container \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v /mnt/cloud:/mnt/cloud \
+            -v /mnt/local:/mnt/local \
+            -v /tmp/ccache:/tmp/ccache \
+            -v /home/${USER}/actions-runner:/home/${USER}/actions-runner \
+            -e "HOME=/github/home" -e GITHUB_ACTIONS=true -e CI=true  \
+            --workdir ${{ github.workspace }} \
+            --entrypoint tail \
+            ${{ matrix.release.container }} -f /dev/null
+
       - name: Check for pre-requisite packages
         id: provision_check
-        shell: bash
         run: |
           if [[ "${{ matrix.release.arch }}" == "x86_64" && \
                 "${{ matrix.release.name }}" == "anolisos-7.9" ]]; then
@@ -238,6 +255,7 @@ jobs:
         if: >-
           steps.provision_check.outputs.provision == 'true' &&
           startsWith(matrix.release.name, 'openeuler')
+        shell: docker exec ci_drv_container bash {0}
         run: |
           version=$(echo "${ matrix.release.upload_dir }" | cut -d "-" -f2)
           if [[ ! -f /etc/yum.repos.d/openEuler.repo ]]; then
@@ -257,6 +275,7 @@ jobs:
         if: >-
           steps.provision_check.outputs.provision == 'true' &&
           matrix.release.name == 'anolisos-7.9'
+        shell: docker exec ci_drv_container bash {0}
         run: |
           if [[ "${{ matrix.release.arch }}" == "x86_64" ]]; then
             if ! yum list installed | grep -q ius-release-el7; then
@@ -274,6 +293,7 @@ jobs:
           steps.provision_check.outputs.provision == 'true' &&
           matrix.release.name != 'anolisos-7.9' &&
           !contains(matrix.release.name, 'opensuse')
+        shell: docker exec ci_drv_container bash {0}
         run: |
           dnf clean all
           dnf distro-sync -y
@@ -289,6 +309,7 @@ jobs:
         if: >-
           steps.provision_check.outputs.provision == 'true' &&
           contains(matrix.release.name, 'opensuse')
+        shell: docker exec ci_drv_container bash {0}
         run: |
           PACKAGES="${{ steps.provision_check.outputs.missing_deps }}"
 
@@ -312,6 +333,7 @@ jobs:
           zypper -n install ${PACKAGES}
 
       - name: Clean old artifacts
+        shell: docker exec ci_drv_container bash {0}
         run: |
           sudo find -delete
 
@@ -333,6 +355,7 @@ jobs:
       - name: Install azcopy binary
         if: >-
           steps.provision_check.outputs.provision == 'true'
+        shell: docker exec ci_drv_container bash {0}
         run: |
           if [[ '${{ matrix.release.arch }}' == 'aarch64' ]]; then
             binary_link=https://azcopyvnext.azureedge.net/releases/release-10.24.0-20240326/azcopy_linux_arm64_10.24.0.tar.gz
@@ -361,9 +384,13 @@ jobs:
 
       - name: Set build environment variables | openSUSE
         if: contains(matrix.release.name, 'opensuse')
-        working-directory: ${{ env.UNPACKED }}/usr/src
-        shell: bash
+        shell: docker exec ci_drv_container bash {0}
         run: |
+          # Note: Using the github 'working-directory' option does not
+          # get propagated through to the docker environment, so use 'cd'
+          # to navigate to the correct location
+          cd ${{ env.UNPACKED }}/usr/src
+
           mkdir -p kernels
           VERSIONS=$(ls ./ | grep "linux-.*[0-9]$")
 
@@ -379,3 +406,10 @@ jobs:
         with:
             search-path: "${{ env.UNPACKED }}/usr/src/kernels"
             redirect-stderr: ${{ contains(matrix.release.name, 'opensuse') && 'false' || 'true' }}
+
+      - name: Stop docker container environment
+        if: always()
+        run: |
+          docker stop ci_drv_container
+          docker rm -f ci_drv_container
+        continue-on-error: true

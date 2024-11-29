@@ -17,7 +17,7 @@ runs:
   using: "composite"
   steps:
     - name: Build
-      shell: bash
+      shell: docker exec ci_drv_container bash {0}
       run: |
         set -o pipefail
         export MAKEFLAGS="${{ env.MAKEFLAGS }} -s -j$(nproc) M=$(pwd)/src CFLAGS_EXTRA+=-Werror"
