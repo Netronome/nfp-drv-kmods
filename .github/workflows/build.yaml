@@ -472,8 +472,7 @@ jobs:
           # Need invalidate the cache when local_defconfig changes.
           key: ${{ env.cache-name }}-${{ env.CACHE_ID }}-on-ubuntu-${{ hashFiles('./.github/data/local_defconfig') }}
 
-      - name: Set Environment (Not Cached)
-        if: steps.header-cache.outputs.cache-hit != 'true'
+      - name: Set packages to install
         run: |
           EXTRA_DEP+=" bc"
           EXTRA_DEP+=" bison"
