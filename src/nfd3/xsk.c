@@ -188,7 +188,7 @@ nfp_nfd3_xsk_rx(struct nfp_net_rx_ring *rx_ring, int budget,
 		xrxbuf->xdp->data += meta_len;
 		xrxbuf->xdp->data_end = xrxbuf->xdp->data + pkt_len;
 		xdp_set_data_meta_invalid(xrxbuf->xdp);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
+#if VER_NON_RHEL_GE(6, 10) || RHEL_RELEASE_GE(9, 536, 0, 0)
 		xsk_buff_dma_sync_for_cpu(xrxbuf->xdp);
 #else
 		xsk_buff_dma_sync_for_cpu(xrxbuf->xdp, r_vec->xsk_pool);
