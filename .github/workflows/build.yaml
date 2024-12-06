@@ -490,6 +490,7 @@ jobs:
           EXTRA_DEP+=" libssl-dev"
           EXTRA_DEP+=" make"
           EXTRA_DEP+=" perl"
+          EXTRA_DEP+=" python3"
           EXTRA_DEP+=" rsync"
           EXTRA_DEP+=" wget"
           echo "EXTRA_DEP=$EXTRA_DEP" >> $GITHUB_ENV
