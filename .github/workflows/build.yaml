@@ -383,6 +383,7 @@ jobs:
         release: [
           { name: "net-next",  runs-on: "20.04", },
           { name: "net",       runs-on: "20.04", },
+          { name: "6.12",      runs-on: "20.04", },
           { name: "6.11",      runs-on: "20.04", },
           { name: "6.10",      runs-on: "20.04", },
           { name: "6.9",       runs-on: "20.04", },
