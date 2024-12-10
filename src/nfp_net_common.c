@@ -3276,7 +3276,7 @@ static void nfp_net_netdev_init(struct nfp_net *nn)
 		break;
 	}
 
-	netdev->watchdog_timeo = msecs_to_jiffies(5 * 1000);
+	netdev->watchdog_timeo = secs_to_jiffies(5);
 
 #if VER_NON_RHEL_LT(5, 1) || VER_RHEL_LT(8, 2)
 	SWITCHDEV_SET_OPS(netdev, &nfp_port_switchdev_ops);

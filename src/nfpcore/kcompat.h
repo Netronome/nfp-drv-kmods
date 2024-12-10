@@ -1075,6 +1075,22 @@ static inline u64 pci_get_dsn(struct pci_dev *dev)
 		ifa = rcu_dereference(ifa->ifa_next))
 #endif
 
+#include <linux/jiffies.h>
+#ifndef secs_to_jiffies
+/**
+ * secs_to_jiffies: - convert seconds to jiffies
+ * @_secs: time in seconds
+ *
+ * Conversion is done by simple multiplication with HZ
+ *
+ * secs_to_jiffies() is defined as a macro rather than a static inline
+ * function so it can be used in static initializers.
+ *
+ * Return: jiffies value
+ */
+#define secs_to_jiffies(_secs) ((_secs) * HZ)
+#endif
+
 #endif /* __KERNEL__NFP_COMPAT_H__ */
 
 /*
