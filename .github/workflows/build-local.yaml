@@ -369,21 +369,6 @@ jobs:
         # of OS and architecture.
         uses: actions/checkout@v3
 
-      - name: Install azcopy binary
-        if: >-
-          steps.provision_check.outputs.provision == 'true'
-        shell: docker exec ci_drv_container bash {0}
-        run: |
-          if [[ '${{ matrix.release.arch }}' == 'aarch64' ]]; then
-            binary_link=https://azcopyvnext.azureedge.net/releases/release-10.24.0-20240326/azcopy_linux_arm64_10.24.0.tar.gz
-          else
-            binary_link=https://azcopyvnext.azureedge.net/releases/release-10.24.0-20240326/azcopy_linux_amd64_10.24.0.tar.gz
-          fi
-
-          wget $binary_link -O /tmp/downloadazcopy-v10-linux.tgz
-          tar -xvf /tmp/downloadazcopy-v10-linux.tgz -C /tmp/ --strip-components=1
-          sudo cp /tmp/azcopy /usr/bin/
-
       - name: Get local kernel-devel packages
         uses: Corigine/ci-libs/github_actions/azure/azcopy_download@main
         with:
