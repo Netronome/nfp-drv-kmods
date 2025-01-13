@@ -236,6 +236,12 @@ $(eval $(call add_compat_flag,$(srctree)/include/linux/interrupt.h,"^irq_update_
 # Check for __netdev_tx_sent_queue
 $(eval $(call add_compat_flag,$(srctree)/include/linux/netdevice.h,"__netdev_tx_sent_queue",COMPAT__NETDEV_TX_SENT_QUEUE))
 
+# Check for size_add function
+$(eval $(call add_compat_flag,$(srctree)/include/linux/overflow.h,"__must_check size_add",COMPAT__HAVE_SIZE_ADD))
+
+# Check if overflow file exists
+$(eval $(call add_compat_flag,$(srctree)/include/linux/overflow.h,"__LINUX_OVERFLOW_H",COMPAT__HAVE_OVERFLOW_FILE))
+
 utsrelease_h_path :=$(srctree)/include/generated/utsrelease.h
 # Check for BC Linux
 $(eval $(call add_compat_flag,$(utsrelease_h_path),bclinux,COMPAT_BCLINUX=1))

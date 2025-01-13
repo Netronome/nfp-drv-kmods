@@ -183,6 +183,9 @@
 #endif
 #include <linux/random.h>
 #include <linux/vmalloc.h>
+#ifdef COMPAT__HAVE_OVERFLOW_FILE
+#include <linux/overflow.h>
+#endif
 
 #ifndef PCI_VENDOR_ID_NETRONOME
 #define PCI_VENDOR_ID_NETRONOME		0x19ee
@@ -1090,6 +1093,66 @@ static inline u64 pci_get_dsn(struct pci_dev *dev)
  */
 #define secs_to_jiffies(_secs) ((_secs) * HZ)
 #endif
+
+#ifndef COMPAT__HAVE_SIZE_ADD
+#ifndef COMPAT__HAVE_OVERFLOW_FILE
+/* These functions were copied from the commit which originally introduced the
+ * <linux/overflow.h> file. That change contains all the explanations of the
+ * below macros, duplicating it here will add a lot of noise. Please see kernel
+ * commit: f0907827a8a9 ("compiler.h: enable builtin overflow checkers and add
+ * fallback code") for more details.
+ */
+#include <linux/compiler.h>
+#define is_signed_type(type)       (((type)(-1)) < (type)1)
+#define __type_half_max(type) ((type)1 << (8*sizeof(type) - 1 - is_signed_type(type)))
+#define type_max(T) ((T)((__type_half_max(T) - 1) + __type_half_max(T)))
+#define type_min(T) ((T)((T)-type_max(T)-(T)1))
+
+#define __unsigned_add_overflow(a, b, d) ({    \
+       typeof(a) __a = (a);                    \
+       typeof(b) __b = (b);                    \
+       typeof(d) __d = (d);                    \
+       (void) (&__a == &__b);                  \
+       (void) (&__a == __d);                   \
+       *__d = __a + __b;                       \
+       *__d < __a;                             \
+})
+
+#define __signed_add_overflow(a, b, d) ({      \
+       typeof(a) __a = (a);                    \
+       typeof(b) __b = (b);                    \
+       typeof(d) __d = (d);                    \
+       (void) (&__a == &__b);                  \
+       (void) (&__a == __d);                   \
+       *__d = (u64)__a + (u64)__b;             \
+       (((~(__a ^ __b)) & (*__d ^ __a))        \
+               & type_min(typeof(__a))) != 0;  \
+})
+
+#define check_add_overflow(a, b, d)                                    \
+       __builtin_choose_expr(is_signed_type(typeof(a)),                \
+                       __signed_add_overflow(a, b, d),                 \
+                       __unsigned_add_overflow(a, b, d))
+#endif //COMPAT__HAVE_OVERFLOW_FILE
+/**
+ * size_add() - Calculate size_t addition with saturation at SIZE_MAX
+ * @addend1: first addend
+ * @addend2: second addend
+ *
+ * Returns: calculate @addend1 + @addend2, both promoted to size_t,
+ * with any overflow causing the return value to be SIZE_MAX. The
+ * lvalue must be size_t to avoid implicit type conversion.
+ */
+static inline size_t __must_check size_add(size_t addend1, size_t addend2)
+{
+        size_t bytes;
+
+        if (check_add_overflow(addend1, addend2, &bytes))
+                return SIZE_MAX;
+
+        return bytes;
+}
+#endif //COMPAT__HAVE_SIZE_ADD
 
 #endif /* __KERNEL__NFP_COMPAT_H__ */
 
