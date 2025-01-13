@@ -220,6 +220,7 @@ jobs:
                 { "name": "9.4", "container": "rockylinux:9.0" },
                 { "name": "9.5", "container": "rockylinux:9.0" },
                 { "name": "9-stream", "container": "rockylinux:9.0" },
+                { "name": "10-stream", "container": "dokken/centos-stream-10:main" },
         ]
 
     steps:
@@ -260,6 +261,7 @@ jobs:
           9.[0-4])             MIRROR="dl.rockylinux.org/vault/rocky" ;;
           9.[5-9])             MIRROR="dl.rockylinux.org/pub/rocky" ;;
           9-*)                 MIRROR="mirror.stream.centos.org" ;;
+          10-*)                MIRROR="mirror.stream.centos.org" ;;
           *)                   MIRROR="mirror.centos.org/centos" ;;
           esac
 
@@ -271,6 +273,9 @@ jobs:
                   OS_DIR2="os"
                   ;;
           9*)     OS_DIR1="AppStream"
+                  OS_DIR2="os"
+                  ;;
+          10*)    OS_DIR1="AppStream"
                   OS_DIR2="os"
                   ;;
           esac
