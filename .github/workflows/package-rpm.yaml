@@ -705,12 +705,6 @@ jobs:
     runs-on:
       - self-hosted
       - ${{ matrix.release.arch == 'aarch64' && 'builder-arm' || 'builder' }}
-    container:
-      image: ${{ matrix.release.container }}
-      volumes:
-        - /mnt/cloud:/mnt/cloud
-        - /mnt/local:/mnt/local
-      options: "--entrypoint /bin/bash"
     strategy:
       fail-fast: false
       matrix:
@@ -718,9 +712,34 @@ jobs:
     env:
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     steps:
+      - name: Stop all previous docker containers
+        if: always()
+        run: |
+          docker stop ci_drv_container
+          docker rm -f ci_drv_container
+        continue-on-error: true
+
+      - name: Set up docker environment
+        run: |
+          touch ${{ github.workspace }}/github-output
+          docker pull ${{ matrix.release.container }}
+          docker run -d \
+            --name ci_drv_container \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v /mnt/cloud:/mnt/cloud \
+            -v /mnt/local:/mnt/local \
+            -v /tmp/ccache:/tmp/ccache \
+            -v /tmp/${{ matrix.release.upload_dir }}:/tmp/${{ matrix.release.upload_dir }} \
+            -v /home/${USER}:/home/${USER} \
+            -v ${{ github.workspace }}/github-output:/github-output \
+            -e "HOME=/github/home" -e GITHUB_ACTIONS=true -e CI=true  \
+            -e "GITHUB_OUTPUT=/github-output" \
+            --workdir ${{ github.workspace }} \
+            --entrypoint tail \
+            ${{ matrix.release.container }} -f /dev/null
+
       - name: Check for pre-requisite packages
-        id: provision_check
-        shell: bash
+        shell: docker exec ci_drv_container bash {0}
         run: |
           if [[ "${{ matrix.release.arch }}" == "x86_64" ]]; then
             GIT=git236
@@ -771,14 +790,20 @@ jobs:
             fi
           done
 
+          echo "missing_deps=${missing_deps}" | tee -a $GITHUB_OUTPUT
+          echo "provision=${provision}" | tee -a $GITHUB_OUTPUT
+
+      - name: Set pre-requisites
+        id: provision_check
+        shell: bash
+        run: |
           if azcopy --version >/dev/null 2>&1; then
             azcopy_present="true"
           else
             azcopy_present="false"
           fi
 
-          echo "missing_deps=${missing_deps}" | tee -a $GITHUB_OUTPUT
-          echo "provision=${provision}" | tee -a $GITHUB_OUTPUT
+          cat ${{ github.workspace}}/github-output | tee -a $GITHUB_OUTPUT
           echo "azcopy_present=${azcopy_present}" | tee -a $GITHUB_OUTPUT
 
       - name: Add pre-requisite repositories and plugins | CentOS-7/8
@@ -786,6 +811,7 @@ jobs:
           steps.provision_check.outputs.provision == 'true' &&
           (matrix.release.upload_dir == 'centos-8' ||
            matrix.release.upload_dir == 'centos-7')
+        shell: docker exec ci_drv_container bash {0}
         run: |
           sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
           sed -i 's|#.*baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
@@ -794,6 +820,7 @@ jobs:
         if: >-
           steps.provision_check.outputs.provision == 'true' &&
           startsWith(matrix.release.upload_dir, 'openeuler')
+        shell: docker exec ci_drv_container bash {0}
         run: |
           version=$(echo "${ matrix.release.upload_dir }" | cut -d "-" -f2)
           if [[ ! -f /etc/yum.repos.d/openEuler.repo ]]; then
@@ -814,6 +841,7 @@ jobs:
           steps.provision_check.outputs.provision == 'true' &&
           (matrix.release.upload_dir == 'anolisos-7.9' ||
            matrix.release.upload_dir == 'centos-7')
+        shell: docker exec ci_drv_container bash {0}
         run: |
           if [[ "${{ matrix.release.arch }}" == "x86_64" ]]; then
             if ! yum list installed | grep -q ius-release-el7; then
@@ -832,6 +860,7 @@ jobs:
           (matrix.release.upload_dir != 'anolisos-7.9' &&
            matrix.release.upload_dir != 'centos-7' &&
            !startsWith(matrix.release.upload_dir, 'opensuse'))
+        shell: docker exec ci_drv_container bash {0}
         run: |
           dnf clean all
           if [[ "${{ matrix.release.upload_dir }}" != *"nfschina-server"* ]]; then
@@ -850,6 +879,7 @@ jobs:
         if: >-
           steps.provision_check.outputs.provision == 'true' &&
           startsWith(matrix.release.upload_dir, 'opensuse')
+        shell: docker exec ci_drv_container bash {0}
         run: |
           if ! zypper lr repo-oss >/dev/null 2>&1; then
             zypper ar -f http://download.opensuse.org/distribution/openSUSE-stable/repo/oss repo-oss
@@ -858,6 +888,7 @@ jobs:
           zypper -n in ${{ steps.provision_check.outputs.missing_deps }}
 
       - name: Clean old artifacts
+        shell: docker exec ci_drv_container bash {0}
         run: |
           sudo find -delete
 
@@ -900,6 +931,7 @@ jobs:
       - name: Install azcopy binary
         if: >-
           steps.provision_check.outputs.azcopy_present == 'false'
+        shell: bash
         run: |
           if [[ '${{ matrix.release.arch }}' == 'aarch64' ]]; then
             binary_link=https://azcopyvnext.azureedge.net/releases/release-10.24.0-20240326/azcopy_linux_arm64_10.24.0.tar.gz
@@ -966,9 +998,13 @@ jobs:
 
       - name: Set build environment variables | openSUSE
         if: startsWith(matrix.release.upload_dir, 'opensuse')
-        working-directory: ${{ env.UNPACKED }}/usr/src
-        shell: bash
+        shell: docker exec ci_drv_container bash {0}
         run: |
+          # Note: Using the github 'working-directory' option does not
+          # get propagated through to the docker environment, so use 'cd'
+          # to navigate to the correct location
+          cd ${{ env.UNPACKED }}/usr/src
+
           mkdir -p kernels
           VERSIONS=$(ls ./ | grep "linux-.*[0-9]$")
 
@@ -980,21 +1016,14 @@ jobs:
           done
 
       - name: Build RPM packages
-        shell: bash
+        shell: docker exec ci_drv_container bash {0}
         run: |
-          TARGET_DISTRO=${{ matrix.release.upload_dir }}
-
           for HEADERS in $(ls ${{ env.UNPACKED }}/usr/src/kernels/); do
             rpmbuild \
               -D "%kernel_path ${{ env.UNPACKED }}/usr/src/kernels/${HEADERS}/" \
-              -D "_topdir /tmp/${TARGET_DISTRO}/${{ env.DRIVER_VER }}/rpmbuild" \
+              -D "_topdir /tmp/${{ matrix.release.upload_dir }}/${{ env.DRIVER_VER }}/rpmbuild" \
               -tb ${{ env.UNPACKED }}/${{ env.DRIVER_VER }}/${{ env.RPM_TAR }}
           done
-
-          RPM_DIR=/tmp/${TARGET_DISTRO}/${{ env.DRIVER_VER }}/rpmbuild/RPMS/${{ matrix.release.arch }}
-          echo "RPM_DIR=${RPM_DIR}/*" | tee -a $GITHUB_ENV
-          echo "TARGET_DISTRO=${TARGET_DISTRO}" | tee -a $GITHUB_ENV
-
 
       - name: Prepare environment for upload
         shell: bash
@@ -1003,7 +1032,7 @@ jobs:
 
           if [[ '${{ inputs.driver_upload_location }}' == 'tmp' || \
                 '${{ inputs.driver_build_type }}' == 'tmp' ]]; then
-            AZURE_PATH=tmp/nfp_drv_dkms_builds/${{ github.actor }}/${DATE}/rpm/${{ env.TARGET_DISTRO }}
+            AZURE_PATH=tmp/nfp_drv_dkms_builds/${{ github.actor }}/${DATE}/rpm/${{ matrix.release.upload_dir }}
           else
             if [[ "${{ inputs.customer }}" != "" ]]; then
               BASE_NAME="agilio-nfp-driver-${{ inputs.customer }}-"
@@ -1012,8 +1041,10 @@ jobs:
             fi
             RELEASE_VER_MAJOR=$(echo ${{ env.RPM_TAR }} | \
               sed "s/${BASE_NAME}\([0-9]\{2\}\.[0-9]\{2\}\).*/\1/" )
-            AZURE_PATH=${{ env.BASE_DIR }}/${RELEASE_VER_MAJOR}/rpm/${{ env.TARGET_DISTRO }}
+            AZURE_PATH=${{ env.BASE_DIR }}/${RELEASE_VER_MAJOR}/rpm/${{ matrix.release.upload_dir }}
           fi
+          RPM_DIR=/tmp/${{ matrix.release.upload_dir }}/${{ env.DRIVER_VER }}/rpmbuild/RPMS/${{ matrix.release.arch }}
+          echo "RPM_DIR=${RPM_DIR}/*" | tee -a $GITHUB_ENV
           echo "AZURE_PATH=${AZURE_PATH}" | tee -a $GITHUB_ENV
 
       - name: Upload RPM packages
@@ -1026,4 +1057,4 @@ jobs:
       - name: Cleanup RPM build tree
         shell: bash
         run: |
-          sudo rm -r /tmp/${{ env.TARGET_DISTRO }}/${{ env.DRIVER_VER }}/rpmbuild
+          sudo rm -r /tmp/${{ matrix.release.upload_dir }}/${{ env.DRIVER_VER }}/rpmbuild
