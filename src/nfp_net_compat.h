@@ -1508,13 +1508,16 @@ int compat__nfp_flower_indr_setup_tc_cb(struct net_device *netdev,
 					void *type_data);
 #endif
 
+#if VER_RHEL_GE(8, 3)
+int nfp_flower_setup_indr_block_cb(enum tc_setup_type type,
+				   void *type_data, void *cb_priv);
+#endif
+
 #if VER_NON_RHEL_GE(5, 8) || (VER_BCL_GE(8, 3) && !COMPAT_BC82_KERN_11) || \
     VER_NON_BCL_GE(8, 4)
 #define compat__nfp_flower_setup_indr_tc_release \
 	nfp_flower_setup_indr_tc_release
-#elif VER_RHEL_GE(8, 3)
-int nfp_flower_setup_indr_block_cb(enum tc_setup_type type,
-				   void *type_data, void *cb_priv);
+#else
 #define compat__nfp_flower_setup_indr_tc_release \
 	nfp_flower_setup_indr_block_cb
 #endif
