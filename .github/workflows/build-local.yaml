@@ -183,6 +183,7 @@ jobs:
 
       - name: Set up docker environment
         run: |
+          touch ${{ github.workspace }}/github-output
           docker pull ${{ matrix.release.container }}
           docker run -d \
             --name ci_drv_container \
@@ -190,14 +191,17 @@ jobs:
             -v /mnt/cloud:/mnt/cloud \
             -v /mnt/local:/mnt/local \
             -v /tmp/ccache:/tmp/ccache \
-            -v /home/${USER}/actions-runner:/home/${USER}/actions-runner \
+            -v /tmp/${{ matrix.release.upload_dir }}:/tmp/${{ matrix.release.upload_dir }} \
+            -v /home/${USER}:/home/${USER} \
+            -v ${{ github.workspace }}/github-output:/github-output \
             -e "HOME=/github/home" -e GITHUB_ACTIONS=true -e CI=true  \
+            -e "GITHUB_OUTPUT=/github-output" \
             --workdir ${{ github.workspace }} \
             --entrypoint tail \
             ${{ matrix.release.container }} -f /dev/null
 
       - name: Check for pre-requisite packages
-        id: provision_check
+        shell: docker exec ci_drv_container bash {0}
         run: |
           if [[ "${{ matrix.release.arch }}" == "x86_64" && \
                 "${{ matrix.release.name }}" == "anolisos-7.9" ]]; then
@@ -250,6 +254,19 @@ jobs:
 
           echo "missing_deps=$missing_deps" | tee -a $GITHUB_OUTPUT
           echo "provision=$provision" | tee -a $GITHUB_OUTPUT
+
+      - name: Set pre-requisites
+        id: provision_check
+        shell: bash
+        run: |
+          if azcopy --version >/dev/null 2>&1; then
+            azcopy_present="true"
+          else
+            azcopy_present="false"
+          fi
+
+          cat ${{ github.workspace}}/github-output | tee -a $GITHUB_OUTPUT
+          echo "azcopy_present=${azcopy_present}" | tee -a $GITHUB_OUTPUT
 
       - name: Update OpenEuler mirror
         if: >-
