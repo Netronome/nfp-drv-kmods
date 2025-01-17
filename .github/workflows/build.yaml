@@ -377,7 +377,7 @@ jobs:
 
   build-upstream-ubuntu:
     name: 'Build-Upstream: ${{matrix.release.name}}'
-    runs-on: ubuntu-${{ matrix.release.runs-on }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       CDN: "cdn.kernel.org/pub/linux/kernel"
@@ -386,38 +386,38 @@ jobs:
     strategy:
       matrix:
         release: [
-          { name: "net-next",  runs-on: "20.04", },
-          { name: "net",       runs-on: "20.04", },
-          { name: "6.12",      runs-on: "20.04", },
-          { name: "6.11",      runs-on: "20.04", },
-          { name: "6.10",      runs-on: "20.04", },
-          { name: "6.9",       runs-on: "20.04", },
-          { name: "6.8",       runs-on: "20.04", },
-          { name: "6.7",       runs-on: "20.04", },
-          { name: "6.6",       runs-on: "20.04", },
-          { name: "6.5",       runs-on: "20.04", },
-          { name: "6.4",       runs-on: "20.04", },
-          { name: "6.3",       runs-on: "20.04", },
-          { name: "6.2",       runs-on: "20.04", },
-          { name: "6.1",       runs-on: "20.04", },
-          { name: "6.0",       runs-on: "20.04", },
-          { name: "5.19",      runs-on: "20.04", },
-          { name: "5.18",      runs-on: "20.04", },
-          { name: "5.17",      runs-on: "20.04", },
-          { name: "5.16",      runs-on: "20.04", },
-          { name: "5.15",      runs-on: "20.04", },
-          { name: "5.14",      runs-on: "20.04", },
-          { name: "5.13",      runs-on: "20.04", },
-          { name: "5.12",      runs-on: "20.04", },
-          { name: "5.11",      runs-on: "20.04", },
-          { name: "5.10",      runs-on: "20.04", },
-          { name: "5.9",       runs-on: "20.04", },
-          { name: "5.8",       runs-on: "20.04", },
-          { name: "5.7",       runs-on: "20.04", },
-          { name: "5.6",       runs-on: "20.04", },
-          { name: "5.5",       runs-on: "20.04", },
-          { name: "5.4",       runs-on: "20.04", },
-          { name: "5.3",       runs-on: "20.04", },
+          { name: "net-next",  runs-on: "24.04", },
+          { name: "net",       runs-on: "24.04", },
+          { name: "6.12",      runs-on: "24.04", },
+          { name: "6.11",      runs-on: "24.04", },
+          { name: "6.10",      runs-on: "24.04", },
+          { name: "6.9",       runs-on: "24.04", },
+          { name: "6.8",       runs-on: "24.04", },
+          { name: "6.7",       runs-on: "24.04", },
+          { name: "6.6",       runs-on: "24.04", },
+          { name: "6.5",       runs-on: "24.04", },
+          { name: "6.4",       runs-on: "24.04", },
+          { name: "6.3",       runs-on: "24.04", },
+          { name: "6.2",       runs-on: "24.04", },
+          { name: "6.1",       runs-on: "24.04", },
+          { name: "6.0",       runs-on: "24.04", },
+          { name: "5.19",      runs-on: "24.04", },
+          { name: "5.18",      runs-on: "24.04", },
+          { name: "5.17",      runs-on: "24.04", },
+          { name: "5.16",      runs-on: "24.04", },
+          { name: "5.15",      runs-on: "24.04", },
+          { name: "5.14",      runs-on: "24.04", },
+          { name: "5.13",      runs-on: "24.04", },
+          { name: "5.12",      runs-on: "24.04", },
+          { name: "5.11",      runs-on: "24.04", },
+          { name: "5.10",      runs-on: "24.04", },
+          { name: "5.9",       runs-on: "24.04", },
+          { name: "5.8",       runs-on: "24.04", },
+          { name: "5.7",       runs-on: "24.04", },
+          { name: "5.6",       runs-on: "24.04", },
+          { name: "5.5",       runs-on: "24.04", },
+          { name: "5.4",       runs-on: "24.04", },
+          { name: "5.3",       runs-on: "24.04", },
         ]
     steps:
       - name: Stop all previous docker containers
@@ -429,7 +429,7 @@ jobs:
 
       - name: Set up docker environment
         run: |
-          docker pull ubuntu:20.04
+          docker pull ubuntu:${{ matrix.release.runs-on }}
           docker run -d \
             --name ci_drv_container \
             -v /var/run/docker.sock:/var/run/docker.sock \
@@ -564,7 +564,7 @@ jobs:
 
   build-upstream-ubuntu-container:
     name: 'Build-Upstream-Old: ${{matrix.release}}'
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       CDN: "cdn.kernel.org/pub/linux/kernel"
@@ -713,7 +713,7 @@ jobs:
 
   build-upstream-centos-container:
     name: 'Build-Really-Old: ${{matrix.release}}'
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       CDN: "cdn.kernel.org/pub/linux/kernel"
