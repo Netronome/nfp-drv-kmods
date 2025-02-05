@@ -411,6 +411,7 @@ jobs:
         release: [
           { name: "net-next",  runs-on: "24.04", },
           { name: "net",       runs-on: "24.04", },
+          { name: "6.13",      runs-on: "24.04", },
           { name: "6.12",      runs-on: "24.04", },
           { name: "6.11",      runs-on: "24.04", },
           { name: "6.10",      runs-on: "24.04", },
