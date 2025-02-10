@@ -83,6 +83,7 @@ nfp_hwmon_is_visible(const void *data, enum hwmon_sensor_types type, u32 attr,
 	return 0;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 2, 0)
 static u32 nfp_chip_config[] = {
 	HWMON_C_REGISTER_TZ,
 	0
@@ -114,15 +115,24 @@ static const struct hwmon_channel_info nfp_power = {
 	.type = hwmon_power,
 	.config = nfp_power_config,
 };
+#endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 static const struct hwmon_channel_info * const nfp_hwmon_info[] = {
 #else
 static const struct hwmon_channel_info * nfp_hwmon_info[] = {
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 2, 0)
+	HWMON_CHANNEL_INFO(chip, HWMON_C_REGISTER_TZ),
+	HWMON_CHANNEL_INFO(temp, HWMON_T_INPUT | HWMON_T_MAX | HWMON_T_CRIT),
+	HWMON_CHANNEL_INFO(power, HWMON_P_INPUT | HWMON_P_MAX,
+			   HWMON_P_INPUT,
+			   HWMON_P_INPUT),
+#else
 	&nfp_chip,
 	&nfp_temp,
 	&nfp_power,
+#endif
 	NULL
 };
 
