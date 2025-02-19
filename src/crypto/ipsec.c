@@ -591,6 +591,7 @@ static void nfp_net_xfrm_del_state(struct xfrm_state *x)
 	xa_erase(&nn->xa_ipsec, x->xso.offload_handle - 1);
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0)
 static bool nfp_net_ipsec_offload_ok(struct sk_buff *skb, struct xfrm_state *x)
 {
 	if (x->props.family == AF_INET)
@@ -600,11 +601,15 @@ static bool nfp_net_ipsec_offload_ok(struct sk_buff *skb, struct xfrm_state *x)
 	/* Offload with IPv6 extension headers is not support yet */
 	return !(ipv6_ext_hdr(ipv6_hdr(skb)->nexthdr));
 }
+#endif
+
 
 static const struct xfrmdev_ops nfp_net_ipsec_xfrmdev_ops = {
 	.xdo_dev_state_add = nfp_net_xfrm_add_state,
 	.xdo_dev_state_delete = nfp_net_xfrm_del_state,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0)
 	.xdo_dev_offload_ok = nfp_net_ipsec_offload_ok,
+#endif
 };
 
 void nfp_net_ipsec_init(struct nfp_net *nn)
