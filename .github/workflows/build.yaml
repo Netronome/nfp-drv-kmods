@@ -32,6 +32,7 @@ jobs:
       matrix:
         release: [
                 { "name": "24.04", "kernel": "6.8", "container": "ubuntu:24.04" },
+                { "name": "24.04", "kernel": "6.11", "container": "ubuntu:24.04", "hwe": "hwe" },
                 { "name": "22.04", "kernel": "6.8", "container": "ubuntu:22.04", "hwe": "hwe" },
                 { "name": "22.04", "kernel": "5.15", "container": "ubuntu:22.04" },
                 { "name": "20.04", "kernel": "5.4", "container": "ubuntu:20.04" },
@@ -81,8 +82,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v3
 
-      - name: Set HWE Environment (Ubuntu 22.04)
-        if: matrix.release.hwe != '' && matrix.release.name == '22.04'
+      - name: Set HWE Environment (Ubuntu 22.04 | 24.04)
+        if: >
+          matrix.release.hwe != ''
+          && (matrix.release.name == '22.04' || matrix.release.name == '24.04')
         env:
           NAME: ${{ matrix.release.name }}
           KERNEL_VERSION: ${{ matrix.release.kernel }}
