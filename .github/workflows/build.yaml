@@ -42,8 +42,13 @@ jobs:
       - name: Stop all previous docker containers
         if: always()
         run: |
-          docker stop ci_drv_container
-          docker rm -f ci_drv_container
+          if docker ps -a | grep -q ci_drv_container; then
+            docker stop ci_drv_container
+            docker rm -f ci_drv_container
+          fi
+          if docker images | grep -q ci_drv_container; then
+            docker rm -f ci_drv_container
+          fi
         continue-on-error: true
 
       - name: Set up docker environment
@@ -180,8 +185,13 @@ jobs:
       - name: Stop docker container environment
         if: always()
         run: |
-          docker stop ci_drv_container
-          docker rm -f ci_drv_container
+          if docker ps -a | grep -q ci_drv_container; then
+            docker stop ci_drv_container
+            docker rm -f ci_drv_container
+          fi
+          if docker images | grep -q ci_drv_container; then
+            docker rm -f ci_drv_container
+          fi
         continue-on-error: true
 
   build-centos:
@@ -230,8 +240,13 @@ jobs:
       - name: Stop all previous docker containers
         if: always()
         run: |
-          docker stop ci_drv_container
-          docker rm -f ci_drv_container
+          if docker ps -a | grep -q ci_drv_container; then
+            docker stop ci_drv_container
+            docker rm -f ci_drv_container
+          fi
+          if docker images | grep -q ci_drv_container; then
+            docker rm -f ci_drv_container
+          fi
         continue-on-error: true
 
       - name: Set up docker environment
@@ -374,8 +389,13 @@ jobs:
       - name: Stop docker container environment
         if: always()
         run: |
-          docker stop ci_drv_container
-          docker rm -f ci_drv_container
+          if docker ps -a | grep -q ci_drv_container; then
+            docker stop ci_drv_container
+            docker rm -f ci_drv_container
+          fi
+          if docker images | grep -q ci_drv_container; then
+            docker rm -f ci_drv_container
+          fi
         continue-on-error: true
 
   build-upstream-ubuntu:
@@ -426,8 +446,13 @@ jobs:
       - name: Stop all previous docker containers
         if: always()
         run: |
-          docker stop ci_drv_container
-          docker rm -f ci_drv_container
+          if docker ps -a | grep -q ci_drv_container; then
+            docker stop ci_drv_container
+            docker rm -f ci_drv_container
+          fi
+          if docker images | grep -q ci_drv_container; then
+            docker rm -f ci_drv_container
+          fi
         continue-on-error: true
 
       - name: Set up docker environment
@@ -561,8 +586,13 @@ jobs:
       - name: Stop docker container environment
         if: always()
         run: |
-          docker stop ci_drv_container
-          docker rm -f ci_drv_container
+          if docker ps -a | grep -q ci_drv_container; then
+            docker stop ci_drv_container
+            docker rm -f ci_drv_container
+          fi
+          if docker images | grep -q ci_drv_container; then
+            docker rm -f ci_drv_container
+          fi
         continue-on-error: true
 
   build-upstream-ubuntu-container:
@@ -594,8 +624,13 @@ jobs:
       - name: Stop all previous docker containers
         if: always()
         run: |
-          docker stop ci_drv_container
-          docker rm -f ci_drv_container
+          if docker ps -a | grep -q ci_drv_container; then
+            docker stop ci_drv_container
+            docker rm -f ci_drv_container
+          fi
+          if docker images | grep -q ci_drv_container; then
+            docker rm -f ci_drv_container
+          fi
         continue-on-error: true
 
       - name: Set up docker environment
@@ -710,8 +745,13 @@ jobs:
       - name: Stop docker container environment
         if: always()
         run: |
-          docker stop ci_drv_container
-          docker rm -f ci_drv_container
+          if docker ps -a | grep -q ci_drv_container; then
+            docker stop ci_drv_container
+            docker rm -f ci_drv_container
+          fi
+          if docker images | grep -q ci_drv_container; then
+            docker rm -f ci_drv_container
+          fi
         continue-on-error: true
 
   build-upstream-centos-container:
@@ -752,8 +792,13 @@ jobs:
       - name: Stop all previous docker containers
         if: always()
         run: |
-          docker stop ci_drv_container
-          docker rm -f ci_drv_container
+          if docker ps -a | grep -q ci_drv_container; then
+            docker stop ci_drv_container
+            docker rm -f ci_drv_container
+          fi
+          if docker images | grep -q ci_drv_container; then
+            docker rm -f ci_drv_container
+          fi
         continue-on-error: true
 
       - name: Set up docker environment
@@ -843,6 +888,11 @@ jobs:
       - name: Stop docker container environment
         if: always()
         run: |
-          docker stop ci_drv_container
-          docker rm -f ci_drv_container
+          if docker ps -a | grep -q ci_drv_container; then
+            docker stop ci_drv_container
+            docker rm -f ci_drv_container
+          fi
+          if docker images | grep -q ci_drv_container; then
+            docker rm -f ci_drv_container
+          fi
         continue-on-error: true
