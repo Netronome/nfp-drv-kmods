@@ -242,6 +242,9 @@ $(eval $(call add_compat_flag,$(srctree)/include/linux/overflow.h,"__must_check 
 # Check if overflow file exists
 $(eval $(call add_compat_flag,$(srctree)/include/linux/overflow.h,"__LINUX_OVERFLOW_H",COMPAT__HAVE_OVERFLOW_FILE))
 
+# Check if timer_delete_sync exists
+$(eval $(call add_compat_flag,$(srctree)/include/linux/timer.h,"int timer_delete_sync(struct timer_list \*timer)",COMPAT__HAVE_TIMER_DEL_SYNC))
+
 utsrelease_h_path :=$(srctree)/include/generated/utsrelease.h
 # Check for BC Linux
 $(eval $(call add_compat_flag,$(utsrelease_h_path),bclinux,COMPAT_BCLINUX=1))

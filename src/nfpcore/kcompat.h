@@ -1154,6 +1154,11 @@ static inline size_t __must_check size_add(size_t addend1, size_t addend2)
 }
 #endif //COMPAT__HAVE_SIZE_ADD
 
+#ifndef COMPAT__HAVE_TIMER_DEL_SYNC
+#define timer_delete_sync del_timer_sync
+#define timer_delete del_timer
+#endif //COMPAT__HAVE_TIMER_DEL_SYNC
+
 #endif /* __KERNEL__NFP_COMPAT_H__ */
 
 /*

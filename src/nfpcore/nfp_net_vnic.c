@@ -367,7 +367,7 @@ static int nfp_net_vnic_netdev_close(struct net_device *netdev)
 	struct nfp_net_vnic *vnic = netdev_priv(netdev);
 
 	netif_stop_queue(netdev);
-	del_timer_sync(&vnic->timer);
+	timer_delete_sync(&vnic->timer);
 
 	/* Mark our side of the queue as disabled. */
 	writel(0, &vnic->rx->ctrl.enabled);
