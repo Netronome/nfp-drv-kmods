@@ -276,15 +276,20 @@ static void set_sha2_512hmac(struct nfp_ipsec_cfg_add_sa *cfg, int *trunc_len)
 #undef NL_SET_ERR_MSG_MOD
 #define NL_SET_ERR_MSG_MOD(e, m)	nn_err(nn, "%s\n", m)
 static int nfp_net_xfrm_add_state(struct xfrm_state *x)
-#else
+#elif LINUX_VERSION_CODE <= KERNEL_VERSION(6, 15, 0)
 static int nfp_net_xfrm_add_state(struct xfrm_state *x,
+				  struct netlink_ext_ack *extack)
+#else
+static int nfp_net_xfrm_add_state(struct net_device *dev,
+				  struct xfrm_state *x,
 				  struct netlink_ext_ack *extack)
 #endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
-	struct net_device *netdev = x->xso.real_dev;
-#else
-	struct net_device *netdev = x->xso.dev;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0) && \
+	LINUX_VERSION_CODE <= KERNEL_VERSION(6, 15, 0)
+	struct net_device *dev = x->xso.real_dev;
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
+	struct net_device *dev = x->xso.dev;
 #endif
 	struct nfp_ipsec_cfg_mssg msg = {};
 	int i, key_len, trunc_len, err = 0;
@@ -292,7 +297,7 @@ static int nfp_net_xfrm_add_state(struct xfrm_state *x,
 	struct nfp_net *nn;
 	unsigned int saidx;
 
-	nn = netdev_priv(netdev);
+	nn = netdev_priv(dev);
 	cfg = &msg.cfg_add_sa;
 
 	/* General */
@@ -568,21 +573,26 @@ static int nfp_net_xfrm_add_state(struct xfrm_state *x,
 	return 0;
 }
 
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(6, 15, 0)
 static void nfp_net_xfrm_del_state(struct xfrm_state *x)
+#else
+static void nfp_net_xfrm_del_state(struct net_device *dev, struct xfrm_state *x)
+#endif
 {
 	struct nfp_ipsec_cfg_mssg msg = {
 		.cmd = NFP_IPSEC_CFG_MSSG_INV_SA,
 		.sa_idx = x->xso.offload_handle - 1,
 	};
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
-	struct net_device *netdev = x->xso.real_dev;
-#else
-	struct net_device *netdev = x->xso.dev;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0) && \
+	LINUX_VERSION_CODE <= KERNEL_VERSION(6, 15, 0)
+	struct net_device *dev = x->xso.real_dev;
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
+	struct net_device *dev = x->xso.dev;
 #endif
 	struct nfp_net *nn;
 	int err;
 
-	nn = netdev_priv(netdev);
+	nn = netdev_priv(dev);
 	err = nfp_net_sched_mbox_amsg_work(nn, NFP_NET_CFG_MBOX_CMD_IPSEC, &msg,
 					   sizeof(msg), nfp_net_ipsec_cfg);
 	if (err)
