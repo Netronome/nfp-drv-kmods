@@ -291,7 +291,10 @@ jobs:
                  >> /etc/yum.repos.d/openEuler.repo
           fi
 
-          sed -i 's|repo.openeuler.org|mirrors.dotsrc.org/openeuler|g' /etc/yum.repos.d/openEuler.repo
+          # Some images have repo.openeuler.org as the default, and others
+          # have mirrors.dotsrc.org as the default. Update for both scenarios.
+          sed -i 's|repo.openeuler.org|mirror.accum.se/mirror/openeuler.org|g' /etc/yum.repos.d/openEuler.repo
+          sed -i 's|mirrors.dotsrc.org/openeuler|mirror.accum.se/mirror/openeuler.org|g' /etc/yum.repos.d/openEuler.repo
 
       - name: Install pre-requisite packages | YUM
         if: >-
