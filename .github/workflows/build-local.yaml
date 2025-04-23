@@ -196,7 +196,7 @@ jobs:
             -v /mnt/cloud:/mnt/cloud \
             -v /mnt/local:/mnt/local \
             -v /tmp/ccache:/tmp/ccache \
-            -v /tmp/${{ matrix.release.upload_dir }}:/tmp/${{ matrix.release.upload_dir }} \
+            -v /tmp/${{ matrix.release.name }}:/tmp/${{ matrix.release.name }} \
             -v /home/${USER}:/home/${USER} \
             -v ${{ github.workspace }}/github-output:/github-output \
             -e "HOME=/github/home" -e GITHUB_ACTIONS=true -e CI=true  \
@@ -279,7 +279,7 @@ jobs:
           startsWith(matrix.release.name, 'openeuler')
         shell: docker exec ci_drv_container bash {0}
         run: |
-          version=$(echo "${ matrix.release.upload_dir }" | cut -d "-" -f2)
+          version=$(echo "${{ matrix.release.name }}" | cut -d "-" -f2)
           if [[ ! -f /etc/yum.repos.d/openEuler.repo ]]; then
             echo "[base]" >> /etc/yum.repos.d/openEuler.repo
             echo "name=base" >> /etc/yum.repos.d/openEuler.repo
