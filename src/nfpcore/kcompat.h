@@ -897,6 +897,10 @@ static inline void timer_setup(struct timer_list *t, void (*f)(unsigned long),
 	container_of((void *)callback_timer, typeof(*var), timer_fieldname)
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 16, 0)
+	#define timer_container_of from_timer
+#endif
+
 
 #if VER_NON_RHEL_OR_SLEL_LT(4, 16) || VER_RHEL_LT(7, 6) || \
     SLEL_LOCALVER_LT(4, 12, 14, 120, 0)

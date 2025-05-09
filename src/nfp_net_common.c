@@ -181,7 +181,7 @@ static void nfp_net_reconfig_timer(unsigned long t)
 static void nfp_net_reconfig_timer(struct timer_list *t)
 #endif
 {
-	struct nfp_net *nn = from_timer(nn, t, reconfig_timer);
+	struct nfp_net *nn = timer_container_of(nn, t, reconfig_timer);
 
 	spin_lock_bh(&nn->reconfig_lock);
 
