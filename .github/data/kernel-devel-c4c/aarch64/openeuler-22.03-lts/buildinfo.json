@@ -1,5 +1,5 @@
 {
 	"name": "openeuler-22.03-lts",
 	"container": "ci-docker-registry-vm:5000/drv-aarch64-openeuler22.03-lts",
-	"mirror": "mirror.accum.se/mirror/openeuler.org/openEuler-22.03-LTS/OS/aarch64/Packages"
+	"mirror": "mirrors.dotsrc.org/openeuler/openEuler-22.03-LTS/OS/aarch64/Packages"
 }

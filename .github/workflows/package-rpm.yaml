@@ -455,14 +455,14 @@ jobs:
                                 "container": "ci-docker-registry-vm:5000/drv-x86-64-openeuler20.03-lts",
                                 "mirrors": [
                                    "local",
-                                   "https://mirror.accum.se/mirror/openeuler.org/openEuler-20.03-LTS/OS/x86_64/Packages/"
+                                   "http://mirrors.dotsrc.org/openeuler/openEuler-20.03-LTS/OS/x86_64/Packages/"
                                 ]
                              },
                              "aarch64": {
                                 "container": "ci-docker-registry-vm:5000/drv-aarch64-openeuler20.03-lts",
                                 "mirrors": [
                                    "local",
-                                   "https://mirror.accum.se/mirror/openeuler.org/openEuler-20.03-LTS/OS/aarch64/Packages/"
+                                   "http://mirrors.dotsrc.org/openeuler/openEuler-20.03-LTS/OS/aarch64/Packages/"
                                 ]
                              }
                           },
@@ -471,14 +471,14 @@ jobs:
                                 "container": "ci-docker-registry-vm:5000/drv-x86-64-openeuler22.03-lts",
                                 "mirrors": [
                                    "local",
-                                   "https://mirror.accum.se/mirror/openeuler.org/openEuler-22.03-LTS/OS/x86_64/Packages/"
+                                   "http://mirrors.dotsrc.org/openeuler/openEuler-22.03-LTS/OS/x86_64/Packages/"
                                 ]
                              },
                              "aarch64": {
                                 "container": "ci-docker-registry-vm:5000/drv-aarch64-openeuler22.03-lts",
                                 "mirrors": [
                                    "local",
-                                   "https://mirror.accum.se/mirror/openeuler.org/openEuler-22.03-LTS/OS/aarch64/Packages/"
+                                   "http://mirrors.dotsrc.org/openeuler/openEuler-22.03-LTS/OS/aarch64/Packages/"
                                 ]
                              }
                           },
@@ -839,10 +839,7 @@ jobs:
                  >> /etc/yum.repos.d/openEuler.repo
           fi
 
-          # Some images have repo.openeuler.org as the default, and others
-          # have mirrors.dotsrc.org as the default. Update for both scenarios.
-          sed -i 's|repo.openeuler.org|mirror.accum.se/mirror/openeuler.org|g' /etc/yum.repos.d/openEuler.repo
-          sed -i 's|mirrors.dotsrc.org/openeuler|mirror.accum.se/mirror/openeuler.org|g' /etc/yum.repos.d/openEuler.repo
+          sed -i 's|repo.openeuler.org|mirrors.dotsrc.org/openeuler|g' /etc/yum.repos.d/openEuler.repo
 
       - name: Install pre-requisite packages | YUM
         if: >-
