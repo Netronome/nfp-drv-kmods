@@ -520,6 +520,7 @@ jobs:
           EXTRA_DEP+=" flex"
           EXTRA_DEP+=" gcc"
           EXTRA_DEP+=" kmod"
+          EXTRA_DEP+=" libdw-dev"
           EXTRA_DEP+=" libelf-dev"
           EXTRA_DEP+=" libncurses-dev"
           EXTRA_DEP+=" libperl-dev"
