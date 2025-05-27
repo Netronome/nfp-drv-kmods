@@ -53,10 +53,11 @@
 #endif
 
 /* Redefine LINUX_VERSION_CODE for net and *-next kernels */
-#if LINUX_VERSION_CODE == KERNEL_VERSION(6, 11, 0)
-#ifndef IFF_RXFH_CONFIGURED
+#if LINUX_VERSION_CODE == KERNEL_VERSION(6, 15, 0)
+#include <linux/net.h>
+#ifndef SOCK_NOSPACE // Was moved to an enum in 6.16
 #undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(6, 12, 0)
+#define LINUX_VERSION_CODE KERNEL_VERSION(6, 16, 0)
 #endif
 #endif
 
