@@ -272,25 +272,10 @@ static void set_sha2_512hmac(struct nfp_ipsec_cfg_add_sa *cfg, int *trunc_len)
 	}
 }
 
-#if VER_NON_RHEL_LT(6, 3) || RHEL_RELEASE_LT(9, 316, 0, 0)
-#undef NL_SET_ERR_MSG_MOD
-#define NL_SET_ERR_MSG_MOD(e, m)	nn_err(nn, "%s\n", m)
-static int nfp_net_xfrm_add_state(struct xfrm_state *x)
-#elif LINUX_VERSION_CODE <= KERNEL_VERSION(6, 15, 0)
-static int nfp_net_xfrm_add_state(struct xfrm_state *x,
-				  struct netlink_ext_ack *extack)
-#else
-static int nfp_net_xfrm_add_state(struct net_device *dev,
-				  struct xfrm_state *x,
-				  struct netlink_ext_ack *extack)
-#endif
+int nfp_net_xfrm_add_state(struct net_device *dev,
+			   struct xfrm_state *x,
+			   struct netlink_ext_ack *extack)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0) && \
-	LINUX_VERSION_CODE <= KERNEL_VERSION(6, 15, 0)
-	struct net_device *dev = x->xso.real_dev;
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
-	struct net_device *dev = x->xso.dev;
-#endif
 	struct nfp_ipsec_cfg_mssg msg = {};
 	int i, key_len, trunc_len, err = 0;
 	struct nfp_ipsec_cfg_add_sa *cfg;
@@ -615,7 +600,7 @@ static bool nfp_net_ipsec_offload_ok(struct sk_buff *skb, struct xfrm_state *x)
 
 
 static const struct xfrmdev_ops nfp_net_ipsec_xfrmdev_ops = {
-	.xdo_dev_state_add = nfp_net_xfrm_add_state,
+	.xdo_dev_state_add = compat__nfp_net_xfrm_add_state,
 	.xdo_dev_state_delete = nfp_net_xfrm_del_state,
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0)
 	.xdo_dev_offload_ok = nfp_net_ipsec_offload_ok,

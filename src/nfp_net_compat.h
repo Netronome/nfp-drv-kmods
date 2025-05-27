@@ -1753,4 +1753,15 @@ static inline bool flow_rule_match_has_control_flags(struct flow_rule *rule,
 void compat__net_dim(struct dim *dim, const struct dim_sample *end_sample);
 #endif
 
+#if VER_NON_RHEL_LT(6, 3) || RHEL_RELEASE_LT(9, 316, 0, 0)
+int compat__nfp_net_xfrm_add_state(struct xfrm_state *x);
+#elif LINUX_VERSION_CODE <= KERNEL_VERSION(6, 15, 0)
+int compat__nfp_net_xfrm_add_state(struct xfrm_state *x,
+				  struct netlink_ext_ack *extack);
+#else
+int compat__nfp_net_xfrm_add_state(struct net_device *dev,
+				  struct xfrm_state *x,
+				  struct netlink_ext_ack *extack);
+#endif
+
 #endif /* _NFP_NET_COMPAT_H_ */

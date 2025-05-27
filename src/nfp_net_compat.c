@@ -17,6 +17,8 @@
 #include "nfp_app.h"
 #include "nfp_main.h"
 #include "nfp_port.h"
+#include "crypto/crypto.h"
+#include <net/xfrm.h>
 
 #ifndef CONFIG_NFP_NET_PF
 int nfp_net_pci_probe(struct nfp_pf *pf)
@@ -279,3 +281,41 @@ void compat__net_dim(struct dim *dim, const struct dim_sample *end_sample)
 #endif
 }
 #endif
+
+#ifdef CONFIG_NFP_NET_IPSEC
+#if VER_NON_RHEL_LT(6, 3) || RHEL_RELEASE_LT(9, 316, 0, 0)
+#undef NL_SET_ERR_MSG_MOD
+#define NL_SET_ERR_MSG_MOD(e, m)        nn_err(nn, "%s\n", m)
+int compat__nfp_net_xfrm_add_state(struct xfrm_state *x)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+	struct net_device *dev = x->xso.real_dev;
+#else
+	struct net_device *dev = x->xso.dev;
+#endif
+
+	return nfp_net_xfrm_add_state(dev, x, NULL);
+}
+#elif VER_NON_RHEL_LT(6, 16) || RHEL_RELEASE_GE(9, 316, 0, 0)
+int compat__nfp_net_xfrm_add_state(struct xfrm_state *x,
+				  struct netlink_ext_ack *extack)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
+	struct net_device *dev = x->xso.real_dev;
+#else
+	struct net_device *dev = x->xso.dev;
+#endif
+
+	return nfp_net_xfrm_add_state(dev, x, extack);
+}
+#else
+int compat__nfp_net_xfrm_add_state(struct net_device *dev,
+				  struct xfrm_state *x,
+				  struct netlink_ext_ack *extack)
+{
+	return nfp_net_xfrm_add_state(dev, x, extack);
+}
+#endif // CONFIG_NFP_NET_IPSEC
+
+#endif
+
