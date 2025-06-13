@@ -321,7 +321,7 @@ static void nfp_net_vnic_timer(unsigned long t)
 static void nfp_net_vnic_timer(struct timer_list *t)
 #endif
 {
-	struct nfp_net_vnic *vnic = from_timer(vnic, t, timer);
+	struct nfp_net_vnic *vnic = timer_container_of(vnic, t, timer);
 
 	BUG_ON(!vnic);
 
