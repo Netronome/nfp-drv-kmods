@@ -2863,8 +2863,12 @@ static int nfp_udp_tunnel_sync(struct net_device *netdev, unsigned int table)
 
 static const struct udp_tunnel_nic_info nfp_udp_tunnels = {
 	.sync_table     = nfp_udp_tunnel_sync,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
+	.flags          = UDP_TUNNEL_NIC_INFO_OPEN_ONLY,
+#else
 	.flags          = UDP_TUNNEL_NIC_INFO_MAY_SLEEP |
 			  UDP_TUNNEL_NIC_INFO_OPEN_ONLY,
+#endif
 	.tables         = {
 		{
 			.n_entries      = NFP_NET_N_VXLAN_PORTS,
