@@ -53,11 +53,11 @@
 #endif
 
 /* Redefine LINUX_VERSION_CODE for net and *-next kernels */
-#if LINUX_VERSION_CODE == KERNEL_VERSION(6, 15, 0)
-#include <linux/net.h>
-#ifndef SOCK_NOSPACE // Was moved to an enum in 6.16
+#if LINUX_VERSION_CODE == KERNEL_VERSION(6, 16, 0)
+#include <net/mana/gdma.h>
+#ifdef GDMA_STATUS_CMD_UNSUPPORTED
 #undef LINUX_VERSION_CODE
-#define LINUX_VERSION_CODE KERNEL_VERSION(6, 16, 0)
+#define LINUX_VERSION_CODE KERNEL_VERSION(6, 17, 0)
 #endif
 #endif
 
